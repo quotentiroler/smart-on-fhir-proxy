@@ -69,7 +69,7 @@ export class ClientManager {
   private authApi: AuthenticationApi;
   private adminToken?: string;
 
-  constructor(baseUrl: string = process.env.FHIR_BASE_URL || 'http://localhost:8445') {
+  constructor(baseUrl: string = process.env.BASE_URL || 'http://localhost:8445') {
     this.baseUrl = baseUrl;
     this.clientsFile = path.join(__dirname, '.registered-clients.json');
 
