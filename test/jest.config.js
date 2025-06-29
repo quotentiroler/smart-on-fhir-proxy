@@ -6,10 +6,6 @@ module.exports = {
   verbose: true,
   roots: ['<rootDir>'],
   testMatch: [
-    '**/smart-flows/**/?(*.)+(spec|test).ts',
-    '**/oauth-security/**/?(*.)+(spec|test).ts',
-    '**/client-registration/**/?(*.)+(spec|test).ts',
-    '**/util/**/?(*.)+(spec|test).ts',
     '**/__tests__/**/*.ts',
     '**/?(*.)+(spec|test).ts'
   ],

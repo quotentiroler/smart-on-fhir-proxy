@@ -17,8 +17,6 @@
     "test:token-security": "jest oauth-security/token-security",
     "generate-api": "bunx @openapitools/openapi-generator-cli generate -i http://localhost:8445/swagger/json -g typescript-fetch -o ./lib/api-client --skip-validate-spec",
     "validate-api": "bunx @openapitools/openapi-generator-cli validate -i http://localhost:8445/swagger/json",
-    "setup": "bun run client-registration/setup.ts",
-    "test:all": "bun run setup && npm run test"
   },
   "devDependencies": {
     "@types/jest": "^29.5.0",
