@@ -20,55 +20,55 @@ import { mapValues } from '../runtime';
  */
 export interface PostAdminHealthcareUsersRequest {
     /**
-     * 
+     * Unique username
      * @type {string}
      * @memberof PostAdminHealthcareUsersRequest
      */
     username: string;
     /**
-     * 
+     * Email address
      * @type {string}
      * @memberof PostAdminHealthcareUsersRequest
      */
     email: string;
     /**
-     * 
+     * First name
      * @type {string}
      * @memberof PostAdminHealthcareUsersRequest
      */
     firstName: string;
     /**
-     * 
+     * Last name
      * @type {string}
      * @memberof PostAdminHealthcareUsersRequest
      */
     lastName: string;
     /**
-     * 
+     * Healthcare role
      * @type {string}
      * @memberof PostAdminHealthcareUsersRequest
      */
     role?: string;
     /**
-     * 
+     * Department or unit
      * @type {string}
      * @memberof PostAdminHealthcareUsersRequest
      */
     department?: string;
     /**
-     * 
+     * National Provider Identifier
      * @type {string}
      * @memberof PostAdminHealthcareUsersRequest
      */
     npi?: string;
     /**
-     * 
+     * Initial password
      * @type {string}
      * @memberof PostAdminHealthcareUsersRequest
      */
     password?: string;
     /**
-     * 
+     * Whether password is temporary
      * @type {boolean}
      * @memberof PostAdminHealthcareUsersRequest
      */

@@ -20,25 +20,25 @@ import { mapValues } from '../runtime';
  */
 export interface PostAdminSmartAppsRequest {
     /**
-     * 
+     * Unique client identifier
      * @type {string}
      * @memberof PostAdminSmartAppsRequest
      */
     clientId: string;
     /**
-     * 
+     * Application name
      * @type {string}
      * @memberof PostAdminSmartAppsRequest
      */
     name: string;
     /**
-     * 
+     * Application description
      * @type {string}
      * @memberof PostAdminSmartAppsRequest
      */
     description?: string;
     /**
-     * 
+     * Whether this is a public client (default: false)
      * @type {boolean}
      * @memberof PostAdminSmartAppsRequest
      */
@@ -62,13 +62,13 @@ export interface PostAdminSmartAppsRequest {
      */
     scopes?: Array<string>;
     /**
-     * 
+     * SMART version (default: 2.0.0)
      * @type {string}
      * @memberof PostAdminSmartAppsRequest
      */
     smartVersion?: string;
     /**
-     * 
+     * FHIR version (default: STU3)
      * @type {string}
      * @memberof PostAdminSmartAppsRequest
      */

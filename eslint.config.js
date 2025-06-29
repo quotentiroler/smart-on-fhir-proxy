@@ -32,7 +32,7 @@ export default tseslint.config(
 
   // Backend specific config
   {
-    files: ['backend/**/*.{js,ts}'],
+    files: ['backend/**/*.{js,ts}', 'ui/**/*.{js,ts}'],
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     languageOptions: {
       ecmaVersion: 2022,
@@ -43,7 +43,4 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     },
   },
-
-  // UI workspace should use its own eslint.config.js
-  // So we don't need UI-specific rules here
 )

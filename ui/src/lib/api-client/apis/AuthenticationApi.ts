@@ -20,7 +20,6 @@ import type {
   PostAuthIntrospect200Response,
   PostAuthIntrospectRequest,
   PostAuthToken200Response,
-  PostAuthTokenRequest,
 } from '../models/index';
 import {
     GetAuthUserinfo200ResponseFromJSON,
@@ -33,8 +32,6 @@ import {
     PostAuthIntrospectRequestToJSON,
     PostAuthToken200ResponseFromJSON,
     PostAuthToken200ResponseToJSON,
-    PostAuthTokenRequestFromJSON,
-    PostAuthTokenRequestToJSON,
 } from '../models/index';
 
 export interface GetAuthAuthorizeRequest {
@@ -53,10 +50,6 @@ export interface GetAuthUserinfoRequest {
 
 export interface PostAuthIntrospectOperationRequest {
     postAuthIntrospectRequest: PostAuthIntrospectRequest;
-}
-
-export interface PostAuthTokenOperationRequest {
-    postAuthTokenRequest: PostAuthTokenRequest;
 }
 
 /**
@@ -217,19 +210,10 @@ export class AuthenticationApi extends runtime.BaseAPI {
      * Exchange authorization code for access token
      * OAuth Token Exchange
      */
-    async postAuthTokenRaw(requestParameters: PostAuthTokenOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostAuthToken200Response>> {
-        if (requestParameters['postAuthTokenRequest'] == null) {
-            throw new runtime.RequiredError(
-                'postAuthTokenRequest',
-                'Required parameter "postAuthTokenRequest" was null or undefined when calling postAuthToken().'
-            );
-        }
-
+    async postAuthTokenRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostAuthToken200Response>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
 
 
         let urlPath = `/auth/token`;
@@ -239,7 +223,6 @@ export class AuthenticationApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: PostAuthTokenRequestToJSON(requestParameters['postAuthTokenRequest']),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => PostAuthToken200ResponseFromJSON(jsonValue));
@@ -249,8 +232,8 @@ export class AuthenticationApi extends runtime.BaseAPI {
      * Exchange authorization code for access token
      * OAuth Token Exchange
      */
-    async postAuthToken(requestParameters: PostAuthTokenOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostAuthToken200Response> {
-        const response = await this.postAuthTokenRaw(requestParameters, initOverrides);
+    async postAuthToken(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostAuthToken200Response> {
+        const response = await this.postAuthTokenRaw(initOverrides);
         return await response.value();
     }
 

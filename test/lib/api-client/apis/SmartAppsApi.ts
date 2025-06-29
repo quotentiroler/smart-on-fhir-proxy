@@ -16,18 +16,21 @@
 import * as runtime from '../runtime';
 import type {
   GetAdminSmartApps200ResponseInner,
-  GetServerInfo500Response,
+  PostAdminSmartApps200Response,
   PostAdminSmartAppsRequest,
+  PostShutdown500Response,
   PutAdminSmartAppsByClientId200Response,
   PutAdminSmartAppsByClientIdRequest,
 } from '../models/index';
 import {
     GetAdminSmartApps200ResponseInnerFromJSON,
     GetAdminSmartApps200ResponseInnerToJSON,
-    GetServerInfo500ResponseFromJSON,
-    GetServerInfo500ResponseToJSON,
+    PostAdminSmartApps200ResponseFromJSON,
+    PostAdminSmartApps200ResponseToJSON,
     PostAdminSmartAppsRequestFromJSON,
     PostAdminSmartAppsRequestToJSON,
+    PostShutdown500ResponseFromJSON,
+    PostShutdown500ResponseToJSON,
     PutAdminSmartAppsByClientId200ResponseFromJSON,
     PutAdminSmartAppsByClientId200ResponseToJSON,
     PutAdminSmartAppsByClientIdRequestFromJSON,
@@ -146,7 +149,7 @@ export class SmartAppsApi extends runtime.BaseAPI {
      * Get a single SMART on FHIR application by clientId
      * Get SMART on FHIR Application
      */
-    async getAdminSmartAppsByClientIdRaw(requestParameters: GetAdminSmartAppsByClientIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminSmartApps200ResponseInner>> {
+    async getAdminSmartAppsByClientIdRaw(requestParameters: GetAdminSmartAppsByClientIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostAdminSmartApps200Response>> {
         if (requestParameters['clientId'] == null) {
             throw new runtime.RequiredError(
                 'clientId',
@@ -177,14 +180,14 @@ export class SmartAppsApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminSmartApps200ResponseInnerFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => PostAdminSmartApps200ResponseFromJSON(jsonValue));
     }
 
     /**
      * Get a single SMART on FHIR application by clientId
      * Get SMART on FHIR Application
      */
-    async getAdminSmartAppsByClientId(requestParameters: GetAdminSmartAppsByClientIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminSmartApps200ResponseInner> {
+    async getAdminSmartAppsByClientId(requestParameters: GetAdminSmartAppsByClientIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostAdminSmartApps200Response> {
         const response = await this.getAdminSmartAppsByClientIdRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -193,7 +196,7 @@ export class SmartAppsApi extends runtime.BaseAPI {
      * Create a new SMART on FHIR application
      * Create SMART on FHIR Application
      */
-    async postAdminSmartAppsRaw(requestParameters: PostAdminSmartAppsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminSmartApps200ResponseInner>> {
+    async postAdminSmartAppsRaw(requestParameters: PostAdminSmartAppsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostAdminSmartApps200Response>> {
         if (requestParameters['postAdminSmartAppsRequest'] == null) {
             throw new runtime.RequiredError(
                 'postAdminSmartAppsRequest',
@@ -226,14 +229,14 @@ export class SmartAppsApi extends runtime.BaseAPI {
             body: PostAdminSmartAppsRequestToJSON(requestParameters['postAdminSmartAppsRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminSmartApps200ResponseInnerFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => PostAdminSmartApps200ResponseFromJSON(jsonValue));
     }
 
     /**
      * Create a new SMART on FHIR application
      * Create SMART on FHIR Application
      */
-    async postAdminSmartApps(requestParameters: PostAdminSmartAppsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminSmartApps200ResponseInner> {
+    async postAdminSmartApps(requestParameters: PostAdminSmartAppsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostAdminSmartApps200Response> {
         const response = await this.postAdminSmartAppsRaw(requestParameters, initOverrides);
         return await response.value();
     }

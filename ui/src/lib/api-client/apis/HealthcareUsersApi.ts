@@ -15,24 +15,38 @@
 
 import * as runtime from '../runtime';
 import type {
-  DeleteAdminSmartAppsByClientId200Response,
   GetAdminHealthcareUsers200ResponseInner,
+  GetAdminHealthcareUsersLimitParameter,
+  GetAdminHealthcareUsersOffsetParameter,
   PostAdminHealthcareUsersRequest,
+  PostShutdown500Response,
   PutAdminHealthcareUsersByUserIdRequest,
+  PutAdminSmartAppsByClientId200Response,
 } from '../models/index';
 import {
-    DeleteAdminSmartAppsByClientId200ResponseFromJSON,
-    DeleteAdminSmartAppsByClientId200ResponseToJSON,
     GetAdminHealthcareUsers200ResponseInnerFromJSON,
     GetAdminHealthcareUsers200ResponseInnerToJSON,
+    GetAdminHealthcareUsersLimitParameterFromJSON,
+    GetAdminHealthcareUsersLimitParameterToJSON,
+    GetAdminHealthcareUsersOffsetParameterFromJSON,
+    GetAdminHealthcareUsersOffsetParameterToJSON,
     PostAdminHealthcareUsersRequestFromJSON,
     PostAdminHealthcareUsersRequestToJSON,
+    PostShutdown500ResponseFromJSON,
+    PostShutdown500ResponseToJSON,
     PutAdminHealthcareUsersByUserIdRequestFromJSON,
     PutAdminHealthcareUsersByUserIdRequestToJSON,
+    PutAdminSmartAppsByClientId200ResponseFromJSON,
+    PutAdminSmartAppsByClientId200ResponseToJSON,
 } from '../models/index';
 
 export interface DeleteAdminHealthcareUsersByUserIdRequest {
     userId: string;
+}
+
+export interface GetAdminHealthcareUsersRequest {
+    limit?: GetAdminHealthcareUsersLimitParameter;
+    offset?: GetAdminHealthcareUsersOffsetParameter;
 }
 
 export interface GetAdminHealthcareUsersByUserIdRequest {
@@ -57,7 +71,7 @@ export class HealthcareUsersApi extends runtime.BaseAPI {
      * Delete a healthcare user by userId
      * Delete Healthcare User
      */
-    async deleteAdminHealthcareUsersByUserIdRaw(requestParameters: DeleteAdminHealthcareUsersByUserIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminSmartAppsByClientId200Response>> {
+    async deleteAdminHealthcareUsersByUserIdRaw(requestParameters: DeleteAdminHealthcareUsersByUserIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminSmartAppsByClientId200Response>> {
         if (requestParameters['userId'] == null) {
             throw new runtime.RequiredError(
                 'userId',
@@ -69,6 +83,14 @@ export class HealthcareUsersApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/admin/healthcare-users/{userId}`;
         urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));
@@ -80,27 +102,43 @@ export class HealthcareUsersApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminSmartAppsByClientId200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminSmartAppsByClientId200ResponseFromJSON(jsonValue));
     }
 
     /**
      * Delete a healthcare user by userId
      * Delete Healthcare User
      */
-    async deleteAdminHealthcareUsersByUserId(requestParameters: DeleteAdminHealthcareUsersByUserIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminSmartAppsByClientId200Response> {
+    async deleteAdminHealthcareUsersByUserId(requestParameters: DeleteAdminHealthcareUsersByUserIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminSmartAppsByClientId200Response> {
         const response = await this.deleteAdminHealthcareUsersByUserIdRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
     /**
-     * Get all healthcare users
+     * Get all healthcare users with optional pagination
      * List Healthcare Users
      */
-    async getAdminHealthcareUsersRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GetAdminHealthcareUsers200ResponseInner>>> {
+    async getAdminHealthcareUsersRaw(requestParameters: GetAdminHealthcareUsersRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GetAdminHealthcareUsers200ResponseInner>>> {
         const queryParameters: any = {};
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['offset'] != null) {
+            queryParameters['offset'] = requestParameters['offset'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/admin/healthcare-users/`;
 
@@ -115,11 +153,11 @@ export class HealthcareUsersApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get all healthcare users
+     * Get all healthcare users with optional pagination
      * List Healthcare Users
      */
-    async getAdminHealthcareUsers(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GetAdminHealthcareUsers200ResponseInner>> {
-        const response = await this.getAdminHealthcareUsersRaw(initOverrides);
+    async getAdminHealthcareUsers(requestParameters: GetAdminHealthcareUsersRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GetAdminHealthcareUsers200ResponseInner>> {
+        const response = await this.getAdminHealthcareUsersRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -139,6 +177,14 @@ export class HealthcareUsersApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/admin/healthcare-users/{userId}`;
         urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));
@@ -180,6 +226,14 @@ export class HealthcareUsersApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/admin/healthcare-users/`;
 
@@ -228,6 +282,14 @@ export class HealthcareUsersApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/admin/healthcare-users/{userId}`;
         urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));

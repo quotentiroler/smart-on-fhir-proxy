@@ -49,6 +49,18 @@ export interface PostAuthToken200Response {
      * @memberof PostAuthToken200Response
      */
     scope?: string;
+    /**
+     * Error code if request failed
+     * @type {string}
+     * @memberof PostAuthToken200Response
+     */
+    error?: string;
+    /**
+     * Error description if request failed
+     * @type {string}
+     * @memberof PostAuthToken200Response
+     */
+    errorDescription?: string;
 }
 
 /**
@@ -73,6 +85,8 @@ export function PostAuthToken200ResponseFromJSONTyped(json: any, ignoreDiscrimin
         'expiresIn': json['expires_in'] == null ? undefined : json['expires_in'],
         'refreshToken': json['refresh_token'] == null ? undefined : json['refresh_token'],
         'scope': json['scope'] == null ? undefined : json['scope'],
+        'error': json['error'] == null ? undefined : json['error'],
+        'errorDescription': json['error_description'] == null ? undefined : json['error_description'],
     };
 }
 
@@ -92,6 +106,8 @@ export function PostAuthToken200ResponseToJSONTyped(value?: PostAuthToken200Resp
         'expires_in': value['expiresIn'],
         'refresh_token': value['refreshToken'],
         'scope': value['scope'],
+        'error': value['error'],
+        'error_description': value['errorDescription'],
     };
 }
 

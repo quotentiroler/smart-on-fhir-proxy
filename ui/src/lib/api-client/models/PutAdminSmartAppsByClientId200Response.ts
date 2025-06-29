@@ -20,11 +20,17 @@ import { mapValues } from '../runtime';
  */
 export interface PutAdminSmartAppsByClientId200Response {
     /**
-     * Whether the update was successful
+     * Whether the operation was successful
      * @type {boolean}
      * @memberof PutAdminSmartAppsByClientId200Response
      */
     success: boolean;
+    /**
+     * Success message
+     * @type {string}
+     * @memberof PutAdminSmartAppsByClientId200Response
+     */
+    message?: string;
 }
 
 /**
@@ -46,6 +52,7 @@ export function PutAdminSmartAppsByClientId200ResponseFromJSONTyped(json: any, i
     return {
         
         'success': json['success'],
+        'message': json['message'] == null ? undefined : json['message'],
     };
 }
 
@@ -61,6 +68,7 @@ export function PutAdminSmartAppsByClientId200ResponseToJSONTyped(value?: PutAdm
     return {
         
         'success': value['success'],
+        'message': value['message'],
     };
 }
 

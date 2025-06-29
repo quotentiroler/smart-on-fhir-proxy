@@ -57,10 +57,10 @@ export interface GetAdminHealthcareUsers200ResponseInner {
     enabled: boolean;
     /**
      * 
-     * @type {any}
+     * @type {object}
      * @memberof GetAdminHealthcareUsers200ResponseInner
      */
-    attributes?: any | null;
+    attributes?: object;
     /**
      * Creation timestamp
      * @type {number}

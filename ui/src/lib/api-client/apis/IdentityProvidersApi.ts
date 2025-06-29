@@ -15,23 +15,23 @@
 
 import * as runtime from '../runtime';
 import type {
-  DeleteAdminSmartAppsByClientId200Response,
+  DeleteAdminRolesByRoleName200Response,
   GetAdminIdps200ResponseInner,
   PostAdminIdpsRequest,
   PutAdminIdpsByAliasRequest,
-  PutAdminSmartAppsByClientId200Response,
+  PutAdminRolesByRoleName200Response,
 } from '../models/index';
 import {
-    DeleteAdminSmartAppsByClientId200ResponseFromJSON,
-    DeleteAdminSmartAppsByClientId200ResponseToJSON,
+    DeleteAdminRolesByRoleName200ResponseFromJSON,
+    DeleteAdminRolesByRoleName200ResponseToJSON,
     GetAdminIdps200ResponseInnerFromJSON,
     GetAdminIdps200ResponseInnerToJSON,
     PostAdminIdpsRequestFromJSON,
     PostAdminIdpsRequestToJSON,
     PutAdminIdpsByAliasRequestFromJSON,
     PutAdminIdpsByAliasRequestToJSON,
-    PutAdminSmartAppsByClientId200ResponseFromJSON,
-    PutAdminSmartAppsByClientId200ResponseToJSON,
+    PutAdminRolesByRoleName200ResponseFromJSON,
+    PutAdminRolesByRoleName200ResponseToJSON,
 } from '../models/index';
 
 export interface DeleteAdminIdpsByAliasRequest {
@@ -60,7 +60,7 @@ export class IdentityProvidersApi extends runtime.BaseAPI {
      * Delete an identity provider by alias
      * Delete Identity Provider
      */
-    async deleteAdminIdpsByAliasRaw(requestParameters: DeleteAdminIdpsByAliasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminSmartAppsByClientId200Response>> {
+    async deleteAdminIdpsByAliasRaw(requestParameters: DeleteAdminIdpsByAliasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminRolesByRoleName200Response>> {
         if (requestParameters['alias'] == null) {
             throw new runtime.RequiredError(
                 'alias',
@@ -83,14 +83,14 @@ export class IdentityProvidersApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminSmartAppsByClientId200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminRolesByRoleName200ResponseFromJSON(jsonValue));
     }
 
     /**
      * Delete an identity provider by alias
      * Delete Identity Provider
      */
-    async deleteAdminIdpsByAlias(requestParameters: DeleteAdminIdpsByAliasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminSmartAppsByClientId200Response> {
+    async deleteAdminIdpsByAlias(requestParameters: DeleteAdminIdpsByAliasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminRolesByRoleName200Response> {
         const response = await this.deleteAdminIdpsByAliasRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -210,7 +210,7 @@ export class IdentityProvidersApi extends runtime.BaseAPI {
      * Update an identity provider by alias
      * Update Identity Provider
      */
-    async putAdminIdpsByAliasRaw(requestParameters: PutAdminIdpsByAliasOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminSmartAppsByClientId200Response>> {
+    async putAdminIdpsByAliasRaw(requestParameters: PutAdminIdpsByAliasOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminRolesByRoleName200Response>> {
         if (requestParameters['alias'] == null) {
             throw new runtime.RequiredError(
                 'alias',
@@ -243,14 +243,14 @@ export class IdentityProvidersApi extends runtime.BaseAPI {
             body: PutAdminIdpsByAliasRequestToJSON(requestParameters['putAdminIdpsByAliasRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminSmartAppsByClientId200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminRolesByRoleName200ResponseFromJSON(jsonValue));
     }
 
     /**
      * Update an identity provider by alias
      * Update Identity Provider
      */
-    async putAdminIdpsByAlias(requestParameters: PutAdminIdpsByAliasOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminSmartAppsByClientId200Response> {
+    async putAdminIdpsByAlias(requestParameters: PutAdminIdpsByAliasOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminRolesByRoleName200Response> {
         const response = await this.putAdminIdpsByAliasRaw(requestParameters, initOverrides);
         return await response.value();
     }

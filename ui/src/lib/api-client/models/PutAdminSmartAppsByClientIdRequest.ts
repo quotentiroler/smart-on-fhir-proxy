@@ -20,19 +20,19 @@ import { mapValues } from '../runtime';
  */
 export interface PutAdminSmartAppsByClientIdRequest {
     /**
-     * 
+     * Application name
      * @type {string}
      * @memberof PutAdminSmartAppsByClientIdRequest
      */
     name?: string;
     /**
-     * 
+     * Application description
      * @type {string}
      * @memberof PutAdminSmartAppsByClientIdRequest
      */
     description?: string;
     /**
-     * 
+     * Whether application is enabled
      * @type {boolean}
      * @memberof PutAdminSmartAppsByClientIdRequest
      */
@@ -50,13 +50,13 @@ export interface PutAdminSmartAppsByClientIdRequest {
      */
     webOrigins?: Array<string>;
     /**
-     * 
+     * SMART version
      * @type {string}
      * @memberof PutAdminSmartAppsByClientIdRequest
      */
     smartVersion?: string;
     /**
-     * 
+     * FHIR version
      * @type {string}
      * @memberof PutAdminSmartAppsByClientIdRequest
      */

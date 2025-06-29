@@ -15,17 +15,17 @@
 
 import * as runtime from '../runtime';
 import type {
-  DeleteAdminSmartAppsByClientId200Response,
+  DeleteAdminRolesByRoleName200Response,
   GetAdminLaunchContexts200ResponseInner,
-  PutAdminSmartAppsByClientId200Response,
+  PutAdminRolesByRoleName200Response,
 } from '../models/index';
 import {
-    DeleteAdminSmartAppsByClientId200ResponseFromJSON,
-    DeleteAdminSmartAppsByClientId200ResponseToJSON,
+    DeleteAdminRolesByRoleName200ResponseFromJSON,
+    DeleteAdminRolesByRoleName200ResponseToJSON,
     GetAdminLaunchContexts200ResponseInnerFromJSON,
     GetAdminLaunchContexts200ResponseInnerToJSON,
-    PutAdminSmartAppsByClientId200ResponseFromJSON,
-    PutAdminSmartAppsByClientId200ResponseToJSON,
+    PutAdminRolesByRoleName200ResponseFromJSON,
+    PutAdminRolesByRoleName200ResponseToJSON,
 } from '../models/index';
 
 export interface DeleteAdminLaunchContextsByUserIdEncounterRequest {
@@ -55,7 +55,7 @@ export class LaunchContextsApi extends runtime.BaseAPI {
      * Remove the encounter context for a user
      * Remove Encounter Context
      */
-    async deleteAdminLaunchContextsByUserIdEncounterRaw(requestParameters: DeleteAdminLaunchContextsByUserIdEncounterRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminSmartAppsByClientId200Response>> {
+    async deleteAdminLaunchContextsByUserIdEncounterRaw(requestParameters: DeleteAdminLaunchContextsByUserIdEncounterRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminRolesByRoleName200Response>> {
         if (requestParameters['userId'] == null) {
             throw new runtime.RequiredError(
                 'userId',
@@ -78,14 +78,14 @@ export class LaunchContextsApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminSmartAppsByClientId200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminRolesByRoleName200ResponseFromJSON(jsonValue));
     }
 
     /**
      * Remove the encounter context for a user
      * Remove Encounter Context
      */
-    async deleteAdminLaunchContextsByUserIdEncounter(requestParameters: DeleteAdminLaunchContextsByUserIdEncounterRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminSmartAppsByClientId200Response> {
+    async deleteAdminLaunchContextsByUserIdEncounter(requestParameters: DeleteAdminLaunchContextsByUserIdEncounterRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminRolesByRoleName200Response> {
         const response = await this.deleteAdminLaunchContextsByUserIdEncounterRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -94,7 +94,7 @@ export class LaunchContextsApi extends runtime.BaseAPI {
      * Remove the patient context for a user
      * Remove Patient Context
      */
-    async deleteAdminLaunchContextsByUserIdPatientRaw(requestParameters: DeleteAdminLaunchContextsByUserIdPatientRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminSmartAppsByClientId200Response>> {
+    async deleteAdminLaunchContextsByUserIdPatientRaw(requestParameters: DeleteAdminLaunchContextsByUserIdPatientRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminRolesByRoleName200Response>> {
         if (requestParameters['userId'] == null) {
             throw new runtime.RequiredError(
                 'userId',
@@ -117,14 +117,14 @@ export class LaunchContextsApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminSmartAppsByClientId200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminRolesByRoleName200ResponseFromJSON(jsonValue));
     }
 
     /**
      * Remove the patient context for a user
      * Remove Patient Context
      */
-    async deleteAdminLaunchContextsByUserIdPatient(requestParameters: DeleteAdminLaunchContextsByUserIdPatientRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminSmartAppsByClientId200Response> {
+    async deleteAdminLaunchContextsByUserIdPatient(requestParameters: DeleteAdminLaunchContextsByUserIdPatientRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminRolesByRoleName200Response> {
         const response = await this.deleteAdminLaunchContextsByUserIdPatientRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -164,7 +164,7 @@ export class LaunchContextsApi extends runtime.BaseAPI {
      * Set the encounter context for a user
      * Set Encounter Context
      */
-    async postAdminLaunchContextsByUserIdEncounterByEncounterIdRaw(requestParameters: PostAdminLaunchContextsByUserIdEncounterByEncounterIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminSmartAppsByClientId200Response>> {
+    async postAdminLaunchContextsByUserIdEncounterByEncounterIdRaw(requestParameters: PostAdminLaunchContextsByUserIdEncounterByEncounterIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminRolesByRoleName200Response>> {
         if (requestParameters['userId'] == null) {
             throw new runtime.RequiredError(
                 'userId',
@@ -195,14 +195,14 @@ export class LaunchContextsApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminSmartAppsByClientId200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminRolesByRoleName200ResponseFromJSON(jsonValue));
     }
 
     /**
      * Set the encounter context for a user
      * Set Encounter Context
      */
-    async postAdminLaunchContextsByUserIdEncounterByEncounterId(requestParameters: PostAdminLaunchContextsByUserIdEncounterByEncounterIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminSmartAppsByClientId200Response> {
+    async postAdminLaunchContextsByUserIdEncounterByEncounterId(requestParameters: PostAdminLaunchContextsByUserIdEncounterByEncounterIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminRolesByRoleName200Response> {
         const response = await this.postAdminLaunchContextsByUserIdEncounterByEncounterIdRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -211,7 +211,7 @@ export class LaunchContextsApi extends runtime.BaseAPI {
      * Set the patient context for a user
      * Set Patient Context
      */
-    async postAdminLaunchContextsByUserIdPatientByPatientIdRaw(requestParameters: PostAdminLaunchContextsByUserIdPatientByPatientIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminSmartAppsByClientId200Response>> {
+    async postAdminLaunchContextsByUserIdPatientByPatientIdRaw(requestParameters: PostAdminLaunchContextsByUserIdPatientByPatientIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminRolesByRoleName200Response>> {
         if (requestParameters['userId'] == null) {
             throw new runtime.RequiredError(
                 'userId',
@@ -242,14 +242,14 @@ export class LaunchContextsApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminSmartAppsByClientId200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminRolesByRoleName200ResponseFromJSON(jsonValue));
     }
 
     /**
      * Set the patient context for a user
      * Set Patient Context
      */
-    async postAdminLaunchContextsByUserIdPatientByPatientId(requestParameters: PostAdminLaunchContextsByUserIdPatientByPatientIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminSmartAppsByClientId200Response> {
+    async postAdminLaunchContextsByUserIdPatientByPatientId(requestParameters: PostAdminLaunchContextsByUserIdPatientByPatientIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminRolesByRoleName200Response> {
         const response = await this.postAdminLaunchContextsByUserIdPatientByPatientIdRaw(requestParameters, initOverrides);
         return await response.value();
     }

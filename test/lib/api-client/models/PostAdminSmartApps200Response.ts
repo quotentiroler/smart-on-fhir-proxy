@@ -16,83 +16,83 @@ import { mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface GetAdminSmartApps200ResponseInner
+ * @interface PostAdminSmartApps200Response
  */
-export interface GetAdminSmartApps200ResponseInner {
+export interface PostAdminSmartApps200Response {
     /**
      * Client ID
      * @type {string}
-     * @memberof GetAdminSmartApps200ResponseInner
+     * @memberof PostAdminSmartApps200Response
      */
     id?: string;
     /**
      * Client identifier
      * @type {string}
-     * @memberof GetAdminSmartApps200ResponseInner
+     * @memberof PostAdminSmartApps200Response
      */
     clientId?: string;
     /**
      * Application name
      * @type {string}
-     * @memberof GetAdminSmartApps200ResponseInner
+     * @memberof PostAdminSmartApps200Response
      */
     name?: string;
     /**
      * Application description
      * @type {string}
-     * @memberof GetAdminSmartApps200ResponseInner
+     * @memberof PostAdminSmartApps200Response
      */
     description?: string;
     /**
      * Whether app is enabled
      * @type {boolean}
-     * @memberof GetAdminSmartApps200ResponseInner
+     * @memberof PostAdminSmartApps200Response
      */
     enabled?: boolean;
     /**
      * OAuth protocol
      * @type {string}
-     * @memberof GetAdminSmartApps200ResponseInner
+     * @memberof PostAdminSmartApps200Response
      */
     protocol?: string;
     /**
      * Whether app is public client
      * @type {boolean}
-     * @memberof GetAdminSmartApps200ResponseInner
+     * @memberof PostAdminSmartApps200Response
      */
     publicClient?: boolean;
     /**
      * 
      * @type {Array<string>}
-     * @memberof GetAdminSmartApps200ResponseInner
+     * @memberof PostAdminSmartApps200Response
      */
     redirectUris?: Array<string>;
     /**
      * 
      * @type {Array<string>}
-     * @memberof GetAdminSmartApps200ResponseInner
+     * @memberof PostAdminSmartApps200Response
      */
     webOrigins?: Array<string>;
     /**
      * 
      * @type {object}
-     * @memberof GetAdminSmartApps200ResponseInner
+     * @memberof PostAdminSmartApps200Response
      */
     attributes?: object;
 }
 
 /**
- * Check if a given object implements the GetAdminSmartApps200ResponseInner interface.
+ * Check if a given object implements the PostAdminSmartApps200Response interface.
  */
-export function instanceOfGetAdminSmartApps200ResponseInner(value: object): value is GetAdminSmartApps200ResponseInner {
+export function instanceOfPostAdminSmartApps200Response(value: object): value is PostAdminSmartApps200Response {
     return true;
 }
 
-export function GetAdminSmartApps200ResponseInnerFromJSON(json: any): GetAdminSmartApps200ResponseInner {
-    return GetAdminSmartApps200ResponseInnerFromJSONTyped(json, false);
+export function PostAdminSmartApps200ResponseFromJSON(json: any): PostAdminSmartApps200Response {
+    return PostAdminSmartApps200ResponseFromJSONTyped(json, false);
 }
 
-export function GetAdminSmartApps200ResponseInnerFromJSONTyped(json: any, ignoreDiscriminator: boolean): GetAdminSmartApps200ResponseInner {
+export function PostAdminSmartApps200ResponseFromJSONTyped(json: any, ignoreDiscriminator: boolean): PostAdminSmartApps200Response {
     if (json == null) {
         return json;
     }
@@ -111,11 +111,11 @@ export function GetAdminSmartApps200ResponseInnerFromJSONTyped(json: any, ignore
     };
 }
 
-export function GetAdminSmartApps200ResponseInnerToJSON(json: any): GetAdminSmartApps200ResponseInner {
-    return GetAdminSmartApps200ResponseInnerToJSONTyped(json, false);
+export function PostAdminSmartApps200ResponseToJSON(json: any): PostAdminSmartApps200Response {
+    return PostAdminSmartApps200ResponseToJSONTyped(json, false);
 }
 
-export function GetAdminSmartApps200ResponseInnerToJSONTyped(value?: GetAdminSmartApps200ResponseInner | null, ignoreDiscriminator: boolean = false): any {
+export function PostAdminSmartApps200ResponseToJSONTyped(value?: PostAdminSmartApps200Response | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }

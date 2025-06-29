@@ -20,43 +20,43 @@ import { mapValues } from '../runtime';
  */
 export interface PutAdminHealthcareUsersByUserIdRequest {
     /**
-     * 
+     * First name
      * @type {string}
      * @memberof PutAdminHealthcareUsersByUserIdRequest
      */
     firstName?: string;
     /**
-     * 
+     * Last name
      * @type {string}
      * @memberof PutAdminHealthcareUsersByUserIdRequest
      */
     lastName?: string;
     /**
-     * 
+     * Email address
      * @type {string}
      * @memberof PutAdminHealthcareUsersByUserIdRequest
      */
     email?: string;
     /**
-     * 
+     * Whether user is enabled
      * @type {boolean}
      * @memberof PutAdminHealthcareUsersByUserIdRequest
      */
     enabled?: boolean;
     /**
-     * 
+     * Healthcare role
      * @type {string}
      * @memberof PutAdminHealthcareUsersByUserIdRequest
      */
     role?: string;
     /**
-     * 
+     * Department or unit
      * @type {string}
      * @memberof PutAdminHealthcareUsersByUserIdRequest
      */
     department?: string;
     /**
-     * 
+     * National Provider Identifier
      * @type {string}
      * @memberof PutAdminHealthcareUsersByUserIdRequest
      */
