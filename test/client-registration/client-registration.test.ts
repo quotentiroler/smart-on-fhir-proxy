@@ -15,10 +15,30 @@ import { setupClients } from './setup';
 
 describe('SMART Client Registration', () => {
   let clientManager: ClientManager;
-  const baseUrl = process.env.FHIR_BASE_URL || 'http://localhost:8445/v/R4/fhir';
+  const baseUrl = process.env.FHIR_BASE_URL || 'http://localhost:8445';
 
   beforeAll(async () => {
     clientManager = new ClientManager(baseUrl);
+
+    // Get admin token for authentication
+    try {
+      const tokenResponse = await fetch('http://localhost:8080/realms/master/protocol/openid-connect/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: 'grant_type=password&client_id=admin-cli&username=admin&password=admin'
+      });
+
+      if (tokenResponse.ok) {
+        const tokenData = await tokenResponse.json() as any;
+        clientManager.setAdminToken(tokenData.access_token);
+      } else {
+        console.warn('Could not get admin token for tests, some tests may fail');
+      }
+    } catch (error) {
+      console.warn('Could not authenticate for tests:', error);
+    }
 
     // Always verify server is accessible before running tests
     try {
@@ -242,10 +262,10 @@ describe('SMART Client Registration', () => {
         clientType: 'backend-service'
       };
 
-      // Should not throw, should fall back to local registration
-      const result = await invalidClientManager.registerClient(testConfig);
-      expect(result).toBeDefined();
-      expect(result.clientId).toBe(testConfig.clientId);
+      // Should throw an error when server is not accessible
+      await expect(invalidClientManager.registerClient(testConfig))
+        .rejects
+        .toThrow(/Server connection failed/);
     });
 
     it('should fail when server is down', async () => {

@@ -79,8 +79,8 @@ export function SmartAppsManager() {
   };
 
   const toggleAppStatus = (id: string) => {
-    setApps(apps.map(app => 
-      app.id === id 
+    setApps(apps.map(app =>
+      app.id === id
         ? { ...app, status: app.status === 'active' ? 'inactive' as const : 'active' as const }
         : app
     ));
@@ -250,7 +250,7 @@ export function SmartAppsManager() {
                     </code>
                   </TableCell>
                   <TableCell>
-                    <Badge 
+                    <Badge
                       variant={app.status === 'active' ? 'default' : 'secondary'}
                       className={app.status === 'active' ? 'bg-green-100 text-green-800' : ''}
                     >
@@ -287,7 +287,7 @@ export function SmartAppsManager() {
                         </DropdownMenuItem>
                         <DropdownMenuItem>Edit Details</DropdownMenuItem>
                         <DropdownMenuItem>View Scopes</DropdownMenuItem>
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={() => deleteApp(app.id)}
                           className="text-red-600"
                         >

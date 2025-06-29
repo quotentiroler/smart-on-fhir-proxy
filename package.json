@@ -1,0 +1,74 @@
+{
+  "name": "smart-on-fhir",
+  "version": "1.0.0",
+  "description": "SMART on FHIR application with Keycloak integration",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "ui"
+  ],
+  "scripts": {
+    "dev": "concurrently \"bun run dev:backend\" \"bun run dev:ui\"",
+    "dev:backend": "cd backend && bun run dev",
+    "dev:ui": "cd ui && bun run dev",
+    "build": "bun run build:backend && bun run build:ui",
+    "build:backend": "cd backend && bun run build",
+    "build:ui": "cd ui && bun run build",
+    "start": "concurrently \"bun run start:backend\" \"bun run start:ui\"",
+    "start:backend": "cd backend && bun run start",
+    "start:ui": "cd ui && bun run preview",
+    "generate-api": "concurrently \"bun run generate-api:ui\" \"bun run generate-api:test\"",
+    "generate-api:ui": "cd ui && bun run generate-api",
+    "generate-api:test": "cd test && bun run generate-api",
+    "validate-api": "concurrently \"bun run validate-api:ui\" \"bun run validate-api:test\"",
+    "validate-api:ui": "cd ui && bun run validate-api",
+    "validate-api:test": "cd test && bun run validate-api",
+    "test": "cd test && bun run test:all",
+    "test:setup": "cd test && bun run setup",
+    "test:smart-flows": "cd test && bun run test:smart-flows",
+    "test:backend-services": "cd test && bun run test:backend-services",
+    "test:ehr-launch": "cd test && bun run test:ehr-launch",
+    "test:standalone-launch": "cd test && bun run test:standalone-launch",
+    "test:oauth-security": "cd test && bun run test:oauth-security",
+    "test:client-registration": "cd test && bun run test:client-registration",
+    "lint": "concurrently \"bun run lint:backend\" \"bun run lint:ui\"",
+    "lint:backend": "cd backend && bun run lint",
+    "lint:ui": "cd ui && bun run lint",
+    "clean": "bun run clean:backend && bun run clean:ui",
+    "clean:backend": "cd backend && rm -rf node_modules dist",
+    "clean:ui": "cd ui && rm -rf node_modules dist",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "keycloak:start": "docker compose up -d keycloak",
+    "keycloak:stop": "docker compose stop keycloak",
+    "setup": "bun install && cd backend && bun install && cd ../ui && bun install && cd ../test && bun install"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.30.0",
+    "concurrently": "^9.2.0",
+    "eslint": "^9.30.0",
+    "globals": "^16.2.0",
+    "typescript-eslint": "^8.35.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "bun": ">=1.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/smart-on-fhir.git"
+  },
+  "keywords": [
+    "smart-on-fhir",
+    "healthcare",
+    "keycloak",
+    "oauth2",
+    "fhir",
+    "elysia",
+    "react",
+    "typescript"
+  ],
+  "license": "MIT"
+}

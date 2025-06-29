@@ -1,33 +1,49 @@
 import js from '@eslint/js'
 import globals from 'globals'
-import reactHooks from 'eslint-plugin-react-hooks'
-import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
-import pluginQuery from '@tanstack/eslint-plugin-query'
 
 export default tseslint.config(
-  { ignores: ['dist', 'src/generated/**/index.ts'] },
+  // Global ignores
+  { 
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'backend/dist/**',
+      'ui/dist/**',
+      'ui/src/lib/api-client/**', // Generated API client
+      '**/*.generated.*',
+      'coverage/**'
+    ] 
+  },
+  
+  // Root level config for shared files
   {
+    files: ['*.{js,ts,mjs}'], // Root level config files
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
-    files: ['**/*.{ts,tsx}'],
     languageOptions: {
-      ecmaVersion: 2020,
-      globals: globals.browser,
-    },
-    plugins: {
-      'react-hooks': reactHooks,
-      'react-refresh': reactRefresh,
-      '@tanstack/query': pluginQuery,
+      ecmaVersion: 2022,
+      globals: globals.node,
     },
     rules: {
-      ...reactHooks.configs.recommended.rules,
-      'react-hooks/empty-block-statement': 'off',
-      "no-empty": "off",
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
-      '@tanstack/query/exhaustive-deps': 'error',
+      "no-console": "warn",
+      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
     },
   },
+
+  // Backend specific config
+  {
+    files: ['backend/**/*.{js,ts}'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: globals.node,
+    },
+    rules: {
+      "no-console": "off", // Allow console in backend
+      "@typescript-eslint/no-unused-vars": ["error", { "argsIgnorePattern": "^_" }],
+    },
+  },
+
+  // UI workspace should use its own eslint.config.js
+  // So we don't need UI-specific rules here
 )

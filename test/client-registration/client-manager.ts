@@ -291,12 +291,12 @@ export class ClientManager {
       // Check if this is a 404 (client not found) - try searching in all clients as fallback
       if (error.response && error.response.status === 404) {
         console.log(`Client ${clientId} not found via direct lookup (404), searching in all clients...`);
-        
+
         try {
           // Fallback: Search through all clients
           const allClients = await this.getAllClients();
           const foundClient = allClients.find(client => client.clientId === clientId);
-          
+
           if (foundClient) {
             console.log(`Found client ${clientId} in all clients list`);
             return foundClient;
@@ -309,12 +309,12 @@ export class ClientManager {
           return undefined;
         }
       }
-      
+
       // Check if this is a connectivity error
       if (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED')) {
         throw new Error(`Server connectivity error while fetching client ${clientId}: ${error.message}`);
       }
-      
+
       // For other errors, log them but don't fail the operation
       console.warn(`Warning: Could not fetch client ${clientId} from API: ${error.message}`);
       return undefined;
@@ -506,13 +506,21 @@ export class ClientManager {
    */
   async testServerConnection(): Promise<void> {
     try {
-      // Try to fetch from the server to check if it's accessible
-      await this.smartAppsApi.getAdminSmartApps();
+      // Use a simple public endpoint to test connectivity
+      const response = await fetch(`${this.baseUrl}`, {
+        method: 'GET'
+      });
+
+      // Accept any response status as long as we can connect
+      // The server is considered accessible if we get any HTTP response
+      if (!response.ok && response.status >= 500) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
     } catch (error: any) {
-      if (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED')) {
+      if (error.message.includes('fetch failed') || error.message.includes('ECONNREFUSED') || error.name === 'TypeError') {
         throw new Error(`Server connection failed: ${error.message}`);
       }
-      // Re-throw other errors (authentication errors are expected if no token)
+      // Re-throw other errors
       throw error;
     }
   }

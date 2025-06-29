@@ -13,6 +13,9 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
+    "@mantine/core": "^8",
+    "@mantine/hooks": "^8",
+    "@mantine/notifications": "^8",
     "@medplum/core": "^4.2.4",
     "@medplum/fhirtypes": "^4.2.4",
     "@medplum/react": "^4.2.4",
@@ -35,6 +38,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
+    "@tailwindcss/postcss": "^4.1.11",
     "@types/node": "^24.0.7",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",

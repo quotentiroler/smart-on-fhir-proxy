@@ -1,0 +1,111 @@
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.2
+    container_name: smart-on-fhir-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HTTP_PORT: 8080
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+      KC_LOG_LEVEL: INFO
+      # PostgreSQL database configuration
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    command:
+      - start-dev
+      - --import-realm
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nhost: http://localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - smart-on-fhir
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: smart-on-fhir-postgres
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - smart-on-fhir
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: smart-on-fhir-backend
+    environment:
+      NODE_ENV: production
+      PORT: 8445
+      BASE_URL: http://localhost:8445
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_REALM: smart-on-fhir
+      KEYCLOAK_CLIENT_ID: smart-on-fhir-backend
+      KEYCLOAK_CLIENT_SECRET: your-client-secret
+      KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/smart-on-fhir/protocol/openid-connect/certs
+      FHIR_SERVER_BASE: https://hapi.fhir.org/baseR4
+    ports:
+      - "8445:8445"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    networks:
+      - smart-on-fhir
+    profiles:
+      - production
+
+  frontend:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: smart-on-fhir-frontend
+    environment:
+      VITE_API_BASE_URL: http://localhost:8445
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - smart-on-fhir
+    profiles:
+      - production
+
+volumes:
+  postgres_data:
+    name: smart-on-fhir-postgres-data
+
+networks:
+  smart-on-fhir:
+    name: smart-on-fhir-network
+    driver: bridge

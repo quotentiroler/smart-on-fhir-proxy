@@ -1,4 +1,3 @@
-.openapi-generator-ignore
 apis/AuthenticationApi.ts
 apis/HealthcareUsersApi.ts
 apis/IdentityProvidersApi.ts
@@ -21,7 +20,9 @@ models/PostAdminIdpsRequest.ts
 models/PostAdminRolesRequest.ts
 models/PostAdminSmartAppsRequest.ts
 models/PostAuthIntrospect200Response.ts
+models/PostAuthIntrospectRequest.ts
 models/PostAuthToken200Response.ts
+models/PostAuthTokenRequest.ts
 models/PutAdminHealthcareUsersByUserIdRequest.ts
 models/PutAdminIdpsByAliasRequest.ts
 models/PutAdminRolesByRoleNameRequest.ts

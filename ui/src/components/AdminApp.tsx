@@ -70,7 +70,9 @@ function Dashboard() {
                     <div>
                         <h1 className="text-3xl font-bold text-gray-900">Healthcare Admin Dashboard</h1>
                         <p className="text-gray-600 mt-2">
-                            Welcome back, {profile?.name?.[0]?.text || profile?.username || 'User'}
+                            Welcome back, {profile?.firstName && profile?.lastName 
+                                ? `${profile.firstName} ${profile.lastName}` 
+                                : profile?.username || 'User'}
                         </p>
                     </div>
                     <button
