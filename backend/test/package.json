@@ -1,0 +1,13 @@
+{
+  "name": "smart-on-fhir-backend-tests",
+  "version": "1.0.0",
+  "description": "Backend tests for SMART on FHIR server, make sure keycloak is running",
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "test:keycloak": "bun test keycloak-admin.test.ts"
+  },
+  "devDependencies": {
+    "bun-types": "latest"
+  }
+}
