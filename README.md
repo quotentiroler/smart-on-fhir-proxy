@@ -78,13 +78,13 @@ The [`test/`](test/) directory structure exists but is essentially empty. Our im
 
 ```bash
 # Install dependencies
-bun run setup
+bun setup
 
 # Start development environment
-bun run dev
+bun dev
 
 # Start Keycloak and database
-bun run docker:up
+bun docker:up
 ```
 
 ## API Client Generation
