@@ -2,24 +2,26 @@ import { Elysia } from 'elysia'
 import { swagger } from '@elysiajs/swagger'
 import { keycloakPlugin } from './lib/keycloak-plugin'
 import { smartRoutes } from './routes/smart'
-import { authRoutes } from './routes/auth'
 import { fhirRoutes } from './routes/fhir'
 import { serverRoutes } from './routes/server'
 import { config } from './config'
-import { getFHIRServerInfo } from './lib/fhir-utils'
+import { getFHIRServerInfo, FHIRVersionInfo } from './lib/fhir-utils'
+import { adminRoutes } from './routes/admin'
+import { authRoutes } from './routes/auth'
 
 // Initialize FHIR server cache on startup
-async function initializeServer() {
+async function initializeServer(): Promise<FHIRVersionInfo | null> {
   console.log('🚀 Starting SMART on FHIR API server...')
-  
-  // Pre-load FHIR server information
+
   try {
     console.log('📡 Initializing FHIR server connection...')
-    const serverInfo = await getFHIRServerInfo()
-    console.log(`✅ FHIR server detected: ${serverInfo.serverName} (${serverInfo.fhirVersion})`)
+    const fhirServer = await getFHIRServerInfo()
+    console.log(`✅ FHIR server detected: ${fhirServer.serverName} (${fhirServer.fhirVersion})`)
+    return fhirServer;
   } catch (error) {
     console.warn('⚠️  Failed to initialize FHIR server connection:', error)
     console.log('🔄 Proxy Server will continue with fallback configuration')
+    return null;
   }
 }
 
@@ -58,18 +60,24 @@ const app = new Elysia()
     }
   }))
   .use(keycloakPlugin)
-  .use(serverRoutes)
-  .use(smartRoutes)
+  .use(serverRoutes)// Server status and info endpoints, restart and shutdown too (will be moved to admin)
+  .use(smartRoutes)// smart-config
   .use(authRoutes)
-  .use(fhirRoutes)
+  .use(adminRoutes) //admin dashboard
+  .use(fhirRoutes) // the actual FHIR proxy endpoints
 
 // Initialize and start server
-initializeServer().then(() => {
-  app.listen(config.port, () => {
-    console.log(`🚀 Elysia SMART proxy listening at ${config.baseUrl}`)
-    console.log(`📚 API Documentation available at ${config.baseUrl}/swagger`)
+initializeServer()
+  .then((fhirServer) => {
+    app.listen(config.port, () => {
+      console.log(`🚀 SMART Backend listening at ${config.baseUrl}`)
+      console.log(`📚 API Documentation available at ${config.baseUrl}/swagger`)
+      if (fhirServer) {
+        console.log(`🔗 SMART Protected FHIR Server available at ${config.baseUrl}/v/${fhirServer.fhirVersion}/fhir`)
+      }
+    })
   })
-}).catch((error) => {
-  console.error('❌ Failed to start server:', error)
-  process.exit(1)
-})
+  .catch((error) => {
+    console.error('❌ Failed to start server:', error)
+    process.exit(1)
+  })
