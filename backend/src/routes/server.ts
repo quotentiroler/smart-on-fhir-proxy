@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia'
+import staticPlugin from '@elysiajs/static'
 import { getFHIRServerInfo } from '../lib/fhir-utils'
 import { ErrorResponse } from '../schemas/common'
 
@@ -6,6 +7,7 @@ import { ErrorResponse } from '../schemas/common'
  * General server information endpoints
  */
 export const serverRoutes = new Elysia({ tags: ['server'] })
+  .use(staticPlugin({ assets: 'public', prefix: '/' })) // Serve static files from public directory
   // Shutdown endpoint - gracefully shutdown the server
   .post('/shutdown', async ({ set }) => {
     try {
@@ -173,7 +175,7 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
     // Check FHIR server
     try {
       const fhirInfo = await getFHIRServerInfo()
-      
+
       status.fhir = {
         status: fhirInfo.supported ? 'healthy' : 'degraded',
         accessible: fhirInfo.supported,
