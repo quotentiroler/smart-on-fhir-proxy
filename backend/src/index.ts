@@ -60,17 +60,17 @@ const app = new Elysia()
     }
   }))
   .use(keycloakPlugin)
-  .use(serverRoutes)// Server status and info endpoints, restart and shutdown too (will be moved to admin)
+  .use(serverRoutes)// Server status and info endpoints, smart launcher, restart and shutdown too (will be moved to admin)
   .use(smartRoutes)// smart-config
   .use(authRoutes)
-  .use(adminRoutes) //admin dashboard
+  .use(adminRoutes) //admin keycloak endpoints
   .use(fhirRoutes) // the actual FHIR proxy endpoints
 
 // Initialize and start server
 initializeServer()
   .then((fhirServer) => {
     app.listen(config.port, () => {
-      console.log(`🚀 SMART Backend listening at ${config.baseUrl}`)
+      console.log(`🚀 SMART Launcher available at ${config.baseUrl}`)
       console.log(`📚 API Documentation available at ${config.baseUrl}/swagger`)
       if (fhirServer) {
         console.log(`🔗 SMART Protected FHIR Server available at ${config.baseUrl}/v/${fhirServer.fhirVersion}/fhir`)

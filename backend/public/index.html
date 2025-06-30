@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SMART on FHIR Launcher</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'smart-blue': '#667eea',
+            'smart-purple': '#764ba2',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom animations */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
+    }
+    
+    .animate-fade-in-up {
+      animation: fadeInUp 0.6s ease-out;
+    }
+    
+    .animate-pulse-slow {
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    /* Custom scrollbar for scope selection */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+      border-radius: 4px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-smart-blue to-smart-purple flex items-center justify-center p-4">
+  <div class="bg-white rounded-xl shadow-2xl p-8 w-full max-w-xl animate-fade-in-up">
+    <div class="text-center mb-8">
+      <div class="inline-block p-3 bg-gradient-to-br from-smart-blue to-smart-purple rounded-full mb-4">
+        <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+      </div>
+      <h1 class="text-3xl font-bold text-gray-800 mb-2">SMART Launcher</h1>
+      <p class="text-gray-600 text-sm">Configure your SMART on FHIR application launch</p>
+    </div>
+    
+    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 p-4 mb-6 rounded-lg">
+      <div class="flex items-start space-x-3">
+        <div class="flex-shrink-0">
+          <svg class="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <p class="text-sm text-blue-800">
+            <span class="font-semibold">Quick Start:</span> Fill in your app details and select the permissions you need. This will redirect you to the OAuth authorization endpoint.
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <form id="launchForm" class="space-y-8">
+      <!-- Basic Configuration -->
+      <div class="space-y-6">
+        <div class="border-b border-gray-200 pb-4">
+          <h3 class="text-lg font-semibold text-gray-900 mb-1">Application Configuration</h3>
+          <p class="text-sm text-gray-600">Basic details for your SMART on FHIR application</p>
+        </div>
+        
+        <div class="grid grid-cols-1 gap-6">
+          <div class="group">
+            <label for="client_id" class="block text-sm font-medium text-gray-700 mb-2">
+              <span class="flex items-center space-x-2">
+                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2a2 2 0 00-2 2m2-2V5a2 2 0 00-2-2H9a2 2 0 00-2 2v2m0 0a2 2 0 00-2 2m2-2a2 2 0 012 2m0 0V9a2 2 0 002-2m-2 2H7a2 2 0 00-2-2"/>
+                </svg>
+                <span>Client ID</span>
+              </span>
+            </label>
+            <input 
+              id="client_id" 
+              name="client_id" 
+              placeholder="e.g. my-smart-app" 
+              required
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-smart-blue focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white group-hover:border-gray-400"
+            >
+          </div>
+          
+          <div class="group">
+            <label for="redirect_uri" class="block text-sm font-medium text-gray-700 mb-2">
+              <span class="flex items-center space-x-2">
+                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                </svg>
+                <span>Redirect URI</span>
+              </span>
+            </label>
+            <input 
+              id="redirect_uri" 
+              name="redirect_uri" 
+              type="url"
+              placeholder="e.g. https://app.example.com/callback" 
+              required
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-smart-blue focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white group-hover:border-gray-400"
+            >
+          </div>
+          
+          <div class="group">
+            <label for="aud" class="block text-sm font-medium text-gray-700 mb-2">
+              <span class="flex items-center space-x-2">
+                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"/>
+                </svg>
+                <span>FHIR Base URL</span>
+              </span>
+            </label>
+            <input 
+              id="aud" 
+              name="aud" 
+              type="url"
+              placeholder="e.g. https://fhir.example.com" 
+              required
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-smart-blue focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white group-hover:border-gray-400"
+            >
+          </div>
+        </div>
+      </div>
+      
+      <!-- Scopes Configuration -->
+      <div class="space-y-4">
+        <div class="border-b border-gray-200 pb-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="text-lg font-semibold text-gray-900 mb-1">Permissions & Scopes</h3>
+              <p class="text-sm text-gray-600">Select the data access permissions your app needs</p>
+            </div>
+            <div class="flex space-x-2">
+              <button type="button" id="selectAll" class="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
+                Select All
+              </button>
+              <button type="button" id="clearAll" class="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
+                Clear All
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-1">
+          <div class="bg-white rounded-lg p-4">
+            <div class="space-y-4 max-h-80 overflow-y-auto custom-scrollbar pr-2">
+              <!-- Identity & Launch Context -->
+              <div class="border border-gray-200 rounded-lg p-4 hover:border-smart-blue/30 transition-colors">
+                <div class="flex items-center space-x-2 mb-3">
+                  <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <h4 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Identity & Launch</h4>
+                </div>
+                <div class="space-y-3">
+                  <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="scopes" value="openid" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                    <div class="flex-1">
+                      <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium text-gray-900">openid</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Essential</span>
+                      </div>
+                      <p class="text-xs text-gray-600 mt-1">Request user authentication</p>
+                    </div>
+                  </label>
+                  <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="scopes" value="fhirUser" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                    <div class="flex-1">
+                      <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium text-gray-900">fhirUser</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Recommended</span>
+                      </div>
+                      <p class="text-xs text-gray-600 mt-1">Get FHIR resource for current user</p>
+                    </div>
+                  </label>
+                  <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="scopes" value="launch" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                    <div class="flex-1">
+                      <span class="text-sm font-medium text-gray-900">launch</span>
+                      <p class="text-xs text-gray-600 mt-1">Get launch context from EHR</p>
+                    </div>
+                  </label>
+                  <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="scopes" value="launch/patient" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                    <div class="flex-1">
+                      <span class="text-sm font-medium text-gray-900">launch/patient</span>
+                      <p class="text-xs text-gray-600 mt-1">Request patient selection at launch</p>
+                    </div>
+                  </label>
+                  <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="scopes" value="launch/encounter" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                    <div class="flex-1">
+                      <span class="text-sm font-medium text-gray-900">launch/encounter</span>
+                      <p class="text-xs text-gray-600 mt-1">Get encounter context at launch</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+          
+              <!-- Patient Access -->
+              <div class="border border-gray-200 rounded-lg p-4 hover:border-smart-blue/30 transition-colors">
+                <div class="flex items-center space-x-2 mb-3">
+                  <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <h4 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Patient Data Access</h4>
+                </div>
+                <div class="space-y-3">
+                  <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="scopes" value="patient/*.cruds" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                    <div class="flex-1">
+                      <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium text-gray-900">patient/*.cruds</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Full Access</span>
+                      </div>
+                      <p class="text-xs text-gray-600 mt-1">Complete access to all patient data</p>
+                    </div>
+                  </label>
+                  <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="scopes" value="patient/*.rs" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                    <div class="flex-1">
+                      <div class="flex items-center space-x-2">
+                        <span class="text-sm font-medium text-gray-900">patient/*.rs</span>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Read Only</span>
+                      </div>
+                      <p class="text-xs text-gray-600 mt-1">Read/search all patient data</p>
+                    </div>
+                  </label>
+                  <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="scopes" value="patient/Patient.rs" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                    <div class="flex-1">
+                      <span class="text-sm font-medium text-gray-900">patient/Patient.rs</span>
+                      <p class="text-xs text-gray-600 mt-1">Read patient demographics</p>
+                    </div>
+                  </label>
+                  <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="scopes" value="patient/Observation.rs" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                    <div class="flex-1">
+                      <span class="text-sm font-medium text-gray-900">patient/Observation.rs</span>
+                      <p class="text-xs text-gray-600 mt-1">Read patient observations (labs, vitals)</p>
+                    </div>
+                  </label>
+                  <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="scopes" value="patient/Condition.rs" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                    <div class="flex-1">
+                      <span class="text-sm font-medium text-gray-900">patient/Condition.rs</span>
+                      <p class="text-xs text-gray-600 mt-1">Read patient conditions/diagnoses</p>
+                    </div>
+                  </label>
+                  <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="scopes" value="patient/MedicationRequest.rs" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                    <div class="flex-1">
+                      <span class="text-sm font-medium text-gray-900">patient/MedicationRequest.rs</span>
+                      <p class="text-xs text-gray-600 mt-1">Read patient medication requests</p>
+                    </div>
+                  </label>
+                  <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                    <input type="checkbox" name="scopes" value="patient/AllergyIntolerance.rs" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                    <div class="flex-1">
+                      <span class="text-sm font-medium text-gray-900">patient/AllergyIntolerance.rs</span>
+                      <p class="text-xs text-gray-600 mt-1">Read patient allergies</p>
+                    </div>
+                  </label>
+                </div>
+              </div>
+          
+              <!-- User Access & Token Refresh -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="border border-gray-200 rounded-lg p-4 hover:border-smart-blue/30 transition-colors">
+                  <div class="flex items-center space-x-2 mb-3">
+                    <div class="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <h4 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">User Access</h4>
+                  </div>
+                  <div class="space-y-3">
+                    <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                      <input type="checkbox" name="scopes" value="user/*.cruds" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                      <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900">user/*.cruds</span>
+                        <p class="text-xs text-gray-600 mt-1">Full access to user data</p>
+                      </div>
+                    </label>
+                    <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                      <input type="checkbox" name="scopes" value="user/*.rs" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                      <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900">user/*.rs</span>
+                        <p class="text-xs text-gray-600 mt-1">Read user accessible data</p>
+                      </div>
+                    </label>
+                    <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                      <input type="checkbox" name="scopes" value="user/Patient.rs" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                      <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900">user/Patient.rs</span>
+                        <p class="text-xs text-gray-600 mt-1">Allow patient selection</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+                
+                <div class="border border-gray-200 rounded-lg p-4 hover:border-smart-blue/30 transition-colors">
+                  <div class="flex items-center space-x-2 mb-3">
+                    <div class="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <h4 class="text-sm font-semibold text-gray-700 uppercase tracking-wide">Token Refresh</h4>
+                  </div>
+                  <div class="space-y-3">
+                    <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                      <input type="checkbox" name="scopes" value="offline_access" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                      <div class="flex-1">
+                        <div class="flex items-center space-x-2">
+                          <span class="text-sm font-medium text-gray-900">offline_access</span>
+                          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Popular</span>
+                        </div>
+                        <p class="text-xs text-gray-600 mt-1">Long-term refresh token</p>
+                      </div>
+                    </label>
+                    <label class="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                      <input type="checkbox" name="scopes" value="online_access" class="mt-1 text-smart-blue focus:ring-smart-blue focus:ring-offset-0 rounded">
+                      <div class="flex-1">
+                        <span class="text-sm font-medium text-gray-900">online_access</span>
+                        <p class="text-xs text-gray-600 mt-1">While user online</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Launch Configuration -->
+      <div class="space-y-4">
+        <div class="border-b border-gray-200 pb-4">
+          <h3 class="text-lg font-semibold text-gray-900 mb-1">Launch Configuration</h3>
+          <p class="text-sm text-gray-600">Optional settings for your SMART app launch</p>
+        </div>
+        
+        <div class="group">
+          <label for="launch" class="block text-sm font-medium text-gray-700 mb-2">
+            <span class="flex items-center space-x-2">
+              <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m0 0a2 2 0 012 2m-2-2a2 2 0 00-2 2m2-2V5a2 2 0 00-2-2H9a2 2 0 00-2 2v2m0 0a2 2 0 00-2 2m2-2a2 2 0 012 2m0 0V9a2 2 0 002-2m-2 2H7a2 2 0 00-2-2"/>
+              </svg>
+              <span>Launch Token</span>
+              <span class="text-gray-400 text-xs">(optional)</span>
+            </span>
+          </label>
+          <input 
+            id="launch" 
+            name="launch" 
+            placeholder="Leave empty for standalone launch"
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-smart-blue focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white group-hover:border-gray-400"
+          >
+          <p class="text-xs text-gray-500 mt-2">For EHR-launched apps, this will be provided automatically</p>
+        </div>
+      </div>
+      
+      <!-- Submit Button -->
+      <div class="pt-4">
+        <button 
+          type="submit"
+          id="launchButton"
+          class="w-full relative bg-gradient-to-r from-smart-blue to-smart-purple text-white font-semibold py-4 px-6 rounded-lg hover:shadow-xl hover:-translate-y-1 transform transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-smart-blue/25 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+        >
+          <span class="flex items-center justify-center space-x-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <span>Launch SMART App</span>
+          </span>
+          <div id="loadingSpinner" class="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity">
+            <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          </div>
+        </button>
+        
+        <!-- Selected Scopes Summary -->
+        <div id="scopesSummary" class="mt-4 p-3 bg-gray-50 rounded-lg hidden">
+          <h4 class="text-sm font-medium text-gray-700 mb-2">Selected Permissions:</h4>
+          <div id="selectedScopes" class="flex flex-wrap gap-1"></div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // DOM elements
+    const form = document.getElementById('launchForm');
+    const selectAllBtn = document.getElementById('selectAll');
+    const clearAllBtn = document.getElementById('clearAll');
+    const launchButton = document.getElementById('launchButton');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const scopesSummary = document.getElementById('scopesSummary');
+    const selectedScopes = document.getElementById('selectedScopes');
+    
+    // Select/Clear all functionality
+    selectAllBtn.addEventListener('click', () => {
+      document.querySelectorAll('input[name="scopes"]').forEach(checkbox => {
+        checkbox.checked = true;
+      });
+      updateScopesSummary();
+    });
+    
+    clearAllBtn.addEventListener('click', () => {
+      document.querySelectorAll('input[name="scopes"]').forEach(checkbox => {
+        checkbox.checked = false;
+      });
+      updateScopesSummary();
+    });
+    
+    // Update scopes summary when checkboxes change
+    document.addEventListener('change', (e) => {
+      if (e.target.name === 'scopes') {
+        updateScopesSummary();
+      }
+    });
+    
+    // Update scopes summary display
+    function updateScopesSummary() {
+      const checkedScopes = Array.from(document.querySelectorAll('input[name="scopes"]:checked'))
+        .map(checkbox => checkbox.value);
+      
+      if (checkedScopes.length > 0) {
+        scopesSummary.classList.remove('hidden');
+        selectedScopes.innerHTML = checkedScopes.map(scope => 
+          `<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-smart-blue text-white">
+            ${scope}
+          </span>`
+        ).join('');
+      } else {
+        scopesSummary.classList.add('hidden');
+      }
+    }
+    
+    // Form submission
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      
+      // Show loading state
+      launchButton.disabled = true;
+      loadingSpinner.classList.remove('opacity-0');
+      
+      // Get all form data
+      const formData = new FormData(e.target);
+      const params = new URLSearchParams();
+      
+      // Validate required fields
+      const clientId = formData.get('client_id');
+      const redirectUri = formData.get('redirect_uri');
+      const aud = formData.get('aud');
+      
+      if (!clientId || !redirectUri || !aud) {
+        alert('Please fill in all required fields');
+        launchButton.disabled = false;
+        loadingSpinner.classList.add('opacity-0');
+        return;
+      }
+      
+      // Add basic params
+      params.set('response_type', 'code');
+      params.set('client_id', clientId);
+      params.set('redirect_uri', redirectUri);
+      params.set('aud', aud);
+      
+      // Get selected scopes
+      const selectedScopesList = Array.from(e.target.querySelectorAll('input[name="scopes"]:checked'))
+        .map(checkbox => checkbox.value);
+      
+      // Add default scopes if none selected
+      if (selectedScopesList.length === 0) {
+        selectedScopesList.push('openid', 'fhirUser', 'launch/patient');
+      }
+      
+      params.set('scope', selectedScopesList.join(' '));
+      
+      // Add launch token if provided
+      const launchToken = formData.get('launch');
+      if (launchToken && launchToken.trim()) {
+        params.set('launch', launchToken.trim());
+      }
+      
+      const url = '/auth/authorize?' + params.toString();
+      
+      // Small delay for better UX
+      setTimeout(() => {
+        window.location.href = url;
+      }, 500);
+    });
+    
+    // Initialize
+    updateScopesSummary();
+  </script>
+</body>
+</html>
