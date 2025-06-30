@@ -22,9 +22,6 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Install dependencies
-        run: bun add openai @octokit/rest
-
       - name: Comment on HEAD commit via ChatGPT
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -71,4 +68,4 @@ jobs:
             console.error("Failed to review or comment:", err);
           }
           EOF
-          node review-commit.mjs
+          bunx --bun review-commit.mjs
