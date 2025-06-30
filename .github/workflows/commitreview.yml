@@ -17,13 +17,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: "22"
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm install openai @octokit/rest
+        run: bun add openai @octokit/rest
 
       - name: Comment on HEAD commit via ChatGPT
         env:
