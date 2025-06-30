@@ -1,0 +1,74 @@
+name: AI Commit Comment
+
+on:
+  push:
+    branches:
+      - "dev/*"
+
+jobs:
+  ai-comment:
+    name: Review & Comment on HEAD Commit
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm install openai @octokit/rest
+
+      - name: Comment on HEAD commit via ChatGPT
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.head_commit.id }}
+        run: |
+          cat > review-commit.mjs << 'EOF'
+          import { OpenAI } from "openai";
+          import { Octokit } from "@octokit/rest";
+          import { execSync } from "child_process";
+
+          const ai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+          const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+          const [owner, repo] = process.env.GITHUB_REPOSITORY.split("/");
+
+          const sha = process.env.HEAD_SHA;
+          // get just that commit's diff
+          const diff = execSync(`git diff ${sha}^!`, { encoding: "utf-8" });
+
+          console.log("Diff for", sha, ":\n", diff);
+
+          try {
+            const res = await ai.chat.completions.create({
+              model: "gpt-4o-mini",
+              messages: [
+                { role: "system", content: "You are a concise code diff explainer." },
+                { role: "user", content: `Review this git diff and give me a short summary:\n\n${diff}` }
+              ]
+            });
+            const comment = res.choices.map(c => c.message.content).join("\n\n---\n\n");
+
+            console.log("AI summary:\n", comment);
+
+            // post as a commit comment
+            await octokit.repos.createCommitComment({
+              owner,
+              repo,
+              commit_sha: sha,
+              body: comment,
+            });
+            console.log("Posted comment to", sha);
+          } catch (err) {
+            console.error("Failed to review or comment:", err);
+          }
+          EOF
+          node review-commit.mjs
