@@ -17,10 +17,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps openai @octokit/rest
 
       - name: Comment on HEAD commit via ChatGPT
         env:
@@ -68,4 +71,4 @@ jobs:
             console.error("Failed to review or comment:", err);
           }
           EOF
-          bunx --bun review-commit.mjs
+          node review-commit.mjs
