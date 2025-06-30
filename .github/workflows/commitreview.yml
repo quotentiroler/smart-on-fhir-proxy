@@ -10,6 +10,10 @@ jobs:
     name: Git Diff Summary via AI
     runs-on: ubuntu-latest
     continue-on-error: true
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
 
     steps:
       - name: Checkout full history
