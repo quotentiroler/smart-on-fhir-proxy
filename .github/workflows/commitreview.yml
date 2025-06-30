@@ -7,7 +7,7 @@ on:
 
 jobs:
   ai-comment:
-    name: Review & Comment on HEAD Commit
+    name: Git Diff Summary via AI
     runs-on: ubuntu-latest
     continue-on-error: true
 
