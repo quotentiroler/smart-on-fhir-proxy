@@ -2,11 +2,12 @@ import { Elysia } from 'elysia'
 import { swagger } from '@elysiajs/swagger'
 import { keycloakPlugin } from './lib/keycloak-plugin'
 import { smartRoutes } from './routes/smart'
-import { authRoutes } from './routes/auth'
 import { fhirRoutes } from './routes/fhir'
 import { serverRoutes } from './routes/server'
 import { config } from './config'
 import { getFHIRServerInfo, FHIRVersionInfo } from './lib/fhir-utils'
+import { adminRoutes } from './routes/admin'
+import { authRoutes } from './routes/auth'
 
 // Initialize FHIR server cache on startup
 async function initializeServer(): Promise<FHIRVersionInfo | null> {
@@ -59,10 +60,11 @@ const app = new Elysia()
     }
   }))
   .use(keycloakPlugin)
-  .use(serverRoutes)
-  .use(smartRoutes)
+  .use(serverRoutes)// Server status and info endpoints, restart and shutdown too (will be moved to admin)
+  .use(smartRoutes)// smart-config
   .use(authRoutes)
-  .use(fhirRoutes)
+  .use(adminRoutes) //admin dashboard
+  .use(fhirRoutes) // the actual FHIR proxy endpoints
 
 // Initialize and start server
 initializeServer()
