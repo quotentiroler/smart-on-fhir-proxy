@@ -19,7 +19,7 @@ interface FHIRCapabilityStatement {
   }
 }
 
-interface FHIRVersionInfo {
+export interface FHIRVersionInfo {
   fhirVersion: string
   serverVersion?: string
   serverName?: string
