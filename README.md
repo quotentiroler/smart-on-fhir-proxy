@@ -87,6 +87,9 @@ bun dev
 
 # Start Keycloak and database
 bun docker:up
+
+# Both together
+bun docker:dev
 ```
 
 ## API Client Generation
