@@ -37,7 +37,7 @@
     "clean": "bun run clean:backend && bun run clean:ui",
     "clean:backend": "cd backend && rm -rf node_modules dist",
     "clean:ui": "cd ui && rm -rf node_modules dist",
-    "docker:dev": "docker compose up -d && bun run dev",
+    "docker:dev": "docker compose up -d || { echo 'Error: Failed to start Docker containers. Ensure Docker is running and try again.'; exit 1; } && bun run dev",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f",
