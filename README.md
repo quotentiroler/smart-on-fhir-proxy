@@ -4,7 +4,9 @@ A comprehensive SMART on FHIR server implementation that acts as a secure proxy 
 
 ⚠️ **DEVELOPMENT STATUS: Early Development Phase** ⚠️
 
-New development branches should start with `dev/` and create a PR to merge into `update`
+Checkout from `update` branch to create a new branch.
+
+New development branches should  start with `dev/` and create a PR to merge into `update`
 
 ## Project Overview
 
