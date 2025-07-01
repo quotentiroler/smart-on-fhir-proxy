@@ -4,6 +4,8 @@ A comprehensive SMART on FHIR server implementation that acts as a secure proxy 
 
 ⚠️ **DEVELOPMENT STATUS: Early Development Phase** ⚠️
 
+New development branches should start with `dev/` and create a PR to merge into `update`
+
 ## Project Overview
 
 This server intercepts requests to otherwise open FHIR servers and requires proper authorization, implementing:
