@@ -1,14 +1,16 @@
-name: AI Commit Comment
+name: AI Commit Comment & Auto PR
 
 on:
   push:
     branches:
       - "dev/*"
+      - "update"
 
 jobs:
   ai-comment:
-    name: Git Diff Summary via AI
+    name: Review & Comment on HEAD Commit
     runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/heads/dev/')
     continue-on-error: true
 
     steps:
@@ -23,7 +25,7 @@ jobs:
           node-version: "22"
 
       - name: Install dependencies
-        run: npm install --legacy-peer-deps openai @octokit/rest
+        run: npm install openai @octokit/rest
 
       - name: Comment on HEAD commit via ChatGPT
         env:
@@ -31,6 +33,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           HEAD_SHA: ${{ github.event.head_commit.id }}
+          OPENAI_MODEL: ${{ secrets.OPENAI_MODEL || 'gpt-4o-mini' }}
         run: |
           cat > review-commit.mjs << 'EOF'
           import { OpenAI } from "openai";
@@ -42,14 +45,43 @@ jobs:
           const [owner, repo] = process.env.GITHUB_REPOSITORY.split("/");
 
           const sha = process.env.HEAD_SHA;
-          // get just that commit's diff
-          const diff = execSync(`git diff ${sha}^!`, { encoding: "utf-8" });
+
+          // Try different diff strategies for different commit types
+          let diff = "";
+
+          try {
+            // First, try to get the diff for a single commit
+            diff = execSync(`git diff ${sha}^!`, { encoding: "utf-8" });
+            
+            // If diff is empty, try merge commit diff (for PR merges)
+            if (!diff.trim()) {
+              console.log("Single commit diff empty, trying merge commit diff...");
+              diff = execSync(`git diff ${sha}^1 ${sha}`, { encoding: "utf-8" });
+            }
+            
+            // If still empty, try comparing with HEAD~1
+            if (!diff.trim()) {
+              console.log("Merge diff empty, trying HEAD~1 comparison...");
+              diff = execSync(`git diff HEAD~1 HEAD`, { encoding: "utf-8" });
+            }
+            
+            // If still empty, get the commit message and changed files
+            if (!diff.trim()) {
+              console.log("All diffs empty, getting commit info...");
+              const commitMsg = execSync(`git log -1 --pretty=format:"%s"`, { encoding: "utf-8" });
+              const changedFiles = execSync(`git diff-tree --no-commit-id --name-only -r ${sha}`, { encoding: "utf-8" });
+              diff = `Commit: ${commitMsg}\n\nChanged files:\n${changedFiles}`;
+            }
+          } catch (error) {
+            console.error("Error getting diff:", error);
+            diff = `Error getting diff for commit ${sha}`;
+          }
 
           console.log("Diff for", sha, ":\n", diff);
 
           try {
             const res = await ai.chat.completions.create({
-              model: "gpt-4o-mini",
+              model: process.env.OPENAI_MODEL,
               messages: [
                 { role: "system", content: "You are a concise code diff explainer." },
                 { role: "user", content: `Review this git diff and give me a short summary:\n\n${diff}` }
@@ -59,16 +91,139 @@ jobs:
 
             console.log("AI summary:\n", comment);
 
-            // post as a commit comment
-            await octokit.repos.createCommitComment({
-              owner,
-              repo,
-              commit_sha: sha,
-              body: comment,
-            });
-            console.log("Posted comment to", sha);
+            // Only post comment if we have actual content and it's not a generic "provide diff" response
+            if (comment && !comment.toLowerCase().includes("please provide") && !comment.toLowerCase().includes("i need")) {
+              await octokit.repos.createCommitComment({
+                owner,
+                repo,
+                commit_sha: sha,
+                body: comment,
+              });
+              console.log("Posted comment to", sha);
+            } else {
+              console.log("Skipping comment - no meaningful diff found");
+            }
           } catch (err) {
             console.error("Failed to review or comment:", err);
           }
           EOF
           node review-commit.mjs
+
+  pr-to-update:
+    name: Create/Update PR from dev/* → update
+    needs: ai-comment
+    if: startsWith(github.ref, 'refs/heads/dev/')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if PR already exists
+        id: check-pr
+        run: |
+          PR_EXISTS=$(gh pr list --base update --head ${{ github.ref_name }} --state open --json number --jq length)
+          echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if branches differ
+        id: check-diff
+        run: |
+          # Fetch the update branch to ensure it exists locally
+          git fetch origin update:update || echo "Update branch may not exist yet"
+
+          # Check if there are any commits between update and current branch
+          if git rev-parse --verify update >/dev/null 2>&1; then
+            COMMITS_AHEAD=$(git rev-list --count update..${{ github.ref_name }})
+            echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
+            echo "Branch ${{ github.ref_name }} is $COMMITS_AHEAD commits ahead of update"
+          else
+            echo "Update branch doesn't exist, assuming this is the first dev branch"
+            echo "commits_ahead=1" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Pull Request
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.commits_ahead != '0'
+        run: |
+          gh pr create \
+            --base update \
+            --head ${{ github.ref_name }} \
+            --title "🔄 Auto-PR to merge \`${{ github.ref_name }}\` into \`update\`" \
+            --body "This PR was automatically created by GitHub Actions to merge changes from \`${{ github.ref_name }}\` into \`update\`."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip PR creation - no changes
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.commits_ahead == '0'
+        run: |
+          echo "Skipping PR creation - no commits between update and ${{ github.ref_name }}"
+
+      - name: Update existing PR
+        if: steps.check-pr.outputs.pr_exists != '0'
+        run: |
+          echo "PR from ${{ github.ref_name }} to update already exists. Skipping creation."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pr-to-main:
+    name: Create/Update PR from update → main
+    if: github.ref == 'refs/heads/update'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if PR already exists
+        id: check-pr
+        run: |
+          PR_EXISTS=$(gh pr list --base main --head update --state open --json number --jq length)
+          echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if branches differ
+        id: check-diff
+        run: |
+          # Fetch the main branch to ensure it exists locally
+          git fetch origin main:main || echo "Main branch may not exist yet"
+
+          # Check if there are any commits between main and update
+          if git rev-parse --verify main >/dev/null 2>&1; then
+            COMMITS_AHEAD=$(git rev-list --count main..update)
+            echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
+            echo "Branch update is $COMMITS_AHEAD commits ahead of main"
+          else
+            echo "Main branch doesn't exist, assuming this is the first update"
+            echo "commits_ahead=1" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Pull Request
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.commits_ahead != '0'
+        run: |
+          gh pr create \
+            --base main \
+            --head update \
+            --title "🚀 Auto-PR to merge \`update\` into \`main\`" \
+            --body "This PR was automatically created by GitHub Actions to merge changes from \`update\` into \`main\`."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip PR creation - no changes
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.commits_ahead == '0'
+        run: |
+          echo "Skipping PR creation - no commits between main and update"
+
+      - name: Update existing PR
+        if: steps.check-pr.outputs.pr_exists != '0'
+        run: |
+          echo "PR from update to main already exists. Skipping creation."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
