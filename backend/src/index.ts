@@ -1,27 +1,38 @@
 import { Elysia } from 'elysia'
 import { swagger } from '@elysiajs/swagger'
 import { keycloakPlugin } from './lib/keycloak-plugin'
-import { smartRoutes } from './routes/smart'
 import { fhirRoutes } from './routes/fhir'
-import { serverRoutes } from './routes/server'
+import { serverRoutes } from './routes/info'
+import { serverDiscoveryRoutes } from './routes/fhir-servers'
 import { config } from './config'
-import { getFHIRServerInfo, FHIRVersionInfo } from './lib/fhir-utils'
+import { ensureServersInitialized, getAllServers } from './lib/fhir-server-store'
 import { adminRoutes } from './routes/admin'
 import { authRoutes } from './routes/auth'
 
 // Initialize FHIR server cache on startup
-async function initializeServer(): Promise<FHIRVersionInfo | null> {
-  console.log('🚀 Starting SMART on FHIR API server...')
+async function initializeServer(): Promise<void> {
+  console.log('🚀 Starting SMART on FHIR Proxy...')
 
   try {
-    console.log('📡 Initializing FHIR server connection...')
-    const fhirServer = await getFHIRServerInfo()
-    console.log(`✅ FHIR server detected: ${fhirServer.serverName} (${fhirServer.fhirVersion})`)
-    return fhirServer;
+    console.log('📡 Initializing FHIR server connections...')
+    
+    // Initialize the FHIR server store
+    await ensureServersInitialized()
+    
+    // Get all servers from the store
+    const serverInfos = await getAllServers()
+    
+    if (serverInfos.length === 0) {
+      console.log('🔄 No FHIR servers available, but proxy server will continue with fallback configuration')
+    } else {
+      serverInfos.forEach((serverInfo, index) => {
+        console.log(`✅ FHIR server ${index + 1} detected: ${serverInfo.metadata.serverName} (${serverInfo.metadata.fhirVersion}) at ${serverInfo.url}`)
+      })
+    }
+    
   } catch (error) {
-    console.warn('⚠️  Failed to initialize FHIR server connection:', error)
+    console.warn('⚠️  Failed to initialize FHIR server connections:', error)
     console.log('🔄 Proxy Server will continue with fallback configuration')
-    return null;
   }
 }
 
@@ -35,11 +46,12 @@ const app = new Elysia()
       },
       tags: [
         { name: 'authentication', description: 'Authentication and authorization endpoints' },
-        { name: 'smart-apps', description: 'SMART on FHIR application management' },
         { name: 'users', description: 'Healthcare user management' },
         { name: 'admin', description: 'Administrative operations' },
         { name: 'fhir', description: 'FHIR resource proxy endpoints' },
-        { name: 'identity-providers', description: 'Identity provider management' }
+        { name: 'servers', description: 'FHIR server discovery endpoints' },
+        { name: 'identity-providers', description: 'Identity provider management' },
+        { name: 'smart-apps', description: 'SMART on FHIR configuration endpoints' }
       ],
       components: {
         securitySchemes: {
@@ -61,19 +73,31 @@ const app = new Elysia()
   }))
   .use(keycloakPlugin)
   .use(serverRoutes)// Server status and info endpoints, smart launcher, restart and shutdown too (will be moved to admin)
-  .use(smartRoutes)// smart-config
+  .use(serverDiscoveryRoutes)// Server discovery endpoints
   .use(authRoutes)
   .use(adminRoutes) //admin keycloak endpoints
   .use(fhirRoutes) // the actual FHIR proxy endpoints
 
 // Initialize and start server
 initializeServer()
-  .then((fhirServer) => {
-    app.listen(config.port, () => {
+  .then(async () => {
+    app.listen(config.port, async () => {
       console.log(`🚀 SMART Launcher available at ${config.baseUrl}`)
+      console.log(`🩺 Health check available at ${config.baseUrl}/health`)
       console.log(`📚 API Documentation available at ${config.baseUrl}/swagger`)
-      if (fhirServer) {
-        console.log(`🔗 SMART Protected FHIR Server available at ${config.baseUrl}/v/${fhirServer.fhirVersion}/fhir`)
+      console.log(`🔍 Server Discovery available at ${config.baseUrl}/fhir-servers`)
+      
+      // Get server info from store for display
+      try {
+        const serverInfos = await getAllServers()
+        if (serverInfos.length > 0) {
+          console.log(`🔗 SMART Protected FHIR Servers available:`)
+          serverInfos.forEach((serverInfo) => {
+            console.log(`   - ${serverInfo.identifier}: ${config.baseUrl}/smart-proxy/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}`)
+          })
+        }
+      } catch (error) {
+        console.warn('⚠️  Could not display server endpoints:', error)
       }
     })
   })

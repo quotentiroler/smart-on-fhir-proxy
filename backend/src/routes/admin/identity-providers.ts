@@ -1,5 +1,6 @@
 import { Elysia, t } from 'elysia'
 import { keycloakPlugin } from '../../lib/keycloak-plugin'
+import { ErrorResponse } from '../../schemas/common'
 import type { IdentityProvider } from '../../types'
 
 /**
@@ -8,23 +9,40 @@ import type { IdentityProvider } from '../../types'
 export const identityProvidersRoutes = new Elysia({ prefix: '/admin/idps' })
   .use(keycloakPlugin)
 
-  .get('/', async ({ getAdmin }) => {
-    const providers = await getAdmin().identityProviders.find();
-    return providers.map(provider => ({
-      alias: provider.alias ?? '',
-      providerId: provider.providerId ?? '',
-      displayName: provider.displayName ?? '',
-      enabled: provider.enabled ?? false,
-      config: provider.config ?? {}
-    }));
+  .get('/', async ({ getAdmin, headers, set }) => {
+    try {
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
+      }
+
+      const admin = await getAdmin(token)
+      const providers = await admin.identityProviders.find()
+      return providers.map(provider => ({
+        alias: provider.alias ?? '',
+        providerId: provider.providerId ?? '',
+        displayName: provider.displayName ?? '',
+        enabled: provider.enabled ?? false,
+        config: provider.config ?? {}
+      }));
+    } catch (error) {
+      set.status = 500
+      return { error: 'Failed to fetch identity providers', details: error }
+    }
   }, {
-    response: t.Array(t.Object({
-      alias: t.String({ description: 'Provider alias' }),
-      providerId: t.String({ description: 'Provider type' }),
-      displayName: t.Optional(t.String({ description: 'Display name' })),
-      enabled: t.Optional(t.Boolean({ description: 'Whether provider is enabled' })),
-      config: t.Optional(t.Object({}))
-    })),
+    response: {
+      200: t.Array(t.Object({
+        alias: t.String({ description: 'Provider alias' }),
+        providerId: t.String({ description: 'Provider type' }),
+        displayName: t.Optional(t.String({ description: 'Display name' })),
+        enabled: t.Optional(t.Boolean({ description: 'Whether provider is enabled' })),
+        config: t.Optional(t.Object({}))
+      })),
+      401: ErrorResponse,
+      500: ErrorResponse
+    },
     detail: {
       summary: 'List Identity Providers',
       description: 'Get all configured identity providers',
@@ -33,15 +51,28 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/admin/idps' })
     }
   })
 
-  .post('/', async ({ getAdmin, body }) => {
-    await getAdmin().identityProviders.create(body)
-    const created = await getAdmin().identityProviders.findOne({ alias: (body as IdentityProvider).alias })
-    return {
-      alias: created?.alias ?? (body as IdentityProvider).alias ?? '',
-      providerId: created?.providerId ?? (body as IdentityProvider).providerId ?? '',
-      displayName: created?.displayName ?? '',
-      enabled: created?.enabled ?? false,
-      config: created?.config ?? {}
+  .post('/', async ({ getAdmin, body, headers, set }) => {
+    try {
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
+      }
+
+      const admin = await getAdmin(token)
+      await admin.identityProviders.create(body)
+      const created = await admin.identityProviders.findOne({ alias: (body as IdentityProvider).alias })
+      return {
+        alias: created?.alias ?? (body as IdentityProvider).alias ?? '',
+        providerId: created?.providerId ?? (body as IdentityProvider).providerId ?? '',
+        displayName: created?.displayName ?? '',
+        enabled: created?.enabled ?? false,
+        config: created?.config ?? {}
+      }
+    } catch (error) {
+      set.status = 400
+      return { error: 'Failed to create identity provider', details: error }
     }
   }, {
     body: t.Object({
@@ -49,13 +80,17 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/admin/idps' })
       providerId: t.String(),
       config: t.Object({})
     }),
-    response: t.Object({
-      alias: t.String({ description: 'Provider alias' }),
-      providerId: t.String({ description: 'Provider type' }),
-      displayName: t.Optional(t.String({ description: 'Display name' })),
-      enabled: t.Optional(t.Boolean({ description: 'Whether provider is enabled' })),
-      config: t.Optional(t.Object({}))
-    }),
+    response: {
+      200: t.Object({
+        alias: t.String({ description: 'Provider alias' }),
+        providerId: t.String({ description: 'Provider type' }),
+        displayName: t.Optional(t.String({ description: 'Display name' })),
+        enabled: t.Optional(t.Boolean({ description: 'Whether provider is enabled' })),
+        config: t.Optional(t.Object({}))
+      }),
+      400: ErrorResponse,
+      401: ErrorResponse
+    },
     detail: {
       summary: 'Create Identity Provider',
       description: 'Create a new identity provider',
@@ -64,23 +99,45 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/admin/idps' })
     }
   })
 
-  .get('/:alias', async ({ getAdmin, params }) => {
-    const provider = await getAdmin().identityProviders.findOne({ alias: params.alias })
-    return {
-      alias: provider?.alias ?? params.alias ?? '',
-      providerId: provider?.providerId ?? '',
-      displayName: provider?.displayName ?? '',
-      enabled: provider?.enabled ?? false,
-      config: provider?.config ?? {}
+  .get('/:alias', async ({ getAdmin, params, headers, set }) => {
+    try {
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
+      }
+
+      const admin = await getAdmin(token)
+      const provider = await admin.identityProviders.findOne({ alias: params.alias })
+      if (!provider) {
+        set.status = 404
+        return { error: 'Identity provider not found' }
+      }
+      return {
+        alias: provider.alias ?? params.alias ?? '',
+        providerId: provider.providerId ?? '',
+        displayName: provider.displayName ?? '',
+        enabled: provider.enabled ?? false,
+        config: provider.config ?? {}
+      }
+    } catch (error) {
+      set.status = 500
+      return { error: 'Failed to fetch identity provider', details: error }
     }
   }, {
-    response: t.Object({
-      alias: t.String({ description: 'Provider alias' }),
-      providerId: t.String({ description: 'Provider type' }),
-      displayName: t.Optional(t.String({ description: 'Display name' })),
-      enabled: t.Optional(t.Boolean({ description: 'Whether provider is enabled' })),
-      config: t.Optional(t.Object({}))
-    }),
+    response: {
+      200: t.Object({
+        alias: t.String({ description: 'Provider alias' }),
+        providerId: t.String({ description: 'Provider type' }),
+        displayName: t.Optional(t.String({ description: 'Display name' })),
+        enabled: t.Optional(t.Boolean({ description: 'Whether provider is enabled' })),
+        config: t.Optional(t.Object({}))
+      }),
+      401: ErrorResponse,
+      404: ErrorResponse,
+      500: ErrorResponse
+    },
     detail: {
       summary: 'Get Identity Provider',
       description: 'Get an identity provider by alias',
@@ -89,18 +146,35 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/admin/idps' })
     }
   })
 
-  .put('/:alias', async ({ getAdmin, params, body }) => {
-    await getAdmin().identityProviders.update({ alias: params.alias }, body)
-    return { success: true }
+  .put('/:alias', async ({ getAdmin, params, body, headers, set }) => {
+    try {
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
+      }
+
+      const admin = await getAdmin(token)
+      await admin.identityProviders.update({ alias: params.alias }, body)
+      return { success: true }
+    } catch (error) {
+      set.status = 400
+      return { error: 'Failed to update identity provider', details: error }
+    }
   }, {
     body: t.Object({
       displayName: t.Optional(t.String()),
       enabled: t.Optional(t.Boolean()),
       config: t.Optional(t.Object({}))
     }),
-    response: t.Object({
-      success: t.Boolean({ description: 'Whether the update was successful' })
-    }),
+    response: {
+      200: t.Object({
+        success: t.Boolean({ description: 'Whether the update was successful' })
+      }),
+      400: ErrorResponse,
+      401: ErrorResponse
+    },
     detail: {
       summary: 'Update Identity Provider',
       description: 'Update an identity provider by alias',
@@ -109,13 +183,30 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/admin/idps' })
     }
   })
 
-  .delete('/:alias', async ({ getAdmin, params }) => {
-    await getAdmin().identityProviders.del({ alias: params.alias })
-    return { success: true }
+  .delete('/:alias', async ({ getAdmin, params, headers, set }) => {
+    try {
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
+      }
+
+      const admin = await getAdmin(token)
+      await admin.identityProviders.del({ alias: params.alias })
+      return { success: true }
+    } catch (error) {
+      set.status = 404
+      return { error: 'Identity provider not found or could not be deleted', details: error }
+    }
   }, {
-    response: t.Object({
-      success: t.Boolean({ description: 'Whether the delete was successful' })
-    }),
+    response: {
+      200: t.Object({
+        success: t.Boolean({ description: 'Whether the delete was successful' })
+      }),
+      401: ErrorResponse,
+      404: ErrorResponse
+    },
     detail: {
       summary: 'Delete Identity Provider',
       description: 'Delete an identity provider by alias',

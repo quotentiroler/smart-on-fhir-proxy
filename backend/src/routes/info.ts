@@ -1,7 +1,50 @@
 import { Elysia, t } from 'elysia'
 import staticPlugin from '@elysiajs/static'
-import { getFHIRServerInfo } from '../lib/fhir-utils'
+import { getFHIRServerInfo, getServerIdentifier } from '../lib/fhir-utils'
 import { ErrorResponse } from '../schemas/common'
+import { config } from '../config'
+
+/**
+ * Get health status for all configured FHIR servers
+ */
+async function getFHIRServersHealth() {
+  const servers = []
+  
+  for (let i = 0; i < config.fhir.serverBases.length; i++) {
+    const serverBase = config.fhir.serverBases[i]
+    
+    try {
+      const serverInfo = await getFHIRServerInfo(serverBase)
+      const serverIdentifier = getServerIdentifier(serverInfo, serverBase, i)
+      
+      servers.push({
+        name: serverIdentifier,
+        displayName: serverInfo.serverName || 'Unknown FHIR Server',
+        url: serverBase,
+        status: serverInfo.supported ? 'healthy' : 'degraded',
+        accessible: serverInfo.supported,
+        version: serverInfo.fhirVersion,
+        serverName: serverInfo.serverName,
+        serverVersion: serverInfo.serverVersion
+      })
+    } catch (error) {
+      const fallbackIdentifier = `server-${i}`
+      servers.push({
+        name: fallbackIdentifier,
+        displayName: 'Unknown FHIR Server',
+        url: serverBase,
+        status: 'unhealthy',
+        accessible: false,
+        version: 'unknown',
+        serverName: undefined,
+        serverVersion: undefined,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      })
+    }
+  }
+  
+  return servers
+}
 
 /**
  * General server information endpoints
@@ -92,27 +135,54 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
   // Health check endpoint - check if server is healthy
   .get('/health', async ({ set }) => {
     try {
-      const serverInfo = await getFHIRServerInfo()
+      const fhirServers = await getFHIRServersHealth()
+      const healthyServers = fhirServers.filter(server => server.status === 'healthy')
+      const isHealthy = healthyServers.length > 0
 
-      return {
-        status: 'healthy',
-        timestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        fhirServer: {
-          accessible: serverInfo.supported,
-          version: serverInfo.fhirVersion
-        },
-        memory: {
-          used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-          total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
+      if (isHealthy) {
+        return {
+          status: 'healthy' as const,
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          fhirServers: {
+            total: fhirServers.length,
+            healthy: healthyServers.length,
+            accessible: isHealthy,
+            servers: fhirServers.map(server => ({
+              name: server.name,
+              status: server.status,
+              version: server.version
+            }))
+          },
+          memory: {
+            used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+            total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
+          }
+        }
+      } else {
+        set.status = 503
+        return {
+          status: 'unhealthy' as const,
+          timestamp: new Date().toISOString(),
+          error: 'No healthy FHIR servers available',
+          fhirServers: {
+            total: fhirServers.length,
+            healthy: 0,
+            accessible: false,
+            servers: fhirServers.map(server => ({
+              name: server.name,
+              status: server.status,
+              version: server.version
+            }))
+          }
         }
       }
     } catch (error) {
       set.status = 503
       return {
-        status: 'unhealthy',
+        status: 'unhealthy' as const,
         timestamp: new Date().toISOString(),
-        error: 'FHIR server not accessible',
+        error: 'Failed to check FHIR servers',
         details: error
       }
     }
@@ -122,9 +192,15 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
         status: t.Literal('healthy', { description: 'Health status' }),
         timestamp: t.String({ description: 'Current timestamp' }),
         uptime: t.Number({ description: 'Server uptime in seconds' }),
-        fhirServer: t.Object({
-          accessible: t.Boolean({ description: 'Whether FHIR server is accessible' }),
-          version: t.String({ description: 'FHIR server version' })
+        fhirServers: t.Object({
+          total: t.Number({ description: 'Total number of configured FHIR servers' }),
+          healthy: t.Number({ description: 'Number of healthy FHIR servers' }),
+          accessible: t.Boolean({ description: 'Whether at least one FHIR server is accessible' }),
+          servers: t.Array(t.Object({
+            name: t.String({ description: 'Server name' }),
+            status: t.String({ description: 'Server status' }),
+            version: t.String({ description: 'FHIR version' })
+          }))
         }),
         memory: t.Object({
           used: t.Number({ description: 'Used memory in MB' }),
@@ -135,7 +211,17 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
         status: t.Literal('unhealthy', { description: 'Health status' }),
         timestamp: t.String({ description: 'Current timestamp' }),
         error: t.String({ description: 'Error description' }),
-        details: t.Optional(t.Any({ description: 'Error details' }))
+        details: t.Optional(t.Any({ description: 'Error details' })),
+        fhirServers: t.Optional(t.Object({
+          total: t.Number({ description: 'Total number of configured FHIR servers' }),
+          healthy: t.Number({ description: 'Number of healthy FHIR servers' }),
+          accessible: t.Boolean({ description: 'Whether at least one FHIR server is accessible' }),
+          servers: t.Array(t.Object({
+            name: t.String({ description: 'Server name' }),
+            status: t.String({ description: 'Server status' }),
+            version: t.String({ description: 'FHIR version' })
+          }))
+        }))
       })
     },
     detail: {
@@ -160,10 +246,18 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
       },
       fhir: {
         status: 'unknown',
-        accessible: false,
-        version: 'unknown',
-        serverName: undefined as string | undefined,
-        serverVersion: undefined as string | undefined
+        totalServers: 0,
+        healthyServers: 0,
+        servers: [] as Array<{
+          name: string;
+          url: string;
+          status: string;
+          accessible: boolean;
+          version: string;
+          serverName?: string;
+          serverVersion?: string;
+          error?: string;
+        }>
       },
       keycloak: {
         status: 'unknown',
@@ -172,19 +266,27 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
       }
     }
 
-    // Check FHIR server
+    // Check all FHIR servers
     try {
-      const fhirInfo = await getFHIRServerInfo()
-
+      const fhirServers = await getFHIRServersHealth()
+      const healthyServers = fhirServers.filter(server => server.status === 'healthy')
+      
       status.fhir = {
-        status: fhirInfo.supported ? 'healthy' : 'degraded',
-        accessible: fhirInfo.supported,
-        version: fhirInfo.fhirVersion,
-        serverName: fhirInfo.serverName,
-        serverVersion: fhirInfo.serverVersion
+        status: healthyServers.length > 0 ? 'healthy' : fhirServers.length > 0 ? 'degraded' : 'unhealthy',
+        totalServers: fhirServers.length,
+        healthyServers: healthyServers.length,
+        servers: fhirServers
       }
-    } catch {
+    } catch (error) {
       status.fhir.status = 'unhealthy'
+      status.fhir.servers = [{ 
+        name: 'unknown', 
+        url: 'unknown', 
+        status: 'unhealthy', 
+        accessible: false, 
+        version: 'unknown',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }]
     }
 
     // Check Keycloak connectivity
@@ -225,11 +327,19 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
           version: t.String({ description: 'Server version' })
         }),
         fhir: t.Object({
-          status: t.String({ description: 'FHIR server status' }),
-          accessible: t.Boolean({ description: 'Whether FHIR server is accessible' }),
-          version: t.String({ description: 'FHIR server version' }),
-          serverName: t.Optional(t.String({ description: 'FHIR server software name' })),
-          serverVersion: t.Optional(t.String({ description: 'FHIR server software version' }))
+          status: t.String({ description: 'Overall FHIR servers status' }),
+          totalServers: t.Number({ description: 'Total number of configured FHIR servers' }),
+          healthyServers: t.Number({ description: 'Number of healthy FHIR servers' }),
+          servers: t.Array(t.Object({
+            name: t.String({ description: 'Server name' }),
+            url: t.String({ description: 'Server URL' }),
+            status: t.String({ description: 'Server status' }),
+            accessible: t.Boolean({ description: 'Whether server is accessible' }),
+            version: t.String({ description: 'FHIR version' }),
+            serverName: t.Optional(t.String({ description: 'FHIR server software name' })),
+            serverVersion: t.Optional(t.String({ description: 'FHIR server software version' })),
+            error: t.Optional(t.String({ description: 'Error message if unhealthy' }))
+          }))
         }),
         keycloak: t.Object({
           status: t.String({ description: 'Keycloak status' }),
@@ -245,11 +355,19 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
           version: t.String({ description: 'Server version' })
         }),
         fhir: t.Object({
-          status: t.String({ description: 'FHIR server status' }),
-          accessible: t.Boolean({ description: 'Whether FHIR server is accessible' }),
-          version: t.String({ description: 'FHIR server version' }),
-          serverName: t.Optional(t.String({ description: 'FHIR server software name' })),
-          serverVersion: t.Optional(t.String({ description: 'FHIR server software version' }))
+          status: t.String({ description: 'Overall FHIR servers status' }),
+          totalServers: t.Number({ description: 'Total number of configured FHIR servers' }),
+          healthyServers: t.Number({ description: 'Number of healthy FHIR servers' }),
+          servers: t.Array(t.Object({
+            name: t.String({ description: 'Server name' }),
+            url: t.String({ description: 'Server URL' }),
+            status: t.String({ description: 'Server status' }),
+            accessible: t.Boolean({ description: 'Whether server is accessible' }),
+            version: t.String({ description: 'FHIR version' }),
+            serverName: t.Optional(t.String({ description: 'FHIR server software name' })),
+            serverVersion: t.Optional(t.String({ description: 'FHIR server software version' })),
+            error: t.Optional(t.String({ description: 'Error message if unhealthy' }))
+          }))
         }),
         keycloak: t.Object({
           status: t.String({ description: 'Keycloak status' }),

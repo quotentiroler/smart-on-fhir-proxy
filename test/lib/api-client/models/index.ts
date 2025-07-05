@@ -22,7 +22,6 @@ export * from './GetStatus200ResponseServer';
 export * from './PostAdminHealthcareUsersRequest';
 export * from './PostAdminIdpsRequest';
 export * from './PostAdminRolesRequest';
-export * from './PostAdminSmartApps200Response';
 export * from './PostAdminSmartAppsRequest';
 export * from './PostAuthIntrospect200Response';
 export * from './PostAuthIntrospectRequest';

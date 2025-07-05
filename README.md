@@ -100,7 +100,7 @@ API clients are (semi-)auto-generated from OpenAPI specs:
 
 ```bash
 # Generate type-safe API clients
-bun run generate-api
+bun run generate
 ```
 
 Clients available at:
