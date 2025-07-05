@@ -5,14 +5,25 @@ import { config } from '../../config'
 
 /**
  * SMART App (Client) Management - specialized for healthcare applications
+ * 
+ * All routes now use the user's access token to perform operations,
+ * acting as a secure proxy for Keycloak admin operations.
  */
 export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: ['smart-apps'] })
   .use(keycloakPlugin)
   
-  .get('/', async ({ getAdmin, set }) => {
+  .get('/', async ({ getAdmin, headers, set }) => {
     try {
-      const admin = await getAdmin()
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
+      }
+
+      const admin = await getAdmin(token)
       const clients = await admin.clients.find()
+      
       // Filter for SMART apps based on SMART-specific characteristics:
       // 1. OpenID Connect protocol
       // 2. Not internal system clients (backend service, admin UI)
@@ -59,9 +70,16 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
     }
   })
   
-  .post('/', async ({ getAdmin, body, set }) => {
+  .post('/', async ({ getAdmin, body, headers, set }) => {
     try {
-      const admin = await getAdmin()
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
+      }
+
+      const admin = await getAdmin(token)
       const smartAppConfig = {
         clientId: body.clientId,
         name: body.name,
@@ -120,9 +138,16 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
     }
   })
   
-  .get('/:clientId', async ({ getAdmin, params, set }) => {
+  .get('/:clientId', async ({ getAdmin, params, headers, set }) => {
     try {
-      const admin = await getAdmin()
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
+      }
+
+      const admin = await getAdmin(token)
       const clients = await admin.clients.find({ clientId: params.clientId })
       if (!clients[0]) {
         set.status = 404
@@ -159,9 +184,16 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
     }
   })
   
-  .put('/:clientId', async ({ getAdmin, params, body, set }) => {
+  .put('/:clientId', async ({ getAdmin, params, body, headers, set }) => {
     try {
-      const admin = await getAdmin()
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
+      }
+
+      const admin = await getAdmin(token)
       const clients = await admin.clients.find({ clientId: params.clientId })
       if (!clients[0]) {
         set.status = 404
@@ -223,9 +255,16 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
     }
   })
   
-  .delete('/:clientId', async ({ getAdmin, params, set }) => {
+  .delete('/:clientId', async ({ getAdmin, params, headers, set }) => {
     try {
-      const admin = await getAdmin()
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
+      }
+
+      const admin = await getAdmin(token)
       const clients = await admin.clients.find({ clientId: params.clientId })
       if (!clients[0]) {
         set.status = 404

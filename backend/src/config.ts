@@ -8,13 +8,16 @@ export const config = {
   keycloak: {
     baseUrl: process.env.KEYCLOAK_BASE_URL!,
     realm: process.env.KEYCLOAK_REALM!,
+    // Note: clientId and clientSecret no longer needed for admin API
+    // We use the user's token directly
     clientId: process.env.KEYCLOAK_CLIENT_ID!,
     clientSecret: process.env.KEYCLOAK_CLIENT_SECRET!,
     jwksUri: process.env.KEYCLOAK_JWKS_URI!,
   },
   
   fhir: {
-    serverBase: process.env.FHIR_SERVER_BASE!,
+    // Support multiple FHIR servers - can be a single URL or comma-separated list
+    serverBases: process.env.FHIR_SERVER_BASE!.split(',').map(s => s.trim()),
     supportedVersions: process.env.FHIR_SUPPORTED_VERSIONS?.split(',').map(s => s.trim()) || ['R4'],
   },
 

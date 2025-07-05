@@ -6,7 +6,7 @@ import axios from 'axios';
 
 // Load environment variables for testing
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8445';
-const FHIR_BASE_URL = process.env.FHIR_BASE_URL || 'http://localhost:8445/v/R4/fhir';
+const FHIR_BASE_URL = process.env.FHIR_BASE_URL || 'http://localhost:8445/hapi-fhir-org/R4/fhir';
 const TEST_CLIENT_ID = 'test-smart-app';
 const TEST_REDIRECT_URI = 'http://localhost:3000/callback';
 
@@ -131,7 +131,7 @@ describe('FHIR Client Integration Tests', () => {
   });
 
   describe('SMART App Launch Flow', () => {
-    it('should discover SMART configuration from your server', async () => {
+    it('should discover SMART configuration from FHIR server-specific endpoint', async () => {
       if (!serverRunning) {
         console.log('❌ Cannot test SMART configuration - server not running');
         expect(serverRunning).toBe(true); // FAIL the test
@@ -139,8 +139,8 @@ describe('FHIR Client Integration Tests', () => {
       }
 
       try {
-        // Try to get SMART configuration from your server
-        const response = await axios.get(`${BASE_URL}/.well-known/smart-configuration`);
+        // Try to get SMART configuration from server-specific endpoint
+        const response = await axios.get(`${FHIR_BASE_URL}/.well-known/smart-configuration`);
         
         expect(response.status).toBe(200);
         expect(response.data).toHaveProperty('authorization_endpoint');

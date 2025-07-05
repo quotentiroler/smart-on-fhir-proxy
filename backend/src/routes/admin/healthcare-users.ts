@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { keycloakPlugin } from '../../lib/keycloak-plugin'
 import { UserProfile, ErrorResponse, SuccessResponse, PaginationQuery } from '../../schemas/common'
+import { extractBearerToken, UNAUTHORIZED_RESPONSE, getValidatedAdmin, mapUserProfile } from '../../lib/admin-utils'
 
 /**
  * Healthcare User Management - specialized for healthcare professionals
@@ -8,23 +9,23 @@ import { UserProfile, ErrorResponse, SuccessResponse, PaginationQuery } from '..
 export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-users' })
   .use(keycloakPlugin)
   
-  .get('/', async ({ getAdmin, query, set }) => {
+  .get('/', async ({ getAdmin, query, set, headers }) => {
     try {
-      const allUsers = await getAdmin().users.find({
+      // Extract user's token from Authorization header
+      const token = extractBearerToken(headers)
+      if (!token) {
+        set.status = 401
+        return UNAUTHORIZED_RESPONSE
+      }
+
+      const admin = await getValidatedAdmin(getAdmin, token)
+      const allUsers = await admin.users.find({
         max: Number(query.limit) || 50,
         first: Number(query.offset) || 0
       })
+      
       // Filter for healthcare users (with specific roles or attributes)
-      return allUsers.map(user => ({
-        id: user.id ?? '',
-        username: user.username ?? '',
-        email: user.email ?? '',
-        firstName: user.firstName ?? '',
-        lastName: user.lastName ?? '',
-        enabled: user.enabled ?? false,
-        attributes: user.attributes ?? {},
-        createdTimestamp: user.createdTimestamp ?? 0
-      }))
+      return allUsers.map(mapUserProfile)
     } catch (error) {
       set.status = 500
       return { error: 'Failed to fetch healthcare users', details: error }
@@ -51,8 +52,15 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
     }
   })
   
-  .post('/', async ({ getAdmin, body, set }) => {
+  .post('/', async ({ getAdmin, body, set, headers }) => {
     try {
+      // Extract user's token from Authorization header
+      const token = extractBearerToken(headers)
+      if (!token) {
+        set.status = 401
+        return UNAUTHORIZED_RESPONSE
+      }
+
       const userData = {
         username: body.username,
         email: body.email,
@@ -70,19 +78,13 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
           temporary: body.temporaryPassword || false
         }] : []
       }
-      const result = await getAdmin().users.create(userData)
+      
+      const admin = await getValidatedAdmin(getAdmin, token)
+      const result = await admin.users.create(userData)
+      
       // Return the created user object (fetch by id)
-      const created = result.id ? await getAdmin().users.findOne({ id: result.id }) : undefined
-      return {
-        id: created?.id ?? '',
-        username: created?.username ?? '',
-        email: created?.email ?? '',
-        firstName: created?.firstName ?? '',
-        lastName: created?.lastName ?? '',
-        enabled: created?.enabled ?? false,
-        attributes: created?.attributes ?? {},
-        createdTimestamp: created?.createdTimestamp ?? 0
-      }
+      const created = result.id ? await admin.users.findOne({ id: result.id }) : undefined
+      return created ? mapUserProfile(created) : { error: 'Failed to retrieve created user' }
     } catch (error) {
       set.status = 400
       return { error: 'Failed to create healthcare user', details: error }
@@ -121,23 +123,22 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
     }
   })
   
-  .get('/:userId', async ({ getAdmin, params, set }) => {
+  .get('/:userId', async ({ getAdmin, params, set, headers }) => {
     try {
-      const user = await getAdmin().users.findOne({ id: params.userId })
+      // Extract user's token from Authorization header
+      const token = extractBearerToken(headers)
+      if (!token) {
+        set.status = 401
+        return UNAUTHORIZED_RESPONSE
+      }
+
+      const admin = await getValidatedAdmin(getAdmin, token)
+      const user = await admin.users.findOne({ id: params.userId })
       if (!user) {
         set.status = 404
         return { error: 'Healthcare user not found' }
       }
-      return {
-        id: user.id ?? '',
-        username: user.username ?? '',
-        email: user.email ?? '',
-        firstName: user.firstName ?? '',
-        lastName: user.lastName ?? '',
-        enabled: user.enabled ?? false,
-        attributes: user.attributes ?? {},
-        createdTimestamp: user.createdTimestamp ?? 0
-      }
+      return mapUserProfile(user)
     } catch (error) {
       set.status = 500
       return { error: 'Failed to fetch healthcare user', details: error }
@@ -168,8 +169,15 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
     }
   })
   
-  .put('/:userId', async ({ getAdmin, params, body, set }) => {
+  .put('/:userId', async ({ getAdmin, params, body, set, headers }) => {
     try {
+      // Extract user's token from Authorization header
+      const token = extractBearerToken(headers)
+      if (!token) {
+        set.status = 401
+        return UNAUTHORIZED_RESPONSE
+      }
+
       const updateData = {
         firstName: body.firstName,
         lastName: body.lastName,
@@ -181,23 +189,17 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
           npi: body.npi ? [body.npi] : undefined
         }
       }
-      await getAdmin().users.update({ id: params.userId }, updateData)
+      
+      const admin = await getValidatedAdmin(getAdmin, token)
+      await admin.users.update({ id: params.userId }, updateData)
+      
       // Return the updated user object
-      const updated = await getAdmin().users.findOne({ id: params.userId })
+      const updated = await admin.users.findOne({ id: params.userId })
       if (!updated) {
         set.status = 404
         return { error: 'Healthcare user not found' }
       }
-      return {
-        id: updated.id ?? '',
-        username: updated.username ?? '',
-        email: updated.email ?? '',
-        firstName: updated.firstName ?? '',
-        lastName: updated.lastName ?? '',
-        enabled: updated.enabled ?? false,
-        attributes: updated.attributes ?? {},
-        createdTimestamp: updated.createdTimestamp ?? 0
-      }
+      return mapUserProfile(updated)
     } catch (error) {
       set.status = 400
       return { error: 'Failed to update healthcare user', details: error }
@@ -239,9 +241,17 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
     }
   })
   
-  .delete('/:userId', async ({ getAdmin, params, set }) => {
+  .delete('/:userId', async ({ getAdmin, params, set, headers }) => {
     try {
-      await getAdmin().users.del({ id: params.userId })
+      // Extract user's token from Authorization header
+      const token = extractBearerToken(headers)
+      if (!token) {
+        set.status = 401
+        return UNAUTHORIZED_RESPONSE
+      }
+
+      const admin = await getValidatedAdmin(getAdmin, token)
+      await admin.users.del({ id: params.userId })
       return { success: true, message: 'Healthcare user deleted successfully' }
     } catch (error) {
       set.status = 404

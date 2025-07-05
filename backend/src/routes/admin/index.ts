@@ -4,6 +4,7 @@ import { healthcareUsersRoutes } from './healthcare-users'
 import { rolesRoutes } from './roles'
 import { launchContextRoutes } from './launch-contexts'
 import { identityProvidersRoutes } from './identity-providers'
+import { smartConfigAdminRoutes } from './smart-config'
 
 /**
  * Admin routes aggregator - combines all admin functionality
@@ -14,3 +15,4 @@ export const adminRoutes = new Elysia()
   .use(rolesRoutes)
   .use(launchContextRoutes)
   .use(identityProvidersRoutes)
+  .use(smartConfigAdminRoutes)

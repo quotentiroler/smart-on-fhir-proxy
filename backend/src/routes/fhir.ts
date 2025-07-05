@@ -2,43 +2,43 @@ import { Elysia, t } from 'elysia'
 import fetch, { Headers } from 'cross-fetch'
 import { validateToken } from '../lib/auth'
 import { config } from '../config'
-import { validateFHIRVersion, getFHIRServerInfo, clearFHIRMetadataCache } from '../lib/fhir-utils'
+import { validateFHIRVersion } from '../lib/fhir-utils'
+import { useFHIRServerStore, getServerByName } from '../lib/fhir-server-store'
 import { ErrorResponse } from '../schemas/common'
+import { smartConfigService } from '../lib/smart-config'
 import type { SmartConfiguration } from '../types'
 
 /**
  * FHIR proxy routes with authentication and CORS support
  * 
- * Route Structure: /v/:fhir_release/fhir/*
- * - Client specifies version (e.g., /v/R4/fhir/Patient/123)
- * - We detect server's actual version (4.0.1 → R4, 5.0.0 → R5)
- * - Proxy requests use server's normalized version
- * - Response URLs maintain client's requested version for consistency
+ * Route Structure: /:server_name/:fhir_version/fhir/*
+ * - Client specifies server name and version (e.g., /hapi-fhir-server/R4/fhir/Patient/123)
+ * - We map server names to configured FHIR server URLs
+ * - Proxy requests to the appropriate FHIR server
+ * - Response URLs maintain client's requested server name and version for consistency
+ * 
+ * SMART on FHIR Configuration:
+ * - Each FHIR server has its own SMART configuration endpoint
+ * - /:server_name/:fhir_version/fhir/.well-known/smart-configuration
+ * - Configuration is dynamically generated from Keycloak and cached for performance
+ * - This follows SMART on FHIR specification where configuration is server-specific
  * 
  * Performance Features:
  * - FHIR server info is cached for 5 minutes to avoid repeated metadata calls
  * - Cache is pre-warmed on server startup for faster first requests
  * - Version normalization: "4.0.1" → "R4", "5.0.0" → "R5"
  * - Fallback handling: continues working even if FHIR server is temporarily unavailable
- * - Admin cache refresh endpoint for manual cache management
+ * - Admin cache refresh endpoint available at /admin/smart-config/refresh
  */
-export const fhirRoutes = new Elysia({ prefix: '/v/:fhir_release/fhir', tags: ['fhir'] })
-  // SMART on FHIR Configuration endpoint
-  .get('/.well-known/smart-configuration', (): SmartConfiguration => ({
-    issuer: `${config.baseUrl}/.well-known/openid-configuration`,
-    authorization_endpoint: `${config.baseUrl}/auth/authorize`,
-    token_endpoint: `${config.baseUrl}/auth/token`,
-    introspection_endpoint: `${config.baseUrl}/auth/introspect`,
-    code_challenge_methods_supported: ['S256'],
-    grant_types_supported: ['authorization_code', 'client_credentials'],
-    response_types_supported: ['code'],
-    scopes_supported: ['openid', 'profile', 'launch', 'launch/patient', 'offline_access', 'patient/*.read', 'user/*.read', 'system/*.read'],
-    capabilities: ['launch-ehr', 'launch-standalone', 'client-public', 'client-confidential-symmetric', 'client-confidential-asymmetric', 'sso-openid-connect', 'context-standalone-patient'],
-    token_endpoint_auth_methods_supported: ['private_key_jwt', 'client_secret_basic', 'client_secret_post'],
-    token_endpoint_auth_signing_alg_values_supported: ['ES384', 'RS384', 'RS256']
-  }), {
+
+export const fhirRoutes = new Elysia({ prefix: '/smart-proxy/:server_name/:fhir_version', tags: ['fhir'] })
+  // SMART on FHIR Configuration endpoint - server-specific configuration
+  .get('/.well-known/smart-configuration', async (): Promise<SmartConfiguration> => {
+    return await smartConfigService.getSmartConfiguration()
+  }, {
     params: t.Object({
-      fhir_release: t.String({ description: 'FHIR version (e.g., R4, R5)' })
+      server_name: t.String({ description: 'FHIR server name or identifier' }),
+      fhir_version: t.String({ description: 'FHIR version (e.g., R4, R5)' })
     }),
     response: t.Object({
       issuer: t.String({ description: 'OpenID Connect issuer URL' }),
@@ -54,9 +54,9 @@ export const fhirRoutes = new Elysia({ prefix: '/v/:fhir_release/fhir', tags: ['
       token_endpoint_auth_signing_alg_values_supported: t.Array(t.String({ description: 'Supported JWT signing algorithms for token endpoint auth' }))
     }),
     detail: {
-      summary: 'SMART on FHIR Configuration',
-      description: 'Get SMART on FHIR well-known configuration for this FHIR endpoint',
-      tags: ['fhir'],
+      summary: 'SMART on FHIR Configuration for Specific Server',
+      description: 'Get SMART on FHIR well-known configuration for this specific FHIR server and version',
+      tags: ['smart-apps'],
       response: { 200: { description: 'SMART on FHIR configuration object' } }
     }
   })
@@ -70,7 +70,8 @@ export const fhirRoutes = new Elysia({ prefix: '/v/:fhir_release/fhir', tags: ['
     return ''
   }, {
     params: t.Object({
-      fhir_release: t.String({ description: 'FHIR version (e.g., R4, R5)' })
+      server_name: t.String({ description: 'FHIR server name or identifier' }),
+      fhir_version: t.String({ description: 'FHIR version (e.g., R4, R5)' })
     }),
     detail: {
       summary: 'FHIR CORS Preflight',
@@ -82,16 +83,21 @@ export const fhirRoutes = new Elysia({ prefix: '/v/:fhir_release/fhir', tags: ['
   
   // Root FHIR path - serve the FHIR server base URL content
   .get('/', async ({ params, set }: { 
-    params: { fhir_release: string }, 
+    params: { server_name: string, fhir_version: string }, 
     set: { status: number, headers: Record<string, string> } 
   }) => {
     try {
-      const target = config.fhir.serverBase // Already includes /baseR4
-      
+      // Use the store to get server URL - this will initialize the store if needed
+      const serverUrl = await getServerByName(params.server_name)
+      if (!serverUrl) {
+        set.status = 404
+        return { error: `FHIR server '${params.server_name}' not found` }
+      }
+
       const headers = new Headers()
       headers.set('accept', 'application/fhir+json')
       
-      const resp = await fetch(target, {
+      const resp = await fetch(serverUrl, {
         method: 'GET',
         headers
       })
@@ -111,8 +117,8 @@ export const fhirRoutes = new Elysia({ prefix: '/v/:fhir_release/fhir', tags: ['
       const text = await resp.text()
       // Rewrite URLs to use our proxy base URL
       const body = text.replaceAll(
-        config.fhir.serverBase,
-        `${config.baseUrl}/v/${params.fhir_release}/fhir`
+        serverUrl,
+        `${config.baseUrl}/${params.server_name}/${params.fhir_version}/fhir`
       )
       return body
     } catch (error) {
@@ -121,7 +127,8 @@ export const fhirRoutes = new Elysia({ prefix: '/v/:fhir_release/fhir', tags: ['
     }
   }, {
     params: t.Object({
-      fhir_release: t.String({ description: 'FHIR version (e.g., R4, R5)' })
+      server_name: t.String({ description: 'FHIR server name or identifier' }),
+      fhir_version: t.String({ description: 'FHIR version (e.g., R4, R5)' })
     }),
     response: {
       200: t.Any({ description: 'FHIR server base response' }),
@@ -140,25 +147,41 @@ export const fhirRoutes = new Elysia({ prefix: '/v/:fhir_release/fhir', tags: ['
 
   // all other methods
   .all('/*', async ({ params, request, set }: { 
-    params: { fhir_release: string }, 
+    params: { server_name: string, fhir_version: string }, 
     request: Request, 
     set: { status: number, headers: Record<string, string> } 
   }) => {
     try {
-      // Validate that we can handle the client's requested version
-      const isValidVersion = await validateFHIRVersion(params.fhir_release)
-      if (!isValidVersion) {
-        set.status = 400
-        return { error: `Unsupported FHIR version: ${params.fhir_release}. Server info available at /v/${params.fhir_release}/fhir/server-info` }
+      // Use the store directly to get server info and metadata
+      const store = useFHIRServerStore.getState()
+      
+      // Initialize servers if not done yet
+      if (!store.isInitialized) {
+        await store.initializeServers()
+      }
+      
+      const serverInfo = store.getServerByName(params.server_name)
+      if (!serverInfo) {
+        set.status = 404
+        return { error: `FHIR server '${params.server_name}' not found` }
       }
 
-      // Get the server's actual FHIR version (cached, so this is fast)
-      const serverInfo = await getFHIRServerInfo()
-      const actualFhirVersion = serverInfo.fhirVersion
+      const serverUrl = serverInfo.url
+      const serverMetadata = serverInfo.metadata
+
+      // Validate that we can handle the client's requested version
+      const isValidVersion = await validateFHIRVersion(params.fhir_version)
+      if (!isValidVersion) {
+        set.status = 400
+        return { error: `Unsupported FHIR version: ${params.fhir_version}. Server info available at /${params.server_name}/${params.fhir_version}/fhir/server-info` }
+      }
+
+      // Use the cached server metadata instead of making another API call
+      const actualFhirVersion = serverMetadata.fhirVersion
 
       // Warn if client requested different version than server supports (but only once per version)
-      if (params.fhir_release !== actualFhirVersion) {
-        console.warn(`Client requested FHIR ${params.fhir_release} but server supports ${actualFhirVersion}. Using server version.`)
+      if (params.fhir_version !== actualFhirVersion) {
+        console.warn(`Client requested FHIR ${params.fhir_version} but server supports ${actualFhirVersion}. Using server version.`)
       }
 
       // Authentication check (skip for metadata endpoint)
@@ -172,8 +195,8 @@ export const fhirRoutes = new Elysia({ prefix: '/v/:fhir_release/fhir', tags: ['
       }
 
       // Use the server's base URL directly since it already includes the version
-      const path = request.url.replace(/^.*?\/v\/[^/]+\/fhir/, '') || ''
-      const target = `${config.fhir.serverBase}${path}`
+      const path = request.url.replace(/^.*?\/[^/]+\/[^/]+\/fhir/, '') || ''
+      const target = `${serverUrl}${path}`
       const headers = new Headers()
       request.headers.forEach((v: string, k: string) => k !== 'host' && k !== 'connection' && headers.set(k, v!))
       headers.set('accept', 'application/fhir+json')
@@ -200,8 +223,8 @@ export const fhirRoutes = new Elysia({ prefix: '/v/:fhir_release/fhir', tags: ['
       // rewrite any base-URL in JSON payload to use client-requested version in response URLs
       const text = await resp.text()
       const body = text.replaceAll(
-        config.fhir.serverBase,
-        `${config.baseUrl}/v/${params.fhir_release}/fhir`
+        serverUrl,
+        `${config.baseUrl}/${params.server_name}/${params.fhir_version}/fhir`
       )
       return body
     } catch (error) {
@@ -225,7 +248,7 @@ export const fhirRoutes = new Elysia({ prefix: '/v/:fhir_release/fhir', tags: ['
     }
   })
   // Admin endpoint to refresh FHIR server cache
-  .post('/cache/refresh', async ({ set, headers }) => {
+  .post('/cache/refresh', async ({ set, headers, params }) => {
     // Require authentication for cache management
     const auth = headers.authorization?.replace('Bearer ', '')
     if (!auth) {
@@ -236,14 +259,35 @@ export const fhirRoutes = new Elysia({ prefix: '/v/:fhir_release/fhir', tags: ['
     try {
       await validateToken(auth)
       
-      // Clear cache and fetch fresh data
-      clearFHIRMetadataCache()
-      const serverInfo = await getFHIRServerInfo()
+      // Use the store to refresh server info
+      const store = useFHIRServerStore.getState()
+      
+      // Initialize servers if not done yet
+      if (!store.isInitialized) {
+        await store.initializeServers()
+      }
+      
+      const serverInfo = store.getServerByName(params.server_name)
+      if (!serverInfo) {
+        set.status = 404
+        return { error: `FHIR server '${params.server_name}' not found` }
+      }
+      
+      // Refresh specific server in the store
+      await store.refreshServer(params.server_name)
+      
+      // Get the updated server info
+      const updatedServerInfo = store.getServerByName(params.server_name)
+      
+      if (!updatedServerInfo) {
+        set.status = 500
+        return { error: 'Failed to refresh server info' }
+      }
       
       return {
         success: true,
         message: 'FHIR server cache refreshed successfully',
-        serverInfo
+        serverInfo: updatedServerInfo.metadata
       }
     } catch (error) {
       set.status = 500
@@ -251,7 +295,8 @@ export const fhirRoutes = new Elysia({ prefix: '/v/:fhir_release/fhir', tags: ['
     }
   }, {
     params: t.Object({
-      fhir_release: t.String({ description: 'FHIR version (e.g., R4, R5)' })
+      server_name: t.String({ description: 'FHIR server name or identifier' }),
+      fhir_version: t.String({ description: 'FHIR version (e.g., R4, R5)' })
     }),
     response: {
       200: t.Object({

@@ -15,7 +15,7 @@
     "test:grant-types": "jest oauth-security/grant-types",
     "test:credential-leakage": "jest oauth-security/credential-leakage",
     "test:token-security": "jest oauth-security/token-security",
-    "generate-api": "bunx @openapitools/openapi-generator-cli generate -i http://localhost:8445/swagger/json -g typescript-fetch -o ./lib/api-client --skip-validate-spec",
+    "generate": "bunx @openapitools/openapi-generator-cli generate -i http://localhost:8445/swagger/json -g typescript-fetch -o ./lib/api-client --skip-validate-spec",
     "validate-api": "bunx @openapitools/openapi-generator-cli validate -i http://localhost:8445/swagger/json"
   },
   "devDependencies": {
