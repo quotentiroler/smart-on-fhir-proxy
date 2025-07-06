@@ -226,7 +226,7 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
       firstName: t.String({ description: 'First name' }),
       lastName: t.String({ description: 'Last name' }),
       organization: t.Optional(t.String({ description: 'Organization' })),
-      fhirUser: t.Optional(t.String({ description: 'FHIR User identifier' })),
+      fhirUser: t.Optional(t.String({ description: 'FHIR User identifiers in format "server1:Person/123,server2:Person/456"' })),
       password: t.Optional(t.String({ description: 'Initial password' })),
       temporaryPassword: t.Optional(t.Boolean({ description: 'Whether password is temporary' })),
       realmRoles: t.Optional(t.Array(t.String({ description: 'Realm roles to assign' }))),
@@ -419,7 +419,7 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
       email: t.Optional(t.String({ description: 'Email address', format: 'email' })),
       enabled: t.Optional(t.Boolean({ description: 'Whether user is enabled' })),
       organization: t.Optional(t.String({ description: 'Organization' })),
-      fhirUser: t.Optional(t.String({ description: 'FHIR User identifier' })),
+      fhirUser: t.Optional(t.String({ description: 'FHIR User identifiers in format "server1:Person/123,server2:Person/456"' })),
       realmRoles: t.Optional(t.Array(t.String({ description: 'Realm roles to assign' }))),
       clientRoles: t.Optional(t.Record(t.String(), t.Array(t.String()), { description: 'Client roles to assign' }))
     }),
