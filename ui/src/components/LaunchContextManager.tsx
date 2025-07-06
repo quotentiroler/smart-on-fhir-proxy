@@ -51,7 +51,8 @@ import {
   Search,
   Shield,
   Database,
-  Settings
+  Settings,
+  Server
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -97,11 +98,23 @@ interface LaunchContext {
   needEncounterContext: boolean;
   smartStyleUrl?: string;
   parameters?: Record<string, string>;
+  // FHIR server associations
+  fhirServerName?: string; // Primary server (for server-specific contexts)
+  supportedServers: string[]; // All servers that support this context
+  serverScope?: 'global' | 'server-specific'; // Context scope
   createdBy: string;
   createdAt: string;
   lastModified: string;
   isActive: boolean;
 }
+
+// Sample FHIR servers for demonstration
+const sampleFhirServers = [
+  { name: 'Epic Production', baseUrl: 'https://fhir.epic.com/interconnect-fhir-oauth', status: 'active' },
+  { name: 'Cerner Sandbox', baseUrl: 'https://fhir-open.cerner.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d', status: 'active' },
+  { name: 'SMART Health IT', baseUrl: 'https://launch.smarthealthit.org/v/r4/fhir', status: 'active' },
+  { name: 'Test Server', baseUrl: 'http://localhost:8080/fhir', status: 'development' }
+];
 
 export function LaunchContextManager() {
   const { t } = useTranslation();
@@ -121,7 +134,11 @@ export function LaunchContextManager() {
     needPatientBanner: true,
     needEncounterContext: false,
     smartStyleUrl: '',
-    parameters: {}
+    parameters: {},
+    // FHIR server associations
+    fhirServerName: '',
+    supportedServers: [] as string[],
+    serverScope: 'global' as 'global' | 'server-specific'
   });
 
   // Load saved contexts from localStorage
@@ -163,6 +180,10 @@ export function LaunchContextManager() {
       needEncounterContext: formData.needEncounterContext,
       smartStyleUrl: formData.smartStyleUrl,
       parameters: formData.parameters,
+      // FHIR server associations
+      fhirServerName: formData.fhirServerName,
+      supportedServers: formData.supportedServers || [],
+      serverScope: formData.serverScope || 'global',
       createdBy: 'Current User',
       createdAt: new Date().toISOString(),
       lastModified: new Date().toISOString(),
@@ -190,7 +211,11 @@ export function LaunchContextManager() {
       needPatientBanner: context.needPatientBanner,
       needEncounterContext: context.needEncounterContext,
       smartStyleUrl: context.smartStyleUrl || '',
-      parameters: context.parameters || {}
+      parameters: context.parameters || {},
+      // FHIR server associations
+      fhirServerName: context.fhirServerName || '',
+      supportedServers: context.supportedServers || [],
+      serverScope: context.serverScope || 'global'
     });
     setShowAddDialog(true);
   };
@@ -211,6 +236,10 @@ export function LaunchContextManager() {
       needEncounterContext: formData.needEncounterContext,
       smartStyleUrl: formData.smartStyleUrl,
       parameters: formData.parameters,
+      // FHIR server associations
+      fhirServerName: formData.fhirServerName,
+      supportedServers: formData.supportedServers,
+      serverScope: formData.serverScope,
       lastModified: new Date().toISOString()
     };
 
@@ -249,7 +278,11 @@ export function LaunchContextManager() {
       needPatientBanner: true,
       needEncounterContext: false,
       smartStyleUrl: '',
-      parameters: {}
+      parameters: {},
+      // FHIR server associations
+      fhirServerName: '',
+      supportedServers: [],
+      serverScope: 'global' as 'global' | 'server-specific'
     });
   };
 
@@ -588,6 +621,109 @@ export function LaunchContextManager() {
                   </CardContent>
                 </Card>
 
+                {/* FHIR Server Association Card */}
+                <Card className="bg-white/70 backdrop-blur-sm border border-gray-200/50 shadow-lg">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-emerald-100 to-emerald-200 rounded-xl flex items-center justify-center shadow-sm">
+                        <Server className="w-5 h-5 text-emerald-600" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg font-bold text-gray-900 tracking-tight">{t('FHIR Server Association')}</CardTitle>
+                        <CardDescription className="text-gray-600 font-medium">{t('Configure which FHIR servers support this context')}</CardDescription>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <Label className="text-sm font-semibold text-gray-700 mb-3 block">{t('Context Scope')}</Label>
+                        <div className="space-y-3">
+                          <div className="flex items-center space-x-3 p-3 bg-gray-50/50 rounded-xl border border-gray-200/50">
+                            <input
+                              type="radio"
+                              id="scopeGlobal"
+                              name="serverScope"
+                              value="global"
+                              checked={formData.serverScope === 'global'}
+                              onChange={(e) => setFormData(prev => ({ ...prev, serverScope: e.target.value as 'global' | 'server-specific' }))}
+                              className="text-emerald-600 focus:ring-emerald-500"
+                            />
+                            <Label htmlFor="scopeGlobal" className="flex-1 text-sm font-medium text-gray-700">
+                              {t('Global Context')}
+                            </Label>
+                            <div className="text-xs text-gray-500 bg-emerald-50 px-2 py-1 rounded-lg">
+                              {t('All servers')}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3 p-3 bg-gray-50/50 rounded-xl border border-gray-200/50">
+                            <input
+                              type="radio"
+                              id="scopeSpecific"
+                              name="serverScope"
+                              value="server-specific"
+                              checked={formData.serverScope === 'server-specific'}
+                              onChange={(e) => setFormData(prev => ({ ...prev, serverScope: e.target.value as 'global' | 'server-specific' }))}
+                              className="text-orange-600 focus:ring-orange-500"
+                            />
+                            <Label htmlFor="scopeSpecific" className="flex-1 text-sm font-medium text-gray-700">
+                              {t('Server-Specific Context')}
+                            </Label>
+                            <div className="text-xs text-gray-500 bg-orange-50 px-2 py-1 rounded-lg">
+                              {t('Selected servers')}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        {formData.serverScope === 'server-specific' && (
+                          <div>
+                            <Label className="text-sm font-semibold text-gray-700 mb-2 block">{t('Primary FHIR Server')}</Label>
+                            <Select value={formData.fhirServerName} onValueChange={(value) => setFormData(prev => ({ ...prev, fhirServerName: value }))}>
+                              <SelectTrigger className="rounded-xl">
+                                <SelectValue placeholder={t('Select primary server')} />
+                              </SelectTrigger>
+                              <SelectContent className="rounded-xl">
+                                {sampleFhirServers.map(server => (
+                                  <SelectItem key={server.name} value={server.name}>{server.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        <div>
+                          <Label className="text-sm font-semibold text-gray-700 mb-2 block">{t('Supported Servers')}</Label>
+                          <div className="space-y-2 max-h-32 overflow-y-auto">
+                            {sampleFhirServers.map(server => (
+                              <div key={server.name} className="flex items-center space-x-3 p-2 bg-gray-50/50 rounded-lg border border-gray-200/50">
+                                <input
+                                  type="checkbox"
+                                  id={`server-${server.name}`}
+                                  checked={formData.supportedServers.includes(server.name)}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setFormData(prev => ({ ...prev, supportedServers: [...prev.supportedServers, server.name] }));
+                                    } else {
+                                      setFormData(prev => ({ ...prev, supportedServers: prev.supportedServers.filter(s => s !== server.name) }));
+                                    }
+                                  }}
+                                  className="rounded text-blue-600 focus:ring-blue-500"
+                                />
+                                <Label htmlFor={`server-${server.name}`} className="flex-1 text-sm font-medium text-gray-700">
+                                  {server.name}
+                                </Label>
+                                <Badge variant="secondary" className="text-xs">
+                                  {server.status}
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
                 {/* Action Buttons */}
                 <div className="flex justify-end space-x-4 pt-4">
                   <Button variant="outline" onClick={() => setShowAddDialog(false)} className="px-8 py-3 rounded-xl">
@@ -800,6 +936,43 @@ export function LaunchContextManager() {
                         <span className="font-medium">{t('Encounter')}</span>
                       </div>
                     )}
+                  </div>
+
+                  {/* FHIR Server Associations */}
+                  <div>
+                    <div className="text-sm font-semibold text-gray-700 mb-2">{t('FHIR Server Support:')}</div>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Badge 
+                          variant={context.serverScope === 'global' ? 'default' : 'secondary'}
+                          className={context.serverScope === 'global' 
+                            ? "bg-emerald-100 text-emerald-800 border-emerald-200" 
+                            : "bg-orange-100 text-orange-800 border-orange-200"
+                          }
+                        >
+                          {context.serverScope === 'global' ? t('Global Context') : t('Server-Specific')}
+                        </Badge>
+                        {context.fhirServerName && (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-800 border-blue-200">
+                            {context.fhirServerName}
+                          </Badge>
+                        )}
+                      </div>
+                      {context.supportedServers.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {context.supportedServers.slice(0, 2).map((server, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
+                              {server}
+                            </Badge>
+                          ))}
+                          {context.supportedServers.length > 2 && (
+                            <Badge variant="secondary" className="text-xs bg-gray-50 text-gray-700 border-gray-200">
+                              +{context.supportedServers.length - 2} more
+                            </Badge>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Metadata */}

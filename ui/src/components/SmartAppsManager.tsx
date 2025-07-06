@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
   TableBody,
@@ -16,26 +17,81 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useState } from 'react';
-import { MoreHorizontal, Plus, Settings, Shield, Activity } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import { 
+  MoreHorizontal, 
+  Plus, 
+  Settings, 
+  Shield, 
+  Activity, 
+  Edit, 
+  Eye, 
+  Trash2, 
+  X,
+  Code,
+  Database,
+  CheckCircle
+} from 'lucide-react';
 
 // SMART on FHIR App Types
 type SmartAppType = 'backend-service' | 'standalone-app' | 'ehr-launch-app' | 'agent';
 type AuthenticationType = 'asymmetric' | 'symmetric' | 'none';
 
+// Interface for Scope Sets (matching ScopeManager)
+interface ScopeSet {
+  id: string;
+  name: string;
+  description: string;
+  scopes: string[];
+  createdAt: string;
+  updatedAt: string;
+  isTemplate: boolean;
+}
+
+// Enhanced Smart App interface with scope management
+interface SmartApp {
+  id: string;
+  name: string;
+  clientId: string;
+  redirectUri: string;
+  scopes: string[];
+  scopeSetId?: string; // Reference to selected scope set
+  customScopes: string[]; // Additional custom scopes
+  status: 'active' | 'inactive';
+  lastUsed: string;
+  description: string;
+  appType: SmartAppType;
+  authenticationType: AuthenticationType;
+}
+
 // Mock data for SMART on FHIR applications
-const mockApps = [
+const mockApps: SmartApp[] = [
   {
     id: '1',
     name: 'Clinical Decision Support',
     clientId: 'cds-app-123',
     redirectUri: 'https://cds.example.com/callback',
     scopes: ['patient/Patient.read', 'patient/Observation.read'],
+    scopeSetId: 'physician-readonly',
+    customScopes: [],
     status: 'active',
     lastUsed: '2024-12-28',
     description: 'AI-powered clinical decision support tool',
-    appType: 'ehr-launch-app' as SmartAppType,
-    authenticationType: 'asymmetric' as AuthenticationType,
+    appType: 'ehr-launch-app',
+    authenticationType: 'asymmetric',
   },
   {
     id: '2',
@@ -43,35 +99,39 @@ const mockApps = [
     clientId: 'portal-456',
     redirectUri: 'https://portal.example.com/auth',
     scopes: ['patient/Patient.read', 'patient/Condition.read', 'patient/MedicationRequest.read'],
+    customScopes: ['patient/Appointment.read'],
     status: 'active',
     lastUsed: '2024-12-27',
     description: 'Patient self-service portal',
-    appType: 'standalone-app' as SmartAppType,
-    authenticationType: 'symmetric' as AuthenticationType,
+    appType: 'standalone-app',
+    authenticationType: 'symmetric',
   },
   {
     id: '3',
     name: 'Research Analytics',
     clientId: 'research-789',
     redirectUri: 'https://research.example.com/oauth',
-    scopes: ['patient/Patient.read', 'patient/Observation.read', 'patient/DiagnosticReport.read'],
+    scopes: ['user/Patient.read', 'user/Observation.read', 'user/DiagnosticReport.read'],
+    scopeSetId: 'researcher-population',
+    customScopes: [],
     status: 'inactive',
     lastUsed: '2024-12-20',
     description: 'Clinical research data analytics platform',
-    appType: 'backend-service' as SmartAppType,
-    authenticationType: 'asymmetric' as AuthenticationType,
+    appType: 'backend-service',
+    authenticationType: 'asymmetric',
   },
   {
     id: '4',
     name: 'Mobile Health App',
     clientId: 'mobile-health-101',
     redirectUri: 'https://mhealth.example.com/callback',
-    scopes: ['patient/Patient.read', 'patient/Vital.read'],
+    scopes: ['patient/Patient.read', 'patient/Observation.read'],
+    customScopes: ['patient/ActivityDefinition.read'],
     status: 'active',
     lastUsed: '2024-12-26',
     description: 'Mobile application for patient health monitoring',
-    appType: 'standalone-app' as SmartAppType,
-    authenticationType: 'asymmetric' as AuthenticationType,
+    appType: 'standalone-app',
+    authenticationType: 'asymmetric',
   },
   {
     id: '5',
@@ -79,11 +139,12 @@ const mockApps = [
     clientId: 'lab-viewer-202',
     redirectUri: 'https://labs.example.com/auth',
     scopes: ['patient/DiagnosticReport.read', 'patient/Observation.read'],
+    customScopes: [],
     status: 'active',
     lastUsed: '2024-12-25',
     description: 'Laboratory results visualization tool',
-    appType: 'ehr-launch-app' as SmartAppType,
-    authenticationType: 'symmetric' as AuthenticationType,
+    appType: 'ehr-launch-app',
+    authenticationType: 'symmetric',
   },
   {
     id: '6',
@@ -91,26 +152,48 @@ const mockApps = [
     clientId: 'ai-agent-303',
     redirectUri: 'https://ai-assistant.example.com/callback',
     scopes: ['patient/Patient.read', 'patient/Observation.read', 'patient/Condition.read', 'patient/MedicationRequest.read'],
+    scopeSetId: 'physician-full',
+    customScopes: ['patient/CarePlan.create'],
     status: 'active',
     lastUsed: '2024-12-28',
     description: 'AI-powered clinical decision support and documentation assistant',
-    appType: 'agent' as SmartAppType,
-    authenticationType: 'asymmetric' as AuthenticationType,
+    appType: 'agent',
+    authenticationType: 'asymmetric',
   },
 ];
 
 export function SmartAppsManager() {
-  const [apps, setApps] = useState(mockApps);
+  const [apps, setApps] = useState<SmartApp[]>(mockApps);
+  const [scopeSets, setScopeSets] = useState<ScopeSet[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showScopeDialog, setShowScopeDialog] = useState(false);
+  const [editingApp, setEditingApp] = useState<SmartApp | null>(null);
   const [newApp, setNewApp] = useState({
     name: '',
     clientId: '',
     redirectUri: '',
     description: '',
     scopes: [] as string[],
+    scopeSetId: '',
+    customScopes: [] as string[],
     appType: 'standalone-app' as SmartAppType,
     authenticationType: 'asymmetric' as AuthenticationType,
   });
+
+  // Load scope sets from ScopeManager
+  useEffect(() => {
+    const loadScopeSets = () => {
+      try {
+        const saved = localStorage.getItem('smart-scope-sets');
+        if (saved) {
+          setScopeSets(JSON.parse(saved));
+        }
+      } catch (error) {
+        console.error('Failed to load scope sets:', error);
+      }
+    };
+    loadScopeSets();
+  }, []);
 
   const getAppTypeBadge = (appType: SmartAppType, authenticationType: AuthenticationType) => {
     switch (appType) {
@@ -159,15 +242,77 @@ export function SmartAppsManager() {
 
   const handleAddApp = (e: React.FormEvent) => {
     e.preventDefault();
-    const app = {
+    
+    // Get scopes from selected scope set
+    let finalScopes = [...newApp.scopes];
+    if (newApp.scopeSetId) {
+      const selectedScopeSet = scopeSets.find(set => set.id === newApp.scopeSetId);
+      if (selectedScopeSet) {
+        finalScopes = [...selectedScopeSet.scopes, ...newApp.customScopes];
+      }
+    } else {
+      finalScopes = [...newApp.scopes, ...newApp.customScopes];
+    }
+    
+    const app: SmartApp = {
       id: Date.now().toString(),
-      ...newApp,
-      status: 'active' as const,
+      name: newApp.name,
+      clientId: newApp.clientId,
+      redirectUri: newApp.redirectUri,
+      description: newApp.description,
+      scopes: finalScopes,
+      scopeSetId: newApp.scopeSetId,
+      customScopes: newApp.customScopes,
+      appType: newApp.appType,
+      authenticationType: newApp.authenticationType,
+      status: 'active',
       lastUsed: new Date().toISOString().split('T')[0],
     };
     setApps([...apps, app]);
-    setNewApp({ name: '', clientId: '', redirectUri: '', description: '', scopes: [], appType: 'standalone-app', authenticationType: 'asymmetric' });
+    setNewApp({ 
+      name: '', 
+      clientId: '', 
+      redirectUri: '', 
+      description: '', 
+      scopes: [], 
+      scopeSetId: '',
+      customScopes: [],
+      appType: 'standalone-app', 
+      authenticationType: 'asymmetric' 
+    });
     setShowAddForm(false);
+  };
+
+  const updateAppScopes = (appId: string, scopeSetId: string, customScopes: string[]) => {
+    setApps(prevApps => prevApps.map(app => {
+      if (app.id === appId) {
+        let finalScopes = [...customScopes];
+        if (scopeSetId) {
+          const selectedScopeSet = scopeSets.find(set => set.id === scopeSetId);
+          if (selectedScopeSet) {
+            finalScopes = [...selectedScopeSet.scopes, ...customScopes];
+          }
+        }
+        return {
+          ...app,
+          scopeSetId,
+          customScopes,
+          scopes: finalScopes
+        };
+      }
+      return app;
+    }));
+  };
+
+  const openScopeEditor = (app: SmartApp) => {
+    setEditingApp(app);
+    setShowScopeDialog(true);
+  };
+
+  const getScopeSetName = (scopeSetId?: string) => {
+    if (!scopeSetId) return 'Custom';
+    const scopeSet = scopeSets.find(set => set.id === scopeSetId);
+    return scopeSet ? scopeSet.name : 'Unknown';
   };
 
   const toggleAppStatus = (id: string) => {
@@ -191,12 +336,20 @@ export function SmartAppsManager() {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
               SMART on FHIR Applications
             </h1>
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-3 shadow-sm">
-              <Shield className="w-5 h-5 text-blue-600" />
+            <div className="text-gray-600 text-lg flex items-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-3 shadow-sm">
+                <Shield className="w-5 h-5 text-blue-600" />
+              </div>
+              Manage registered healthcare applications and their SMART on FHIR permissions
             </div>
-            <p className="text-gray-600 text-lg flex items-center">
-              Manage registered healthcare applications and their permissions
-            </p>
+            {scopeSets.length > 0 && (
+              <div className="mt-4 flex items-center space-x-2 text-sm">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+                <span className="text-green-700 font-medium">
+                  {scopeSets.length} scope templates available for quick configuration
+                </span>
+              </div>
+            )}
           </div>
           <Button
             onClick={() => setShowAddForm(true)}
@@ -396,6 +549,96 @@ export function SmartAppsManager() {
                 className="rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm"
               />
             </div>
+
+            {/* Scope Management Section */}
+            <div className="space-y-6 p-6 bg-blue-50/50 rounded-xl border border-blue-200/50">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center shadow-sm">
+                  <Shield className="w-4 h-4 text-blue-600" />
+                </div>
+                <div>
+                  <h4 className="text-lg font-bold text-gray-900 tracking-tight">Scope Configuration</h4>
+                  <p className="text-gray-600 text-sm font-medium">Define what data this application can access</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <Label htmlFor="scopeSet" className="text-sm font-semibold text-gray-700">Predefined Scope Set</Label>
+                  <select
+                    id="scopeSet"
+                    value={newApp.scopeSetId}
+                    onChange={(e) => {
+                      const scopeSetId = e.target.value;
+                      const selectedSet = scopeSets.find(set => set.id === scopeSetId);
+                      setNewApp({ 
+                        ...newApp, 
+                        scopeSetId,
+                        scopes: selectedSet ? selectedSet.scopes : []
+                      });
+                    }}
+                    className="flex h-10 w-full rounded-xl border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
+                  >
+                    <option value="">Custom Scopes Only</option>
+                    {scopeSets.map((scopeSet) => (
+                      <option key={scopeSet.id} value={scopeSet.id}>
+                        {scopeSet.name} ({scopeSet.scopes.length} scopes)
+                      </option>
+                    ))}
+                  </select>
+                  {newApp.scopeSetId && (
+                    <div className="text-xs text-gray-600 bg-white p-3 rounded-lg border">
+                      <div className="font-medium mb-2">Included scopes:</div>
+                      <div className="flex flex-wrap gap-1">
+                        {scopeSets.find(set => set.id === newApp.scopeSetId)?.scopes.slice(0, 5).map((scope, index) => (
+                          <span key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-mono">
+                            {scope}
+                          </span>
+                        ))}
+                        {(scopeSets.find(set => set.id === newApp.scopeSetId)?.scopes.length || 0) > 5 && (
+                          <span className="text-xs text-gray-500">
+                            +{(scopeSets.find(set => set.id === newApp.scopeSetId)?.scopes.length || 0) - 5} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3">
+                  <Label htmlFor="customScopes" className="text-sm font-semibold text-gray-700">Additional Custom Scopes</Label>
+                  <Textarea
+                    id="customScopes"
+                    placeholder="patient/Patient.read&#10;patient/Observation.read&#10;openid profile"
+                    value={newApp.customScopes.join('\n')}
+                    onChange={(e) => setNewApp({ 
+                      ...newApp, 
+                      customScopes: e.target.value.split('\n').filter(scope => scope.trim())
+                    })}
+                    rows={6}
+                    className="rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm font-mono text-sm"
+                  />
+                  <p className="text-xs text-gray-500">Enter one scope per line. These will be added to the selected scope set.</p>
+                </div>
+              </div>
+
+              {/* Scope Preview */}
+              {(newApp.scopes.length > 0 || newApp.customScopes.length > 0) && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold text-gray-700">Final Scope List Preview</Label>
+                  <div className="bg-white p-4 rounded-xl border border-gray-200 max-h-32 overflow-y-auto">
+                    <div className="flex flex-wrap gap-2">
+                      {[...newApp.scopes, ...newApp.customScopes].map((scope, index) => (
+                        <Badge key={index} variant="outline" className="text-xs font-mono bg-green-50 text-green-800 border-green-200">
+                          {scope}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex gap-4 pt-4">
               <Button
                 type="submit"
@@ -415,6 +658,143 @@ export function SmartAppsManager() {
           </form>
         </div>
       )}
+
+      {/* Scope Management Dialog */}
+      <Dialog open={showScopeDialog} onOpenChange={setShowScopeDialog}>
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader className="pb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
+                <Shield className="w-6 h-6 text-blue-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-bold text-gray-900 tracking-tight">
+                  Manage Scopes: {editingApp?.name}
+                </DialogTitle>
+                <DialogDescription className="text-gray-600 font-medium mt-1">
+                  Configure SMART on FHIR scopes for this application
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {editingApp && (
+            <div className="space-y-6">
+              {/* Current Configuration */}
+              <Card className="bg-blue-50/50 border-blue-200/50">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center">
+                    <Database className="w-5 h-5 mr-2 text-blue-600" />
+                    Current Configuration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-700 mb-2 block">Current Scope Set</Label>
+                      <div className="p-3 bg-white rounded-lg border">
+                        <span className="font-medium text-gray-900">
+                          {getScopeSetName(editingApp.scopeSetId)}
+                        </span>
+                        {editingApp.scopeSetId && (
+                          <p className="text-xs text-gray-600 mt-1">
+                            {scopeSets.find(set => set.id === editingApp.scopeSetId)?.description}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-700 mb-2 block">Total Scopes</Label>
+                      <div className="p-3 bg-white rounded-lg border">
+                        <span className="font-bold text-2xl text-blue-600">{editingApp.scopes.length}</span>
+                        <span className="text-sm text-gray-600 ml-2">active scopes</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label className="text-sm font-semibold text-gray-700 mb-2 block">Active Scopes</Label>
+                    <div className="bg-white p-4 rounded-lg border max-h-32 overflow-y-auto">
+                      <div className="flex flex-wrap gap-2">
+                        {editingApp.scopes.map((scope, index) => (
+                          <Badge key={index} variant="outline" className="text-xs font-mono bg-green-50 text-green-800 border-green-200">
+                            {scope}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Scope Set Selection */}
+              <Card className="bg-white/70 border-gray-200/50">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center">
+                    <Code className="w-5 h-5 mr-2 text-purple-600" />
+                    Update Scope Configuration
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-3">
+                      <Label className="text-sm font-semibold text-gray-700">Select Scope Set</Label>
+                      <select
+                        value={editingApp.scopeSetId || ''}
+                        onChange={(e) => {
+                          const scopeSetId = e.target.value;
+                          updateAppScopes(editingApp.id, scopeSetId, editingApp.customScopes);
+                          setEditingApp({
+                            ...editingApp,
+                            scopeSetId,
+                            scopes: scopeSetId 
+                              ? [...(scopeSets.find(set => set.id === scopeSetId)?.scopes || []), ...editingApp.customScopes]
+                              : editingApp.customScopes
+                          });
+                        }}
+                        className="flex h-10 w-full rounded-xl border border-gray-300 bg-background px-3 py-2 text-sm shadow-sm"
+                      >
+                        <option value="">Custom Scopes Only</option>
+                        {scopeSets.map((scopeSet) => (
+                          <option key={scopeSet.id} value={scopeSet.id}>
+                            {scopeSet.name} ({scopeSet.scopes.length} scopes)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-3">
+                      <Label className="text-sm font-semibold text-gray-700">Additional Custom Scopes</Label>
+                      <Textarea
+                        value={editingApp.customScopes.join('\n')}
+                        onChange={(e) => {
+                          const customScopes = e.target.value.split('\n').filter(scope => scope.trim());
+                          updateAppScopes(editingApp.id, editingApp.scopeSetId || '', customScopes);
+                          setEditingApp({
+                            ...editingApp,
+                            customScopes,
+                            scopes: editingApp.scopeSetId 
+                              ? [...(scopeSets.find(set => set.id === editingApp.scopeSetId)?.scopes || []), ...customScopes]
+                              : customScopes
+                          });
+                        }}
+                        rows={5}
+                        className="rounded-xl border-gray-300 shadow-sm font-mono text-sm"
+                        placeholder="patient/Patient.read&#10;patient/Observation.read&#10;openid profile"
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end space-x-4 pt-4">
+                <Button variant="outline" onClick={() => setShowScopeDialog(false)} className="px-8 py-3 rounded-xl">
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Enhanced Applications Table */}
       <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
@@ -480,16 +860,33 @@ export function SmartAppsManager() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-wrap gap-2">
-                          {app.scopes.slice(0, 2).map((scope, index) => (
-                            <Badge key={index} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                              {scope.split('/')[1]}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-gray-700">
+                              {getScopeSetName(app.scopeSetId)}
+                            </span>
+                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                              {app.scopes.length} scopes
                             </Badge>
-                          ))}
-                          {app.scopes.length > 2 && (
-                            <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
-                              +{app.scopes.length - 2}
-                            </Badge>
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {app.scopes.slice(0, 2).map((scope, index) => (
+                              <Badge key={index} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 font-mono">
+                                {scope.split('/')[1]?.split('.')[0] || scope}
+                              </Badge>
+                            ))}
+                            {app.scopes.length > 2 && (
+                              <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                                +{app.scopes.length - 2}
+                              </Badge>
+                            )}
+                          </div>
+                          {app.customScopes.length > 0 && (
+                            <div className="flex items-center space-x-1">
+                              <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                                +{app.customScopes.length} custom
+                              </Badge>
+                            </div>
                           )}
                         </div>
                       </TableCell>
@@ -505,15 +902,36 @@ export function SmartAppsManager() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-xl border-gray-200/50 shadow-lg">
                             <DropdownMenuItem onClick={() => toggleAppStatus(app.id)} className="rounded-lg">
-                              {app.status === 'active' ? 'Deactivate' : 'Activate'}
+                              <div className="flex items-center">
+                                {app.status === 'active' ? (
+                                  <X className="w-4 h-4 mr-2 text-red-600" />
+                                ) : (
+                                  <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                                )}
+                                {app.status === 'active' ? 'Deactivate' : 'Activate'}
+                              </div>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-lg">Edit Details</DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-lg">View Scopes</DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-lg">Authentication Settings</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openScopeEditor(app)} className="rounded-lg">
+                              <Shield className="w-4 h-4 mr-2 text-blue-600" />
+                              Manage Scopes
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="rounded-lg">
+                              <Edit className="w-4 h-4 mr-2 text-gray-600" />
+                              Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="rounded-lg">
+                              <Eye className="w-4 h-4 mr-2 text-gray-600" />
+                              View Configuration
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="rounded-lg">
+                              <Settings className="w-4 h-4 mr-2 text-gray-600" />
+                              Authentication Settings
+                            </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => deleteApp(app.id)}
                               className="text-red-600 rounded-lg hover:bg-red-50"
                             >
+                              <Trash2 className="w-4 h-4 mr-2" />
                               Delete
                             </DropdownMenuItem>
                           </DropdownMenuContent>

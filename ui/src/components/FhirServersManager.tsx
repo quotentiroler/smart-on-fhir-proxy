@@ -9,7 +9,8 @@ import {
   AlertCircle,
   Copy,
   Eye,
-  Info
+  Info,
+  Play
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -147,7 +148,7 @@ export function FhirServersManager() {
       </div>
 
       {/* Enhanced Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -190,6 +191,21 @@ export function FhirServersManager() {
               <div className="text-3xl font-bold text-red-900 mb-2">
                 {servers.filter(s => !s.supported).length}
               </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center shadow-sm">
+                  <Play className="w-6 h-6 text-purple-600" />
+                </div>
+                <div className="text-sm font-semibold text-purple-800 tracking-wide">Launch Contexts</div>
+              </div>
+              <div className="text-3xl font-bold text-purple-900 mb-2">12</div>
+              <p className="text-sm text-purple-700 font-medium">Available contexts</p>
             </div>
           </div>
         </div>
@@ -259,6 +275,25 @@ export function FhirServersManager() {
                       <p className="text-sm text-gray-900 bg-gradient-to-r from-gray-50 to-gray-100 p-3 rounded-xl font-mono break-all border border-gray-200/50">
                         {server.url}
                       </p>
+                    </div>
+
+                    {/* Launch Context Summary */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold text-gray-600">Launch Contexts:</span>
+                        <span className="text-xs text-gray-500">3 available</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="secondary" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
+                          Global
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                          Patient Chart
+                        </Badge>
+                        <Badge variant="secondary" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                          Provider Context
+                        </Badge>
+                      </div>
                     </div>
 
                     <div className="flex space-x-3 pt-2">
@@ -403,6 +438,74 @@ export function FhirServersManager() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                {/* Launch Context Associations */}
+                <div className="mt-8">
+                  <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+                    <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center mr-3">
+                      <Database className="w-4 h-4 text-indigo-600" />
+                    </div>
+                    Associated Launch Contexts
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Sample launch contexts - in a real app, these would come from API */}
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-blue-900">Patient Chart Launch</h4>
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-300">
+                          Global
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-blue-700 mb-2">Standard patient chart context for EHR integration</p>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-xs text-blue-600 font-medium">Active</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl border border-purple-200/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-purple-900">Provider Summary</h4>
+                        <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-300">
+                          Server-specific
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-purple-700 mb-2">Provider-focused clinical decision support context</p>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-xs text-purple-600 font-medium">Active</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-emerald-900">Encounter Context</h4>
+                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 border-emerald-300">
+                          Global
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-emerald-700 mb-2">Encounter-specific clinical workflow context</p>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="text-xs text-emerald-600 font-medium">Active</span>
+                      </div>
+                    </div>
+
+                    <div className="p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200/50">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-orange-900">Quality Reporting</h4>
+                        <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-300">
+                          Server-specific
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-orange-700 mb-2">Clinical quality measure reporting context</p>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                        <span className="text-xs text-orange-600 font-medium">Pending</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
