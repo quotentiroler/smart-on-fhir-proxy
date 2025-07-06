@@ -4,6 +4,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   Table,
   TableBody,
   TableCell,
@@ -18,10 +25,30 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useState, useEffect } from 'react';
-import { MoreHorizontal, Plus, Users, UserCheck, Shield, GraduationCap, Loader2 } from 'lucide-react';
+import { MoreHorizontal, Plus, Users, UserCheck, Shield, GraduationCap, Loader2, Server, Database, Trash2 } from 'lucide-react';
 import { createAuthenticatedApiClients } from '@/lib/apiClient';
 import { useAuth } from '@/stores/authStore';
+import { PersonResourceLinkerTrigger } from './PersonResourceLinker';
+import { AddFhirPersonModal } from './AddFhirPersonModal';
 import type { GetAdminHealthcareUsers200ResponseInner } from '@/lib/api-client';
+
+interface FhirPersonAssociation {
+  serverName: string;
+  personId: string;
+  display?: string;
+  created?: string;
+}
+
+interface PersonLinkData {
+  links: Array<{
+    target: {
+      serverName: string;
+      reference: string;
+      display?: string;
+    };
+    created: string;
+  }>;
+}
 
 interface HealthcareUser {
   id: string;
@@ -31,9 +58,10 @@ interface HealthcareUser {
   lastName: string;
   username: string;
   organization: string;
-  fhirUser?: string;
+  fhirPersons: FhirPersonAssociation[]; // Multiple FHIR Person resources
   status: 'active' | 'inactive';
   enabled: boolean;
+  primaryRole?: string;
   lastLogin?: number | null;
   createdTimestamp?: number;
   realmRoles?: string[];
@@ -44,7 +72,12 @@ interface HealthcareUser {
 /**
  * Get primary role from Keycloak roles
  */
-function getPrimaryRole(realmRoles: string[] = [], clientRoles: Record<string, string[]> = {}): string {
+function getPrimaryRole(realmRoles: string[] = [], clientRoles: Record<string, string[]> = {}, explicitPrimaryRole?: string): string {
+  // If an explicit primary role is set, use it
+  if (explicitPrimaryRole) {
+    return explicitPrimaryRole;
+  }
+  
   // Check client roles first (more specific)
   const adminUiRoles = clientRoles['admin-ui'] || []
   if (adminUiRoles.length > 0) {
@@ -107,6 +140,55 @@ const AVAILABLE_CLIENT_ROLES = {
 };
 
 /**
+ * Get all available roles for primary role selection
+ */
+const getAllAvailableRoles = () => {
+  const allRoles = [...AVAILABLE_REALM_ROLES];
+  Object.values(AVAILABLE_CLIENT_ROLES).forEach(roles => {
+    allRoles.push(...roles);
+  });
+  return allRoles;
+};
+
+// Sample FHIR servers for demonstration
+const sampleFhirServers = [
+  { name: 'Epic Production', baseUrl: 'https://fhir.epic.com/interconnect-fhir-oauth', status: 'active' },
+  { name: 'Cerner Sandbox', baseUrl: 'https://fhir-open.cerner.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d', status: 'active' },
+  { name: 'SMART Health IT', baseUrl: 'https://launch.smarthealthit.org/v/r4/fhir', status: 'active' },
+  { name: 'Test Server', baseUrl: 'http://localhost:8080/fhir', status: 'development' }
+];
+
+/**
+ * Parse FHIR user string into structured associations
+ */
+function parseFhirPersons(fhirUser: string): FhirPersonAssociation[] {
+  if (!fhirUser) return [];
+  
+  try {
+    // Format: "server1:Person/123,server2:Person/456"
+    return fhirUser.split(',').map(entry => {
+      const [serverName, personId] = entry.split(':');
+      return {
+        serverName: serverName.trim(),
+        personId: personId.trim(),
+        display: `${personId.trim()} on ${serverName.trim()}`,
+        created: new Date().toISOString()
+      };
+    }).filter(assoc => assoc.serverName && assoc.personId);
+  } catch (error) {
+    console.error('Failed to parse FHIR persons:', error);
+    return [];
+  }
+}
+
+/**
+ * Convert FHIR person associations to API format
+ */
+function serializeFhirPersons(fhirPersons: FhirPersonAssociation[]): string {
+  return fhirPersons.map(assoc => `${assoc.serverName}:${assoc.personId}`).join(',');
+}
+
+/**
  * Transform API user data to our internal format
  */
 function transformApiUser(apiUser: GetAdminHealthcareUsers200ResponseInner): HealthcareUser {
@@ -140,9 +222,10 @@ function transformApiUser(apiUser: GetAdminHealthcareUsers200ResponseInner): Hea
     lastName: apiUser.lastName,
     username: apiUser.username,
     organization,
-    fhirUser,
+    fhirPersons: parseFhirPersons(fhirUser),
     status: apiUser.enabled ? 'active' : 'inactive',
     enabled: apiUser.enabled,
+    primaryRole: '', // TODO: Add primaryRole support to API
     lastLogin: apiUser.lastLogin,
     createdTimestamp: apiUser.createdTimestamp,
     realmRoles: apiUser.realmRoles,
@@ -160,15 +243,18 @@ export function HealthcareUsersManager() {
   const [showEditForm, setShowEditForm] = useState(false);
   const [editingUser, setEditingUser] = useState<HealthcareUser | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [showAddPersonModal, setShowAddPersonModal] = useState(false);
+  const [selectedUserForPerson, setSelectedUserForPerson] = useState<HealthcareUser | null>(null);
   const [newUser, setNewUser] = useState({
     username: '',
     firstName: '',
     lastName: '',
     email: '',
     organization: '',
-    fhirUser: '',
+    fhirPersons: [] as FhirPersonAssociation[],
     password: '',
     temporaryPassword: false,
+    primaryRole: '',
     realmRoles: [] as string[],
     clientRoles: {} as Record<string, string[]>,
   });
@@ -180,8 +266,9 @@ export function HealthcareUsersManager() {
     lastName: '',
     email: '',
     organization: '',
-    fhirUser: '',
+    fhirPersons: [] as FhirPersonAssociation[],
     enabled: true,
+    primaryRole: '',
     realmRoles: [] as string[],
     clientRoles: {} as Record<string, string[]>,
   });
@@ -230,9 +317,10 @@ export function HealthcareUsersManager() {
         firstName: newUser.firstName,
         lastName: newUser.lastName,
         organization: newUser.organization || undefined,
-        fhirUser: newUser.fhirUser || undefined,
+        fhirUser: serializeFhirPersons(newUser.fhirPersons),
         password: newUser.password || undefined,
         temporaryPassword: newUser.temporaryPassword,
+        // primaryRole: newUser.primaryRole || undefined, // TODO: Add primaryRole support to API
         realmRoles: newUser.realmRoles.length > 0 ? newUser.realmRoles : undefined,
         clientRoles: Object.keys(newUser.clientRoles).length > 0 ? newUser.clientRoles : undefined,
       };
@@ -252,9 +340,10 @@ export function HealthcareUsersManager() {
         lastName: '',
         email: '',
         organization: '',
-        fhirUser: '',
+        fhirPersons: [],
         password: '',
         temporaryPassword: false,
+        primaryRole: '',
         realmRoles: [],
         clientRoles: {},
       });
@@ -276,8 +365,9 @@ export function HealthcareUsersManager() {
       lastName: user.lastName,
       email: user.email,
       organization: user.organization,
-      fhirUser: user.fhirUser || '',
+      fhirPersons: user.fhirPersons || [],
       enabled: user.enabled,
+      primaryRole: user.primaryRole || '',
       realmRoles: user.realmRoles || [],
       clientRoles: user.clientRoles || {},
     });
@@ -303,7 +393,8 @@ export function HealthcareUsersManager() {
         email: editUser.email,
         enabled: editUser.enabled,
         organization: editUser.organization || undefined,
-        fhirUser: editUser.fhirUser || undefined,
+        fhirUser: serializeFhirPersons(editUser.fhirPersons),
+        // primaryRole: editUser.primaryRole || undefined, // TODO: Add primaryRole support to API
         realmRoles: editUser.realmRoles.length > 0 ? editUser.realmRoles : undefined,
         clientRoles: Object.keys(editUser.clientRoles).length > 0 ? editUser.clientRoles : undefined,
       };
@@ -340,8 +431,9 @@ export function HealthcareUsersManager() {
       lastName: '',
       email: '',
       organization: '',
-      fhirUser: '',
+      fhirPersons: [],
       enabled: true,
+      primaryRole: '',
       realmRoles: [],
       clientRoles: {},
     });
@@ -391,6 +483,168 @@ export function HealthcareUsersManager() {
       .join('')
       .substring(0, 2)
       .toUpperCase();
+  };
+
+  // Helper functions for FHIR Person associations
+  const addFhirPersonAssociation = (isEdit: boolean = false) => {
+    if (isEdit) {
+      setEditUser((prev) => ({
+        ...prev,
+        fhirPersons: [...prev.fhirPersons, {
+          serverName: '',
+          personId: '',
+          display: '',
+          created: new Date().toISOString()
+        }]
+      }));
+    } else {
+      setNewUser((prev) => ({
+        ...prev,
+        fhirPersons: [...prev.fhirPersons, {
+          serverName: '',
+          personId: '',
+          display: '',
+          created: new Date().toISOString()
+        }]
+      }));
+    }
+  };
+
+  const removeFhirPersonAssociation = (index: number, isEdit: boolean = false) => {
+    if (isEdit) {
+      setEditUser((prev) => ({
+        ...prev,
+        fhirPersons: prev.fhirPersons.filter((_, i) => i !== index)
+      }));
+    } else {
+      setNewUser((prev) => ({
+        ...prev,
+        fhirPersons: prev.fhirPersons.filter((_, i) => i !== index)
+      }));
+    }
+  };
+
+  const updateFhirPersonAssociation = (index: number, field: keyof FhirPersonAssociation, value: string, isEdit: boolean = false) => {
+    if (isEdit) {
+      setEditUser((prev) => ({
+        ...prev,
+        fhirPersons: prev.fhirPersons.map((assoc, i) =>
+          i === index ? { ...assoc, [field]: value } : assoc
+        )
+      }));
+    } else {
+      setNewUser((prev) => ({
+        ...prev,
+        fhirPersons: prev.fhirPersons.map((assoc, i) =>
+          i === index ? { ...assoc, [field]: value } : assoc
+        )
+      }));
+    }
+  };
+
+  const createPersonInFhir = async (serverName: string, userData: { firstName: string; lastName: string; email: string }) => {
+    // This would integrate with the actual FHIR server to create a Person resource
+    // For now, we'll simulate this
+    const mockPersonId = `Person/${Date.now()}`;
+    console.log(`Creating Person resource in ${serverName}:`, userData);
+    return mockPersonId;
+  };
+
+  // Handle opening the Add FHIR Person modal
+  const handleAddFhirPerson = (user: HealthcareUser) => {
+    setSelectedUserForPerson(user);
+    setShowAddPersonModal(true);
+  };
+
+  // Handle when a new Person association is added
+  const handlePersonAdded = (association: FhirPersonAssociation) => {
+    if (!selectedUserForPerson) return;
+
+    const updatedUser = {
+      ...selectedUserForPerson,
+      fhirPersons: [...selectedUserForPerson.fhirPersons, association]
+    };
+
+    // Update the user in the local state
+    setUsers(users.map(u => u.id === selectedUserForPerson.id ? updatedUser : u));
+    
+    // Close modal and reset state
+    setShowAddPersonModal(false);
+    setSelectedUserForPerson(null);
+  };
+
+  // Convert healthcare user to Person resource data for the linker
+  const convertToPersonResourceData = (user: HealthcareUser) => {
+    // Check if user has actual Person resources (not just associations)
+    const hasActualPersonResource = user.fhirPersons.some(assoc => assoc.personId.startsWith('Person/'));
+    
+    return {
+      id: hasActualPersonResource ? user.fhirPersons.find(assoc => assoc.personId.startsWith('Person/'))?.personId || `Person/${user.id}` : `Person/${user.id}`,
+      identifier: [
+        {
+          system: 'http://hospital.smartplatforms.org',
+          value: user.username,
+          use: 'usual'
+        }
+      ],
+      name: [
+        {
+          family: user.lastName,
+          given: [user.firstName],
+          use: 'official'
+        }
+      ],
+      telecom: [
+        {
+          system: 'email',
+          value: user.email,
+          use: 'work'
+        }
+      ],
+      gender: undefined,
+      birthDate: undefined,
+      address: [],
+      active: user.enabled,
+      managingOrganization: user.organization ? {
+        reference: `Organization/${user.organization}`,
+        display: user.organization
+      } : undefined,
+      // Mark as actual Person resource only if user has Person resources
+      isActualPersonResource: hasActualPersonResource,
+      // Include original healthcare user data for reference
+      healthcareUserData: {
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        organization: user.organization
+      },
+      // Available Person resources for selection
+      availablePersons: user.fhirPersons.filter(assoc => assoc.personId.startsWith('Person/')).map(assoc => ({
+        id: assoc.personId,
+        serverName: assoc.serverName,
+        display: assoc.display || `${user.firstName} ${user.lastName} (${assoc.personId})`,
+        serverUrl: sampleFhirServers.find(s => s.name === assoc.serverName)?.baseUrl || ''
+      })),
+      // Links will be empty initially - they should be loaded separately for each Person
+      links: []
+    };
+  };
+
+  // Update healthcare user from Person resource data
+  const updateFromPersonResourceData = (user: HealthcareUser, personData: PersonLinkData) => {
+    const updatedUser = {
+      ...user,
+      fhirPersons: personData.links.map((link) => ({
+        serverName: link.target.serverName,
+        personId: link.target.reference,
+        display: link.target.display || link.target.reference,
+        created: link.created
+      }))
+    };
+    
+    // Update the user in the local state
+    setUsers(users.map(u => u.id === user.id ? updatedUser : u));
   };
 
   return (
@@ -484,7 +738,7 @@ export function HealthcareUsersManager() {
               </div>
               <div className="text-3xl font-bold text-orange-900 mb-2">
                 {users.filter(user => {
-                  const primaryRole = getPrimaryRole(user.realmRoles, user.clientRoles);
+                  const primaryRole = getPrimaryRole(user.realmRoles, user.clientRoles, user.primaryRole);
                   return primaryRole.toLowerCase().includes('researcher') || primaryRole.toLowerCase().includes('research');
                 }).length}
               </div>
@@ -503,7 +757,7 @@ export function HealthcareUsersManager() {
               </div>
               <div className="text-3xl font-bold text-purple-900 mb-2">
                 {users.filter(user => {
-                  const primaryRole = getPrimaryRole(user.realmRoles, user.clientRoles);
+                  const primaryRole = getPrimaryRole(user.realmRoles, user.clientRoles, user.primaryRole);
                   return primaryRole.toLowerCase().includes('practitioner') || primaryRole.toLowerCase().includes('doctor');
                 }).length}
               </div>
@@ -589,14 +843,90 @@ export function HealthcareUsersManager() {
                 />
               </div>
               <div className="space-y-3">
-                <Label htmlFor="fhirUser" className="text-sm font-semibold text-gray-700">FHIR User (Optional)</Label>
-                <Input
-                  id="fhirUser"
-                  placeholder="e.g., Practitioner/12345"
-                  value={newUser.fhirUser}
-                  onChange={(e) => setNewUser({ ...newUser, fhirUser: e.target.value })}
-                  className="rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm"
-                />
+                <Label htmlFor="fhirPersons" className="text-sm font-semibold text-gray-700">FHIR Person Associations</Label>
+                <div className="space-y-4 bg-blue-50/30 p-4 rounded-xl border border-blue-200/50">
+                  {newUser.fhirPersons.map((association, index) => (
+                    <div key={index} className="space-y-3 bg-white p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-sm font-semibold text-gray-700">FHIR Server Association #{index + 1}</h5>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFhirPersonAssociation(index)}
+                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs font-medium text-gray-600">FHIR Server</Label>
+                          <Select
+                            value={association.serverName}
+                            onValueChange={(value) => updateFhirPersonAssociation(index, 'serverName', value)}
+                          >
+                            <SelectTrigger className="rounded-lg">
+                              <SelectValue placeholder="Select FHIR server" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {sampleFhirServers.map(server => (
+                                <SelectItem key={server.name} value={server.name}>
+                                  <div className="flex items-center space-x-2">
+                                    <Server className="w-4 h-4" />
+                                    <span>{server.name}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex space-x-2">
+                          <div className="flex-1">
+                            <Label className="text-xs font-medium text-gray-600">Person ID</Label>
+                            <Input
+                              placeholder="e.g., Person/12345"
+                              value={association.personId}
+                              onChange={(e) => updateFhirPersonAssociation(index, 'personId', e.target.value)}
+                              className="rounded-lg"
+                            />
+                          </div>
+                          <div className="flex flex-col justify-end">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                if (association.serverName) {
+                                  const personId = await createPersonInFhir(association.serverName, {
+                                    firstName: newUser.firstName,
+                                    lastName: newUser.lastName,
+                                    email: newUser.email
+                                  });
+                                  updateFhirPersonAssociation(index, 'personId', personId);
+                                }
+                              }}
+                              disabled={!association.serverName}
+                              className="rounded-lg"
+                            >
+                              <Database className="w-4 h-4 mr-1" />
+                              Create
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => addFhirPersonAssociation()}
+                    className="w-full rounded-lg border-dashed border-blue-300 text-blue-600 hover:bg-blue-50"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add FHIR Server Association
+                  </Button>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -638,6 +968,22 @@ export function HealthcareUsersManager() {
               </div>
               
               <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-semibold text-gray-700 mb-3 block">Primary Role</Label>
+                  <select
+                    value={newUser.primaryRole}
+                    onChange={(e) => setNewUser({ ...newUser, primaryRole: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">Select primary role...</option>
+                    {getAllAvailableRoles().map((role) => (
+                      <option key={role} value={role} className="capitalize">
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
                 <div>
                   <Label className="text-sm font-semibold text-gray-700 mb-3 block">Realm Roles</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -814,14 +1160,90 @@ export function HealthcareUsersManager() {
                 />
               </div>
               <div className="space-y-3">
-                <Label htmlFor="editFhirUser" className="text-sm font-semibold text-gray-700">FHIR User (Optional)</Label>
-                <Input
-                  id="editFhirUser"
-                  placeholder="e.g., Practitioner/12345"
-                  value={editUser.fhirUser}
-                  onChange={(e) => setEditUser({ ...editUser, fhirUser: e.target.value })}
-                  className="rounded-xl border-gray-300 focus:border-purple-500 focus:ring-purple-500 shadow-sm"
-                />
+                <Label htmlFor="editFhirPersons" className="text-sm font-semibold text-gray-700">FHIR Person Associations</Label>
+                <div className="space-y-4 bg-purple-50/30 p-4 rounded-xl border border-purple-200/50">
+                  {editUser.fhirPersons.map((association, index) => (
+                    <div key={index} className="space-y-3 bg-white p-4 rounded-lg border border-gray-200">
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-sm font-semibold text-gray-700">FHIR Server Association #{index + 1}</h5>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFhirPersonAssociation(index, true)}
+                          className="text-red-600 hover:text-red-800 hover:bg-red-50"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                          <Label className="text-xs font-medium text-gray-600">FHIR Server</Label>
+                          <Select
+                            value={association.serverName}
+                            onValueChange={(value) => updateFhirPersonAssociation(index, 'serverName', value, true)}
+                          >
+                            <SelectTrigger className="rounded-lg">
+                              <SelectValue placeholder="Select FHIR server" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {sampleFhirServers.map(server => (
+                                <SelectItem key={server.name} value={server.name}>
+                                  <div className="flex items-center space-x-2">
+                                    <Server className="w-4 h-4" />
+                                    <span>{server.name}</span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="flex space-x-2">
+                          <div className="flex-1">
+                            <Label className="text-xs font-medium text-gray-600">Person ID</Label>
+                            <Input
+                              placeholder="e.g., Person/12345"
+                              value={association.personId}
+                              onChange={(e) => updateFhirPersonAssociation(index, 'personId', e.target.value, true)}
+                              className="rounded-lg"
+                            />
+                          </div>
+                          <div className="flex flex-col justify-end">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                if (association.serverName) {
+                                  const personId = await createPersonInFhir(association.serverName, {
+                                    firstName: editUser.firstName,
+                                    lastName: editUser.lastName,
+                                    email: editUser.email
+                                  });
+                                  updateFhirPersonAssociation(index, 'personId', personId, true);
+                                }
+                              }}
+                              disabled={!association.serverName}
+                              className="rounded-lg"
+                            >
+                              <Database className="w-4 h-4 mr-1" />
+                              Create
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => addFhirPersonAssociation(true)}
+                    className="w-full rounded-lg border-dashed border-purple-300 text-purple-600 hover:bg-purple-50"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add FHIR Server Association
+                  </Button>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -856,6 +1278,22 @@ export function HealthcareUsersManager() {
               </div>
               
               <div className="space-y-4">
+                <div>
+                  <Label className="text-sm font-semibold text-gray-700 mb-3 block">Primary Role</Label>
+                  <select
+                    value={editUser.primaryRole}
+                    onChange={(e) => setEditUser({ ...editUser, primaryRole: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    <option value="">Select primary role...</option>
+                    {getAllAvailableRoles().map((role) => (
+                      <option key={role} value={role} className="capitalize">
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
                 <div>
                   <Label className="text-sm font-semibold text-gray-700 mb-3 block">Realm Roles</Label>
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -979,6 +1417,7 @@ export function HealthcareUsersManager() {
                   <TableHead className="font-semibold text-gray-700">Primary Role</TableHead>
                   <TableHead className="font-semibold text-gray-700">All Roles</TableHead>
                   <TableHead className="font-semibold text-gray-700">Organization</TableHead>
+                  <TableHead className="font-semibold text-gray-700">FHIR Associations</TableHead>
                   <TableHead className="font-semibold text-gray-700">Status</TableHead>
                   <TableHead className="font-semibold text-gray-700">Created</TableHead>
                   <TableHead className="font-semibold text-gray-700">Last Login</TableHead>
@@ -1003,8 +1442,8 @@ export function HealthcareUsersManager() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={`${getRoleBadgeColor(getPrimaryRole(user.realmRoles, user.clientRoles))} border-0 shadow-sm font-medium`}>
-                        {getPrimaryRole(user.realmRoles, user.clientRoles)}
+                      <Badge className={`${getRoleBadgeColor(getPrimaryRole(user.realmRoles, user.clientRoles, user.primaryRole))} border-0 shadow-sm font-medium`}>
+                        {getPrimaryRole(user.realmRoles, user.clientRoles, user.primaryRole)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -1023,6 +1462,54 @@ export function HealthcareUsersManager() {
                     </TableCell>
                     <TableCell className="text-sm text-gray-600 font-medium">
                       {user.organization}
+                    </TableCell>
+                    <TableCell>
+                      <div className="space-y-2">
+                        <div className="space-y-1">
+                          {user.fhirPersons.length > 0 ? (
+                            user.fhirPersons.slice(0, 2).map((association, index) => (
+                              <div key={index} className="flex items-center space-x-2 text-xs">
+                                <Server className="w-3 h-3 text-blue-600" />
+                                <span className="font-medium text-gray-700">{association.serverName}:</span>
+                                <span className="text-gray-600 font-mono">{association.personId}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">No associations</span>
+                          )}
+                          {user.fhirPersons.length > 2 && (
+                            <div className="text-xs text-gray-500">
+                              +{user.fhirPersons.length - 2} more
+                            </div>
+                          )}
+                        </div>
+                        {/* Only show PersonResourceLinker if user has actual Person resources */}
+                        {user.fhirPersons.length > 0 && user.fhirPersons.some(assoc => assoc.personId.startsWith('Person/')) ? (
+                          <PersonResourceLinkerTrigger
+                            personData={convertToPersonResourceData(user)}
+                            onPersonUpdate={(personData) => updateFromPersonResourceData(user, personData)}
+                          >
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 text-xs border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300"
+                            >
+                              <Database className="w-3 h-3 mr-1" />
+                              Manage Links
+                            </Button>
+                          </PersonResourceLinkerTrigger>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs border-amber-200 text-amber-600 hover:bg-amber-50 hover:border-amber-300"
+                            onClick={() => handleAddFhirPerson(user)}
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            Add FHIR Person
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge 
@@ -1077,6 +1564,20 @@ export function HealthcareUsersManager() {
           </div>
           </div>
         </div>
+      )}
+
+      {/* Add FHIR Person Modal */}
+      {selectedUserForPerson && (
+        <AddFhirPersonModal
+          isOpen={showAddPersonModal}
+          onClose={() => {
+            setShowAddPersonModal(false);
+            setSelectedUserForPerson(null);
+          }}
+          user={selectedUserForPerson}
+          onPersonAdded={handlePersonAdded}
+          availableServers={sampleFhirServers}
+        />
       )}
     </div>
   );

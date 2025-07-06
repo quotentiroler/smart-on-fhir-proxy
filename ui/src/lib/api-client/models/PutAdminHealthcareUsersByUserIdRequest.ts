@@ -50,7 +50,7 @@ export interface PutAdminHealthcareUsersByUserIdRequest {
      */
     organization?: string;
     /**
-     * FHIR User identifier
+     * FHIR User identifiers in format "server1:Person/123,server2:Person/456"
      * @type {string}
      * @memberof PutAdminHealthcareUsersByUserIdRequest
      */
