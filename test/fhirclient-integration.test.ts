@@ -6,7 +6,7 @@ import axios from 'axios';
 
 // Load environment variables for testing
 const BASE_URL = process.env.BASE_URL || 'http://localhost:8445';
-const FHIR_BASE_URL = process.env.FHIR_BASE_URL || 'http://localhost:8445/hapi-fhir-org/R4/fhir';
+const FHIR_BASE_URL = process.env.FHIR_BASE_URL || 'http://localhost:8445/smart-proxy/hapi-fhir-server/R4/fhir';
 const TEST_CLIENT_ID = 'test-smart-app';
 const TEST_REDIRECT_URI = 'http://localhost:3000/callback';
 

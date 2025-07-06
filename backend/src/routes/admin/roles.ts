@@ -10,7 +10,7 @@ import { ErrorResponse } from '../../schemas/common'
  */
 export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
   .use(keycloakPlugin)
-  
+
   .get('/', async ({ getAdmin, headers, set }) => {
     try {
       // Extract user's token from Authorization header
@@ -22,14 +22,8 @@ export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
 
       const admin = await getAdmin(token)
       const realmRoles = await admin.roles.find()
-      
-      // Filter for healthcare-specific roles
-      return realmRoles.filter(role => 
-        role.name?.includes('healthcare') || 
-        role.name?.includes('patient') ||
-        role.name?.includes('practitioner') ||
-        role.attributes?.['smart_role']?.includes('true')
-      )
+
+      return realmRoles;
     } catch (error) {
       set.status = 500
       return { error: 'Failed to fetch roles', details: error }
@@ -46,12 +40,12 @@ export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
       500: ErrorResponse
     },
     detail: {
-      summary: 'List Healthcare Roles',
-      description: 'Get all healthcare-specific roles',
+      summary: 'List All Roles',
+      description: 'Get all roles',
       tags: ['roles']
     }
   })
-  
+
   .post('/', async ({ getAdmin, body, headers, set }) => {
     try {
       // Extract user's token from Authorization header
@@ -70,7 +64,7 @@ export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
           fhir_scopes: body.fhirScopes || []
         }
       }
-      
+
       await admin.roles.create(roleData)
       // Return the created role object (fetch by name)
       const created = await admin.roles.findOneByName({ name: body.name })
@@ -113,12 +107,12 @@ export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
 
       const admin = await getAdmin(token)
       const role = await admin.roles.findOneByName({ name: params.roleName })
-      
+
       if (!role) {
         set.status = 404
         return { error: 'Role not found' }
       }
-      
+
       return role
     } catch (error) {
       set.status = 500
@@ -154,7 +148,7 @@ export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
 
       const admin = await getAdmin(token)
       const role = await admin.roles.findOneByName({ name: params.roleName })
-      
+
       if (!role) {
         set.status = 404
         return { error: 'Role not found' }
@@ -204,7 +198,7 @@ export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
       }
 
       const admin = await getAdmin(token)
-      
+
       // Check if role exists before deletion
       const role = await admin.roles.findOneByName({ name: params.roleName })
       if (!role) {

@@ -11,15 +11,15 @@ import type { SmartConfiguration } from '../types'
 /**
  * FHIR proxy routes with authentication and CORS support
  * 
- * Route Structure: /:server_name/:fhir_version/fhir/*
- * - Client specifies server name and version (e.g., /hapi-fhir-server/R4/fhir/Patient/123)
+ * Route Structure: /:server_name/:fhir_version/*
+ * - Client specifies server name and version (e.g., /hapi-fhir-server/R4/Patient/123)
  * - We map server names to configured FHIR server URLs
  * - Proxy requests to the appropriate FHIR server
  * - Response URLs maintain client's requested server name and version for consistency
  * 
  * SMART on FHIR Configuration:
  * - Each FHIR server has its own SMART configuration endpoint
- * - /:server_name/:fhir_version/fhir/.well-known/smart-configuration
+ * - /:server_name/:fhir_version/.well-known/smart-configuration
  * - Configuration is dynamically generated from Keycloak and cached for performance
  * - This follows SMART on FHIR specification where configuration is server-specific
  * 
@@ -31,7 +31,7 @@ import type { SmartConfiguration } from '../types'
  * - Admin cache refresh endpoint available at /admin/smart-config/refresh
  */
 
-export const fhirRoutes = new Elysia({ prefix: '/smart-proxy/:server_name/:fhir_version', tags: ['fhir'] })
+export const fhirRoutes = new Elysia({ prefix: `/${config.appName}/:server_name/:fhir_version`, tags: ['fhir'] })
   // SMART on FHIR Configuration endpoint - server-specific configuration
   .get('/.well-known/smart-configuration', async (): Promise<SmartConfiguration> => {
     return await smartConfigService.getSmartConfiguration()
@@ -118,7 +118,7 @@ export const fhirRoutes = new Elysia({ prefix: '/smart-proxy/:server_name/:fhir_
       // Rewrite URLs to use our proxy base URL
       const body = text.replaceAll(
         serverUrl,
-        `${config.baseUrl}/${params.server_name}/${params.fhir_version}/fhir`
+        `${config.baseUrl}/${config.appName}/${params.server_name}/${params.fhir_version}`
       )
       return body
     } catch (error) {
@@ -173,7 +173,7 @@ export const fhirRoutes = new Elysia({ prefix: '/smart-proxy/:server_name/:fhir_
       const isValidVersion = await validateFHIRVersion(params.fhir_version)
       if (!isValidVersion) {
         set.status = 400
-        return { error: `Unsupported FHIR version: ${params.fhir_version}. Server info available at /${params.server_name}/${params.fhir_version}/fhir/server-info` }
+        return { error: `Unsupported FHIR version: ${params.fhir_version}. Server info available at /${params.server_name}/${params.fhir_version}/server-info` }
       }
 
       // Use the cached server metadata instead of making another API call
@@ -195,7 +195,8 @@ export const fhirRoutes = new Elysia({ prefix: '/smart-proxy/:server_name/:fhir_
       }
 
       // Use the server's base URL directly since it already includes the version
-      const path = request.url.replace(/^.*?\/[^/]+\/[^/]+\/fhir/, '') || ''
+      // Extract the path after /:server_name/:fhir_version
+      const path = request.url.replace(/^.*?\/[^/]+\/[^/]+/, '') || ''
       const target = `${serverUrl}${path}`
       const headers = new Headers()
       request.headers.forEach((v: string, k: string) => k !== 'host' && k !== 'connection' && headers.set(k, v!))
@@ -224,7 +225,7 @@ export const fhirRoutes = new Elysia({ prefix: '/smart-proxy/:server_name/:fhir_
       const text = await resp.text()
       const body = text.replaceAll(
         serverUrl,
-        `${config.baseUrl}/${params.server_name}/${params.fhir_version}/fhir`
+        `${config.baseUrl}/${config.appName}/${params.server_name}/${params.fhir_version}`
       )
       return body
     } catch (error) {

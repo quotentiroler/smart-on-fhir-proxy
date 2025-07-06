@@ -16,22 +16,25 @@
 import * as runtime from '../runtime';
 import type {
   GetAuthUserinfo200Response,
-  GetAuthUserinfo401Response,
+  GetFhirServersByServerName404Response,
   PostAuthIntrospect200Response,
   PostAuthIntrospectRequest,
   PostAuthToken200Response,
+  PostAuthTokenRequest,
 } from '../models/index';
 import {
     GetAuthUserinfo200ResponseFromJSON,
     GetAuthUserinfo200ResponseToJSON,
-    GetAuthUserinfo401ResponseFromJSON,
-    GetAuthUserinfo401ResponseToJSON,
+    GetFhirServersByServerName404ResponseFromJSON,
+    GetFhirServersByServerName404ResponseToJSON,
     PostAuthIntrospect200ResponseFromJSON,
     PostAuthIntrospect200ResponseToJSON,
     PostAuthIntrospectRequestFromJSON,
     PostAuthIntrospectRequestToJSON,
     PostAuthToken200ResponseFromJSON,
     PostAuthToken200ResponseToJSON,
+    PostAuthTokenRequestFromJSON,
+    PostAuthTokenRequestToJSON,
 } from '../models/index';
 
 export interface GetAuthAuthorizeRequest {
@@ -42,6 +45,23 @@ export interface GetAuthAuthorizeRequest {
     state?: string;
     codeChallenge?: string;
     codeChallengeMethod?: string;
+    authorizationDetails?: string;
+}
+
+export interface GetAuthLoginRequest {
+    clientId?: string;
+    redirectUri?: string;
+    scope?: string;
+    state?: string;
+    codeChallenge?: string;
+    codeChallengeMethod?: string;
+    authorizationDetails?: string;
+}
+
+export interface GetAuthLogoutRequest {
+    postLogoutRedirectUri?: string;
+    idTokenHint?: string;
+    clientId?: string;
 }
 
 export interface GetAuthUserinfoRequest {
@@ -52,13 +72,17 @@ export interface PostAuthIntrospectOperationRequest {
     postAuthIntrospectRequest: PostAuthIntrospectRequest;
 }
 
+export interface PostAuthTokenOperationRequest {
+    postAuthTokenRequest: PostAuthTokenRequest;
+}
+
 /**
  * 
  */
 export class AuthenticationApi extends runtime.BaseAPI {
 
     /**
-     * Redirects to Keycloak authorization endpoint for OAuth flow
+     * Redirects to Keycloak authorization endpoint for OAuth flow with support for authorization details
      * OAuth Authorization Endpoint
      */
     async getAuthAuthorizeRaw(requestParameters: GetAuthAuthorizeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
@@ -92,6 +116,10 @@ export class AuthenticationApi extends runtime.BaseAPI {
             queryParameters['code_challenge_method'] = requestParameters['codeChallengeMethod'];
         }
 
+        if (requestParameters['authorizationDetails'] != null) {
+            queryParameters['authorization_details'] = requestParameters['authorizationDetails'];
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
 
@@ -108,11 +136,111 @@ export class AuthenticationApi extends runtime.BaseAPI {
     }
 
     /**
-     * Redirects to Keycloak authorization endpoint for OAuth flow
+     * Redirects to Keycloak authorization endpoint for OAuth flow with support for authorization details
      * OAuth Authorization Endpoint
      */
     async getAuthAuthorize(requestParameters: GetAuthAuthorizeRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.getAuthAuthorizeRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Simplified login endpoint that redirects to Keycloak with sensible defaults for UI applications
+     * Login Page Redirect
+     */
+    async getAuthLoginRaw(requestParameters: GetAuthLoginRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['clientId'] != null) {
+            queryParameters['client_id'] = requestParameters['clientId'];
+        }
+
+        if (requestParameters['redirectUri'] != null) {
+            queryParameters['redirect_uri'] = requestParameters['redirectUri'];
+        }
+
+        if (requestParameters['scope'] != null) {
+            queryParameters['scope'] = requestParameters['scope'];
+        }
+
+        if (requestParameters['state'] != null) {
+            queryParameters['state'] = requestParameters['state'];
+        }
+
+        if (requestParameters['codeChallenge'] != null) {
+            queryParameters['code_challenge'] = requestParameters['codeChallenge'];
+        }
+
+        if (requestParameters['codeChallengeMethod'] != null) {
+            queryParameters['code_challenge_method'] = requestParameters['codeChallengeMethod'];
+        }
+
+        if (requestParameters['authorizationDetails'] != null) {
+            queryParameters['authorization_details'] = requestParameters['authorizationDetails'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/auth/login`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Simplified login endpoint that redirects to Keycloak with sensible defaults for UI applications
+     * Login Page Redirect
+     */
+    async getAuthLogin(requestParameters: GetAuthLoginRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getAuthLoginRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Proxies logout requests to Keycloak with sensible defaults
+     * Logout Endpoint
+     */
+    async getAuthLogoutRaw(requestParameters: GetAuthLogoutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['postLogoutRedirectUri'] != null) {
+            queryParameters['post_logout_redirect_uri'] = requestParameters['postLogoutRedirectUri'];
+        }
+
+        if (requestParameters['idTokenHint'] != null) {
+            queryParameters['id_token_hint'] = requestParameters['idTokenHint'];
+        }
+
+        if (requestParameters['clientId'] != null) {
+            queryParameters['client_id'] = requestParameters['clientId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/auth/logout`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Proxies logout requests to Keycloak with sensible defaults
+     * Logout Endpoint
+     */
+    async getAuthLogout(requestParameters: GetAuthLogoutRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getAuthLogoutRaw(requestParameters, initOverrides);
     }
 
     /**
@@ -207,13 +335,22 @@ export class AuthenticationApi extends runtime.BaseAPI {
     }
 
     /**
-     * Exchange authorization code for access token
+     * Exchange authorization code for access token with SMART launch context and authorization details for multiple FHIR servers
      * OAuth Token Exchange
      */
-    async postAuthTokenRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostAuthToken200Response>> {
+    async postAuthTokenRaw(requestParameters: PostAuthTokenOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostAuthToken200Response>> {
+        if (requestParameters['postAuthTokenRequest'] == null) {
+            throw new runtime.RequiredError(
+                'postAuthTokenRequest',
+                'Required parameter "postAuthTokenRequest" was null or undefined when calling postAuthToken().'
+            );
+        }
+
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
 
 
         let urlPath = `/auth/token`;
@@ -223,17 +360,18 @@ export class AuthenticationApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
+            body: PostAuthTokenRequestToJSON(requestParameters['postAuthTokenRequest']),
         }, initOverrides);
 
         return new runtime.JSONApiResponse(response, (jsonValue) => PostAuthToken200ResponseFromJSON(jsonValue));
     }
 
     /**
-     * Exchange authorization code for access token
+     * Exchange authorization code for access token with SMART launch context and authorization details for multiple FHIR servers
      * OAuth Token Exchange
      */
-    async postAuthToken(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostAuthToken200Response> {
-        const response = await this.postAuthTokenRaw(initOverrides);
+    async postAuthToken(requestParameters: PostAuthTokenOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostAuthToken200Response> {
+        const response = await this.postAuthTokenRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

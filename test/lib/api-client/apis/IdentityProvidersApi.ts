@@ -18,6 +18,7 @@ import type {
   DeleteAdminRolesByRoleName200Response,
   GetAdminIdps200ResponseInner,
   PostAdminIdpsRequest,
+  PostShutdown500Response,
   PutAdminIdpsByAliasRequest,
   PutAdminRolesByRoleName200Response,
 } from '../models/index';
@@ -28,6 +29,8 @@ import {
     GetAdminIdps200ResponseInnerToJSON,
     PostAdminIdpsRequestFromJSON,
     PostAdminIdpsRequestToJSON,
+    PostShutdown500ResponseFromJSON,
+    PostShutdown500ResponseToJSON,
     PutAdminIdpsByAliasRequestFromJSON,
     PutAdminIdpsByAliasRequestToJSON,
     PutAdminRolesByRoleName200ResponseFromJSON,

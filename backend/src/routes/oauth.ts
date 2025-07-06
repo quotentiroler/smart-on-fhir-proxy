@@ -2,7 +2,21 @@ import { Elysia, t } from 'elysia'
 import fetch from 'cross-fetch'
 import { config } from '../config'
 import { validateToken } from '../lib/auth'
-import { getFHIRServerInfo } from '../lib/fhir-utils'
+import { getAllServers, ensureServersInitialized } from '../lib/fhir-server-store'
+
+interface TokenPayload {
+  sub?: string
+  smart_patient?: string
+  smart_encounter?: string
+  smart_fhir_user?: string
+  smart_fhir_context?: string | object
+  smart_intent?: string
+  smart_style_url?: string
+  smart_tenant?: string
+  smart_need_patient_banner?: string | boolean
+  smart_scope?: string
+  [key: string]: unknown
+}
 
 interface AuthorizationDetail {
   type: string
@@ -21,72 +35,46 @@ interface AuthorizationDetail {
 }
 
 /**
- * Generate authorization details dynamically based on server configuration
+ * Generate authorization details from token claims (pure proxy approach)
  */
-async function generateAuthorizationDetails(
-  userAttributes: Record<string, string[]>,
-  requestedAuthDetails?: string
+async function generateAuthorizationDetailsFromToken(
+  tokenPayload: TokenPayload
 ): Promise<AuthorizationDetail[] | undefined> {
   try {
-    // Parse requested authorization details if provided
-    let requestedDetails: AuthorizationDetail[] = []
-    if (requestedAuthDetails) {
-      try {
-        requestedDetails = JSON.parse(requestedAuthDetails)
-      } catch {
-        // Invalid JSON, ignore
-      }
-    }
-
+    // Ensure servers are initialized
+    await ensureServersInitialized()
+    
+    // Get all servers from the store
+    const serverInfos = await getAllServers()
+    
     // Generate authorization details based on available FHIR servers
     const authDetails: AuthorizationDetail[] = []
     
     // Create authorization details for each configured FHIR server
-    for (let i = 0; i < config.fhir.serverBases.length; i++) {
-      const serverBase = config.fhir.serverBases[i]
-      try {
-        const fhirServerInfo = await getFHIRServerInfo(serverBase)
-        
-        // Generate a server name from the URL consistently
-        const serverName = getServerNameFromUrl(serverBase, i)
-        
-        const serverDetail: AuthorizationDetail = {
-          type: 'smart_on_fhir',
-          locations: [`${config.baseUrl}/${serverName}/${fhirServerInfo.fhirVersion}/fhir`],
-          fhirVersions: [fhirServerInfo.fhirVersion]
-        }
-
-        // Add launch context if available from user attributes
-        if (userAttributes.smart_patient?.[0]) {
-          serverDetail.patient = userAttributes.smart_patient[0]
-        }
-        if (userAttributes.smart_encounter?.[0]) {
-          serverDetail.encounter = userAttributes.smart_encounter[0]
-        }
-        if (userAttributes.smart_scope?.[0]) {
-          serverDetail.scope = userAttributes.smart_scope[0]
-        }
-
-        authDetails.push(serverDetail)
-      } catch (error) {
-        console.warn(`Failed to get info for FHIR server ${serverBase}:`, error)
-        // Continue with other servers
+    for (const serverInfo of serverInfos) {
+      const serverDetail: AuthorizationDetail = {
+        type: 'smart_on_fhir',
+        locations: [`${config.baseUrl}/${config.appName}/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}`],
+        fhirVersions: [serverInfo.metadata.fhirVersion]
       }
-    }
 
-    // Filter based on what client requested
-    if (requestedDetails.length > 0) {
-      return authDetails.filter(detail => 
-        requestedDetails.some(req => 
-          req.type === detail.type && 
-          req.locations?.some((loc: string) => detail.locations.includes(loc))
-        )
-      )
+      // Add launch context from token claims
+      if (tokenPayload.smart_patient) {
+        serverDetail.patient = tokenPayload.smart_patient
+      }
+      if (tokenPayload.smart_encounter) {
+        serverDetail.encounter = tokenPayload.smart_encounter
+      }
+      if (tokenPayload.smart_scope) {
+        serverDetail.scope = tokenPayload.smart_scope
+      }
+
+      authDetails.push(serverDetail)
     }
 
     return authDetails.length > 0 ? authDetails : undefined
   } catch (error) {
-    console.warn('Failed to generate authorization details:', error)
+    console.warn('Failed to generate authorization details from token:', error)
     return undefined
   }
 }
@@ -121,17 +109,111 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
     }
   })
 
+  // Login page redirect - provides a simple login endpoint for UIs
+  .get('/login', ({ query, redirect }) => {
+    const state = query.state || Math.random().toString(36).substring(2, 15)
+    const clientId = query.client_id || 'admin-ui'
+    const redirectUri = query.redirect_uri || `${config.baseUrl}/`
+    const scope = query.scope || 'openid profile email'
+    
+    const url = new URL(
+      `${config.keycloak.baseUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/auth`
+    )
+    
+    url.searchParams.set('response_type', 'code')
+    url.searchParams.set('client_id', clientId)
+    url.searchParams.set('redirect_uri', redirectUri)
+    url.searchParams.set('scope', scope)
+    url.searchParams.set('state', state)
+    
+    // Add any additional parameters passed through
+    Object.entries(query).forEach(([k, v]) => {
+      if (!['state', 'client_id', 'redirect_uri', 'scope'].includes(k)) {
+        url.searchParams.set(k, v as string)
+      }
+    })
+    
+    return redirect(url.href)
+  }, {
+    query: t.Object({
+      client_id: t.Optional(t.String({ description: 'OAuth client ID (defaults to admin-ui)' })),
+      redirect_uri: t.Optional(t.String({ description: 'OAuth redirect URI (defaults to base URL)' })),
+      scope: t.Optional(t.String({ description: 'OAuth scope (defaults to openid profile email)' })),
+      state: t.Optional(t.String({ description: 'OAuth state parameter (auto-generated if not provided)' })),
+      code_challenge: t.Optional(t.String({ description: 'PKCE code challenge' })),
+      code_challenge_method: t.Optional(t.String({ description: 'PKCE code challenge method' })),
+      authorization_details: t.Optional(t.String({ description: 'Authorization details JSON string for multiple FHIR servers' }))
+    }),
+    detail: {
+      summary: 'Login Page Redirect',
+      description: 'Simplified login endpoint that redirects to Keycloak with sensible defaults for UI applications',
+      tags: ['authentication'],
+      response: { 200: { description: 'Redirects to Keycloak login page.' } }
+    }
+  })
+
+  // Logout endpoint - proxy to Keycloak logout
+  .get('/logout', ({ query, redirect }) => {
+    console.log('Logout endpoint called with query:', query);
+    
+    const postLogoutRedirectUri = query.post_logout_redirect_uri || `${config.baseUrl}/`
+    
+    const url = new URL(
+      `${config.keycloak.baseUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/logout`
+    )
+    
+    if (postLogoutRedirectUri) {
+      url.searchParams.set('post_logout_redirect_uri', postLogoutRedirectUri)
+    }
+    
+    // Add any additional parameters passed through
+    Object.entries(query).forEach(([k, v]) => {
+      if (k !== 'post_logout_redirect_uri') {
+        url.searchParams.set(k, v as string)
+      }
+    })
+    
+    console.log('Redirecting to Keycloak logout URL:', url.href);
+    return redirect(url.href)
+  }, {
+    query: t.Object({
+      post_logout_redirect_uri: t.Optional(t.String({ description: 'Post-logout redirect URI (defaults to base URL)' })),
+      id_token_hint: t.Optional(t.String({ description: 'ID token hint for logout' })),
+      client_id: t.Optional(t.String({ description: 'OAuth client ID' }))
+    }),
+    detail: {
+      summary: 'Logout Endpoint',
+      description: 'Proxies logout requests to Keycloak with sensible defaults',
+      tags: ['authentication'],
+      response: { 200: { description: 'Redirects to Keycloak logout page.' } }
+    }
+  })
+
   // proxy token request
-  .post('/token', async ({ request }) => {
+  .post('/token', async ({ body }) => {
     const kcUrl = `${config.keycloak.baseUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/token`
     console.log('Token endpoint request received')
-    console.log('Content-Type:', request.headers.get('content-type'))
+    console.log('Request body:', body)
     console.log('Proxying to:', kcUrl)
     
     try {
-      // Get the raw body as text and pass it through
-      const rawBody = await request.text()
-      console.log('Raw body:', rawBody)
+      // Convert the parsed body back to form data with proper OAuth2 field names
+      const formData = new URLSearchParams()
+      const bodyObj = body as Record<string, string | undefined>
+      
+      // Handle both camelCase and snake_case field names for OAuth2 standard field names
+      if (bodyObj.grant_type || bodyObj.grantType) formData.append('grant_type', bodyObj.grant_type || bodyObj.grantType!)
+      if (bodyObj.code) formData.append('code', bodyObj.code)
+      if (bodyObj.redirect_uri || bodyObj.redirectUri) formData.append('redirect_uri', bodyObj.redirect_uri || bodyObj.redirectUri!)
+      if (bodyObj.client_id || bodyObj.clientId) formData.append('client_id', bodyObj.client_id || bodyObj.clientId!)
+      if (bodyObj.client_secret || bodyObj.clientSecret) formData.append('client_secret', bodyObj.client_secret || bodyObj.clientSecret!)
+      if (bodyObj.code_verifier || bodyObj.codeVerifier) formData.append('code_verifier', bodyObj.code_verifier || bodyObj.codeVerifier!)
+      if (bodyObj.refresh_token || bodyObj.refreshToken) formData.append('refresh_token', bodyObj.refresh_token || bodyObj.refreshToken!)
+      if (bodyObj.scope) formData.append('scope', bodyObj.scope)
+      if (bodyObj.audience) formData.append('audience', bodyObj.audience)
+      
+      const rawBody = formData.toString()
+      console.log('Form data:', rawBody)
       
       const resp = await fetch(kcUrl, {
         method: 'POST',
@@ -143,74 +225,56 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
       const data = await resp.json()
       console.log('Keycloak response data:', data)
       
-      // If token request was successful, add SMART launch context
+      // If token request was successful, add SMART launch context from token claims
       if (data.access_token && resp.status === 200) {
         try {
-          const { validateToken } = await import('../lib/auth')
           const tokenPayload = await validateToken(data.access_token)
           
-          // Get user's launch context from Keycloak user attributes
-          if (tokenPayload.sub) {
-            const KcAdminClient = (await import('@keycloak/keycloak-admin-client')).default
-            const kcAdminClient = new KcAdminClient({
-              baseUrl: config.keycloak.baseUrl,
-              realmName: config.keycloak.realm,
-            })
-            
-            // Use client credentials to authenticate admin client
-            await kcAdminClient.auth({
-              grantType: 'client_credentials',
-              clientId: config.keycloak.clientId,
-              clientSecret: config.keycloak.clientSecret,
-            })
-            
-            const user = await kcAdminClient.users.findOne({ id: tokenPayload.sub })
-            
-            if (user?.attributes) {
-              // Add SMART launch context parameters per SMART App Launch 2.2.0 spec
-              if (user.attributes.smart_patient?.[0]) {
-                data.patient = user.attributes.smart_patient[0]
-              }
-              
-              if (user.attributes.smart_encounter?.[0]) {
-                data.encounter = user.attributes.smart_encounter[0]
-              }
-              
-              if (user.attributes.smart_fhir_user?.[0]) {
-                data.fhirUser = user.attributes.smart_fhir_user[0]
-              }
-              
-              if (user.attributes.smart_fhir_context?.[0]) {
-                try {
-                  data.fhirContext = JSON.parse(user.attributes.smart_fhir_context[0])
-                } catch {
-                  // If parse fails, don't include invalid fhirContext
-                }
-              }
-              
-              if (user.attributes.smart_intent?.[0]) {
-                data.intent = user.attributes.smart_intent[0]
-              }
-              
-              if (user.attributes.smart_style_url?.[0]) {
-                data.smart_style_url = user.attributes.smart_style_url[0]
-              }
-              
-              if (user.attributes.smart_tenant?.[0]) {
-                data.tenant = user.attributes.smart_tenant[0]
-              }
-              
-              if (user.attributes.smart_need_patient_banner?.[0]) {
-                data.need_patient_banner = user.attributes.smart_need_patient_banner[0] === 'true'
-              }
-              
-              // Add authorization_details for multiple FHIR servers support (RFC 9396)
-              // Always generate authorization details based on configured FHIR servers
-              const generatedDetails = await generateAuthorizationDetails(user.attributes)
-              if (generatedDetails) {
-                data.authorization_details = generatedDetails
-              }
+          // Add SMART launch context parameters from token claims (if available)
+          // This requires proper Keycloak configuration with protocol mappers
+          if (tokenPayload.smart_patient) {
+            data.patient = tokenPayload.smart_patient
+          }
+          
+          if (tokenPayload.smart_encounter) {
+            data.encounter = tokenPayload.smart_encounter
+          }
+          
+          if (tokenPayload.smart_fhir_user) {
+            data.fhirUser = tokenPayload.smart_fhir_user
+          }
+          
+          if (tokenPayload.smart_fhir_context) {
+            try {
+              data.fhirContext = typeof tokenPayload.smart_fhir_context === 'string' 
+                ? JSON.parse(tokenPayload.smart_fhir_context)
+                : tokenPayload.smart_fhir_context
+            } catch {
+              // If parse fails, don't include invalid fhirContext
             }
+          }
+          
+          if (tokenPayload.smart_intent) {
+            data.intent = tokenPayload.smart_intent
+          }
+          
+          if (tokenPayload.smart_style_url) {
+            data.smart_style_url = tokenPayload.smart_style_url
+          }
+          
+          if (tokenPayload.smart_tenant) {
+            data.tenant = tokenPayload.smart_tenant
+          }
+          
+          if (tokenPayload.smart_need_patient_banner) {
+            data.need_patient_banner = tokenPayload.smart_need_patient_banner === 'true' || tokenPayload.smart_need_patient_banner === true
+          }
+          
+          // Add authorization_details for multiple FHIR servers support (RFC 9396)
+          // Generate based on configured FHIR servers and token claims
+          const generatedDetails = await generateAuthorizationDetailsFromToken(tokenPayload)
+          if (generatedDetails) {
+            data.authorization_details = generatedDetails
           }
         } catch (contextError) {
           console.warn('Failed to add launch context to token response:', contextError)
@@ -223,13 +287,29 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
       console.error('Token endpoint error:', error)
       return { error: 'internal_server_error', error_description: 'Failed to process token request' }
     }
-  }, {
+  },
+  {
+    body: t.Object({
+      grant_type: t.String({ description: 'OAuth grant type (e.g., authorization_code, client_credentials)' }),
+      code: t.Optional(t.String({ description: 'Authorization code for exchange' })),
+      redirect_uri: t.Optional(t.String({ description: 'Redirect URI for authorization code flow' })),
+      client_id: t.Optional(t.String({ description: 'OAuth client ID' })),
+      client_secret: t.Optional(t.String({ description: 'OAuth client secret' })),
+      code_verifier: t.Optional(t.String({ description: 'PKCE code verifier for security' })),
+      refresh_token: t.Optional(t.String({ description: 'Refresh token for refresh_token grant' })),
+      scope: t.Optional(t.String({ description: 'Requested scopes' })),
+      audience: t.Optional(t.String({ description: 'Audience for the token request' }))
+    }),
     response: t.Object({
       access_token: t.Optional(t.String({ description: 'JWT access token' })),
       token_type: t.Optional(t.String({ description: 'Token type (Bearer)' })),
       expires_in: t.Optional(t.Number({ description: 'Token expiration time in seconds' })),
       refresh_token: t.Optional(t.String({ description: 'Refresh token' })),
+      refresh_expires_in: t.Optional(t.Number({ description: 'Refresh token expiration time in seconds' })),
+      id_token: t.Optional(t.String({ description: 'OpenID Connect ID token' })),
       scope: t.Optional(t.String({ description: 'Granted scopes' })),
+      session_state: t.Optional(t.String({ description: 'Keycloak session state' })),
+      'not-before-policy': t.Optional(t.Number({ description: 'Not before policy timestamp' })),
       // SMART on FHIR launch context parameters (per SMART App Launch 2.2.0)
       patient: t.Optional(t.String({ description: 'Patient in context (e.g., Patient/123)' })),
       encounter: t.Optional(t.String({ description: 'Encounter in context (e.g., Encounter/456)' })),
@@ -317,11 +397,18 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
       const payload = await validateToken(token)
       
       // Create a user profile from token claims
+      const displayName = payload.name || 
+        (payload.given_name && payload.family_name ? `${payload.given_name} ${payload.family_name}` : '') ||
+        payload.given_name || 
+        payload.preferred_username || 
+        payload.email || 
+        'User'
+      
       const profile = {
         id: payload.sub || '',
-        resourceType: 'Practitioner',
+        fhirUser: payload.smart_fhir_user || '',
         name: [{ 
-          text: payload.name || `${payload.given_name || ''} ${payload.family_name || ''}`.trim() || payload.preferred_username || ''
+          text: displayName
         }],
         username: payload.preferred_username || '',
         email: payload.email,
@@ -342,7 +429,7 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
     response: {
       200: t.Object({
         id: t.String({ description: 'User ID' }),
-        resourceType: t.String({ description: 'FHIR resource type' }),
+        fhirUser: t.Optional(t.String({ description: 'FHIR user resource reference (e.g., Practitioner/123)' })),
         name: t.Array(t.Object({
           text: t.String({ description: 'Display name' })
         })),
@@ -364,17 +451,3 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
       response: { 200: { description: 'User profile information.' } }
     }
   })
-
-  /**
-   * Generate a server name from a FHIR server URL
-   */
-  function getServerNameFromUrl(serverUrl: string, index: number): string {
-    try {
-      const url = new URL(serverUrl)
-      // Extract hostname and make it URL-safe
-      const hostname = url.hostname.replace(/\./g, '-').replace(/[^a-zA-Z0-9-]/g, '')
-      return hostname || `server-${index}`
-    } catch {
-      return `server-${index}`
-    }
-  }

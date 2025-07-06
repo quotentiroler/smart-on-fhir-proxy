@@ -4,6 +4,40 @@ import { UserProfile, ErrorResponse, SuccessResponse, PaginationQuery } from '..
 import { extractBearerToken, UNAUTHORIZED_RESPONSE, getValidatedAdmin, mapUserProfile } from '../../lib/admin-utils'
 
 /**
+ * Classify user role based on role and department attributes
+ */
+function classifyUserRole(role: string, department: string): 'physician' | 'researcher' | 'nurse' | 'admin' | 'other' {
+  const roleLower = role.toLowerCase()
+  const deptLower = department.toLowerCase()
+  
+  // Check for researchers
+  if (roleLower.includes('research') || deptLower.includes('research') || 
+      roleLower.includes('scientist') || deptLower.includes('clinical trial')) {
+    return 'researcher'
+  }
+  
+  // Check for physicians
+  if (roleLower.includes('physician') || roleLower.includes('doctor') || 
+      roleLower.includes('md') || roleLower.includes('attending')) {
+    return 'physician'
+  }
+  
+  // Check for nurses
+  if (roleLower.includes('nurse') || roleLower.includes('rn') || 
+      roleLower.includes('nursing')) {
+    return 'nurse'
+  }
+  
+  // Check for admin roles
+  if (roleLower.includes('admin') || roleLower.includes('manager') || 
+      roleLower.includes('coordinator')) {
+    return 'admin'
+  }
+  
+  return 'other'
+}
+
+/**
  * Healthcare User Management - specialized for healthcare professionals
  */
 export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-users' })
@@ -13,20 +47,44 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
     try {
       // Extract user's token from Authorization header
       const token = extractBearerToken(headers)
+      console.log('Healthcare users request - token present:', !!token)
+      
       if (!token) {
+        console.log('No token found in request')
         set.status = 401
         return UNAUTHORIZED_RESPONSE
       }
 
+      console.log('Attempting to get admin client with token...')
       const admin = await getValidatedAdmin(getAdmin, token)
+      console.log('Admin client obtained successfully')
+      
+      console.log('Fetching users from Keycloak...')
       const allUsers = await admin.users.find({
         max: Number(query.limit) || 50,
         first: Number(query.offset) || 0
       })
       
-      // Filter for healthcare users (with specific roles or attributes)
-      return allUsers.map(mapUserProfile)
+      console.log(`Found ${allUsers.length} users`)
+      
+      // Filter for healthcare users and map them with role information
+      const healthcareUsers = allUsers.map(user => {
+        const profile = mapUserProfile(user)
+        // Add role classification for statistics
+        const role = user.attributes?.role?.[0] || 'healthcare_user'
+        const department = user.attributes?.department?.[0] || ''
+        
+        return {
+          ...profile,
+          roleType: classifyUserRole(role, department),
+          isActive: user.enabled || false
+        }
+      })
+      
+      console.log(`Returning ${healthcareUsers.length} healthcare users`)
+      return healthcareUsers
     } catch (error) {
+      console.error('Error in healthcare users endpoint:', error)
       set.status = 500
       return { error: 'Failed to fetch healthcare users', details: error }
     }

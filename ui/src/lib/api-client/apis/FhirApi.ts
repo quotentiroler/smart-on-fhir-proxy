@@ -16,21 +16,23 @@
 import * as runtime from '../runtime';
 import type {
   PostShutdown500Response,
-  PostVByFhirReleaseFhirCacheRefresh200Response,
+  PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response,
 } from '../models/index';
 import {
     PostShutdown500ResponseFromJSON,
     PostShutdown500ResponseToJSON,
-    PostVByFhirReleaseFhirCacheRefresh200ResponseFromJSON,
-    PostVByFhirReleaseFhirCacheRefresh200ResponseToJSON,
+    PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseFromJSON,
+    PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseToJSON,
 } from '../models/index';
 
-export interface GetVByFhirReleaseFhirRequest {
-    fhirRelease: string;
+export interface GetSmartProxyByServerNameByFhirVersionRequest {
+    serverName: string;
+    fhirVersion: string;
 }
 
-export interface PostVByFhirReleaseFhirCacheRefreshRequest {
-    fhirRelease: string;
+export interface PostSmartProxyByServerNameByFhirVersionCacheRefreshRequest {
+    serverName: string;
+    fhirVersion: string;
 }
 
 /**
@@ -42,11 +44,18 @@ export class FhirApi extends runtime.BaseAPI {
      * Serve the content from the FHIR server base URL
      * FHIR Server Base URL
      */
-    async getVByFhirReleaseFhirRaw(requestParameters: GetVByFhirReleaseFhirRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
-        if (requestParameters['fhirRelease'] == null) {
+    async getSmartProxyByServerNameByFhirVersionRaw(requestParameters: GetSmartProxyByServerNameByFhirVersionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        if (requestParameters['serverName'] == null) {
             throw new runtime.RequiredError(
-                'fhirRelease',
-                'Required parameter "fhirRelease" was null or undefined when calling getVByFhirReleaseFhir().'
+                'serverName',
+                'Required parameter "serverName" was null or undefined when calling getSmartProxyByServerNameByFhirVersion().'
+            );
+        }
+
+        if (requestParameters['fhirVersion'] == null) {
+            throw new runtime.RequiredError(
+                'fhirVersion',
+                'Required parameter "fhirVersion" was null or undefined when calling getSmartProxyByServerNameByFhirVersion().'
             );
         }
 
@@ -55,8 +64,9 @@ export class FhirApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
 
-        let urlPath = `/v/{fhir_release}/fhir/`;
-        urlPath = urlPath.replace(`{${"fhir_release"}}`, encodeURIComponent(String(requestParameters['fhirRelease'])));
+        let urlPath = `/smart-proxy/{server_name}/{fhir_version}/`;
+        urlPath = urlPath.replace(`{${"server_name"}}`, encodeURIComponent(String(requestParameters['serverName'])));
+        urlPath = urlPath.replace(`{${"fhir_version"}}`, encodeURIComponent(String(requestParameters['fhirVersion'])));
 
         const response = await this.request({
             path: urlPath,
@@ -76,8 +86,8 @@ export class FhirApi extends runtime.BaseAPI {
      * Serve the content from the FHIR server base URL
      * FHIR Server Base URL
      */
-    async getVByFhirReleaseFhir(requestParameters: GetVByFhirReleaseFhirRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getVByFhirReleaseFhirRaw(requestParameters, initOverrides);
+    async getSmartProxyByServerNameByFhirVersion(requestParameters: GetSmartProxyByServerNameByFhirVersionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.getSmartProxyByServerNameByFhirVersionRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -85,11 +95,18 @@ export class FhirApi extends runtime.BaseAPI {
      * Clear and refresh the cached FHIR server information
      * Refresh FHIR Server Cache
      */
-    async postVByFhirReleaseFhirCacheRefreshRaw(requestParameters: PostVByFhirReleaseFhirCacheRefreshRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostVByFhirReleaseFhirCacheRefresh200Response>> {
-        if (requestParameters['fhirRelease'] == null) {
+    async postSmartProxyByServerNameByFhirVersionCacheRefreshRaw(requestParameters: PostSmartProxyByServerNameByFhirVersionCacheRefreshRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response>> {
+        if (requestParameters['serverName'] == null) {
             throw new runtime.RequiredError(
-                'fhirRelease',
-                'Required parameter "fhirRelease" was null or undefined when calling postVByFhirReleaseFhirCacheRefresh().'
+                'serverName',
+                'Required parameter "serverName" was null or undefined when calling postSmartProxyByServerNameByFhirVersionCacheRefresh().'
+            );
+        }
+
+        if (requestParameters['fhirVersion'] == null) {
+            throw new runtime.RequiredError(
+                'fhirVersion',
+                'Required parameter "fhirVersion" was null or undefined when calling postSmartProxyByServerNameByFhirVersionCacheRefresh().'
             );
         }
 
@@ -106,8 +123,9 @@ export class FhirApi extends runtime.BaseAPI {
             }
         }
 
-        let urlPath = `/v/{fhir_release}/fhir/cache/refresh`;
-        urlPath = urlPath.replace(`{${"fhir_release"}}`, encodeURIComponent(String(requestParameters['fhirRelease'])));
+        let urlPath = `/smart-proxy/{server_name}/{fhir_version}/cache/refresh`;
+        urlPath = urlPath.replace(`{${"server_name"}}`, encodeURIComponent(String(requestParameters['serverName'])));
+        urlPath = urlPath.replace(`{${"fhir_version"}}`, encodeURIComponent(String(requestParameters['fhirVersion'])));
 
         const response = await this.request({
             path: urlPath,
@@ -116,15 +134,15 @@ export class FhirApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PostVByFhirReleaseFhirCacheRefresh200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseFromJSON(jsonValue));
     }
 
     /**
      * Clear and refresh the cached FHIR server information
      * Refresh FHIR Server Cache
      */
-    async postVByFhirReleaseFhirCacheRefresh(requestParameters: PostVByFhirReleaseFhirCacheRefreshRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostVByFhirReleaseFhirCacheRefresh200Response> {
-        const response = await this.postVByFhirReleaseFhirCacheRefreshRaw(requestParameters, initOverrides);
+    async postSmartProxyByServerNameByFhirVersionCacheRefresh(requestParameters: PostSmartProxyByServerNameByFhirVersionCacheRefreshRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response> {
+        const response = await this.postSmartProxyByServerNameByFhirVersionCacheRefreshRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
