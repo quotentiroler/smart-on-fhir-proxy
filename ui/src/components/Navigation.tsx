@@ -24,7 +24,10 @@ import {
   Sparkles,
   Server,
   Languages,
-  Check
+  Check,
+  Target,
+  Play,
+  BarChart3
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -122,6 +125,24 @@ export function Navigation({ activeTab, onTabChange, profile }: NavigationProps)
       label: t('Identity Providers'), 
       description: t('IdP Management'),
       icon: Shield
+    },
+    { 
+      id: 'scopes', 
+      label: t('Scope Management'), 
+      description: t('SMART Scopes'),
+      icon: Target
+    },
+    { 
+      id: 'launch-context', 
+      label: t('Launch Context'), 
+      description: t('Context Configuration'),
+      icon: Play
+    },
+    { 
+      id: 'oauth-monitoring', 
+      label: t('OAuth Monitoring'), 
+      description: t('Flow Analytics'),
+      icon: BarChart3
     },
   ];
 

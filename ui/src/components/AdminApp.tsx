@@ -1,6 +1,8 @@
 import { SmartAppsManager } from './SmartAppsManager';
 import { IdPManager } from './IdPManager';
 import { FhirServersManager } from './FhirServersManager';
+import { ScopeManager } from './ScopeManager';
+import { LaunchContextManager } from './LaunchContextManager';
 import { useState } from 'react';
 import { Navigation } from './Navigation';
 import { HealthcareUsersManager } from './HealthcareUsersManager';
@@ -27,6 +29,7 @@ import {
     BarChart3
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { OAuthMonitoringDashboard } from './OAuthMonitoringDashboard';
 
 export function AdminApp() {
     const [activeTab, setActiveTab] = useState('dashboard');
@@ -108,6 +111,9 @@ export function AdminApp() {
                             {activeTab === 'users' && <HealthcareUsersManager />}
                             {activeTab === 'fhir-servers' && <FhirServersManager />}
                             {activeTab === 'idp' && <IdPManager />}
+                            {activeTab === 'scopes' && <ScopeManager />}
+                            {activeTab === 'launch-context' && <LaunchContextManager />}
+                            {activeTab === 'oauth-monitoring' && <OAuthMonitoringDashboard />}
                         </Panel>
                     </div>
                 </div>

@@ -71,7 +71,7 @@ function getRoleBadgeColor(role: string): string {
   
   if (roleLower.includes('admin')) {
     return 'bg-purple-100 text-purple-800'
-  } else if (roleLower.includes('physician') || roleLower.includes('doctor')) {
+  } else if (roleLower.includes('doctor')) {
     return 'bg-blue-100 text-blue-800'
   } else if (roleLower.includes('nurse')) {
     return 'bg-green-100 text-green-800'
@@ -88,7 +88,6 @@ function getRoleBadgeColor(role: string): string {
  * Available realm roles for selection
  */
 const AVAILABLE_REALM_ROLES = [
-  'physician',
   'nurse',
   'researcher',
   'practitioner',
@@ -500,12 +499,12 @@ export function HealthcareUsersManager() {
                 <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center shadow-sm">
                   <Shield className="w-6 h-6 text-purple-600" />
                 </div>
-                <div className="text-sm font-semibold text-purple-800 tracking-wide">Physicians</div>
+                <div className="text-sm font-semibold text-purple-800 tracking-wide">Practitioners</div>
               </div>
               <div className="text-3xl font-bold text-purple-900 mb-2">
                 {users.filter(user => {
                   const primaryRole = getPrimaryRole(user.realmRoles, user.clientRoles);
-                  return primaryRole.toLowerCase().includes('physician') || primaryRole.toLowerCase().includes('doctor');
+                  return primaryRole.toLowerCase().includes('practitioner') || primaryRole.toLowerCase().includes('doctor');
                 }).length}
               </div>
             </div>
