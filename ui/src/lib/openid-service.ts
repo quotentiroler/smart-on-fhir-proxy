@@ -22,7 +22,7 @@ class OpenIDService {
       scope: 'openid profile email',
     };
 
-    console.log('OpenID Service Config:', this.config);
+    console.debug('OpenID Service Config:', this.config);
 
     // Create API client
     const apiConfig = new Configuration({
@@ -47,8 +47,8 @@ class OpenIDService {
     authUrl.searchParams.set('code_challenge_method', 'S256');
     authUrl.searchParams.set('state', state);
 
-    console.log('Generated Authorization URL:', authUrl.href);
-    console.log('Redirect URI:', this.config.redirectUri);
+    console.debug('Generated Authorization URL:', authUrl.href);
+    console.debug('Redirect URI:', this.config.redirectUri);
 
     return {
       url: authUrl.href,
@@ -66,7 +66,7 @@ class OpenIDService {
     refresh_token?: string;
     expires_in?: number;
   }> {
-    console.log('OpenID Service: Starting token exchange...');
+    console.debug('OpenID Service: Starting token exchange...');
     
     const tokenRequest: PostAuthTokenRequest = {
       grantType: 'authorization_code',
@@ -77,7 +77,7 @@ class OpenIDService {
       codeVerifier,
     };
 
-    console.log('Token request:', {
+    console.debug('Token request:', {
       grantType: tokenRequest.grantType,
       clientId: tokenRequest.clientId,
       redirectUri: tokenRequest.redirectUri,
@@ -91,7 +91,7 @@ class OpenIDService {
         postAuthTokenRequest: tokenRequest,
       });
 
-      console.log('Token response received:', {
+      console.debug('Token response received:', {
         hasAccessToken: !!response.accessToken,
         hasIdToken: !!response.idToken,
         hasRefreshToken: !!response.refreshToken,

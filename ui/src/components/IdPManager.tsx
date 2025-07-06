@@ -139,10 +139,11 @@ export function IdPManager() {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
               Identity Provider Management
             </h1>
-            <p className="text-gray-600 text-lg flex items-center">
+           
               <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-3 shadow-sm">
                 <Shield className="w-5 h-5 text-blue-600" />
               </div>
+               <p className="text-gray-600 text-lg flex items-center">
               Configure and manage identity providers for healthcare system authentication
             </p>
           </div>

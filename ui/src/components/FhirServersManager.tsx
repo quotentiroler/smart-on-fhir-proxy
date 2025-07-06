@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  Server, 
-  Database, 
-  Check, 
-  X, 
+import {
+  Server,
+  Database,
+  Check,
+  X,
   ExternalLink,
   RefreshCw,
   AlertCircle,
@@ -107,8 +107,8 @@ export function FhirServersManager() {
               <p className="text-red-700">{error}</p>
             </div>
           </div>
-          <Button 
-            onClick={fetchServers} 
+          <Button
+            onClick={fetchServers}
             className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
@@ -128,15 +128,16 @@ export function FhirServersManager() {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
               FHIR Server Management
             </h1>
+
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-3 shadow-sm">
+              <Database className="w-5 h-5 text-blue-600" />
+            </div>
             <p className="text-gray-600 text-lg flex items-center">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-3 shadow-sm">
-                <Database className="w-5 h-5 text-blue-600" />
-              </div>
               Manage and monitor FHIR server connections
             </p>
           </div>
-          <Button 
-            onClick={fetchServers} 
+          <Button
+            onClick={fetchServers}
             className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/20"
           >
             <RefreshCw className="w-5 h-5 mr-2" />
@@ -160,7 +161,7 @@ export function FhirServersManager() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -176,7 +177,7 @@ export function FhirServersManager() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -201,7 +202,7 @@ export function FhirServersManager() {
             <TabsTrigger value="overview" className="rounded-xl">Server Overview</TabsTrigger>
             <TabsTrigger value="details" className="rounded-xl">Server Details</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="overview" className="p-6 space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {servers.map((server) => (
@@ -216,10 +217,10 @@ export function FhirServersManager() {
                         <p className="text-sm text-gray-600 font-medium">{server.name}</p>
                       </div>
                     </div>
-                    <Badge 
+                    <Badge
                       variant={server.supported ? "default" : "destructive"}
-                      className={server.supported 
-                        ? "bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-sm" 
+                      className={server.supported
+                        ? "bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-sm"
                         : "bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-300 shadow-sm"
                       }
                     >
@@ -230,7 +231,7 @@ export function FhirServersManager() {
                       )}
                     </Badge>
                   </div>
-                  
+
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-gray-50/50 p-3 rounded-xl">
@@ -242,7 +243,7 @@ export function FhirServersManager() {
                         <p className="text-sm font-bold text-gray-900 mt-1">{server.serverName || 'Unknown'}</p>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-semibold text-gray-600">Base URL:</span>
@@ -285,7 +286,7 @@ export function FhirServersManager() {
               ))}
             </div>
           </TabsContent>
-          
+
           <TabsContent value="details" className="p-6 space-y-6">
             {selectedServer ? (
               <div className="bg-white/70 backdrop-blur-sm p-8 rounded-2xl border border-gray-200/50 shadow-lg">
@@ -299,10 +300,10 @@ export function FhirServersManager() {
                       <p className="text-gray-600 font-medium">{selectedServer.name}</p>
                     </div>
                   </div>
-                  <Badge 
+                  <Badge
                     variant={selectedServer.supported ? "default" : "destructive"}
-                    className={selectedServer.supported 
-                      ? "bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-sm px-4 py-2" 
+                    className={selectedServer.supported
+                      ? "bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-sm px-4 py-2"
                       : "bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-300 shadow-sm px-4 py-2"
                     }
                   >
@@ -313,7 +314,7 @@ export function FhirServersManager() {
                     )}
                   </Badge>
                 </div>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-6">
                     <div>
@@ -339,7 +340,7 @@ export function FhirServersManager() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-6">
                     <div>
                       <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">

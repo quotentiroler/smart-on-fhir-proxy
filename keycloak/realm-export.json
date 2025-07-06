@@ -28,7 +28,7 @@
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": true,
-      "serviceAccountsEnabled": false,
+      "serviceAccountsEnabled": true,
       "authorizationServicesEnabled": false,
       "fullScopeAllowed": true,
       "defaultClientScopes": [
@@ -63,14 +63,17 @@
       ],
       "realmRoles": [
         "user",
-        "admin"
+        "admin",
+        "realm-admin"
       ],
       "clientRoles": {
         "admin-ui": [
           "admin",
-          "manage"
+          "manage",
+          "realm-admin"
         ],
         "realm-management": [
+          "admin",
           "realm-admin"
         ]
       }

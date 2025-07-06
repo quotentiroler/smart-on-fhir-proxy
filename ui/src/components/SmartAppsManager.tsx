@@ -191,15 +191,15 @@ export function SmartAppsManager() {
             <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
               SMART on FHIR Applications
             </h1>
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-3 shadow-sm">
+              <Shield className="w-5 h-5 text-blue-600" />
+            </div>
             <p className="text-gray-600 text-lg flex items-center">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-3 shadow-sm">
-                <Shield className="w-5 h-5 text-blue-600" />
-              </div>
               Manage registered healthcare applications and their permissions
             </p>
           </div>
-          <Button 
-            onClick={() => setShowAddForm(true)} 
+          <Button
+            onClick={() => setShowAddForm(true)}
             className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/20"
           >
             <Plus className="h-5 h-5 mr-2" />
@@ -223,7 +223,7 @@ export function SmartAppsManager() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -239,7 +239,7 @@ export function SmartAppsManager() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -255,7 +255,7 @@ export function SmartAppsManager() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -271,7 +271,7 @@ export function SmartAppsManager() {
             </div>
           </div>
         </div>
-        
+
         <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
@@ -328,7 +328,7 @@ export function SmartAppsManager() {
                 />
               </div>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-3">
                 <Label htmlFor="appType" className="text-sm font-semibold text-gray-700">Application Type</Label>
@@ -337,8 +337,8 @@ export function SmartAppsManager() {
                   value={newApp.appType}
                   onChange={(e) => {
                     const appType = e.target.value as SmartAppType;
-                    setNewApp({ 
-                      ...newApp, 
+                    setNewApp({
+                      ...newApp,
                       appType,
                       redirectUri: appType === 'backend-service' ? '' : newApp.redirectUri,
                       authenticationType: appType === 'backend-service' ? 'none' : newApp.authenticationType
@@ -369,7 +369,7 @@ export function SmartAppsManager() {
                 </div>
               )}
             </div>
-            
+
             <div className="space-y-3">
               <Label htmlFor="redirectUri" className="text-sm font-semibold text-gray-700">Redirect URI</Label>
               <Input
@@ -397,15 +397,15 @@ export function SmartAppsManager() {
               />
             </div>
             <div className="flex gap-4 pt-4">
-              <Button 
+              <Button
                 type="submit"
                 className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 Register Application
               </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setShowAddForm(false)}
                 className="px-8 py-3 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md"
               >
@@ -428,7 +428,7 @@ export function SmartAppsManager() {
               <p className="text-gray-600 font-medium">View and manage all SMART on FHIR applications</p>
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -471,8 +471,8 @@ export function SmartAppsManager() {
                       <TableCell>
                         <Badge
                           variant={app.status === 'active' ? 'default' : 'secondary'}
-                          className={app.status === 'active' 
-                            ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-sm' 
+                          className={app.status === 'active'
+                            ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-sm'
                             : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-300 shadow-sm'
                           }
                         >

@@ -11,6 +11,7 @@ interface KeycloakUser {
   enabled?: boolean
   attributes?: Record<string, string[]>
   createdTimestamp?: number
+  lastLogin?: number | null
 }
 
 /**
@@ -64,7 +65,8 @@ export function mapUserProfile(user: KeycloakUser) {
     lastName: user.lastName ?? '',
     enabled: user.enabled ?? false,
     attributes: user.attributes ?? {},
-    createdTimestamp: user.createdTimestamp ?? 0
+    createdTimestamp: user.createdTimestamp ?? 0,
+    lastLogin: user.lastLogin ?? null
   }
 }
 

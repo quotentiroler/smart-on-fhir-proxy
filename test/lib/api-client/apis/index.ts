@@ -3,7 +3,6 @@
 export * from './AdminApi';
 export * from './AuthenticationApi';
 export * from './FhirApi';
-export * from './FhirGroupsApi';
 export * from './HealthcareUsersApi';
 export * from './IdentityProvidersApi';
 export * from './LaunchContextsApi';

@@ -44,23 +44,17 @@ export interface PostAdminHealthcareUsersRequest {
      */
     lastName: string;
     /**
-     * Healthcare role
+     * Organization
      * @type {string}
      * @memberof PostAdminHealthcareUsersRequest
      */
-    role?: string;
+    organization?: string;
     /**
-     * Department or unit
+     * FHIR User identifier
      * @type {string}
      * @memberof PostAdminHealthcareUsersRequest
      */
-    department?: string;
-    /**
-     * National Provider Identifier
-     * @type {string}
-     * @memberof PostAdminHealthcareUsersRequest
-     */
-    npi?: string;
+    fhirUser?: string;
     /**
      * Initial password
      * @type {string}
@@ -73,6 +67,18 @@ export interface PostAdminHealthcareUsersRequest {
      * @memberof PostAdminHealthcareUsersRequest
      */
     temporaryPassword?: boolean;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof PostAdminHealthcareUsersRequest
+     */
+    realmRoles?: Array<string>;
+    /**
+     * Client roles to assign
+     * @type {object}
+     * @memberof PostAdminHealthcareUsersRequest
+     */
+    clientRoles?: object;
 }
 
 /**
@@ -100,11 +106,12 @@ export function PostAdminHealthcareUsersRequestFromJSONTyped(json: any, ignoreDi
         'email': json['email'],
         'firstName': json['firstName'],
         'lastName': json['lastName'],
-        'role': json['role'] == null ? undefined : json['role'],
-        'department': json['department'] == null ? undefined : json['department'],
-        'npi': json['npi'] == null ? undefined : json['npi'],
+        'organization': json['organization'] == null ? undefined : json['organization'],
+        'fhirUser': json['fhirUser'] == null ? undefined : json['fhirUser'],
         'password': json['password'] == null ? undefined : json['password'],
         'temporaryPassword': json['temporaryPassword'] == null ? undefined : json['temporaryPassword'],
+        'realmRoles': json['realmRoles'] == null ? undefined : json['realmRoles'],
+        'clientRoles': json['clientRoles'] == null ? undefined : json['clientRoles'],
     };
 }
 
@@ -123,11 +130,12 @@ export function PostAdminHealthcareUsersRequestToJSONTyped(value?: PostAdminHeal
         'email': value['email'],
         'firstName': value['firstName'],
         'lastName': value['lastName'],
-        'role': value['role'],
-        'department': value['department'],
-        'npi': value['npi'],
+        'organization': value['organization'],
+        'fhirUser': value['fhirUser'],
         'password': value['password'],
         'temporaryPassword': value['temporaryPassword'],
+        'realmRoles': value['realmRoles'],
+        'clientRoles': value['clientRoles'],
     };
 }
 

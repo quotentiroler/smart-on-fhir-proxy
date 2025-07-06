@@ -15,6 +15,8 @@ export const keycloakPlugin = new Elysia()
       const tokenPayload = await validateToken(userToken)
       console.log('Token validated successfully, payload:', {
         sub: tokenPayload.sub,
+        preferred_username: tokenPayload.preferred_username,
+        email: tokenPayload.email,
         realm_access: tokenPayload.realm_access,
         resource_access: tokenPayload.resource_access
       })
@@ -36,23 +38,27 @@ export const keycloakPlugin = new Elysia()
           role.includes('admin') || role.includes('manage')
         )
       
-      console.log('User has admin role:', hasAdminRole)
-      console.log('User realm roles:', realmRoles)
-      console.log('User admin-ui client roles:', clientRoles)
-      console.log('User realm-management client roles:', realmManagementRoles)
-      
-      // TEMPORARY: Allow any authenticated user for development
-      // TODO: Remove this in production
+      // Check if user has admin access to manage users
+      // In development, we'll be more permissive
       const isDevelopment = process.env.NODE_ENV !== 'production'
-      if (isDevelopment && !hasAdminRole) {
-        console.log('DEVELOPMENT: Allowing non-admin user for testing')
-        // Don't throw error in development
-      } else if (!hasAdminRole) {
+      
+      if (!hasAdminRole) {
         console.log('User does not have admin permissions')
-        throw new Error('User does not have admin permissions')
+        if (!isDevelopment) {
+          throw new Error('User does not have admin permissions')
+        }
+        console.log('DEVELOPMENT: Proceeding despite missing admin role')
       }
       
-      console.log('Creating Keycloak admin client...')
+      // Check for realm-management roles (needed for admin API)
+      const hasRealmManagementRole = realmManagementRoles.length > 0
+      if (!hasRealmManagementRole) {
+        console.log('User lacks realm-management roles, but proceeding in development')
+        if (!isDevelopment) {
+          throw new Error('User does not have realm management permissions')
+        }
+      }
+      
       // Create admin client with user's token
       const kcAdminClient = new KcAdminClient({
         baseUrl: process.env.KEYCLOAK_BASE_URL!,

@@ -1,7 +1,6 @@
 apis/AdminApi.ts
 apis/AuthenticationApi.ts
 apis/FhirApi.ts
-apis/FhirGroupsApi.ts
 apis/HealthcareUsersApi.ts
 apis/IdentityProvidersApi.ts
 apis/LaunchContextsApi.ts
@@ -12,10 +11,6 @@ apis/SmartAppsApi.ts
 apis/index.ts
 index.ts
 models/DeleteAdminRolesByRoleName200Response.ts
-models/GetAdminFhirGroups200ResponseInner.ts
-models/GetAdminFhirGroups200ResponseInnerType.ts
-models/GetAdminFhirGroupsByGroupIdMembers200ResponseInner.ts
-models/GetAdminFhirGroupsMembershipsUsers200ResponseInner.ts
 models/GetAdminHealthcareUsers200ResponseInner.ts
 models/GetAdminHealthcareUsersLimitParameter.ts
 models/GetAdminHealthcareUsersOffsetParameter.ts
@@ -42,20 +37,6 @@ models/GetStatus200ResponseFhir.ts
 models/GetStatus200ResponseFhirServersInner.ts
 models/GetStatus200ResponseKeycloak.ts
 models/GetStatus200ResponseServer.ts
-models/PostAdminFhirGroups200Response.ts
-models/PostAdminFhirGroupsRequest.ts
-models/PostAdminFhirGroupsRequestCharacteristicInner.ts
-models/PostAdminFhirGroupsRequestCharacteristicInnerValueQuantity.ts
-models/PostAdminFhirGroupsRequestCharacteristicInnerValueRange.ts
-models/PostAdminFhirGroupsRequestCharacteristicInnerValueRangeLow.ts
-models/PostAdminFhirGroupsRequestCode.ts
-models/PostAdminFhirGroupsRequestIdentifierInner.ts
-models/PostAdminFhirGroupsRequestIdentifierInnerType.ts
-models/PostAdminFhirGroupsRequestIdentifierInnerTypeCodingInner.ts
-models/PostAdminFhirGroupsRequestManagingEntity.ts
-models/PostAdminFhirGroupsRequestMemberInner.ts
-models/PostAdminFhirGroupsRequestMemberInnerEntity.ts
-models/PostAdminFhirGroupsRequestMemberInnerPeriod.ts
 models/PostAdminHealthcareUsersRequest.ts
 models/PostAdminIdpsRequest.ts
 models/PostAdminLaunchContextsByUserIdFhirContextRequest.ts
@@ -72,7 +53,6 @@ models/PostShutdown200Response.ts
 models/PostShutdown500Response.ts
 models/PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response.ts
 models/PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseServerInfo.ts
-models/PutAdminFhirGroupsByGroupIdRequest.ts
 models/PutAdminHealthcareUsersByUserIdRequest.ts
 models/PutAdminIdpsByAliasRequest.ts
 models/PutAdminLaunchContextsByUserIdIntentRequest.ts
