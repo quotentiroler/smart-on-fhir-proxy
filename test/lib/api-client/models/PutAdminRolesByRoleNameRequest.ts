@@ -20,7 +20,7 @@ import { mapValues } from '../runtime';
  */
 export interface PutAdminRolesByRoleNameRequest {
     /**
-     * 
+     * Role description
      * @type {string}
      * @memberof PutAdminRolesByRoleNameRequest
      */

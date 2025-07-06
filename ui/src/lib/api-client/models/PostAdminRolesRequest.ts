@@ -20,13 +20,13 @@ import { mapValues } from '../runtime';
  */
 export interface PostAdminRolesRequest {
     /**
-     * 
+     * Role name
      * @type {string}
      * @memberof PostAdminRolesRequest
      */
     name: string;
     /**
-     * 
+     * Role description
      * @type {string}
      * @memberof PostAdminRolesRequest
      */

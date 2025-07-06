@@ -41,7 +41,12 @@ export const UserProfile = t.Object({
   lastName: t.String({ description: 'Last name' }),
   enabled: t.Boolean({ description: 'Whether user is enabled' }),
   attributes: t.Optional(t.Record(t.String(), t.Union([t.String(), t.Array(t.String())]))),
-  createdTimestamp: t.Optional(t.Number({ description: 'Creation timestamp' }))
+  createdTimestamp: t.Optional(t.Number({ description: 'Creation timestamp' })),
+  lastLogin: t.Optional(t.Union([t.Number(), t.Null()], { description: 'Last login timestamp' })),
+  realmRoles: t.Optional(t.Array(t.String(), { description: 'Keycloak realm roles' })),
+  clientRoles: t.Optional(t.Record(t.String(), t.Array(t.String()), { description: 'Keycloak client roles' })),
+  organization: t.Optional(t.String({ description: 'Organization' })),
+  fhirUser: t.Optional(t.String({ description: 'FHIR User identifier' }))
 })
 
 // SMART App/Client schema (reusable)

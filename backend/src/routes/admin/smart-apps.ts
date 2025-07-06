@@ -11,7 +11,7 @@ import { config } from '../../config'
  */
 export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: ['smart-apps'] })
   .use(keycloakPlugin)
-  
+
   .get('/', async ({ getAdmin, headers, set }) => {
     try {
       // Extract user's token from Authorization header
@@ -22,29 +22,10 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
       }
 
       const admin = await getAdmin(token)
-      const clients = await admin.clients.find()
-      
-      // Filter for SMART apps based on SMART-specific characteristics:
-      // 1. OpenID Connect protocol
-      // 2. Not internal system clients (backend service, admin UI)
-      // 3. Either has SMART scopes or is explicitly named as a test client
-      return clients.filter(client => {
-        if (client.protocol !== 'openid-connect') return false;
-        
-        // Exclude internal system clients
-        const isInternalClient = ['smart-on-fhir-backend', 'admin-ui'].includes(client.clientId || '');
-        if (isInternalClient) return false;
-        
-        // Include if it's a test client or has SMART-like characteristics
-        const isTestClient = client.clientId?.startsWith('test-');
-        const hasSmartScopes = client.defaultClientScopes?.some(scope => 
-          ['launch', 'patient', 'user', 'system'].some(smartScope => scope.includes(smartScope))
-        ) || client.optionalClientScopes?.some(scope => 
-          ['launch', 'patient', 'user', 'system'].some(smartScope => scope.includes(smartScope))
-        );
-        
-        return isTestClient || hasSmartScopes;
-      })
+      let clients = await admin.clients.find()
+      //Filter out admin-ui
+      clients = clients.filter(client => client.clientId !== 'admin-ui')
+      return clients;
     } catch (error) {
       set.status = 500
       return { error: 'Failed to fetch SMART applications', details: error }
@@ -61,7 +42,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
       description: 'Get all registered SMART on FHIR applications',
       tags: ['smart-apps'],
       security: [{ BearerAuth: [] }],
-      response: { 
+      response: {
         200: { description: 'A list of all registered SMART on FHIR applications.' },
         401: { description: 'Unauthorized - Bearer token required' },
         403: { description: 'Forbidden - Insufficient permissions' },
@@ -69,7 +50,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
       }
     }
   })
-  
+
   .post('/', async ({ getAdmin, body, headers, set }) => {
     try {
       // Extract user's token from Authorization header
@@ -128,7 +109,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
       description: 'Create a new SMART on FHIR application',
       tags: ['smart-apps'],
       security: [{ BearerAuth: [] }],
-      response: { 
+      response: {
         200: { description: 'SMART app client created.' },
         400: { description: 'Invalid request data' },
         401: { description: 'Unauthorized - Bearer token required' },
@@ -137,7 +118,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
       }
     }
   })
-  
+
   .get('/:clientId', async ({ getAdmin, params, headers, set }) => {
     try {
       // Extract user's token from Authorization header
@@ -174,7 +155,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
       description: 'Get a single SMART on FHIR application by clientId',
       tags: ['smart-apps'],
       security: [{ BearerAuth: [] }],
-      response: { 
+      response: {
         200: { description: 'SMART app client details.' },
         404: { description: 'SMART application not found' },
         401: { description: 'Unauthorized - Bearer token required' },
@@ -183,7 +164,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
       }
     }
   })
-  
+
   .put('/:clientId', async ({ getAdmin, params, body, headers, set }) => {
     try {
       // Extract user's token from Authorization header
@@ -199,7 +180,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
         set.status = 404
         return { error: 'SMART application not found' }
       }
-      
+
       const updateData = {
         name: body.name,
         description: body.description,
@@ -244,7 +225,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
       description: 'Update an existing SMART on FHIR application',
       tags: ['smart-apps'],
       security: [{ BearerAuth: [] }],
-      response: { 
+      response: {
         200: { description: 'SMART app client updated.' },
         400: { description: 'Invalid request data' },
         404: { description: 'SMART application not found' },
@@ -254,7 +235,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
       }
     }
   })
-  
+
   .delete('/:clientId', async ({ getAdmin, params, headers, set }) => {
     try {
       // Extract user's token from Authorization header
@@ -292,7 +273,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
       description: 'Delete a SMART on FHIR application by clientId',
       tags: ['smart-apps'],
       security: [{ BearerAuth: [] }],
-      response: { 
+      response: {
         200: { description: 'SMART app client deleted.' },
         404: { description: 'SMART application not found' },
         401: { description: 'Unauthorized - Bearer token required' },

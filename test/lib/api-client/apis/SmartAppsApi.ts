@@ -239,6 +239,44 @@ export class SmartAppsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Manually refresh the cached SMART configuration from Keycloak
+     * Refresh SMART Configuration Cache
+     */
+    async postAdminSmartConfigRefreshRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/smart-config/refresh`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Manually refresh the cached SMART configuration from Keycloak
+     * Refresh SMART Configuration Cache
+     */
+    async postAdminSmartConfigRefresh(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.postAdminSmartConfigRefreshRaw(initOverrides);
+    }
+
+    /**
      * Update an existing SMART on FHIR application
      * Update SMART on FHIR Application
      */

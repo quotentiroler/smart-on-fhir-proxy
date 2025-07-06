@@ -28,35 +28,6 @@
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
       "directAccessGrantsEnabled": true,
-      "serviceAccountsEnabled": false,
-      "authorizationServicesEnabled": false,
-      "fullScopeAllowed": true,
-      "defaultClientScopes": [
-        "web-origins",
-        "acr",
-        "profile",
-        "roles",
-        "email"
-      ],
-      "optionalClientScopes": [
-        "address",
-        "phone",
-        "offline_access",
-        "microprofile-jwt"
-      ]
-    },
-    {
-      "clientId": "smart-on-fhir-backend",
-      "name": "SMART on FHIR Backend Service",
-      "enabled": true,
-      "clientAuthenticatorType": "client-secret",
-      "secret": "your-client-secret",
-      "protocol": "openid-connect",
-      "publicClient": false,
-      "bearerOnly": false,
-      "standardFlowEnabled": false,
-      "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
       "authorizationServicesEnabled": false,
       "fullScopeAllowed": true,
@@ -86,19 +57,23 @@
       "credentials": [
         {
           "type": "password",
-          "value": "admin123",
+          "value": "admin",
           "temporary": false
         }
       ],
       "realmRoles": [
         "user",
-        "admin"
+        "admin",
+        "realm-admin"
       ],
       "clientRoles": {
         "admin-ui": [
-          "admin"
+          "admin",
+          "manage",
+          "realm-admin"
         ],
         "realm-management": [
+          "admin",
           "realm-admin"
         ]
       }

@@ -17,6 +17,12 @@ import * as runtime from '../runtime';
 import type {
   DeleteAdminRolesByRoleName200Response,
   GetAdminLaunchContexts200ResponseInner,
+  PostAdminLaunchContextsByUserIdFhirContextRequest,
+  PostShutdown500Response,
+  PutAdminLaunchContextsByUserIdIntentRequest,
+  PutAdminLaunchContextsByUserIdNeedPatientBannerRequest,
+  PutAdminLaunchContextsByUserIdSmartStyleUrlRequest,
+  PutAdminLaunchContextsByUserIdTenantRequest,
   PutAdminRolesByRoleName200Response,
 } from '../models/index';
 import {
@@ -24,6 +30,18 @@ import {
     DeleteAdminRolesByRoleName200ResponseToJSON,
     GetAdminLaunchContexts200ResponseInnerFromJSON,
     GetAdminLaunchContexts200ResponseInnerToJSON,
+    PostAdminLaunchContextsByUserIdFhirContextRequestFromJSON,
+    PostAdminLaunchContextsByUserIdFhirContextRequestToJSON,
+    PostShutdown500ResponseFromJSON,
+    PostShutdown500ResponseToJSON,
+    PutAdminLaunchContextsByUserIdIntentRequestFromJSON,
+    PutAdminLaunchContextsByUserIdIntentRequestToJSON,
+    PutAdminLaunchContextsByUserIdNeedPatientBannerRequestFromJSON,
+    PutAdminLaunchContextsByUserIdNeedPatientBannerRequestToJSON,
+    PutAdminLaunchContextsByUserIdSmartStyleUrlRequestFromJSON,
+    PutAdminLaunchContextsByUserIdSmartStyleUrlRequestToJSON,
+    PutAdminLaunchContextsByUserIdTenantRequestFromJSON,
+    PutAdminLaunchContextsByUserIdTenantRequestToJSON,
     PutAdminRolesByRoleName200ResponseFromJSON,
     PutAdminRolesByRoleName200ResponseToJSON,
 } from '../models/index';
@@ -32,7 +50,31 @@ export interface DeleteAdminLaunchContextsByUserIdEncounterRequest {
     userId: string;
 }
 
+export interface DeleteAdminLaunchContextsByUserIdFhirContextRequest {
+    userId: string;
+}
+
+export interface DeleteAdminLaunchContextsByUserIdFhirUserRequest {
+    userId: string;
+}
+
+export interface DeleteAdminLaunchContextsByUserIdIntentRequest {
+    userId: string;
+}
+
+export interface DeleteAdminLaunchContextsByUserIdNeedPatientBannerRequest {
+    userId: string;
+}
+
 export interface DeleteAdminLaunchContextsByUserIdPatientRequest {
+    userId: string;
+}
+
+export interface DeleteAdminLaunchContextsByUserIdSmartStyleUrlRequest {
+    userId: string;
+}
+
+export interface DeleteAdminLaunchContextsByUserIdTenantRequest {
     userId: string;
 }
 
@@ -41,9 +83,39 @@ export interface PostAdminLaunchContextsByUserIdEncounterByEncounterIdRequest {
     encounterId: string;
 }
 
+export interface PostAdminLaunchContextsByUserIdFhirContextOperationRequest {
+    userId: string;
+    postAdminLaunchContextsByUserIdFhirContextRequest: PostAdminLaunchContextsByUserIdFhirContextRequest;
+}
+
+export interface PostAdminLaunchContextsByUserIdFhirUserByFhirUserIdRequest {
+    userId: string;
+    fhirUserId: string;
+}
+
 export interface PostAdminLaunchContextsByUserIdPatientByPatientIdRequest {
     userId: string;
     patientId: string;
+}
+
+export interface PutAdminLaunchContextsByUserIdIntentOperationRequest {
+    userId: string;
+    putAdminLaunchContextsByUserIdIntentRequest: PutAdminLaunchContextsByUserIdIntentRequest;
+}
+
+export interface PutAdminLaunchContextsByUserIdNeedPatientBannerOperationRequest {
+    userId: string;
+    putAdminLaunchContextsByUserIdNeedPatientBannerRequest: PutAdminLaunchContextsByUserIdNeedPatientBannerRequest;
+}
+
+export interface PutAdminLaunchContextsByUserIdSmartStyleUrlOperationRequest {
+    userId: string;
+    putAdminLaunchContextsByUserIdSmartStyleUrlRequest: PutAdminLaunchContextsByUserIdSmartStyleUrlRequest;
+}
+
+export interface PutAdminLaunchContextsByUserIdTenantOperationRequest {
+    userId: string;
+    putAdminLaunchContextsByUserIdTenantRequest: PutAdminLaunchContextsByUserIdTenantRequest;
 }
 
 /**
@@ -91,6 +163,162 @@ export class LaunchContextsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Remove additional FHIR resources in context
+     * Remove FHIR Context
+     */
+    async deleteAdminLaunchContextsByUserIdFhirContextRaw(requestParameters: DeleteAdminLaunchContextsByUserIdFhirContextRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminRolesByRoleName200Response>> {
+        if (requestParameters['userId'] == null) {
+            throw new runtime.RequiredError(
+                'userId',
+                'Required parameter "userId" was null or undefined when calling deleteAdminLaunchContextsByUserIdFhirContext().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/admin/launch-contexts/{userId}/fhir-context`;
+        urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Remove additional FHIR resources in context
+     * Remove FHIR Context
+     */
+    async deleteAdminLaunchContextsByUserIdFhirContext(requestParameters: DeleteAdminLaunchContextsByUserIdFhirContextRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminRolesByRoleName200Response> {
+        const response = await this.deleteAdminLaunchContextsByUserIdFhirContextRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Remove the fhirUser context for a user
+     * Remove FHIR User Context
+     */
+    async deleteAdminLaunchContextsByUserIdFhirUserRaw(requestParameters: DeleteAdminLaunchContextsByUserIdFhirUserRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminRolesByRoleName200Response>> {
+        if (requestParameters['userId'] == null) {
+            throw new runtime.RequiredError(
+                'userId',
+                'Required parameter "userId" was null or undefined when calling deleteAdminLaunchContextsByUserIdFhirUser().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/admin/launch-contexts/{userId}/fhir-user`;
+        urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Remove the fhirUser context for a user
+     * Remove FHIR User Context
+     */
+    async deleteAdminLaunchContextsByUserIdFhirUser(requestParameters: DeleteAdminLaunchContextsByUserIdFhirUserRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminRolesByRoleName200Response> {
+        const response = await this.deleteAdminLaunchContextsByUserIdFhirUserRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Remove the intent context for a user
+     * Remove Intent Context
+     */
+    async deleteAdminLaunchContextsByUserIdIntentRaw(requestParameters: DeleteAdminLaunchContextsByUserIdIntentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminRolesByRoleName200Response>> {
+        if (requestParameters['userId'] == null) {
+            throw new runtime.RequiredError(
+                'userId',
+                'Required parameter "userId" was null or undefined when calling deleteAdminLaunchContextsByUserIdIntent().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/admin/launch-contexts/{userId}/intent`;
+        urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Remove the intent context for a user
+     * Remove Intent Context
+     */
+    async deleteAdminLaunchContextsByUserIdIntent(requestParameters: DeleteAdminLaunchContextsByUserIdIntentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminRolesByRoleName200Response> {
+        const response = await this.deleteAdminLaunchContextsByUserIdIntentRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Remove the need-patient-banner context for a user
+     * Remove Need Patient Banner Context
+     */
+    async deleteAdminLaunchContextsByUserIdNeedPatientBannerRaw(requestParameters: DeleteAdminLaunchContextsByUserIdNeedPatientBannerRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminRolesByRoleName200Response>> {
+        if (requestParameters['userId'] == null) {
+            throw new runtime.RequiredError(
+                'userId',
+                'Required parameter "userId" was null or undefined when calling deleteAdminLaunchContextsByUserIdNeedPatientBanner().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/admin/launch-contexts/{userId}/need-patient-banner`;
+        urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Remove the need-patient-banner context for a user
+     * Remove Need Patient Banner Context
+     */
+    async deleteAdminLaunchContextsByUserIdNeedPatientBanner(requestParameters: DeleteAdminLaunchContextsByUserIdNeedPatientBannerRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminRolesByRoleName200Response> {
+        const response = await this.deleteAdminLaunchContextsByUserIdNeedPatientBannerRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Remove the patient context for a user
      * Remove Patient Context
      */
@@ -126,6 +354,84 @@ export class LaunchContextsApi extends runtime.BaseAPI {
      */
     async deleteAdminLaunchContextsByUserIdPatient(requestParameters: DeleteAdminLaunchContextsByUserIdPatientRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminRolesByRoleName200Response> {
         const response = await this.deleteAdminLaunchContextsByUserIdPatientRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Remove the smart-style-url context for a user
+     * Remove Smart Style URL Context
+     */
+    async deleteAdminLaunchContextsByUserIdSmartStyleUrlRaw(requestParameters: DeleteAdminLaunchContextsByUserIdSmartStyleUrlRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminRolesByRoleName200Response>> {
+        if (requestParameters['userId'] == null) {
+            throw new runtime.RequiredError(
+                'userId',
+                'Required parameter "userId" was null or undefined when calling deleteAdminLaunchContextsByUserIdSmartStyleUrl().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/admin/launch-contexts/{userId}/smart-style-url`;
+        urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Remove the smart-style-url context for a user
+     * Remove Smart Style URL Context
+     */
+    async deleteAdminLaunchContextsByUserIdSmartStyleUrl(requestParameters: DeleteAdminLaunchContextsByUserIdSmartStyleUrlRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminRolesByRoleName200Response> {
+        const response = await this.deleteAdminLaunchContextsByUserIdSmartStyleUrlRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Remove the tenant context for a user
+     * Remove Tenant Context
+     */
+    async deleteAdminLaunchContextsByUserIdTenantRaw(requestParameters: DeleteAdminLaunchContextsByUserIdTenantRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminRolesByRoleName200Response>> {
+        if (requestParameters['userId'] == null) {
+            throw new runtime.RequiredError(
+                'userId',
+                'Required parameter "userId" was null or undefined when calling deleteAdminLaunchContextsByUserIdTenant().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/admin/launch-contexts/{userId}/tenant`;
+        urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Remove the tenant context for a user
+     * Remove Tenant Context
+     */
+    async deleteAdminLaunchContextsByUserIdTenant(requestParameters: DeleteAdminLaunchContextsByUserIdTenantRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminRolesByRoleName200Response> {
+        const response = await this.deleteAdminLaunchContextsByUserIdTenantRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -208,6 +514,102 @@ export class LaunchContextsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Set additional FHIR resources in context as per SMART 2.2.0 spec
+     * Set FHIR Context
+     */
+    async postAdminLaunchContextsByUserIdFhirContextRaw(requestParameters: PostAdminLaunchContextsByUserIdFhirContextOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminRolesByRoleName200Response>> {
+        if (requestParameters['userId'] == null) {
+            throw new runtime.RequiredError(
+                'userId',
+                'Required parameter "userId" was null or undefined when calling postAdminLaunchContextsByUserIdFhirContext().'
+            );
+        }
+
+        if (requestParameters['postAdminLaunchContextsByUserIdFhirContextRequest'] == null) {
+            throw new runtime.RequiredError(
+                'postAdminLaunchContextsByUserIdFhirContextRequest',
+                'Required parameter "postAdminLaunchContextsByUserIdFhirContextRequest" was null or undefined when calling postAdminLaunchContextsByUserIdFhirContext().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/admin/launch-contexts/{userId}/fhir-context`;
+        urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PostAdminLaunchContextsByUserIdFhirContextRequestToJSON(requestParameters['postAdminLaunchContextsByUserIdFhirContextRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Set additional FHIR resources in context as per SMART 2.2.0 spec
+     * Set FHIR Context
+     */
+    async postAdminLaunchContextsByUserIdFhirContext(requestParameters: PostAdminLaunchContextsByUserIdFhirContextOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminRolesByRoleName200Response> {
+        const response = await this.postAdminLaunchContextsByUserIdFhirContextRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Set the fhirUser context for a user (e.g., Practitioner/123)
+     * Set FHIR User Context
+     */
+    async postAdminLaunchContextsByUserIdFhirUserByFhirUserIdRaw(requestParameters: PostAdminLaunchContextsByUserIdFhirUserByFhirUserIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminRolesByRoleName200Response>> {
+        if (requestParameters['userId'] == null) {
+            throw new runtime.RequiredError(
+                'userId',
+                'Required parameter "userId" was null or undefined when calling postAdminLaunchContextsByUserIdFhirUserByFhirUserId().'
+            );
+        }
+
+        if (requestParameters['fhirUserId'] == null) {
+            throw new runtime.RequiredError(
+                'fhirUserId',
+                'Required parameter "fhirUserId" was null or undefined when calling postAdminLaunchContextsByUserIdFhirUserByFhirUserId().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/admin/launch-contexts/{userId}/fhir-user/{fhirUserId}`;
+        urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));
+        urlPath = urlPath.replace(`{${"fhirUserId"}}`, encodeURIComponent(String(requestParameters['fhirUserId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Set the fhirUser context for a user (e.g., Practitioner/123)
+     * Set FHIR User Context
+     */
+    async postAdminLaunchContextsByUserIdFhirUserByFhirUserId(requestParameters: PostAdminLaunchContextsByUserIdFhirUserByFhirUserIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminRolesByRoleName200Response> {
+        const response = await this.postAdminLaunchContextsByUserIdFhirUserByFhirUserIdRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Set the patient context for a user
      * Set Patient Context
      */
@@ -251,6 +653,202 @@ export class LaunchContextsApi extends runtime.BaseAPI {
      */
     async postAdminLaunchContextsByUserIdPatientByPatientId(requestParameters: PostAdminLaunchContextsByUserIdPatientByPatientIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminRolesByRoleName200Response> {
         const response = await this.postAdminLaunchContextsByUserIdPatientByPatientIdRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Set the intent context for a user
+     * Set Intent Context
+     */
+    async putAdminLaunchContextsByUserIdIntentRaw(requestParameters: PutAdminLaunchContextsByUserIdIntentOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminRolesByRoleName200Response>> {
+        if (requestParameters['userId'] == null) {
+            throw new runtime.RequiredError(
+                'userId',
+                'Required parameter "userId" was null or undefined when calling putAdminLaunchContextsByUserIdIntent().'
+            );
+        }
+
+        if (requestParameters['putAdminLaunchContextsByUserIdIntentRequest'] == null) {
+            throw new runtime.RequiredError(
+                'putAdminLaunchContextsByUserIdIntentRequest',
+                'Required parameter "putAdminLaunchContextsByUserIdIntentRequest" was null or undefined when calling putAdminLaunchContextsByUserIdIntent().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/admin/launch-contexts/{userId}/intent`;
+        urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PutAdminLaunchContextsByUserIdIntentRequestToJSON(requestParameters['putAdminLaunchContextsByUserIdIntentRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Set the intent context for a user
+     * Set Intent Context
+     */
+    async putAdminLaunchContextsByUserIdIntent(requestParameters: PutAdminLaunchContextsByUserIdIntentOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminRolesByRoleName200Response> {
+        const response = await this.putAdminLaunchContextsByUserIdIntentRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Set whether patient banner is required for a user
+     * Set Need Patient Banner Context
+     */
+    async putAdminLaunchContextsByUserIdNeedPatientBannerRaw(requestParameters: PutAdminLaunchContextsByUserIdNeedPatientBannerOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminRolesByRoleName200Response>> {
+        if (requestParameters['userId'] == null) {
+            throw new runtime.RequiredError(
+                'userId',
+                'Required parameter "userId" was null or undefined when calling putAdminLaunchContextsByUserIdNeedPatientBanner().'
+            );
+        }
+
+        if (requestParameters['putAdminLaunchContextsByUserIdNeedPatientBannerRequest'] == null) {
+            throw new runtime.RequiredError(
+                'putAdminLaunchContextsByUserIdNeedPatientBannerRequest',
+                'Required parameter "putAdminLaunchContextsByUserIdNeedPatientBannerRequest" was null or undefined when calling putAdminLaunchContextsByUserIdNeedPatientBanner().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/admin/launch-contexts/{userId}/need-patient-banner`;
+        urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PutAdminLaunchContextsByUserIdNeedPatientBannerRequestToJSON(requestParameters['putAdminLaunchContextsByUserIdNeedPatientBannerRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Set whether patient banner is required for a user
+     * Set Need Patient Banner Context
+     */
+    async putAdminLaunchContextsByUserIdNeedPatientBanner(requestParameters: PutAdminLaunchContextsByUserIdNeedPatientBannerOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminRolesByRoleName200Response> {
+        const response = await this.putAdminLaunchContextsByUserIdNeedPatientBannerRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Set the smart-style-url context for a user
+     * Set Smart Style URL Context
+     */
+    async putAdminLaunchContextsByUserIdSmartStyleUrlRaw(requestParameters: PutAdminLaunchContextsByUserIdSmartStyleUrlOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminRolesByRoleName200Response>> {
+        if (requestParameters['userId'] == null) {
+            throw new runtime.RequiredError(
+                'userId',
+                'Required parameter "userId" was null or undefined when calling putAdminLaunchContextsByUserIdSmartStyleUrl().'
+            );
+        }
+
+        if (requestParameters['putAdminLaunchContextsByUserIdSmartStyleUrlRequest'] == null) {
+            throw new runtime.RequiredError(
+                'putAdminLaunchContextsByUserIdSmartStyleUrlRequest',
+                'Required parameter "putAdminLaunchContextsByUserIdSmartStyleUrlRequest" was null or undefined when calling putAdminLaunchContextsByUserIdSmartStyleUrl().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/admin/launch-contexts/{userId}/smart-style-url`;
+        urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PutAdminLaunchContextsByUserIdSmartStyleUrlRequestToJSON(requestParameters['putAdminLaunchContextsByUserIdSmartStyleUrlRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Set the smart-style-url context for a user
+     * Set Smart Style URL Context
+     */
+    async putAdminLaunchContextsByUserIdSmartStyleUrl(requestParameters: PutAdminLaunchContextsByUserIdSmartStyleUrlOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminRolesByRoleName200Response> {
+        const response = await this.putAdminLaunchContextsByUserIdSmartStyleUrlRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Set the tenant context for a user
+     * Set Tenant Context
+     */
+    async putAdminLaunchContextsByUserIdTenantRaw(requestParameters: PutAdminLaunchContextsByUserIdTenantOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminRolesByRoleName200Response>> {
+        if (requestParameters['userId'] == null) {
+            throw new runtime.RequiredError(
+                'userId',
+                'Required parameter "userId" was null or undefined when calling putAdminLaunchContextsByUserIdTenant().'
+            );
+        }
+
+        if (requestParameters['putAdminLaunchContextsByUserIdTenantRequest'] == null) {
+            throw new runtime.RequiredError(
+                'putAdminLaunchContextsByUserIdTenantRequest',
+                'Required parameter "putAdminLaunchContextsByUserIdTenantRequest" was null or undefined when calling putAdminLaunchContextsByUserIdTenant().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/admin/launch-contexts/{userId}/tenant`;
+        urlPath = urlPath.replace(`{${"userId"}}`, encodeURIComponent(String(requestParameters['userId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PutAdminLaunchContextsByUserIdTenantRequestToJSON(requestParameters['putAdminLaunchContextsByUserIdTenantRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Set the tenant context for a user
+     * Set Tenant Context
+     */
+    async putAdminLaunchContextsByUserIdTenant(requestParameters: PutAdminLaunchContextsByUserIdTenantOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminRolesByRoleName200Response> {
+        const response = await this.putAdminLaunchContextsByUserIdTenantRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

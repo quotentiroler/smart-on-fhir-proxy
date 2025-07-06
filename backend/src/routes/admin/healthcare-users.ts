@@ -13,20 +13,105 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
     try {
       // Extract user's token from Authorization header
       const token = extractBearerToken(headers)
+      console.log('Healthcare users request - token present:', !!token)
+      
       if (!token) {
+        console.log('No token found in request')
         set.status = 401
         return UNAUTHORIZED_RESPONSE
       }
 
+      console.log('Attempting to get admin client with token...')
       const admin = await getValidatedAdmin(getAdmin, token)
+      console.log('Admin client obtained successfully')
+      
+      console.log('Fetching users from Keycloak...')
       const allUsers = await admin.users.find({
         max: Number(query.limit) || 50,
         first: Number(query.offset) || 0
       })
       
-      // Filter for healthcare users (with specific roles or attributes)
-      return allUsers.map(mapUserProfile)
+      console.log(`Found ${allUsers.length} users`)
+      
+      // Fetch complete user details (including timestamps) for each user
+      const completeUsers = await Promise.all(
+        allUsers.map(async (user) => {
+          try {
+            // Get complete user details including timestamps
+            const completeUser = await admin.users.findOne({ id: user.id! })
+            console.log(`Complete user data for ${user.username}:`, {
+              id: completeUser?.id,
+              username: completeUser?.username,
+              createdTimestamp: completeUser?.createdTimestamp,
+              created: completeUser?.createdTimestamp ? new Date(completeUser.createdTimestamp).toISOString() : 'null/undefined'
+            })
+            return completeUser || user
+          } catch (error) {
+            console.log(`Failed to get complete details for user ${user.username}:`, error)
+            return user
+          }
+        })
+      )
+      
+      // Filter for healthcare users and map them with role information
+      const healthcareUsers = await Promise.all(completeUsers.map(async (user) => {
+        const profile = mapUserProfile(user)
+        
+        // Try to get user sessions for last login info
+        let lastLogin: number | null = null
+        try {
+          const sessions = await admin.users.listSessions({ id: user.id! })
+          if (sessions && sessions.length > 0) {
+            // Find the most recent session
+            const latestSession = sessions.reduce((latest, session) => 
+              (session.lastAccess || 0) > (latest.lastAccess || 0) ? session : latest
+            )
+            lastLogin = latestSession.lastAccess || null
+          }
+        } catch (sessionError) {
+          console.log(`Could not get sessions for user ${user.username}:`, sessionError)
+        }
+        
+        // Get user's realm roles and client roles
+        let realmRoles: string[] = []
+        const clientRoles: Record<string, string[]> = {}
+        try {
+          const userRoles = await admin.users.listRealmRoleMappings({ id: user.id! })
+          realmRoles = userRoles.map(role => role.name || '').filter(Boolean)
+          
+          // Get client role mappings for admin-ui client
+          try {
+            const clients = await admin.clients.find({ clientId: 'admin-ui' })
+            if (clients.length > 0) {
+              const clientId = clients[0].id!
+              const userClientRoles = await admin.users.listClientRoleMappings({ id: user.id!, clientUniqueId: clientId })
+              clientRoles['admin-ui'] = userClientRoles.map(role => role.name || '').filter(Boolean)
+            }
+          } catch (clientRoleError) {
+            console.log(`Could not get client roles for user ${user.username}:`, clientRoleError)
+          }
+        } catch (roleError) {
+          console.log(`Could not get roles for user ${user.username}:`, roleError)
+        }
+        
+        // Use custom attributes for additional info
+        const organization = user.attributes?.organization?.[0] || ''
+        const fhirUser = user.attributes?.fhirUser?.[0] || ''
+        
+        return {
+          ...profile,
+          realmRoles,
+          clientRoles,
+          organization,
+          fhirUser,
+          lastLogin: lastLogin
+        }
+      }))
+      
+      console.log(`Returning ${healthcareUsers.length} healthcare users`)
+      return healthcareUsers
     } catch (error) {
+      console.error('Error in healthcare users endpoint:', error)
       set.status = 500
       return { error: 'Failed to fetch healthcare users', details: error }
     }
@@ -68,9 +153,8 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
         lastName: body.lastName,
         enabled: true,
         attributes: {
-          role: [body.role || 'healthcare_user'],
-          department: body.department ? [body.department] : [],
-          npi: body.npi ? [body.npi] : []
+          organization: body.organization ? [body.organization] : [],
+          fhirUser: body.fhirUser ? [body.fhirUser] : []
         },
         credentials: body.password ? [{
           type: 'password',
@@ -81,6 +165,52 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
       
       const admin = await getValidatedAdmin(getAdmin, token)
       const result = await admin.users.create(userData)
+      
+      // Assign roles if specified
+      if (result.id && (body.realmRoles || body.clientRoles)) {
+        try {
+          // Assign realm roles
+          if (body.realmRoles && body.realmRoles.length > 0) {
+            const allRealmRoles = await admin.roles.find()
+            const rolesToAssign = allRealmRoles.filter(role => 
+              body.realmRoles!.includes(role.name || '')
+            ).map(role => ({ id: role.id!, name: role.name! }))
+            if (rolesToAssign.length > 0) {
+              await admin.users.addRealmRoleMappings({
+                id: result.id,
+                roles: rolesToAssign
+              })
+            }
+          }
+          
+          // Assign client roles
+          if (body.clientRoles) {
+            for (const [clientId, roleNames] of Object.entries(body.clientRoles)) {
+              try {
+                const clients = await admin.clients.find({ clientId })
+                if (clients.length > 0) {
+                  const client = clients[0]
+                  const clientRoles = await admin.clients.listRoles({ id: client.id! })
+                  const rolesToAssign = clientRoles.filter(role => 
+                    (roleNames as string[]).includes(role.name || '')
+                  ).map(role => ({ id: role.id!, name: role.name! }))
+                  if (rolesToAssign.length > 0) {
+                    await admin.users.addClientRoleMappings({
+                      id: result.id,
+                      clientUniqueId: client.id!,
+                      roles: rolesToAssign
+                    })
+                  }
+                }
+              } catch (clientError) {
+                console.log(`Could not assign client roles for ${clientId}:`, clientError)
+              }
+            }
+          }
+        } catch (roleError) {
+          console.log('Could not assign roles:', roleError)
+        }
+      }
       
       // Return the created user object (fetch by id)
       const created = result.id ? await admin.users.findOne({ id: result.id }) : undefined
@@ -95,11 +225,12 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
       email: t.String({ description: 'Email address', format: 'email' }),
       firstName: t.String({ description: 'First name' }),
       lastName: t.String({ description: 'Last name' }),
-      role: t.Optional(t.String({ description: 'Healthcare role' })),
-      department: t.Optional(t.String({ description: 'Department or unit' })),
-      npi: t.Optional(t.String({ description: 'National Provider Identifier' })),
+      organization: t.Optional(t.String({ description: 'Organization' })),
+      fhirUser: t.Optional(t.String({ description: 'FHIR User identifier' })),
       password: t.Optional(t.String({ description: 'Initial password' })),
-      temporaryPassword: t.Optional(t.Boolean({ description: 'Whether password is temporary' }))
+      temporaryPassword: t.Optional(t.Boolean({ description: 'Whether password is temporary' })),
+      realmRoles: t.Optional(t.Array(t.String({ description: 'Realm roles to assign' }))),
+      clientRoles: t.Optional(t.Record(t.String(), t.Array(t.String()), { description: 'Client roles to assign' }))
     }),
     response: {
       200: UserProfile,
@@ -184,14 +315,88 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
         email: body.email,
         enabled: body.enabled,
         attributes: {
-          role: body.role ? [body.role] : undefined,
-          department: body.department ? [body.department] : undefined,
-          npi: body.npi ? [body.npi] : undefined
+          organization: body.organization ? [body.organization] : undefined,
+          fhirUser: body.fhirUser ? [body.fhirUser] : undefined
         }
       }
       
       const admin = await getValidatedAdmin(getAdmin, token)
       await admin.users.update({ id: params.userId }, updateData)
+      
+      // Handle role updates if specified
+      if (body.realmRoles !== undefined || body.clientRoles !== undefined) {
+        try {
+          // Update realm roles
+          if (body.realmRoles !== undefined) {
+            // Remove all existing realm roles
+            const existingRoles = await admin.users.listRealmRoleMappings({ id: params.userId })
+            if (existingRoles.length > 0) {
+              await admin.users.delRealmRoleMappings({
+                id: params.userId,
+                roles: existingRoles.map(role => ({ id: role.id!, name: role.name! }))
+              })
+            }
+            
+            // Add new realm roles
+            if (body.realmRoles.length > 0) {
+              const allRealmRoles = await admin.roles.find()
+              const rolesToAssign = allRealmRoles.filter(role => 
+                body.realmRoles!.includes(role.name || '')
+              ).map(role => ({ id: role.id!, name: role.name! }))
+              if (rolesToAssign.length > 0) {
+                await admin.users.addRealmRoleMappings({
+                  id: params.userId,
+                  roles: rolesToAssign
+                })
+              }
+            }
+          }
+          
+          // Update client roles
+          if (body.clientRoles !== undefined) {
+            for (const [clientId, roleNames] of Object.entries(body.clientRoles)) {
+              try {
+                const clients = await admin.clients.find({ clientId })
+                if (clients.length > 0) {
+                  const client = clients[0]
+                  
+                  // Remove existing client roles
+                  const existingClientRoles = await admin.users.listClientRoleMappings({ 
+                    id: params.userId, 
+                    clientUniqueId: client.id! 
+                  })
+                  if (existingClientRoles.length > 0) {
+                    await admin.users.delClientRoleMappings({
+                      id: params.userId,
+                      clientUniqueId: client.id!,
+                      roles: existingClientRoles.map(role => ({ id: role.id!, name: role.name! }))
+                    })
+                  }
+                  
+                  // Add new client roles
+                  if ((roleNames as string[]).length > 0) {
+                    const clientRoles = await admin.clients.listRoles({ id: client.id! })
+                    const rolesToAssign = clientRoles.filter(role => 
+                      (roleNames as string[]).includes(role.name || '')
+                    ).map(role => ({ id: role.id!, name: role.name! }))
+                    if (rolesToAssign.length > 0) {
+                      await admin.users.addClientRoleMappings({
+                        id: params.userId,
+                        clientUniqueId: client.id!,
+                        roles: rolesToAssign
+                      })
+                    }
+                  }
+                }
+              } catch (clientError) {
+                console.log(`Could not update client roles for ${clientId}:`, clientError)
+              }
+            }
+          }
+        } catch (roleError) {
+          console.log('Could not update roles:', roleError)
+        }
+      }
       
       // Return the updated user object
       const updated = await admin.users.findOne({ id: params.userId })
@@ -213,9 +418,10 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
       lastName: t.Optional(t.String({ description: 'Last name' })),
       email: t.Optional(t.String({ description: 'Email address', format: 'email' })),
       enabled: t.Optional(t.Boolean({ description: 'Whether user is enabled' })),
-      role: t.Optional(t.String({ description: 'Healthcare role' })),
-      department: t.Optional(t.String({ description: 'Department or unit' })),
-      npi: t.Optional(t.String({ description: 'National Provider Identifier' }))
+      organization: t.Optional(t.String({ description: 'Organization' })),
+      fhirUser: t.Optional(t.String({ description: 'FHIR User identifier' })),
+      realmRoles: t.Optional(t.Array(t.String({ description: 'Realm roles to assign' }))),
+      clientRoles: t.Optional(t.Record(t.String(), t.Array(t.String()), { description: 'Client roles to assign' }))
     }),
     response: {
       200: UserProfile,

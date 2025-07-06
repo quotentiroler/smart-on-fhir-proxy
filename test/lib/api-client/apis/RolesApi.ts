@@ -18,6 +18,7 @@ import type {
   DeleteAdminRolesByRoleName200Response,
   GetAdminRoles200ResponseInner,
   PostAdminRolesRequest,
+  PostShutdown500Response,
   PutAdminRolesByRoleName200Response,
   PutAdminRolesByRoleNameRequest,
 } from '../models/index';
@@ -28,6 +29,8 @@ import {
     GetAdminRoles200ResponseInnerToJSON,
     PostAdminRolesRequestFromJSON,
     PostAdminRolesRequestToJSON,
+    PostShutdown500ResponseFromJSON,
+    PostShutdown500ResponseToJSON,
     PutAdminRolesByRoleName200ResponseFromJSON,
     PutAdminRolesByRoleName200ResponseToJSON,
     PutAdminRolesByRoleNameRequestFromJSON,
@@ -96,8 +99,8 @@ export class RolesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get all healthcare-specific roles
-     * List Healthcare Roles
+     * Get all roles
+     * List All Roles
      */
     async getAdminRolesRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GetAdminRoles200ResponseInner>>> {
         const queryParameters: any = {};
@@ -118,8 +121,8 @@ export class RolesApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get all healthcare-specific roles
-     * List Healthcare Roles
+     * Get all roles
+     * List All Roles
      */
     async getAdminRoles(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GetAdminRoles200ResponseInner>> {
         const response = await this.getAdminRolesRaw(initOverrides);

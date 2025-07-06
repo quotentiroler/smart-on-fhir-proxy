@@ -1,9 +1,22 @@
+import { readFileSync } from 'fs'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+// Get package.json path and read it
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const packageJsonPath = join(__dirname, '..', 'package.json')
+const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
+
 /**
  * Application configuration from environment variables
  */
 export const config = {
   baseUrl: process.env.BASE_URL!,
   port: process.env.PORT || 8445,
+  
+  // Application name from package.json
+  appName: packageJson.name,
   
   keycloak: {
     baseUrl: process.env.KEYCLOAK_BASE_URL!,
@@ -12,7 +25,10 @@ export const config = {
     // We use the user's token directly
     clientId: process.env.KEYCLOAK_CLIENT_ID!,
     clientSecret: process.env.KEYCLOAK_CLIENT_SECRET!,
-    jwksUri: process.env.KEYCLOAK_JWKS_URI!,
+    // Dynamically construct JWKS URI from base URL and realm
+    get jwksUri() {
+      return `${this.baseUrl}/realms/${this.realm}/protocol/openid-connect/certs`
+    },
   },
   
   fhir: {

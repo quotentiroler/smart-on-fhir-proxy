@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { GetStatus200ResponseFhirServersInner } from './GetStatus200ResponseFhirServersInner';
+import {
+    GetStatus200ResponseFhirServersInnerFromJSON,
+    GetStatus200ResponseFhirServersInnerFromJSONTyped,
+    GetStatus200ResponseFhirServersInnerToJSON,
+    GetStatus200ResponseFhirServersInnerToJSONTyped,
+} from './GetStatus200ResponseFhirServersInner';
+
 /**
  * 
  * @export
@@ -20,35 +28,29 @@ import { mapValues } from '../runtime';
  */
 export interface GetStatus200ResponseFhir {
     /**
-     * FHIR server status
+     * Overall FHIR servers status
      * @type {string}
      * @memberof GetStatus200ResponseFhir
      */
     status: string;
     /**
-     * Whether FHIR server is accessible
-     * @type {boolean}
+     * Total number of configured FHIR servers
+     * @type {number}
      * @memberof GetStatus200ResponseFhir
      */
-    accessible: boolean;
+    totalServers: number;
     /**
-     * FHIR server version
-     * @type {string}
+     * Number of healthy FHIR servers
+     * @type {number}
      * @memberof GetStatus200ResponseFhir
      */
-    version: string;
+    healthyServers: number;
     /**
-     * FHIR server software name
-     * @type {string}
+     * 
+     * @type {Array<GetStatus200ResponseFhirServersInner>}
      * @memberof GetStatus200ResponseFhir
      */
-    serverName?: string;
-    /**
-     * FHIR server software version
-     * @type {string}
-     * @memberof GetStatus200ResponseFhir
-     */
-    serverVersion?: string;
+    servers: Array<GetStatus200ResponseFhirServersInner>;
 }
 
 /**
@@ -56,8 +58,9 @@ export interface GetStatus200ResponseFhir {
  */
 export function instanceOfGetStatus200ResponseFhir(value: object): value is GetStatus200ResponseFhir {
     if (!('status' in value) || value['status'] === undefined) return false;
-    if (!('accessible' in value) || value['accessible'] === undefined) return false;
-    if (!('version' in value) || value['version'] === undefined) return false;
+    if (!('totalServers' in value) || value['totalServers'] === undefined) return false;
+    if (!('healthyServers' in value) || value['healthyServers'] === undefined) return false;
+    if (!('servers' in value) || value['servers'] === undefined) return false;
     return true;
 }
 
@@ -72,10 +75,9 @@ export function GetStatus200ResponseFhirFromJSONTyped(json: any, ignoreDiscrimin
     return {
         
         'status': json['status'],
-        'accessible': json['accessible'],
-        'version': json['version'],
-        'serverName': json['serverName'] == null ? undefined : json['serverName'],
-        'serverVersion': json['serverVersion'] == null ? undefined : json['serverVersion'],
+        'totalServers': json['totalServers'],
+        'healthyServers': json['healthyServers'],
+        'servers': ((json['servers'] as Array<any>).map(GetStatus200ResponseFhirServersInnerFromJSON)),
     };
 }
 
@@ -91,10 +93,9 @@ export function GetStatus200ResponseFhirToJSONTyped(value?: GetStatus200Response
     return {
         
         'status': value['status'],
-        'accessible': value['accessible'],
-        'version': value['version'],
-        'serverName': value['serverName'],
-        'serverVersion': value['serverVersion'],
+        'totalServers': value['totalServers'],
+        'healthyServers': value['healthyServers'],
+        'servers': ((value['servers'] as Array<any>).map(GetStatus200ResponseFhirServersInnerToJSON)),
     };
 }
 

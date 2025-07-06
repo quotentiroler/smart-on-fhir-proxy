@@ -24,9 +24,9 @@ export const serverDiscoveryRoutes = new Elysia({ prefix: '/fhir-servers', tags:
         serverName: serverInfo.metadata.serverName,
         supported: serverInfo.metadata.supported,
         endpoints: {
-          base: `${config.baseUrl}/smart-proxy/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}`,
-          smartConfig: `${config.baseUrl}/smart-proxy/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}/.well-known/smart-configuration`,
-          metadata: `${config.baseUrl}/smart-proxy/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}/metadata`
+          base: `${config.baseUrl}/${config.appName}/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}`,
+          smartConfig: `${config.baseUrl}/${config.appName}/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}/.well-known/smart-configuration`,
+          metadata: `${config.baseUrl}/${config.appName}/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}/metadata`
         }
       }))
       
@@ -98,9 +98,9 @@ export const serverDiscoveryRoutes = new Elysia({ prefix: '/fhir-servers', tags:
         serverName: serverInfo.metadata.serverName,
         supported: serverInfo.metadata.supported,
         endpoints: {
-          base: `${config.baseUrl}/smart-proxy/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}/fhir`,
-          smartConfig: `${config.baseUrl}/smart-proxy/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}/.well-known/smart-configuration`,
-          metadata: `${config.baseUrl}/smart-proxy/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}/fhir/metadata`
+          base: `${config.baseUrl}/${config.appName}/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}`,
+          smartConfig: `${config.baseUrl}/${config.appName}/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}/.well-known/smart-configuration`,
+          metadata: `${config.baseUrl}/${config.appName}/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}/metadata`
         }
       }
     } catch (error) {

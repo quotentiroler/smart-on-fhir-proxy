@@ -20,19 +20,19 @@ import { mapValues } from '../runtime';
  */
 export interface PostAuthTokenRequest {
     /**
-     * OAuth grant type (authorization_code, password, refresh_token, etc.)
+     * OAuth grant type (e.g., authorization_code, client_credentials)
      * @type {string}
      * @memberof PostAuthTokenRequest
      */
     grantType: string;
     /**
-     * Authorization code (for authorization_code grant)
+     * Authorization code for exchange
      * @type {string}
      * @memberof PostAuthTokenRequest
      */
     code?: string;
     /**
-     * Redirect URI (for authorization_code grant)
+     * Redirect URI for authorization code flow
      * @type {string}
      * @memberof PostAuthTokenRequest
      */
@@ -50,19 +50,13 @@ export interface PostAuthTokenRequest {
      */
     clientSecret?: string;
     /**
-     * Username (for password grant)
+     * PKCE code verifier for security
      * @type {string}
      * @memberof PostAuthTokenRequest
      */
-    username?: string;
+    codeVerifier?: string;
     /**
-     * Password (for password grant)
-     * @type {string}
-     * @memberof PostAuthTokenRequest
-     */
-    password?: string;
-    /**
-     * Refresh token (for refresh_token grant)
+     * Refresh token for refresh_token grant
      * @type {string}
      * @memberof PostAuthTokenRequest
      */
@@ -74,11 +68,11 @@ export interface PostAuthTokenRequest {
      */
     scope?: string;
     /**
-     * PKCE code verifier
+     * Audience for the token request
      * @type {string}
      * @memberof PostAuthTokenRequest
      */
-    codeVerifier?: string;
+    audience?: string;
 }
 
 /**
@@ -104,11 +98,10 @@ export function PostAuthTokenRequestFromJSONTyped(json: any, ignoreDiscriminator
         'redirectUri': json['redirect_uri'] == null ? undefined : json['redirect_uri'],
         'clientId': json['client_id'] == null ? undefined : json['client_id'],
         'clientSecret': json['client_secret'] == null ? undefined : json['client_secret'],
-        'username': json['username'] == null ? undefined : json['username'],
-        'password': json['password'] == null ? undefined : json['password'],
+        'codeVerifier': json['code_verifier'] == null ? undefined : json['code_verifier'],
         'refreshToken': json['refresh_token'] == null ? undefined : json['refresh_token'],
         'scope': json['scope'] == null ? undefined : json['scope'],
-        'codeVerifier': json['code_verifier'] == null ? undefined : json['code_verifier'],
+        'audience': json['audience'] == null ? undefined : json['audience'],
     };
 }
 
@@ -128,11 +121,10 @@ export function PostAuthTokenRequestToJSONTyped(value?: PostAuthTokenRequest | n
         'redirect_uri': value['redirectUri'],
         'client_id': value['clientId'],
         'client_secret': value['clientSecret'],
-        'username': value['username'],
-        'password': value['password'],
+        'code_verifier': value['codeVerifier'],
         'refresh_token': value['refreshToken'],
         'scope': value['scope'],
-        'code_verifier': value['codeVerifier'],
+        'audience': value['audience'],
     };
 }
 
