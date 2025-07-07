@@ -13,6 +13,21 @@
  */
 
 import { mapValues } from '../runtime';
+import type { GetAdminSmartApps200ResponseInnerAppType } from './GetAdminSmartApps200ResponseInnerAppType';
+import {
+    GetAdminSmartApps200ResponseInnerAppTypeFromJSON,
+    GetAdminSmartApps200ResponseInnerAppTypeFromJSONTyped,
+    GetAdminSmartApps200ResponseInnerAppTypeToJSON,
+    GetAdminSmartApps200ResponseInnerAppTypeToJSONTyped,
+} from './GetAdminSmartApps200ResponseInnerAppType';
+import type { GetAdminSmartApps200ResponseInnerAuthenticationType } from './GetAdminSmartApps200ResponseInnerAuthenticationType';
+import {
+    GetAdminSmartApps200ResponseInnerAuthenticationTypeFromJSON,
+    GetAdminSmartApps200ResponseInnerAuthenticationTypeFromJSONTyped,
+    GetAdminSmartApps200ResponseInnerAuthenticationTypeToJSON,
+    GetAdminSmartApps200ResponseInnerAuthenticationTypeToJSONTyped,
+} from './GetAdminSmartApps200ResponseInnerAuthenticationType';
+
 /**
  * 
  * @export
@@ -79,6 +94,42 @@ export interface GetAdminSmartApps200ResponseInner {
      * @memberof GetAdminSmartApps200ResponseInner
      */
     attributes?: object;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof GetAdminSmartApps200ResponseInner
+     */
+    defaultClientScopes?: Array<string>;
+    /**
+     * 
+     * @type {GetAdminSmartApps200ResponseInnerAppType}
+     * @memberof GetAdminSmartApps200ResponseInner
+     */
+    appType?: GetAdminSmartApps200ResponseInnerAppType;
+    /**
+     * 
+     * @type {GetAdminSmartApps200ResponseInnerAuthenticationType}
+     * @memberof GetAdminSmartApps200ResponseInner
+     */
+    authenticationType?: GetAdminSmartApps200ResponseInnerAuthenticationType;
+    /**
+     * Last used date
+     * @type {string}
+     * @memberof GetAdminSmartApps200ResponseInner
+     */
+    lastUsed?: string;
+    /**
+     * Associated scope set ID
+     * @type {string}
+     * @memberof GetAdminSmartApps200ResponseInner
+     */
+    scopeSetId?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof GetAdminSmartApps200ResponseInner
+     */
+    customScopes?: Array<string>;
 }
 
 /**
@@ -108,6 +159,12 @@ export function GetAdminSmartApps200ResponseInnerFromJSONTyped(json: any, ignore
         'redirectUris': json['redirectUris'] == null ? undefined : json['redirectUris'],
         'webOrigins': json['webOrigins'] == null ? undefined : json['webOrigins'],
         'attributes': json['attributes'] == null ? undefined : json['attributes'],
+        'defaultClientScopes': json['defaultClientScopes'] == null ? undefined : json['defaultClientScopes'],
+        'appType': json['appType'] == null ? undefined : GetAdminSmartApps200ResponseInnerAppTypeFromJSON(json['appType']),
+        'authenticationType': json['authenticationType'] == null ? undefined : GetAdminSmartApps200ResponseInnerAuthenticationTypeFromJSON(json['authenticationType']),
+        'lastUsed': json['lastUsed'] == null ? undefined : json['lastUsed'],
+        'scopeSetId': json['scopeSetId'] == null ? undefined : json['scopeSetId'],
+        'customScopes': json['customScopes'] == null ? undefined : json['customScopes'],
     };
 }
 
@@ -132,6 +189,12 @@ export function GetAdminSmartApps200ResponseInnerToJSONTyped(value?: GetAdminSma
         'redirectUris': value['redirectUris'],
         'webOrigins': value['webOrigins'],
         'attributes': value['attributes'],
+        'defaultClientScopes': value['defaultClientScopes'],
+        'appType': GetAdminSmartApps200ResponseInnerAppTypeToJSON(value['appType']),
+        'authenticationType': GetAdminSmartApps200ResponseInnerAuthenticationTypeToJSON(value['authenticationType']),
+        'lastUsed': value['lastUsed'],
+        'scopeSetId': value['scopeSetId'],
+        'customScopes': value['customScopes'],
     };
 }
 

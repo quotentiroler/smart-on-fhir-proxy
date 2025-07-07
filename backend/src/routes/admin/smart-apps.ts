@@ -23,9 +23,89 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
 
       const admin = await getAdmin(token)
       let clients = await admin.clients.find()
-      //Filter out admin-ui
-      clients = clients.filter(client => client.clientId !== 'admin-ui')
-      return clients;
+      
+      // Filter out system/internal Keycloak clients - only show actual SMART on FHIR applications
+      const systemClients = [
+        'admin-ui',
+        'account',
+        'account-console', 
+        'admin-cli',
+        'broker',
+        'realm-management',
+        'security-admin-console',
+        'master-realm',
+        'admin-cli'
+      ]
+      
+      clients = clients.filter(client => {
+        // Filter out system clients
+        if (systemClients.includes(client.clientId || '')) {
+          return false
+        }
+        
+        // Filter out clients with placeholder/template names
+        if (client.name && client.name.includes('${client_')) {
+          return false
+        }
+        
+        // Filter out clients with clientId starting with system prefixes
+        if (client.clientId && (
+          client.clientId.startsWith('admin-') ||
+          client.clientId.startsWith('security-') ||
+          client.clientId.startsWith('account-') ||
+          client.clientId.startsWith('broker-') ||
+          client.clientId.startsWith('realm-')
+        )) {
+          return false
+        }
+        
+        return true
+      })
+      
+      // Enhance client data with UI-specific fields
+      const enhancedClients = clients.map(client => {
+        // Determine app type from attributes or client configuration
+        const hasRedirectUris = client.redirectUris && client.redirectUris.length > 0
+        const isBackendService = !hasRedirectUris && !client.publicClient
+        
+        let appType: 'backend-service' | 'standalone-app' | 'ehr-launch-app' | 'agent' = 'standalone-app'
+        if (isBackendService) {
+          appType = 'backend-service'
+        } else if (client.attributes?.launch_context) {
+          appType = 'ehr-launch-app'
+        } else if (client.attributes?.app_type?.[0] === 'agent') {
+          appType = 'agent'
+        }
+
+        // Determine authentication type
+        let authenticationType: 'asymmetric' | 'symmetric' | 'none' = 'asymmetric'
+        if (client.publicClient) {
+          authenticationType = 'none'
+        } else if (client.attributes?.token_endpoint_auth_method?.[0] === 'client_secret_basic') {
+          authenticationType = 'symmetric'
+        }
+
+        return {
+          id: client.id,
+          clientId: client.clientId,
+          name: client.name || client.clientId || 'Unnamed Application',
+          description: client.description || `SMART on FHIR application: ${client.clientId}`,
+          enabled: client.enabled,
+          protocol: client.protocol,
+          publicClient: client.publicClient,
+          redirectUris: client.redirectUris,
+          webOrigins: client.webOrigins,
+          attributes: client.attributes,
+          defaultClientScopes: client.defaultClientScopes,
+          appType,
+          authenticationType,
+          lastUsed: client.attributes?.last_used?.[0] || new Date().toISOString().split('T')[0],
+          scopeSetId: client.attributes?.scope_set_id?.[0] || '',
+          customScopes: client.attributes?.custom_scopes || []
+        }
+      })
+      
+      return enhancedClients;
     } catch (error) {
       set.status = 500
       return { error: 'Failed to fetch SMART applications', details: error }
@@ -72,14 +152,47 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
         webOrigins: body.webOrigins || [],
         attributes: {
           'smart_version': [body.smartVersion || '2.0.0'],
-          'fhir_version': [body.fhirVersion || config.fhir.supportedVersions[0]]
+          'fhir_version': [body.fhirVersion || config.fhir.supportedVersions[0]],
+          'app_type': body.appType ? [body.appType] : ['standalone-app'],
+          'token_endpoint_auth_method': body.authenticationType === 'symmetric' ? ['client_secret_basic'] : ['private_key_jwt'],
+          'scope_set_id': body.scopeSetId ? [body.scopeSetId] : [],
+          'custom_scopes': body.customScopes || [],
+          'last_used': [new Date().toISOString().split('T')[0]]
         },
         defaultClientScopes: [
           'openid', 'profile', 'launch', 'launch/patient', 'offline_access',
           ...(body.scopes || [])
         ]
       }
-      return admin.clients.create(smartAppConfig)
+      
+      const createdClient = await admin.clients.create(smartAppConfig)
+      
+      // Get the full client data after creation
+      const fullClient = await admin.clients.findOne({ id: createdClient.id })
+      
+      if (!fullClient) {
+        throw new Error('Failed to retrieve created client')
+      }
+      
+      // Return enhanced client data
+      return {
+        id: fullClient.id,
+        clientId: fullClient.clientId,
+        name: fullClient.name,
+        description: fullClient.description,
+        enabled: fullClient.enabled,
+        protocol: fullClient.protocol,
+        publicClient: fullClient.publicClient,
+        redirectUris: fullClient.redirectUris,
+        webOrigins: fullClient.webOrigins,
+        attributes: fullClient.attributes,
+        defaultClientScopes: fullClient.defaultClientScopes,
+        appType: body.appType || 'standalone-app',
+        authenticationType: body.authenticationType || (body.publicClient ? 'none' : 'asymmetric'),
+        lastUsed: new Date().toISOString().split('T')[0],
+        scopeSetId: body.scopeSetId || '',
+        customScopes: body.customScopes || []
+      }
     } catch (error) {
       set.status = 400
       return { error: 'Failed to create SMART application', details: error }
@@ -94,7 +207,21 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
       webOrigins: t.Optional(t.Array(t.String({ description: 'Valid web origins' }))),
       scopes: t.Optional(t.Array(t.String({ description: 'Additional OAuth scopes' }))),
       smartVersion: t.Optional(t.String({ description: 'SMART version (default: 2.0.0)' })),
-      fhirVersion: t.Optional(t.String({ description: `FHIR version (default: ${config.fhir.supportedVersions[0]})` }))
+      fhirVersion: t.Optional(t.String({ description: `FHIR version (default: ${config.fhir.supportedVersions[0]})` })),
+      // Enhanced UI fields
+      appType: t.Optional(t.Union([
+        t.Literal('backend-service'),
+        t.Literal('standalone-app'),
+        t.Literal('ehr-launch-app'),
+        t.Literal('agent')
+      ], { description: 'SMART app type' })),
+      authenticationType: t.Optional(t.Union([
+        t.Literal('asymmetric'),
+        t.Literal('symmetric'),
+        t.Literal('none')
+      ], { description: 'Authentication type' })),
+      scopeSetId: t.Optional(t.String({ description: 'Associated scope set ID' })),
+      customScopes: t.Optional(t.Array(t.String({ description: 'Custom scopes' })))
     }),
     response: {
       200: SmartAppClient,

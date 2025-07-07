@@ -60,7 +60,23 @@ export const SmartAppClient = t.Object({
   publicClient: t.Optional(t.Boolean({ description: 'Whether app is public client' })),
   redirectUris: t.Optional(t.Array(t.String({ description: 'Redirect URIs' }))),
   webOrigins: t.Optional(t.Array(t.String({ description: 'Web origins' }))),
-  attributes: t.Optional(t.Record(t.String(), t.Union([t.String(), t.Array(t.String())])))
+  attributes: t.Optional(t.Record(t.String(), t.Union([t.String(), t.Array(t.String())]))),
+  defaultClientScopes: t.Optional(t.Array(t.String({ description: 'Default client scopes' }))),
+  // Enhanced UI fields
+  appType: t.Optional(t.Union([
+    t.Literal('backend-service'),
+    t.Literal('standalone-app'),
+    t.Literal('ehr-launch-app'),
+    t.Literal('agent')
+  ], { description: 'SMART app type' })),
+  authenticationType: t.Optional(t.Union([
+    t.Literal('asymmetric'),
+    t.Literal('symmetric'),
+    t.Literal('none')
+  ], { description: 'Authentication type' })),
+  lastUsed: t.Optional(t.String({ description: 'Last used date' })),
+  scopeSetId: t.Optional(t.String({ description: 'Associated scope set ID' })),
+  customScopes: t.Optional(t.Array(t.String({ description: 'Custom scopes' })))
 })
 
 // Role schema (reusable)

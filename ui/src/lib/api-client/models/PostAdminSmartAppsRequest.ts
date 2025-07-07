@@ -13,6 +13,21 @@
  */
 
 import { mapValues } from '../runtime';
+import type { GetAdminSmartApps200ResponseInnerAppType } from './GetAdminSmartApps200ResponseInnerAppType';
+import {
+    GetAdminSmartApps200ResponseInnerAppTypeFromJSON,
+    GetAdminSmartApps200ResponseInnerAppTypeFromJSONTyped,
+    GetAdminSmartApps200ResponseInnerAppTypeToJSON,
+    GetAdminSmartApps200ResponseInnerAppTypeToJSONTyped,
+} from './GetAdminSmartApps200ResponseInnerAppType';
+import type { GetAdminSmartApps200ResponseInnerAuthenticationType } from './GetAdminSmartApps200ResponseInnerAuthenticationType';
+import {
+    GetAdminSmartApps200ResponseInnerAuthenticationTypeFromJSON,
+    GetAdminSmartApps200ResponseInnerAuthenticationTypeFromJSONTyped,
+    GetAdminSmartApps200ResponseInnerAuthenticationTypeToJSON,
+    GetAdminSmartApps200ResponseInnerAuthenticationTypeToJSONTyped,
+} from './GetAdminSmartApps200ResponseInnerAuthenticationType';
+
 /**
  * 
  * @export
@@ -73,6 +88,30 @@ export interface PostAdminSmartAppsRequest {
      * @memberof PostAdminSmartAppsRequest
      */
     fhirVersion?: string;
+    /**
+     * 
+     * @type {GetAdminSmartApps200ResponseInnerAppType}
+     * @memberof PostAdminSmartAppsRequest
+     */
+    appType?: GetAdminSmartApps200ResponseInnerAppType;
+    /**
+     * 
+     * @type {GetAdminSmartApps200ResponseInnerAuthenticationType}
+     * @memberof PostAdminSmartAppsRequest
+     */
+    authenticationType?: GetAdminSmartApps200ResponseInnerAuthenticationType;
+    /**
+     * Associated scope set ID
+     * @type {string}
+     * @memberof PostAdminSmartAppsRequest
+     */
+    scopeSetId?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof PostAdminSmartAppsRequest
+     */
+    customScopes?: Array<string>;
 }
 
 /**
@@ -103,6 +142,10 @@ export function PostAdminSmartAppsRequestFromJSONTyped(json: any, ignoreDiscrimi
         'scopes': json['scopes'] == null ? undefined : json['scopes'],
         'smartVersion': json['smartVersion'] == null ? undefined : json['smartVersion'],
         'fhirVersion': json['fhirVersion'] == null ? undefined : json['fhirVersion'],
+        'appType': json['appType'] == null ? undefined : GetAdminSmartApps200ResponseInnerAppTypeFromJSON(json['appType']),
+        'authenticationType': json['authenticationType'] == null ? undefined : GetAdminSmartApps200ResponseInnerAuthenticationTypeFromJSON(json['authenticationType']),
+        'scopeSetId': json['scopeSetId'] == null ? undefined : json['scopeSetId'],
+        'customScopes': json['customScopes'] == null ? undefined : json['customScopes'],
     };
 }
 
@@ -126,6 +169,10 @@ export function PostAdminSmartAppsRequestToJSONTyped(value?: PostAdminSmartAppsR
         'scopes': value['scopes'],
         'smartVersion': value['smartVersion'],
         'fhirVersion': value['fhirVersion'],
+        'appType': GetAdminSmartApps200ResponseInnerAppTypeToJSON(value['appType']),
+        'authenticationType': GetAdminSmartApps200ResponseInnerAuthenticationTypeToJSON(value['authenticationType']),
+        'scopeSetId': value['scopeSetId'],
+        'customScopes': value['customScopes'],
     };
 }
 
