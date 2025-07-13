@@ -36,9 +36,10 @@ interface NavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
   profile: GetAuthUserinfo200Response;
+  onChatToggle: () => void;
 }
 
-export function Navigation({ activeTab, onTabChange, profile }: NavigationProps) {
+export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: NavigationProps) {
   const logout = useAuthStore((state) => state.logout);
   const { language: currentLanguage, setLanguage } = useAppStore();
   const { t } = useTranslation();
@@ -298,13 +299,31 @@ export function Navigation({ activeTab, onTabChange, profile }: NavigationProps)
 
           {/* User Profile - Compact */}
           <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+            {/* AI Assistant - Desktop */}
             <div className="hidden xl:flex items-center">
-              <Badge 
-                variant="secondary" 
-                className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 px-2 py-1 rounded-full border border-green-200/60 flex items-center space-x-1 shadow-sm hover:shadow-md transition-all duration-300"
+              <Button
+                variant="ghost"
+                onClick={onChatToggle}
+                className="p-0 h-auto hover:bg-transparent"
               >
-                <Sparkles className="w-3 h-3 animate-pulse" />
-              </Badge>
+                <Badge 
+                  variant="secondary" 
+                  className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 px-2 py-1 rounded-full border border-green-200/60 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer hover:scale-105"
+                >
+                  <Sparkles className="w-3 h-3 animate-pulse" />
+                </Badge>
+              </Button>
+            </div>
+            
+            {/* AI Assistant - Mobile */}
+            <div className="xl:hidden flex items-center">
+              <Button
+                variant="ghost"
+                onClick={onChatToggle}
+                className="h-9 w-9 sm:h-10 sm:w-10 rounded-full p-0 hover:bg-green-50 transition-all duration-300 hover:shadow-md flex-shrink-0"
+              >
+                <Sparkles className="w-4 h-4 text-green-600 animate-pulse" />
+              </Button>
             </div>
             
             <DropdownMenu>
