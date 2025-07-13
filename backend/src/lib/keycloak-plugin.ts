@@ -1,6 +1,7 @@
 import { Elysia } from 'elysia'
 import KcAdminClient from '@keycloak/keycloak-admin-client'
 import { validateToken } from './auth'
+import { logger } from './logger'
 
 /**
  * Plugin that adds Keycloak admin client decorator
@@ -10,15 +11,15 @@ import { validateToken } from './auth'
 export const keycloakPlugin = new Elysia()
   .decorate('getAdmin', async (userToken: string) => {
     try {
-      console.log('Keycloak plugin - validating token...')
+      logger.auth.debug('Validating user token for admin operations')
       // Validate the user's token and get payload
       const tokenPayload = await validateToken(userToken)
-      console.log('Token validated successfully, payload:', {
+      logger.auth.debug('Token validated successfully', {
         sub: tokenPayload.sub,
         preferred_username: tokenPayload.preferred_username,
         email: tokenPayload.email,
-        realm_access: tokenPayload.realm_access,
-        resource_access: tokenPayload.resource_access
+        hasRealmAccess: !!tokenPayload.realm_access,
+        hasResourceAccess: !!tokenPayload.resource_access
       })
       
       // Optional: Check if user has admin-related roles
@@ -43,17 +44,24 @@ export const keycloakPlugin = new Elysia()
       const isDevelopment = process.env.NODE_ENV !== 'production'
       
       if (!hasAdminRole) {
-        console.log('User does not have admin permissions')
+        logger.auth.warn('User does not have admin permissions', { 
+          username: tokenPayload.preferred_username,
+          realmRoles: realmRoles.slice(0, 5), // Log first 5 roles only
+          isDevelopment 
+        })
         if (!isDevelopment) {
           throw new Error('User does not have admin permissions')
         }
-        console.log('DEVELOPMENT: Proceeding despite missing admin role')
+        logger.auth.warn('DEVELOPMENT: Proceeding despite missing admin role')
       }
       
       // Check for realm-management roles (needed for admin API)
       const hasRealmManagementRole = realmManagementRoles.length > 0
       if (!hasRealmManagementRole) {
-        console.log('User lacks realm-management roles, but proceeding in development')
+        logger.auth.warn('User lacks realm-management roles, but proceeding in development', {
+          username: tokenPayload.preferred_username,
+          isDevelopment
+        })
         if (!isDevelopment) {
           throw new Error('User does not have realm management permissions')
         }
@@ -68,10 +76,12 @@ export const keycloakPlugin = new Elysia()
       // Use the user's token for admin operations
       kcAdminClient.setAccessToken(userToken)
       
-      console.log('Keycloak admin client created successfully')
+      logger.auth.debug('Keycloak admin client created successfully', {
+        username: tokenPayload.preferred_username
+      })
       return kcAdminClient
     } catch (error) {
-      console.error('Error in keycloak plugin:', error)
+      logger.auth.error('Error in keycloak plugin', { error })
       throw error
     }
   })

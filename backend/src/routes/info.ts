@@ -3,6 +3,7 @@ import staticPlugin from '@elysiajs/static'
 import { getFHIRServerInfo, getServerIdentifier } from '../lib/fhir-utils'
 import { ErrorResponse } from '../schemas/common'
 import { config } from '../config'
+import { logger } from '../lib/logger'
 
 /**
  * Get health status for all configured FHIR servers
@@ -54,11 +55,11 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
   // Shutdown endpoint - gracefully shutdown the server
   .post('/shutdown', async ({ set }) => {
     try {
-      console.log('🛑 Shutdown requested via API')
+      logger.server.info('🛑 Shutdown requested via API')
 
       // Give the response time to be sent before shutting down
       setTimeout(() => {
-        console.log('🛑 Shutting down server...')
+        logger.server.info('🛑 Shutting down server...')
         process.exit(0)
       }, 100)
 
@@ -94,11 +95,11 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
   // Restart endpoint - restart the server process
   .post('/restart', async ({ set }) => {
     try {
-      console.log('🔄 Restart requested via API')
+      logger.server.info('🔄 Restart requested via API')
 
       // Give the response time to be sent before restarting
       setTimeout(() => {
-        console.log('🔄 Restarting server...')
+        logger.server.info('🔄 Restarting server...')
         // Use exit code 1 to indicate restart needed (requires process manager like PM2 or Docker restart policy)
         process.exit(1)
       }, 100)

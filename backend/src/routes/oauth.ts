@@ -3,6 +3,7 @@ import fetch from 'cross-fetch'
 import { config } from '../config'
 import { validateToken } from '../lib/auth'
 import { getAllServers, ensureServersInitialized } from '../lib/fhir-server-store'
+import { logger } from '../lib/logger'
 
 interface TokenPayload {
   sub?: string
@@ -74,7 +75,7 @@ async function generateAuthorizationDetailsFromToken(
 
     return authDetails.length > 0 ? authDetails : undefined
   } catch (error) {
-    console.warn('Failed to generate authorization details from token:', error)
+    logger.auth.warn('Failed to generate authorization details from token', { error })
     return undefined
   }
 }
@@ -154,7 +155,7 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
 
   // Logout endpoint - proxy to Keycloak logout
   .get('/logout', ({ query, redirect }) => {
-    console.log('Logout endpoint called with query:', query);
+    logger.auth.debug('Logout endpoint called', { query })
     
     const postLogoutRedirectUri = query.post_logout_redirect_uri || `${config.baseUrl}/`
     
@@ -173,7 +174,7 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
       }
     })
     
-    console.log('Redirecting to Keycloak logout URL:', url.href);
+    logger.auth.debug('Redirecting to Keycloak logout URL', { url: url.href })
     return redirect(url.href)
   }, {
     query: t.Object({
@@ -192,9 +193,10 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
   // proxy token request
   .post('/token', async ({ body }) => {
     const kcUrl = `${config.keycloak.baseUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/token`
-    console.log('Token endpoint request received')
-    console.log('Request body:', body)
-    console.log('Proxying to:', kcUrl)
+    logger.auth.debug('Token endpoint request received', { 
+      keycloakUrl: kcUrl,
+      bodyKeys: Object.keys(body as Record<string, unknown>)
+    })
     
     try {
       // Convert the parsed body back to form data with proper OAuth2 field names
@@ -213,7 +215,9 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
       if (bodyObj.audience) formData.append('audience', bodyObj.audience)
       
       const rawBody = formData.toString()
-      console.log('Form data:', rawBody)
+      logger.auth.debug('Sending form data to Keycloak', { 
+        formFields: Array.from(formData.keys())
+      })
       
       const resp = await fetch(kcUrl, {
         method: 'POST',
@@ -221,9 +225,11 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
         body: rawBody
       })
       
-      console.log('Keycloak response status:', resp.status)
       const data = await resp.json()
-      console.log('Keycloak response data:', data)
+      logger.auth.debug('Keycloak response received', { 
+        status: resp.status,
+        hasAccessToken: !!data.access_token
+      })
       
       // If token request was successful, add SMART launch context from token claims
       if (data.access_token && resp.status === 200) {
@@ -277,14 +283,14 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
             data.authorization_details = generatedDetails
           }
         } catch (contextError) {
-          console.warn('Failed to add launch context to token response:', contextError)
+          logger.auth.warn('Failed to add launch context to token response', { contextError })
           // Continue without launch context rather than failing the entire request
         }
       }
       
       return data
     } catch (error) {
-      console.error('Token endpoint error:', error)
+      logger.auth.error('Token endpoint error', { error })
       return { error: 'internal_server_error', error_description: 'Failed to process token request' }
     }
   },

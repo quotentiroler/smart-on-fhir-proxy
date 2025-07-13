@@ -8,6 +8,7 @@
  * - Integrates with Keycloak for OAuth2/OIDC authorization
  */
 
+import { logger } from './logger'
 import { config } from '../config'
 import type { SmartConfiguration } from '../types'
 
@@ -81,7 +82,7 @@ class SmartConfigService {
             return this.buildSmartConfigFromOpenID(openidConfig)
 
         } catch (error) {
-            console.error('Failed to fetch Keycloak OpenID configuration:', error)
+            logger.keycloak.error('Failed to fetch Keycloak OpenID configuration', { error })
             throw new Error(`SMART configuration unavailable: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
     }

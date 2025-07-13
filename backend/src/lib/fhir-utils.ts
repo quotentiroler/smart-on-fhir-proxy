@@ -1,5 +1,6 @@
 import fetch from 'cross-fetch'
 import { config } from '../config'
+import { logger } from './logger'
 
 /**
  * FHIR server utilities for dynamic version detection and metadata
@@ -122,7 +123,10 @@ export async function getFHIRServerInfo(baseUrl?: string): Promise<FHIRVersionIn
 
     return versionInfo
   } catch (error) {
-    console.warn('Failed to fetch FHIR server metadata:', error)
+    logger.fhir.warn('Failed to fetch FHIR server metadata', { 
+      serverUrl, 
+      error: error instanceof Error ? error.message : String(error) 
+    })
 
     // Return default/fallback version info
     const fallback: FHIRVersionInfo = {

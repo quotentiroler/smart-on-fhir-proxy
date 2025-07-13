@@ -26,12 +26,12 @@ import {
 } from 'lucide-react';
 
 // FHIR Resource Types that can be linked to Person
-type LinkedResourceType = 'Patient' | 'Practitioner' | 'RelatedPerson';
+export type LinkedResourceType = 'Patient' | 'Practitioner' | 'RelatedPerson';
 
 // Identity Assurance Levels as per FHIR spec
-type AssuranceLevel = 'level1' | 'level2' | 'level3' | 'level4';
+export type AssuranceLevel = 'level1' | 'level2' | 'level3' | 'level4';
 
-interface PersonLink {
+export interface PersonLink {
   id: string;
   target: {
     resourceType: LinkedResourceType;
@@ -43,7 +43,7 @@ interface PersonLink {
   notes?: string;
 }
 
-interface PersonResource {
+export interface PersonResource {
   id: string;
   serverName: string;
   serverUrl: string;

@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { config } from '../config'
 import { getAllServers, getServerInfoByName, ensureServersInitialized } from '../lib/fhir-server-store'
+import { logger } from '../lib/logger'
 
 /**
  * Server discovery routes
@@ -35,7 +36,7 @@ export const serverDiscoveryRoutes = new Elysia({ prefix: '/fhir-servers', tags:
         servers
       }
     } catch (error) {
-      console.error('Failed to list FHIR servers:', error)
+      logger.fhir.error('Failed to list FHIR servers', { error })
       set.status = 500
       return { error: 'Failed to list FHIR servers', details: error }
     }
@@ -104,7 +105,7 @@ export const serverDiscoveryRoutes = new Elysia({ prefix: '/fhir-servers', tags:
         }
       }
     } catch (error) {
-      console.error('Failed to get server information:', error)
+      logger.fhir.error('Failed to get server information', { serverName: params.server_name, error })
       set.status = 500
       return { error: 'Failed to get server information', details: error }
     }

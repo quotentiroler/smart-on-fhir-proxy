@@ -6,6 +6,7 @@ import { validateFHIRVersion } from '../lib/fhir-utils'
 import { useFHIRServerStore, getServerByName } from '../lib/fhir-server-store'
 import { ErrorResponse } from '../schemas/common'
 import { smartConfigService } from '../lib/smart-config'
+import { logger } from '../lib/logger'
 import type { SmartConfiguration } from '../types'
 
 /**
@@ -181,7 +182,11 @@ export const fhirRoutes = new Elysia({ prefix: `/${config.appName}/:server_name/
 
       // Warn if client requested different version than server supports (but only once per version)
       if (params.fhir_version !== actualFhirVersion) {
-        console.warn(`Client requested FHIR ${params.fhir_version} but server supports ${actualFhirVersion}. Using server version.`)
+        logger.fhir.warn(`Client requested FHIR ${params.fhir_version} but server supports ${actualFhirVersion}. Using server version.`, {
+          serverName: params.server_name,
+          requestedVersion: params.fhir_version,
+          actualVersion: actualFhirVersion
+        })
       }
 
       // Authentication check (skip for metadata endpoint)
@@ -229,7 +234,13 @@ export const fhirRoutes = new Elysia({ prefix: `/${config.appName}/:server_name/
       )
       return body
     } catch (error) {
-      console.error('FHIR proxy error:', error)
+      logger.fhir.error('FHIR proxy error', {
+        serverName: params.server_name,
+        fhirVersion: params.fhir_version,
+        method: request.method,
+        url: request.url,
+        error
+      })
       set.status = 500
       return { error: 'Failed to proxy FHIR request', details: error }
     }

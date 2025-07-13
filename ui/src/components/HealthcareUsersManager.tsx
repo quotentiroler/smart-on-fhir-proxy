@@ -28,7 +28,7 @@ import { useState, useEffect } from 'react';
 import { MoreHorizontal, Plus, Users, UserCheck, Shield, GraduationCap, Loader2, Server, Database, Trash2 } from 'lucide-react';
 import { createAuthenticatedApiClients } from '@/lib/apiClient';
 import { useAuth } from '@/stores/authStore';
-import { PersonResourceLinkerTrigger } from './PersonResourceLinker';
+import { PersonResourceLinkerTrigger, type PersonResource, type PersonLink } from './PersonResourceLinker';
 import { AddFhirPersonModal } from './AddFhirPersonModal';
 import type { GetAdminHealthcareUsers200ResponseInner } from '@/lib/api-client';
 
@@ -39,16 +39,6 @@ interface FhirPersonAssociation {
   created?: string;
 }
 
-interface PersonLinkData {
-  links: Array<{
-    target: {
-      serverName: string;
-      reference: string;
-      display?: string;
-    };
-    created: string;
-  }>;
-}
 
 interface HealthcareUser {
   id: string;
@@ -573,78 +563,33 @@ export function HealthcareUsersManager() {
     setSelectedUserForPerson(null);
   };
 
-  // Convert healthcare user to Person resource data for the linker
-  const convertToPersonResourceData = (user: HealthcareUser) => {
-    // Check if user has actual Person resources (not just associations)
-    const hasActualPersonResource = user.fhirPersons.some(assoc => assoc.personId.startsWith('Person/'));
-    
-    return {
-      id: hasActualPersonResource ? user.fhirPersons.find(assoc => assoc.personId.startsWith('Person/'))?.personId || `Person/${user.id}` : `Person/${user.id}`,
-      identifier: [
-        {
-          system: 'http://hospital.smartplatforms.org',
-          value: user.username,
-          use: 'usual'
-        }
-      ],
-      name: [
-        {
-          family: user.lastName,
-          given: [user.firstName],
-          use: 'official'
-        }
-      ],
-      telecom: [
-        {
-          system: 'email',
-          value: user.email,
-          use: 'work'
-        }
-      ],
-      gender: undefined,
-      birthDate: undefined,
-      address: [],
-      active: user.enabled,
-      managingOrganization: user.organization ? {
-        reference: `Organization/${user.organization}`,
-        display: user.organization
-      } : undefined,
-      // Mark as actual Person resource only if user has Person resources
-      isActualPersonResource: hasActualPersonResource,
-      // Include original healthcare user data for reference
-      healthcareUserData: {
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        organization: user.organization
-      },
-      // Available Person resources for selection
-      availablePersons: user.fhirPersons.filter(assoc => assoc.personId.startsWith('Person/')).map(assoc => ({
+  // Convert healthcare user to Person resources for the linker
+  const convertToPersonResourceData = (user: HealthcareUser): PersonResource[] => {
+    // Only return Person resources that exist
+    return user.fhirPersons
+      .filter(assoc => assoc.personId.startsWith('Person/'))
+      .map(assoc => ({
         id: assoc.personId,
         serverName: assoc.serverName,
+        serverUrl: sampleFhirServers.find(s => s.name === assoc.serverName)?.baseUrl || '',
         display: assoc.display || `${user.firstName} ${user.lastName} (${assoc.personId})`,
-        serverUrl: sampleFhirServers.find(s => s.name === assoc.serverName)?.baseUrl || ''
-      })),
-      // Links will be empty initially - they should be loaded separately for each Person
-      links: []
-    };
+        name: {
+          family: user.lastName,
+          given: [user.firstName]
+        },
+        links: [] // Links will be loaded separately when needed
+      }));
   };
 
-  // Update healthcare user from Person resource data
-  const updateFromPersonResourceData = (user: HealthcareUser, personData: PersonLinkData) => {
-    const updatedUser = {
-      ...user,
-      fhirPersons: personData.links.map((link) => ({
-        serverName: link.target.serverName,
-        personId: link.target.reference,
-        display: link.target.display || link.target.reference,
-        created: link.created
-      }))
-    };
+  // Update healthcare user when Person resource links are updated
+  const updateFromPersonResourceData = (user: HealthcareUser, personId: string, updatedLinks: PersonLink[]) => {
+    // For now, just log the update since we don't have a backend API to persist Person links
+    console.log(`Updated links for Person ${personId} (user: ${user.username}):`, updatedLinks);
     
-    // Update the user in the local state
-    setUsers(users.map(u => u.id === user.id ? updatedUser : u));
+    // In a real implementation, you would:
+    // 1. Call a backend API to update the Person resource links
+    // 2. Update the local state if needed
+    // 3. Show success/error messages
   };
 
   return (
@@ -1486,8 +1431,8 @@ export function HealthcareUsersManager() {
                         {/* Only show PersonResourceLinker if user has actual Person resources */}
                         {user.fhirPersons.length > 0 && user.fhirPersons.some(assoc => assoc.personId.startsWith('Person/')) ? (
                           <PersonResourceLinkerTrigger
-                            personData={convertToPersonResourceData(user)}
-                            onPersonUpdate={(personData) => updateFromPersonResourceData(user, personData)}
+                            availablePersons={convertToPersonResourceData(user)}
+                            onPersonUpdate={(personId, updatedLinks) => updateFromPersonResourceData(user, personId, updatedLinks)}
                           >
                             <Button
                               variant="outline"

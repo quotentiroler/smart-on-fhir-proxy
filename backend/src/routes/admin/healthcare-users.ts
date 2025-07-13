@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia'
 import { keycloakPlugin } from '../../lib/keycloak-plugin'
 import { UserProfile, ErrorResponse, SuccessResponse, PaginationQuery } from '../../schemas/common'
 import { extractBearerToken, UNAUTHORIZED_RESPONSE, getValidatedAdmin, mapUserProfile } from '../../lib/admin-utils'
+import { logger } from '../../lib/logger'
 
 /**
  * Healthcare User Management - specialized for healthcare professionals
@@ -13,25 +14,25 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
     try {
       // Extract user's token from Authorization header
       const token = extractBearerToken(headers)
-      console.log('Healthcare users request - token present:', !!token)
+      logger.admin.debug('Healthcare users request - token present', { tokenPresent: !!token })
       
       if (!token) {
-        console.log('No token found in request')
+        logger.admin.warn('No token found in healthcare users request')
         set.status = 401
         return UNAUTHORIZED_RESPONSE
       }
 
-      console.log('Attempting to get admin client with token...')
+      logger.admin.debug('Attempting to get admin client with token...')
       const admin = await getValidatedAdmin(getAdmin, token)
-      console.log('Admin client obtained successfully')
+      logger.admin.debug('Admin client obtained successfully')
       
-      console.log('Fetching users from Keycloak...')
+      logger.admin.debug('Fetching users from Keycloak...')
       const allUsers = await admin.users.find({
         max: Number(query.limit) || 50,
         first: Number(query.offset) || 0
       })
       
-      console.log(`Found ${allUsers.length} users`)
+      logger.admin.info(`Found ${allUsers.length} users`)
       
       // Fetch complete user details (including timestamps) for each user
       const completeUsers = await Promise.all(
@@ -39,7 +40,7 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
           try {
             // Get complete user details including timestamps
             const completeUser = await admin.users.findOne({ id: user.id! })
-            console.log(`Complete user data for ${user.username}:`, {
+            logger.admin.debug(`Complete user data for ${user.username}`, {
               id: completeUser?.id,
               username: completeUser?.username,
               createdTimestamp: completeUser?.createdTimestamp,
@@ -47,7 +48,7 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
             })
             return completeUser || user
           } catch (error) {
-            console.log(`Failed to get complete details for user ${user.username}:`, error)
+            logger.admin.warn(`Failed to get complete details for user ${user.username}`, { error })
             return user
           }
         })
@@ -69,7 +70,7 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
             lastLogin = latestSession.lastAccess || null
           }
         } catch (sessionError) {
-          console.log(`Could not get sessions for user ${user.username}:`, sessionError)
+          logger.admin.warn(`Could not get sessions for user ${user.username}`, { error: sessionError })
         }
         
         // Get user's realm roles and client roles
@@ -88,10 +89,10 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
               clientRoles['admin-ui'] = userClientRoles.map(role => role.name || '').filter(Boolean)
             }
           } catch (clientRoleError) {
-            console.log(`Could not get client roles for user ${user.username}:`, clientRoleError)
+            logger.admin.warn(`Could not get client roles for user ${user.username}`, { error: clientRoleError })
           }
         } catch (roleError) {
-          console.log(`Could not get roles for user ${user.username}:`, roleError)
+          logger.admin.warn(`Could not get roles for user ${user.username}`, { error: roleError })
         }
         
         // Use custom attributes for additional info
@@ -108,10 +109,10 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
         }
       }))
       
-      console.log(`Returning ${healthcareUsers.length} healthcare users`)
+      logger.admin.info(`Returning ${healthcareUsers.length} healthcare users`)
       return healthcareUsers
     } catch (error) {
-      console.error('Error in healthcare users endpoint:', error)
+      logger.admin.error('Error in healthcare users endpoint', { error })
       set.status = 500
       return { error: 'Failed to fetch healthcare users', details: error }
     }
@@ -203,12 +204,12 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
                   }
                 }
               } catch (clientError) {
-                console.log(`Could not assign client roles for ${clientId}:`, clientError)
+                logger.admin.warn(`Could not assign client roles for ${clientId}`, { clientId, error: clientError })
               }
             }
           }
         } catch (roleError) {
-          console.log('Could not assign roles:', roleError)
+          logger.admin.warn('Could not assign roles', { error: roleError })
         }
       }
       
@@ -389,12 +390,12 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
                   }
                 }
               } catch (clientError) {
-                console.log(`Could not update client roles for ${clientId}:`, clientError)
+                logger.admin.warn(`Could not update client roles for ${clientId}`, { clientId, userId: params.userId, error: clientError })
               }
             }
           }
         } catch (roleError) {
-          console.log('Could not update roles:', roleError)
+          logger.admin.warn('Could not update roles', { userId: params.userId, error: roleError })
         }
       }
       
