@@ -26,15 +26,110 @@ import {
     CheckCircle,
     AlertCircle,
     Clock,
-    BarChart3
+    BarChart3,
+    Bot,
+    Minimize2,
+    X,
+    Send,
+    Mic,
+    MicOff
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { OAuthMonitoringDashboard } from './OAuthMonitoringDashboard';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from './ui/card';
 
 export function AdminApp() {
     const [activeTab, setActiveTab] = useState('dashboard');
     const { profile, loading, error } = useAuth();
     const { t } = useTranslation();
+    
+    // AI Chat Overlay State
+    const [isChatOpen, setIsChatOpen] = useState(false);
+    const [isMinimized, setIsMinimized] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const [chatMessages, setChatMessages] = useState<Array<{
+        id: number;
+        type: 'agent' | 'user';
+        content: string;
+        timestamp: Date;
+    }>>([
+        {
+            id: 1,
+            type: 'agent',
+            content: t('Hello! I\'m your SMART on FHIR assistant. I can help you manage applications, users, servers, and configurations. What would you like to do today?'),
+            timestamp: new Date()
+        }
+    ]);
+    const [currentMessage, setCurrentMessage] = useState('');
+
+    const handleChatToggle = () => {
+        setIsChatOpen(!isChatOpen);
+        setIsMinimized(false);
+    };
+
+    const handleMicToggle = () => {
+        setIsListening(!isListening);
+        // TODO: Implement actual voice recognition here
+        // For now, we'll just toggle the visual state
+        if (!isListening) {
+            // Start listening
+            console.log('Starting voice input...');
+        } else {
+            // Stop listening
+            console.log('Stopping voice input...');
+        }
+    };
+
+    const handleSendMessage = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!currentMessage.trim()) return;
+
+        const userMessage = {
+            id: Date.now(),
+            type: 'user' as const,
+            content: currentMessage,
+            timestamp: new Date()
+        };
+
+        setChatMessages(prev => [...prev, userMessage]);
+        setCurrentMessage('');
+
+        // Simulate agent response
+        setTimeout(() => {
+            const agentResponse = {
+                id: Date.now() + 1,
+                type: 'agent' as const,
+                content: getAgentResponse(currentMessage),
+                timestamp: new Date()
+            };
+            setChatMessages(prev => [...prev, agentResponse]);
+        }, 1000);
+    };
+
+    const getAgentResponse = (userMessage: string): string => {
+        const message = userMessage.toLowerCase();
+        
+        if (message.includes('user') || message.includes('healthcare')) {
+            return t('I can help you manage healthcare users. You can view all users, add new ones, edit existing profiles, or manage their FHIR associations. Would you like me to navigate you to the Users section?');
+        } else if (message.includes('app') || message.includes('smart')) {
+            return t('I can assist with SMART applications management. You can register new apps, configure scopes, manage authentication settings, or view application analytics. Shall I take you to the SMART Apps section?');
+        } else if (message.includes('server') || message.includes('fhir')) {
+            return t('I can help with FHIR server management. You can add new servers, configure endpoints, test connections, or manage launch contexts. Would you like to go to the FHIR Servers section?');
+        } else if (message.includes('scope') || message.includes('permission')) {
+            return t('I can help you manage SMART scopes and permissions. You can create scope sets, define custom scopes, or configure application permissions. Should I navigate to Scope Management?');
+        } else if (message.includes('help') || message.includes('what can you do')) {
+            return t('I can help you with: 📱 SMART Apps, 👥 Healthcare Users, 🏥 FHIR Servers, 🔐 Identity Providers, 🎯 Scope Management, 🚀 Launch Contexts, and 📊 OAuth Monitoring. Just tell me what you\'d like to work on!');
+        } else {
+            return t('I\'m here to help you manage your SMART on FHIR platform. You can ask me about users, applications, servers, scopes, or any administrative tasks. What would you like to do?');
+        }
+    };
     // Show loading state while fetching profile
     if (loading) {
         return (
@@ -102,7 +197,7 @@ export function AdminApp() {
                     </div>
                 }
             >
-                <Navigation activeTab={activeTab} onTabChange={setActiveTab} profile={profile} />
+                <Navigation activeTab={activeTab} onTabChange={setActiveTab} profile={profile} onChatToggle={handleChatToggle} />
                 <div className="flex-1 px-4 sm:px-6 lg:px-8 py-8">
                     <div className="w-full lg:w-[90%] max-w-none mx-auto">
                         <Panel className={cn("min-h-[600px] shadow-2xl border-0 bg-white/80 backdrop-blur-sm rounded-3xl overflow-hidden border border-white/20 animate-fade-in w-full max-w-none", "max-w-none w-full")}>
@@ -118,6 +213,95 @@ export function AdminApp() {
                     </div>
                 </div>
             </AppShell>
+
+            {/* AI Chat Overlay */}
+            {isChatOpen && (
+                <div className="fixed bottom-4 right-4 z-[60] w-96 max-w-[calc(100vw-2rem)]">
+                    <Card className="bg-white/95 backdrop-blur-xl border border-gray-200/60 shadow-2xl rounded-2xl overflow-hidden">
+                        <CardHeader className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 border-b border-gray-200/50">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center shadow-sm">
+                                        <Bot className="w-4 h-4 text-white" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-sm font-semibold text-gray-900">{t('SMART Assistant')}</CardTitle>
+                                        <p className="text-xs text-gray-600">{t('Your FHIR platform helper')}</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setIsMinimized(!isMinimized)}
+                                        className="h-6 w-6 p-0 hover:bg-gray-100 rounded-md"
+                                    >
+                                        <Minimize2 className="w-3 h-3 text-gray-600" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => setIsChatOpen(false)}
+                                        className="h-6 w-6 p-0 hover:bg-gray-100 rounded-md"
+                                    >
+                                        <X className="w-3 h-3 text-gray-600" />
+                                    </Button>
+                                </div>
+                            </div>
+                        </CardHeader>
+                        
+                        {!isMinimized && (
+                            <CardContent className="p-0">
+                                {/* Chat Messages */}
+                                <div className="h-64 overflow-y-auto p-4 space-y-3">
+                                    {chatMessages.map((message) => (
+                                        <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                            <div className={`max-w-[80%] p-3 rounded-lg text-sm ${
+                                                message.type === 'user'
+                                                    ? 'bg-blue-600 text-white rounded-br-sm'
+                                                    : 'bg-gray-100 text-gray-900 rounded-bl-sm'
+                                            }`}>
+                                                {message.content}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                                
+                                {/* Chat Input */}
+                                <div className="border-t border-gray-200/50 p-4">
+                                    <form onSubmit={handleSendMessage} className="flex space-x-2">
+                                        <Input
+                                            value={currentMessage}
+                                            onChange={(e) => setCurrentMessage(e.target.value)}
+                                            placeholder={t('Ask me about SMART on FHIR...')}
+                                            className="flex-1 text-sm rounded-lg border-gray-300 focus:border-green-500 focus:ring-green-500"
+                                        />
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            onClick={handleMicToggle}
+                                            className={`rounded-lg px-3 transition-all duration-300 ${
+                                                isListening 
+                                                    ? 'bg-red-600 hover:bg-red-700 text-white animate-pulse' 
+                                                    : 'bg-gray-100 hover:bg-gray-200 text-gray-600'
+                                            }`}
+                                        >
+                                            {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                                        </Button>
+                                        <Button
+                                            type="submit"
+                                            size="sm"
+                                            className="bg-green-600 hover:bg-green-700 text-white rounded-lg px-3"
+                                        >
+                                            <Send className="w-4 h-4" />
+                                        </Button>
+                                    </form>
+                                </div>
+                            </CardContent>
+                        )}
+                    </Card>
+                </div>
+            )}
         </div>
     );
 }
