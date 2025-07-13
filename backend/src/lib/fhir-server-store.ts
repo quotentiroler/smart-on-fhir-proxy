@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { config } from '../config'
 import { getFHIRServerInfo, getServerIdentifier, type FHIRVersionInfo } from './fhir-utils'
+import { logger } from './logger'
 
 export interface FHIRServerInfo {
   name: string
@@ -62,7 +63,7 @@ export const useFHIRServerStore = create<FHIRServerStore>((set, get) => ({
           
           serverInfos.set(identifier, serverInfo)
         } catch (error) {
-          console.warn(`Failed to initialize server ${serverUrl}:`, error)
+          logger.fhir.warn(`Failed to initialize server ${serverUrl}`, { error })
           
           // Add fallback server info
           const fallbackIdentifier = `server-${i}`
@@ -89,7 +90,7 @@ export const useFHIRServerStore = create<FHIRServerStore>((set, get) => ({
         error: null 
       })
     } catch (error) {
-      console.error('Failed to initialize FHIR servers:', error)
+      logger.fhir.error('Failed to initialize FHIR servers', { error })
       set({ 
         isLoading: false, 
         error: error instanceof Error ? error.message : 'Unknown error' 
@@ -113,7 +114,7 @@ export const useFHIRServerStore = create<FHIRServerStore>((set, get) => ({
     const server = servers.get(serverName)
     
     if (!server) {
-      console.warn(`Server ${serverName} not found`)
+      logger.fhir.warn(`Server ${serverName} not found`)
       return
     }
 
@@ -130,7 +131,7 @@ export const useFHIRServerStore = create<FHIRServerStore>((set, get) => ({
       
       set({ servers: updatedServers })
     } catch (error) {
-      console.error(`Failed to refresh server ${serverName}:`, error)
+      logger.fhir.error(`Failed to refresh server ${serverName}`, { error })
     }
   },
 

@@ -124,7 +124,7 @@ export function LoginForm() {
           <div className="px-8 py-8">
             <div className="text-center mb-8">
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Welcome Back</h3>
-              <p className="text-gray-600">Sign in to access the admin dashboard</p>
+              <p className="text-gray-600">Sign in to access the SMART on FHIR dashboard</p>
             </div>
             
             <div className="space-y-6">
