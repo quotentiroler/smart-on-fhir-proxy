@@ -1,4 +1,3 @@
-import { create } from 'zustand'
 import { config } from '../config'
 import { getFHIRServerInfo, getServerIdentifier, type FHIRVersionInfo } from './fhir-utils'
 import { logger } from './logger'
@@ -11,36 +10,19 @@ export interface FHIRServerInfo {
   lastUpdated: number
 }
 
-interface FHIRServerStore {
-  servers: Map<string, FHIRServerInfo>
-  isInitialized: boolean
-  isLoading: boolean
-  error: string | null
-  
-  // Actions
-  initializeServers: () => Promise<void>
-  getServerByName: (serverName: string) => FHIRServerInfo | null
-  getServerUrlByName: (serverName: string) => string | null
-  refreshServer: (serverName: string) => Promise<void>
-  refreshAllServers: () => Promise<void>
-  clearError: () => void
-}
+class FHIRServerStore {
+  private servers = new Map<string, FHIRServerInfo>()
+  private isInitialized = false
+  private isLoading = false
+  private error: string | null = null
+  private readonly CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
-const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
-
-export const useFHIRServerStore = create<FHIRServerStore>((set, get) => ({
-  servers: new Map(),
-  isInitialized: false,
-  isLoading: false,
-  error: null,
-
-  initializeServers: async () => {
-    const { isInitialized, isLoading } = get()
-    
+  async initializeServers(): Promise<void> {
     // Don't initialize if already initialized or currently loading
-    if (isInitialized || isLoading) return
+    if (this.isInitialized || this.isLoading) return
 
-    set({ isLoading: true, error: null })
+    this.isLoading = true
+    this.error = null
 
     try {
       const serverInfos = new Map<string, FHIRServerInfo>()
@@ -61,9 +43,12 @@ export const useFHIRServerStore = create<FHIRServerStore>((set, get) => ({
             lastUpdated: Date.now()
           }
           
-          serverInfos.set(identifier, serverInfo)
+          logger.fhir.info(`Initialized FHIR server: ${serverInfo.name}`, { 
+            url: serverUrl, 
+            fhirVersion: metadata.fhirVersion 
+          })
         } catch (error) {
-          logger.fhir.warn(`Failed to initialize server ${serverUrl}`, { error })
+          logger.fhir.warn(`Failed to fetch metadata for ${serverUrl}`, { error })
           
           // Add fallback server info
           const fallbackIdentifier = `server-${i}`
@@ -83,35 +68,28 @@ export const useFHIRServerStore = create<FHIRServerStore>((set, get) => ({
         }
       }
 
-      set({ 
-        servers: serverInfos, 
-        isInitialized: true, 
-        isLoading: false, 
-        error: null 
-      })
+      this.servers = serverInfos
+      this.isInitialized = true
+      this.isLoading = false
+      this.error = null
     } catch (error) {
       logger.fhir.error('Failed to initialize FHIR servers', { error })
-      set({ 
-        isLoading: false, 
-        error: error instanceof Error ? error.message : 'Unknown error' 
-      })
+      this.isLoading = false
+      this.error = error instanceof Error ? error.message : 'Unknown error'
     }
-  },
+  }
 
-  getServerByName: (serverName: string) => {
-    const { servers } = get()
-    return servers.get(serverName) || null
-  },
+  getServerByName(serverName: string): FHIRServerInfo | null {
+    return this.servers.get(serverName) || null
+  }
 
-  getServerUrlByName: (serverName: string) => {
-    const { servers } = get()
-    const server = servers.get(serverName)
+  getServerUrlByName(serverName: string): string | null {
+    const server = this.servers.get(serverName)
     return server ? server.url : null
-  },
+  }
 
-  refreshServer: async (serverName: string) => {
-    const { servers } = get()
-    const server = servers.get(serverName)
+  async refreshServer(serverName: string): Promise<void> {
+    const server = this.servers.get(serverName)
     
     if (!server) {
       logger.fhir.warn(`Server ${serverName} not found`)
@@ -126,72 +104,81 @@ export const useFHIRServerStore = create<FHIRServerStore>((set, get) => ({
         lastUpdated: Date.now()
       }
       
-      const updatedServers = new Map(servers)
-      updatedServers.set(serverName, updatedServer)
-      
-      set({ servers: updatedServers })
+      this.servers.set(serverName, updatedServer)
     } catch (error) {
       logger.fhir.error(`Failed to refresh server ${serverName}`, { error })
     }
-  },
+  }
 
-  refreshAllServers: async () => {
-    const { servers } = get()
-    
-    for (const [serverName, server] of servers) {
+  async refreshAllServers(): Promise<void> {
+    for (const [serverName, server] of this.servers) {
       // Check if server needs refresh (older than cache TTL)
-      if (Date.now() - server.lastUpdated > CACHE_TTL) {
-        await get().refreshServer(serverName)
+      if (Date.now() - server.lastUpdated > this.CACHE_TTL) {
+        await this.refreshServer(serverName)
       }
     }
-  },
-
-  clearError: () => {
-    set({ error: null })
   }
-}))
+
+  getAllServers(): FHIRServerInfo[] {
+    return Array.from(this.servers.values())
+  }
+
+  clearError(): void {
+    this.error = null
+  }
+
+  getError(): string | null {
+    return this.error
+  }
+
+  getIsInitialized(): boolean {
+    return this.isInitialized
+  }
+
+  getIsLoading(): boolean {
+    return this.isLoading
+  }
+}
+
+// Create a singleton instance
+const fhirServerStore = new FHIRServerStore()
 
 // Helper function to get server URL by name (for backward compatibility)
 export async function getServerByName(serverName: string): Promise<string | null> {
-  const store = useFHIRServerStore.getState()
-  
   // Initialize servers if not done yet
-  if (!store.isInitialized) {
-    await store.initializeServers()
+  if (!fhirServerStore.getIsInitialized()) {
+    await fhirServerStore.initializeServers()
   }
   
-  return store.getServerUrlByName(serverName)
+  return fhirServerStore.getServerUrlByName(serverName)
 }
 
 // Helper function to get server info by name
 export async function getServerInfoByName(serverName: string): Promise<FHIRServerInfo | null> {
-  const store = useFHIRServerStore.getState()
-  
   // Initialize servers if not done yet
-  if (!store.isInitialized) {
-    await store.initializeServers()
+  if (!fhirServerStore.getIsInitialized()) {
+    await fhirServerStore.initializeServers()
   }
   
-  return store.getServerByName(serverName)
+  return fhirServerStore.getServerByName(serverName)
 }
 
 // Helper function to get all servers
 export async function getAllServers(): Promise<FHIRServerInfo[]> {
-  const store = useFHIRServerStore.getState()
-  
   // Initialize servers if not done yet
-  if (!store.isInitialized) {
-    await store.initializeServers()
+  if (!fhirServerStore.getIsInitialized()) {
+    await fhirServerStore.initializeServers()
   }
   
-  return Array.from(store.servers.values())
+  return fhirServerStore.getAllServers()
 }
 
 // Helper function to ensure servers are initialized
 export async function ensureServersInitialized(): Promise<void> {
-  const store = useFHIRServerStore.getState()
-  
-  if (!store.isInitialized) {
-    await store.initializeServers()
+  if (!fhirServerStore.getIsInitialized()) {
+    await fhirServerStore.initializeServers()
   }
 }
+
+// Export the store instance for direct access if needed
+export { fhirServerStore }
