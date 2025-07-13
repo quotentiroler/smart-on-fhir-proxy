@@ -3,7 +3,7 @@ import fetch, { Headers } from 'cross-fetch'
 import { validateToken } from '../lib/auth'
 import { config } from '../config'
 import { validateFHIRVersion } from '../lib/fhir-utils'
-import { useFHIRServerStore, getServerByName } from '../lib/fhir-server-store'
+import { fhirServerStore, getServerByName, getServerInfoByName } from '../lib/fhir-server-store'
 import { ErrorResponse } from '../schemas/common'
 import { smartConfigService } from '../lib/smart-config'
 import { logger } from '../lib/logger'
@@ -153,15 +153,8 @@ export const fhirRoutes = new Elysia({ prefix: `/${config.appName}/:server_name/
     set: { status: number, headers: Record<string, string> } 
   }) => {
     try {
-      // Use the store directly to get server info and metadata
-      const store = useFHIRServerStore.getState()
-      
-      // Initialize servers if not done yet
-      if (!store.isInitialized) {
-        await store.initializeServers()
-      }
-      
-      const serverInfo = store.getServerByName(params.server_name)
+      // Get server info by name (automatically initializes if needed)
+      const serverInfo = await getServerInfoByName(params.server_name)
       if (!serverInfo) {
         set.status = 404
         return { error: `FHIR server '${params.server_name}' not found` }
@@ -271,25 +264,18 @@ export const fhirRoutes = new Elysia({ prefix: `/${config.appName}/:server_name/
     try {
       await validateToken(auth)
       
-      // Use the store to refresh server info
-      const store = useFHIRServerStore.getState()
-      
-      // Initialize servers if not done yet
-      if (!store.isInitialized) {
-        await store.initializeServers()
-      }
-      
-      const serverInfo = store.getServerByName(params.server_name)
+      // Get server info by name (automatically initializes if needed)
+      const serverInfo = await getServerInfoByName(params.server_name)
       if (!serverInfo) {
         set.status = 404
         return { error: `FHIR server '${params.server_name}' not found` }
       }
       
       // Refresh specific server in the store
-      await store.refreshServer(params.server_name)
+      await fhirServerStore.refreshServer(params.server_name)
       
       // Get the updated server info
-      const updatedServerInfo = store.getServerByName(params.server_name)
+      const updatedServerInfo = fhirServerStore.getServerByName(params.server_name)
       
       if (!updatedServerInfo) {
         set.status = 500

@@ -6,8 +6,27 @@ import {
   RolesApi,
   SmartAppsApi,
   ServersApi,
-  Configuration 
+  Configuration,
+  ResponseError
 } from './api-client';
+
+// Auth error handler to automatically logout on authentication failures
+let onAuthError: (() => void) | null = null;
+
+export const setAuthErrorHandler = (handler: () => void) => {
+  onAuthError = handler;
+};
+
+// Wrapper function to handle authentication errors
+export const handleApiError = (error: unknown) => {
+  if (error instanceof ResponseError && (error.response.status === 401 || error.response.status === 403)) {
+    console.warn('Authentication error detected, triggering logout');
+    if (onAuthError) {
+      onAuthError();
+    }
+  }
+  throw error;
+};
 
 // Create API client configuration
 const createConfig = (token?: string) => {

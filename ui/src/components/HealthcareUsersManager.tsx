@@ -26,8 +26,9 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useState, useEffect } from 'react';
 import { MoreHorizontal, Plus, Users, UserCheck, Shield, GraduationCap, Loader2, Server, Database, Trash2 } from 'lucide-react';
-import { createAuthenticatedApiClients } from '@/lib/apiClient';
+import { createAuthenticatedApiClients, handleApiError } from '@/lib/apiClient';
 import { useAuth } from '@/stores/authStore';
+import { useAuthSetup } from '@/hooks/useAuthSetup';
 import { PersonResourceLinkerTrigger, type PersonResource, type PersonLink } from './PersonResourceLinker';
 import { AddFhirPersonModal } from './AddFhirPersonModal';
 import type { GetAdminHealthcareUsers200ResponseInner } from '@/lib/api-client';
@@ -235,6 +236,9 @@ export function HealthcareUsersManager() {
   const [submitting, setSubmitting] = useState(false);
   const [showAddPersonModal, setShowAddPersonModal] = useState(false);
   const [selectedUserForPerson, setSelectedUserForPerson] = useState<HealthcareUser | null>(null);
+
+  // Set up auth error handler
+  useAuthSetup();
   const [newUser, setNewUser] = useState({
     username: '',
     firstName: '',
@@ -282,7 +286,12 @@ export function HealthcareUsersManager() {
       setUsers(transformedUsers);
     } catch (err) {
       console.error('Failed to load users:', err);
-      setError('Failed to load healthcare users. Please try again.');
+      try {
+        handleApiError(err);
+      } catch {
+        // If handleApiError doesn't throw (auth error handled), set generic error
+        setError('Failed to load healthcare users. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -340,7 +349,11 @@ export function HealthcareUsersManager() {
       setShowAddForm(false);
     } catch (err) {
       console.error('Failed to create user:', err);
-      setError('Failed to create healthcare user. Please try again.');
+      try {
+        handleApiError(err);
+      } catch {
+        setError('Failed to create healthcare user. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -405,7 +418,11 @@ export function HealthcareUsersManager() {
       setEditingUser(null);
     } catch (err) {
       console.error('Failed to update user:', err);
-      setError('Failed to update healthcare user. Please try again.');
+      try {
+        handleApiError(err);
+      } catch {
+        setError('Failed to update healthcare user. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -449,7 +466,11 @@ export function HealthcareUsersManager() {
       ));
     } catch (err) {
       console.error('Failed to toggle user status:', err);
-      setError('Failed to update user status. Please try again.');
+      try {
+        handleApiError(err);
+      } catch {
+        setError('Failed to update user status. Please try again.');
+      }
     }
   };
 
@@ -462,7 +483,11 @@ export function HealthcareUsersManager() {
       setUsers(users.filter(user => user.id !== id));
     } catch (err) {
       console.error('Failed to delete user:', err);
-      setError('Failed to delete healthcare user. Please try again.');
+      try {
+        handleApiError(err);
+      } catch {
+        setError('Failed to delete healthcare user. Please try again.');
+      }
     }
   };
 
