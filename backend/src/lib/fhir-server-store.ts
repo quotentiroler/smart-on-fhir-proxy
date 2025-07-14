@@ -43,6 +43,9 @@ class FHIRServerStore {
             lastUpdated: Date.now()
           }
           
+          // Actually add the server to the map when successful
+          serverInfos.set(identifier, serverInfo)
+          
           logger.fhir.info(`Initialized FHIR server: ${serverInfo.name}`, { 
             url: serverUrl, 
             fhirVersion: metadata.fhirVersion 
