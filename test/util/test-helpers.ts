@@ -1,4 +1,5 @@
 import * as crypto from 'crypto';
+import * as jwt from 'jsonwebtoken';
 
 /**
  * Utility functions for SMART Backend Services testing
@@ -39,7 +40,6 @@ export function createClientAssertion(
   privateKey: string,
   algorithm: string = 'RS384'
 ): string {
-  const jwt = require('jsonwebtoken');
   
   const now = Math.floor(Date.now() / 1000);
   const payload = {
@@ -52,7 +52,7 @@ export function createClientAssertion(
   };
 
   return jwt.sign(payload, privateKey, {
-    algorithm,
+    algorithm: algorithm as jwt.Algorithm,
     header: {
       typ: 'JWT',
       alg: algorithm

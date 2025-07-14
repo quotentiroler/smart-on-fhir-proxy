@@ -191,7 +191,7 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
   })
 
   // proxy token request
-  .post('/token', async ({ body }) => {
+  .post('/token', async ({ body, set }) => {
     const kcUrl = `${config.keycloak.baseUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/token`
     logger.auth.debug('Token endpoint request received', { 
       keycloakUrl: kcUrl,
@@ -214,6 +214,14 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
       if (bodyObj.scope) formData.append('scope', bodyObj.scope)
       if (bodyObj.audience) formData.append('audience', bodyObj.audience)
       
+      // Handle password grant fields
+      if (bodyObj.username) formData.append('username', bodyObj.username)
+      if (bodyObj.password) formData.append('password', bodyObj.password)
+      
+      // Handle Backend Services (client_credentials with JWT authentication)
+      if (bodyObj.client_assertion_type) formData.append('client_assertion_type', bodyObj.client_assertion_type)
+      if (bodyObj.client_assertion) formData.append('client_assertion', bodyObj.client_assertion)
+      
       const rawBody = formData.toString()
       logger.auth.debug('Sending form data to Keycloak', { 
         formFields: Array.from(formData.keys())
@@ -228,8 +236,22 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
       const data = await resp.json()
       logger.auth.debug('Keycloak response received', { 
         status: resp.status,
-        hasAccessToken: !!data.access_token
+        hasAccessToken: !!data.access_token,
+        error: data.error
       })
+      
+      // Set the proper HTTP status code from Keycloak response
+      set.status = resp.status
+      
+      // If there's an error, return it with the proper status code
+      if (data.error) {
+        logger.auth.warn('OAuth2 error from Keycloak', { 
+          error: data.error, 
+          description: data.error_description,
+          status: resp.status 
+        })
+        return data
+      }
       
       // If token request was successful, add SMART launch context from token claims
       if (data.access_token && resp.status === 200) {
@@ -291,12 +313,13 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
       return data
     } catch (error) {
       logger.auth.error('Token endpoint error', { error })
+      set.status = 500
       return { error: 'internal_server_error', error_description: 'Failed to process token request' }
     }
   },
   {
     body: t.Object({
-      grant_type: t.String({ description: 'OAuth grant type (e.g., authorization_code, client_credentials)' }),
+      grant_type: t.String({ description: 'OAuth grant type (e.g., authorization_code, client_credentials, password)' }),
       code: t.Optional(t.String({ description: 'Authorization code for exchange' })),
       redirect_uri: t.Optional(t.String({ description: 'Redirect URI for authorization code flow' })),
       client_id: t.Optional(t.String({ description: 'OAuth client ID' })),
@@ -304,7 +327,13 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
       code_verifier: t.Optional(t.String({ description: 'PKCE code verifier for security' })),
       refresh_token: t.Optional(t.String({ description: 'Refresh token for refresh_token grant' })),
       scope: t.Optional(t.String({ description: 'Requested scopes' })),
-      audience: t.Optional(t.String({ description: 'Audience for the token request' }))
+      audience: t.Optional(t.String({ description: 'Audience for the token request' })),
+      // Password grant fields
+      username: t.Optional(t.String({ description: 'Username for password grant' })),
+      password: t.Optional(t.String({ description: 'Password for password grant' })),
+      // Backend Services (SMART on FHIR) fields
+      client_assertion_type: t.Optional(t.String({ description: 'Client assertion type for JWT authentication' })),
+      client_assertion: t.Optional(t.String({ description: 'Client assertion JWT for Backend Services authentication' }))
     }),
     response: t.Object({
       access_token: t.Optional(t.String({ description: 'JWT access token' })),
