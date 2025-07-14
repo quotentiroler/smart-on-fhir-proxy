@@ -55,12 +55,12 @@ const FHIR_PERMISSIONS = {
 // - patient: Access to resources where the patient is the subject
 // - user: Access to resources accessible by the current user
 // - system: Backend system access without user context (for server-to-server)
-// - agent: Access on behalf of an autonomous agent (e.g., AI/ML algorithms, automated decision tools)
+// - agent: Access on behalf of an autonomous agent (fhirUser should reference Device resource for identity)
 const SCOPE_CONTEXTS = [
   { value: 'patient', label: 'Patient', description: 'Patient-specific data access' },
   { value: 'user', label: 'User', description: 'User-accessible data' },
   { value: 'system', label: 'System', description: 'System-level access (no user context)' },
-  { value: 'agent', label: 'Agent', description: 'Access on behalf of an autonomous agent' }
+  { value: 'agent', label: 'Agent', description: 'Access on behalf of an autonomous agent (fhirUser=Device/xyz)' }
 ];
 
 // Pre-built scope templates with detailed role-based access
@@ -286,6 +286,43 @@ const SCOPE_TEMPLATES = [
       'user/Location.rs',
       'launch/patient',
       'launch/encounter',
+      'openid',
+      'fhirUser'
+    ]
+  },
+  {
+    id: 'autonomous-agent',
+    name: 'Autonomous Agent - Clinical AI',
+    description: 'Agent scopes for autonomous AI systems acting independently (fhirUser should reference Device resource)',
+    role: 'agent',
+    color: 'bg-purple-100 text-purple-800 border-purple-200',
+    scopes: [
+      'agent/Patient.read',
+      'agent/Observation.read',
+      'agent/DiagnosticReport.read', 
+      'agent/Condition.read',
+      'agent/MedicationRequest.read',
+      'agent/AllergyIntolerance.read',
+      'agent/CarePlan.create',
+      'agent/RiskAssessment.create',
+      'agent/ClinicalImpression.create',
+      'openid',
+      'fhirUser'
+    ]
+  },
+  {
+    id: 'emergency-agent',
+    name: 'Emergency Response Agent',
+    description: 'Agent scopes for emergency response robots/devices (fhirUser=Device/emergency-unit-id)',
+    role: 'agent',
+    color: 'bg-red-100 text-red-800 border-red-200',
+    scopes: [
+      'agent/Patient.read',
+      'agent/Encounter.create',
+      'agent/Observation.create',
+      'agent/AllergyIntolerance.read',
+      'agent/MedicationStatement.read',
+      'agent/EmergencyContact.read',
       'openid',
       'fhirUser'
     ]
@@ -693,6 +730,7 @@ export function ScopeManager() {
                     <option value="pharmacist">{t('Pharmacist')}</option>
                     <option value="therapist">{t('Therapist')}</option>
                     <option value="admin">{t('Administrator')}</option>
+                    <option value="agent">{t('Agent')}</option>
                   </select>
                 </div>
                 <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto">
