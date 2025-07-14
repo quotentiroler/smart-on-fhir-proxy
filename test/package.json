@@ -30,8 +30,10 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "axios": "^1.6.0",
     "fhirclient": "^2.6.0",
-    "jose": "^5.0.0"
+    "jose": "^5.0.0",
+    "jsonwebtoken": "^9.0.2"
   }
 }

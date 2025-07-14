@@ -60,7 +60,17 @@ export const SmartAppClient = t.Object({
   publicClient: t.Optional(t.Boolean({ description: 'Whether app is public client' })),
   redirectUris: t.Optional(t.Array(t.String({ description: 'Redirect URIs' }))),
   webOrigins: t.Optional(t.Array(t.String({ description: 'Web origins' }))),
-  attributes: t.Optional(t.Record(t.String(), t.Union([t.String(), t.Array(t.String())])))
+  attributes: t.Optional(t.Record(t.String(), t.Union([t.String(), t.Array(t.String())]))),
+  // Backend Services specific fields
+  clientAuthenticatorType: t.Optional(t.String({ description: 'Client authentication method (client-jwt, client-secret, none)' })),
+  serviceAccountsEnabled: t.Optional(t.Boolean({ description: 'Whether service accounts (client_credentials) are enabled' })),
+  standardFlowEnabled: t.Optional(t.Boolean({ description: 'Whether authorization code flow is enabled' })),
+  implicitFlowEnabled: t.Optional(t.Boolean({ description: 'Whether implicit flow is enabled' })),
+  directAccessGrantsEnabled: t.Optional(t.Boolean({ description: 'Whether password grants are enabled' })),
+  // SMART specific attributes
+  defaultClientScopes: t.Optional(t.Array(t.String({ description: 'Default OAuth scopes' }))),
+  optionalClientScopes: t.Optional(t.Array(t.String({ description: 'Optional OAuth scopes' }))),
+  access: t.Optional(t.Record(t.String(), t.Boolean(), { description: 'Access permissions' }))
 })
 
 // Role schema (reusable)
