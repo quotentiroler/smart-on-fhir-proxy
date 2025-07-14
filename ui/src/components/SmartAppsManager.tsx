@@ -193,6 +193,50 @@ export function SmartAppsManager() {
     authenticationType: 'asymmetric' as AuthenticationType,
   });
 
+  // Helper functions for app type characteristics
+  const isInteractive = (appType: SmartAppType): boolean => {
+    return appType === 'standalone-app' || appType === 'ehr-launch-app';
+  };
+
+  const requiresRedirectUri = (appType: SmartAppType): boolean => {
+    return isInteractive(appType);
+  };
+
+  const hasFixedAuthType = (appType: SmartAppType): boolean => {
+    return appType === 'backend-service' || appType === 'agent';
+  };
+
+  const getFixedAuthType = (appType: SmartAppType): AuthenticationType => {
+    if (appType === 'backend-service' || appType === 'agent') {
+      return 'asymmetric';
+    }
+    return 'asymmetric'; // default fallback
+  };
+
+  const getAuthTypeDescription = (appType: SmartAppType): string => {
+    if (appType === 'agent') {
+      return 'Agents require private key JWT for secure autonomous authentication';
+    }
+    if (appType === 'backend-service') {
+      return 'Backend services require private key JWT for secure server-to-server communication';
+    }
+    return '';
+  };
+
+  const getRedirectUriHelperText = (appType: SmartAppType): string => {
+    if (appType === 'backend-service') {
+      return 'Backend services use client credentials flow - no redirect URI needed';
+    }
+    if (appType === 'agent') {
+      return 'Agents use client credentials flow - no interactive login or redirect URI needed';
+    }
+    return '';
+  };
+
+  const isAgent = (appType: SmartAppType): boolean => {
+    return appType === 'agent';
+  };
+
   // Load scope sets from ScopeManager
   useEffect(() => {
     const loadScopeSets = () => {
@@ -506,8 +550,8 @@ export function SmartAppsManager() {
                     setNewApp({
                       ...newApp,
                       appType,
-                      redirectUri: (appType === 'backend-service' || appType === 'agent') ? '' : newApp.redirectUri,
-                      authenticationType: (appType === 'backend-service' || appType === 'agent') ? 'asymmetric' : newApp.authenticationType
+                      redirectUri: requiresRedirectUri(appType) ? newApp.redirectUri : '',
+                      authenticationType: hasFixedAuthType(appType) ? getFixedAuthType(appType) : newApp.authenticationType
                     });
                   }}
                   className="flex h-10 w-full rounded-xl border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
@@ -519,7 +563,7 @@ export function SmartAppsManager() {
                   <option value="agent">AI Agent (Non-interactive, Autonomous)</option>
                 </select>
               </div>
-              {(newApp.appType !== 'backend-service' && newApp.appType !== 'agent') && (
+              {isInteractive(newApp.appType) && (
                 <div className="space-y-3">
                   <Label htmlFor="authenticationType" className="text-sm font-semibold text-gray-700">Authentication Type</Label>
                   <select
@@ -534,16 +578,13 @@ export function SmartAppsManager() {
                   </select>
                 </div>
               )}
-              {(newApp.appType === 'backend-service' || newApp.appType === 'agent') && (
+              {hasFixedAuthType(newApp.appType) && (
                 <div className="space-y-3">
                   <Label className="text-sm font-semibold text-gray-700">Authentication Type</Label>
                   <div className="p-3 bg-gray-50 rounded-lg border">
                     <span className="text-sm font-medium text-gray-700">Asymmetric (Required)</span>
                     <p className="text-xs text-gray-600 mt-1">
-                      {newApp.appType === 'agent' 
-                        ? 'Agents require private key JWT for secure autonomous authentication'
-                        : 'Backend services require private key JWT for secure server-to-server communication'
-                      }
+                      {getAuthTypeDescription(newApp.appType)}
                     </p>
                   </div>
                 </div>
@@ -559,16 +600,13 @@ export function SmartAppsManager() {
                 value={newApp.redirectUri}
                 onChange={(e) => setNewApp({ ...newApp, redirectUri: e.target.value })}
                 className="rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm"
-                required={newApp.appType !== 'backend-service' && newApp.appType !== 'agent'}
-                disabled={newApp.appType === 'backend-service' || newApp.appType === 'agent'}
+                required={requiresRedirectUri(newApp.appType)}
+                disabled={!requiresRedirectUri(newApp.appType)}
               />
-              {newApp.appType === 'backend-service' && (
-                <p className="text-xs text-gray-500">Backend services use client credentials flow - no redirect URI needed</p>
+              {!requiresRedirectUri(newApp.appType) && (
+                <p className="text-xs text-gray-500">{getRedirectUriHelperText(newApp.appType)}</p>
               )}
-              {newApp.appType === 'agent' && (
-                <p className="text-xs text-gray-500">Agents use client credentials flow - no interactive login or redirect URI needed</p>
-              )}
-              {newApp.appType === 'agent' && (
+              {isAgent(newApp.appType) && (
                 <div className="mt-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
                   <div className="flex items-start space-x-2">
                     <AlertCircle className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
