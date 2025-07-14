@@ -43,7 +43,8 @@ import {
   X,
   Code,
   Database,
-  CheckCircle
+  CheckCircle,
+  AlertCircle
 } from 'lucide-react';
 
 // SMART on FHIR App Types
@@ -148,15 +149,27 @@ const mockApps: SmartApp[] = [
   },
   {
     id: '6',
-    name: 'Clinical AI Assistant',
+    name: 'Autonomous Clinical AI Agent',
     clientId: 'ai-agent-303',
     redirectUri: 'https://ai-assistant.example.com/callback',
-    scopes: ['patient/Patient.read', 'patient/Observation.read', 'patient/Condition.read', 'patient/MedicationRequest.read'],
-    scopeSetId: 'physician-full',
-    customScopes: ['patient/CarePlan.create'],
+    scopes: ['agent/Patient.read', 'agent/Observation.read', 'agent/Condition.read', 'agent/MedicationRequest.read', 'agent/CarePlan.create'],
+    customScopes: ['agent/RiskAssessment.create', 'agent/ClinicalImpression.create'],
     status: 'active',
     lastUsed: '2024-12-28',
-    description: 'AI-powered clinical decision support and documentation assistant',
+    description: 'Autonomous AI agent that independently analyzes patient data and creates clinical assessments. Authorization server dynamically assigns fhirUser to specific Device instance (e.g., Device/ai-clinical-assistant-instance-1)',
+    appType: 'agent',
+    authenticationType: 'asymmetric',
+  },
+  {
+    id: '7',
+    name: 'Life Saving Lawnmower',
+    clientId: 'emergency-mower-911',
+    redirectUri: 'https://smart-lawnmower.emergency.com/callback',
+    scopes: ['agent/Patient.read', 'agent/Encounter.create', 'agent/Observation.create'],
+    customScopes: ['agent/EmergencyContact.read', 'agent/AllergyIntolerance.read', 'agent/MedicationStatement.read'],
+    status: 'active',
+    lastUsed: '2024-12-29',
+    description: 'Autonomous robotic lawnmower with emergency medical response capabilities. fhirUser determined at runtime based on specific device serial/deployment (e.g., Device/emergency-mower-unit-42)',
     appType: 'agent',
     authenticationType: 'asymmetric',
   },
@@ -179,6 +192,50 @@ export function SmartAppsManager() {
     appType: 'standalone-app' as SmartAppType,
     authenticationType: 'asymmetric' as AuthenticationType,
   });
+
+  // Helper functions for app type characteristics
+  const isInteractive = (appType: SmartAppType): boolean => {
+    return appType === 'standalone-app' || appType === 'ehr-launch-app';
+  };
+
+  const requiresRedirectUri = (appType: SmartAppType): boolean => {
+    return isInteractive(appType);
+  };
+
+  const hasFixedAuthType = (appType: SmartAppType): boolean => {
+    return appType === 'backend-service' || appType === 'agent';
+  };
+
+  const getFixedAuthType = (appType: SmartAppType): AuthenticationType => {
+    if (appType === 'backend-service' || appType === 'agent') {
+      return 'asymmetric';
+    }
+    return 'asymmetric'; // default fallback
+  };
+
+  const getAuthTypeDescription = (appType: SmartAppType): string => {
+    if (appType === 'agent') {
+      return 'Agents require private key JWT for secure autonomous authentication';
+    }
+    if (appType === 'backend-service') {
+      return 'Backend services require private key JWT for secure server-to-server communication';
+    }
+    return '';
+  };
+
+  const getRedirectUriHelperText = (appType: SmartAppType): string => {
+    if (appType === 'backend-service') {
+      return 'Backend services use client credentials flow - no redirect URI needed';
+    }
+    if (appType === 'agent') {
+      return 'Agents use client credentials flow - no interactive login or redirect URI needed';
+    }
+    return '';
+  };
+
+  const isAgent = (appType: SmartAppType): boolean => {
+    return appType === 'agent';
+  };
 
   // Load scope sets from ScopeManager
   useEffect(() => {
@@ -493,20 +550,20 @@ export function SmartAppsManager() {
                     setNewApp({
                       ...newApp,
                       appType,
-                      redirectUri: appType === 'backend-service' ? '' : newApp.redirectUri,
-                      authenticationType: appType === 'backend-service' ? 'none' : newApp.authenticationType
+                      redirectUri: requiresRedirectUri(appType) ? newApp.redirectUri : '',
+                      authenticationType: hasFixedAuthType(appType) ? getFixedAuthType(appType) : newApp.authenticationType
                     });
                   }}
                   className="flex h-10 w-full rounded-xl border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
                   required
                 >
-                  <option value="standalone-app">Standalone App</option>
-                  <option value="ehr-launch-app">EHR Launch App</option>
-                  <option value="backend-service">Backend Service</option>
-                  <option value="agent">AI Agent</option>
+                  <option value="standalone-app">Standalone App (Interactive)</option>
+                  <option value="ehr-launch-app">EHR Launch App (Interactive)</option>
+                  <option value="backend-service">Backend Service (Non-interactive, Deterministic)</option>
+                  <option value="agent">AI Agent (Non-interactive, Autonomous)</option>
                 </select>
               </div>
-              {newApp.appType !== 'backend-service' && (
+              {isInteractive(newApp.appType) && (
                 <div className="space-y-3">
                   <Label htmlFor="authenticationType" className="text-sm font-semibold text-gray-700">Authentication Type</Label>
                   <select
@@ -521,6 +578,17 @@ export function SmartAppsManager() {
                   </select>
                 </div>
               )}
+              {hasFixedAuthType(newApp.appType) && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold text-gray-700">Authentication Type</Label>
+                  <div className="p-3 bg-gray-50 rounded-lg border">
+                    <span className="text-sm font-medium text-gray-700">Asymmetric (Required)</span>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {getAuthTypeDescription(newApp.appType)}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-3">
@@ -532,11 +600,30 @@ export function SmartAppsManager() {
                 value={newApp.redirectUri}
                 onChange={(e) => setNewApp({ ...newApp, redirectUri: e.target.value })}
                 className="rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm"
-                required={newApp.appType !== 'backend-service'}
-                disabled={newApp.appType === 'backend-service'}
+                required={requiresRedirectUri(newApp.appType)}
+                disabled={!requiresRedirectUri(newApp.appType)}
               />
-              {newApp.appType === 'backend-service' && (
-                <p className="text-xs text-gray-500">Backend services don't require redirect URIs</p>
+              {!requiresRedirectUri(newApp.appType) && (
+                <p className="text-xs text-gray-500">{getRedirectUriHelperText(newApp.appType)}</p>
+              )}
+              {isAgent(newApp.appType) && (
+                <div className="mt-3 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                  <div className="flex items-start space-x-2">
+                    <AlertCircle className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm">
+                      <p className="font-semibold text-purple-800 mb-1">Agent Flow Characteristics</p>
+                      <p className="text-purple-700 mb-2">
+                        Autonomous agents operate like backend services (no user login) but with non-deterministic, self-initiated behavior:
+                      </p>
+                      <ul className="text-purple-700 text-xs space-y-1 ml-4 list-disc">
+                        <li><strong>No interactive login</strong> - Uses client credentials like backend services</li>
+                        <li><strong>Non-deterministic</strong> - Makes autonomous decisions based on environmental triggers</li>
+                        <li><strong>Dynamic identity</strong> - fhirUser resolved to specific Device resource at runtime</li>
+                        <li><strong>Self-initiated</strong> - Actions triggered by AI/ML algorithms, not scheduled tasks</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
             <div className="space-y-3">

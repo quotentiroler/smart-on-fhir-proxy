@@ -136,7 +136,7 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
     },
     { 
       id: 'oauth-monitoring', 
-      label: t('OAuth Monitoring'), 
+      label: t('Monitoring'), 
       description: t('Flow Analytics'),
       icon: BarChart3
     },

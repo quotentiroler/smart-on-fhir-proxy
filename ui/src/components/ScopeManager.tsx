@@ -17,13 +17,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Settings, 
-  Shield, 
-  Code, 
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Settings,
+  Shield,
+  Code,
   Database,
   CheckCircle,
   AlertCircle,
@@ -51,11 +51,16 @@ const FHIR_PERMISSIONS = {
   s: { label: 'Search', description: 'Type level search, history, system level', color: 'bg-purple-100 text-purple-800' }
 };
 
-// Scope contexts
+// Scope contexts - defines the data access pattern for SMART scopes:
+// - patient: Access to resources where the patient is the subject
+// - user: Access to resources accessible by the current user
+// - system: Backend system access without user context (for server-to-server)
+// - agent: Access on behalf of an autonomous agent (fhirUser should reference Device resource for identity)
 const SCOPE_CONTEXTS = [
   { value: 'patient', label: 'Patient', description: 'Patient-specific data access' },
   { value: 'user', label: 'User', description: 'User-accessible data' },
-  { value: 'system', label: 'System', description: 'System-level access (no user context)' }
+  { value: 'system', label: 'System', description: 'System-level access (no user context)' },
+  { value: 'agent', label: 'Agent', description: 'Access on behalf of an autonomous agent (fhirUser=Device/xyz)' }
 ];
 
 // Pre-built scope templates with detailed role-based access
@@ -284,6 +289,43 @@ const SCOPE_TEMPLATES = [
       'openid',
       'fhirUser'
     ]
+  },
+  {
+    id: 'autonomous-agent',
+    name: 'Autonomous Agent - Clinical AI',
+    description: 'Agent scopes for autonomous AI systems acting independently (fhirUser should reference Device resource)',
+    role: 'agent',
+    color: 'bg-purple-100 text-purple-800 border-purple-200',
+    scopes: [
+      'agent/Patient.read',
+      'agent/Observation.read',
+      'agent/DiagnosticReport.read', 
+      'agent/Condition.read',
+      'agent/MedicationRequest.read',
+      'agent/AllergyIntolerance.read',
+      'agent/CarePlan.create',
+      'agent/RiskAssessment.create',
+      'agent/ClinicalImpression.create',
+      'openid',
+      'fhirUser'
+    ]
+  },
+  {
+    id: 'emergency-agent',
+    name: 'Emergency Response Agent',
+    description: 'Agent scopes for emergency response robots/devices (fhirUser=Device/emergency-unit-id)',
+    role: 'agent',
+    color: 'bg-red-100 text-red-800 border-red-200',
+    scopes: [
+      'agent/Patient.read',
+      'agent/Encounter.create',
+      'agent/Observation.create',
+      'agent/AllergyIntolerance.read',
+      'agent/MedicationStatement.read',
+      'agent/EmergencyContact.read',
+      'openid',
+      'fhirUser'
+    ]
   }
 ];
 
@@ -331,7 +373,7 @@ export function ScopeManager() {
       // Load from local storage for now - in production, this would be an API call
       const saved = localStorage.getItem('smart-scope-sets');
       const savedSets = saved ? JSON.parse(saved) : [];
-      
+
       // Add templates if not already present
       const templatesWithIds = SCOPE_TEMPLATES.map(template => ({
         ...template,
@@ -339,13 +381,13 @@ export function ScopeManager() {
         updatedAt: new Date().toISOString(),
         isTemplate: true
       }));
-      
+
       const existingTemplateIds = savedSets.filter((s: ScopeSet) => s.isTemplate).map((s: ScopeSet) => s.id);
       const newTemplates = templatesWithIds.filter(t => !existingTemplateIds.includes(t.id));
-      
+
       const allSets = [...savedSets, ...newTemplates];
       setScopeSets(allSets);
-      
+
       // Save back with templates
       localStorage.setItem('smart-scope-sets', JSON.stringify(allSets));
     } catch (error) {
@@ -364,13 +406,13 @@ export function ScopeManager() {
       isTemplate: false
     };
 
-    const updatedSets = editingScope 
+    const updatedSets = editingScope
       ? scopeSets.map(s => s.id === editingScope.id ? newSet : s)
       : [...scopeSets, newSet];
-    
+
     setScopeSets(updatedSets);
     localStorage.setItem('smart-scope-sets', JSON.stringify(updatedSets));
-    
+
     // Reset builder state
     setShowBuilder(false);
     setEditingScope(null);
@@ -386,9 +428,9 @@ export function ScopeManager() {
 
   const validateScope = (scope: string): { valid: boolean; message: string; type: 'error' | 'warning' | 'success'; suggestions?: string[] } => {
     if (!scope.trim()) {
-      return { 
-        valid: false, 
-        message: 'Scope cannot be empty', 
+      return {
+        valid: false,
+        message: 'Scope cannot be empty',
         type: 'error',
         suggestions: ['Try: patient/Patient.r', 'Try: openid', 'Try: launch/patient']
       };
@@ -399,30 +441,30 @@ export function ScopeManager() {
     // Check for common SMART launch scopes
     const launchScopes = ['openid', 'profile', 'fhirUser', 'offline_access', 'online_access'];
     if (launchScopes.includes(trimmedScope)) {
-      return { 
-        valid: true, 
-        message: `Valid SMART launch scope: ${trimmedScope}`, 
-        type: 'success' 
+      return {
+        valid: true,
+        message: `Valid SMART launch scope: ${trimmedScope}`,
+        type: 'success'
       };
     }
 
     // Check for launch context scopes
     const launchContextPattern = /^launch\/(patient|encounter|practitioner|location|organization)(\?.*)?$/;
     if (launchContextPattern.test(trimmedScope)) {
-      return { 
-        valid: true, 
-        message: `Valid launch context scope: ${trimmedScope}`, 
-        type: 'success' 
+      return {
+        valid: true,
+        message: `Valid launch context scope: ${trimmedScope}`,
+        type: 'success'
       };
     }
 
     // Check for FHIR resource scopes
-    const fhirScopePattern = /^(patient|user|system)\/([\w*]+)\.([cruds]+)(\?.*)?$/;
+    const fhirScopePattern = /^(patient|user|system|agent)\/([\w*]+)\.([cruds]+)(\?.*)?$/;
     const match = fhirScopePattern.exec(trimmedScope);
-    
+
     if (!match) {
       const suggestions = [];
-      
+
       // Check if it looks like a FHIR scope but is malformed
       if (trimmedScope.includes('/') && trimmedScope.includes('.')) {
         suggestions.push('Format should be: context/Resource.permissions');
@@ -432,25 +474,25 @@ export function ScopeManager() {
         suggestions.push('Add permissions like: .r (read) or .cruds (full access)');
       } else {
         suggestions.push('Use format: context/Resource.permissions');
-        suggestions.push('Valid contexts: patient, user, system');
+        suggestions.push('Valid contexts: patient, user, system, agent');
       }
-      
-      return { 
-        valid: false, 
-        message: 'Invalid SMART scope format. Expected: context/Resource.permissions or launch scope', 
+
+      return {
+        valid: false,
+        message: 'Invalid SMART scope format. Expected: context/Resource.permissions or launch scope',
         type: 'error',
-        suggestions 
+        suggestions
       };
     }
 
     const [, context, resource, permissions] = match;
 
     // Validate context
-    const validContexts = ['patient', 'user', 'system'];
+    const validContexts = ['patient', 'user', 'system', 'agent'];
     if (!validContexts.includes(context)) {
-      return { 
-        valid: false, 
-        message: `Invalid context '${context}'. Valid contexts: ${validContexts.join(', ')}`, 
+      return {
+        valid: false,
+        message: `Invalid context '${context}'. Valid contexts: ${validContexts.join(', ')}`,
         type: 'error',
         suggestions: validContexts.map(c => `${c}/${resource}.${permissions}`)
       };
@@ -458,16 +500,16 @@ export function ScopeManager() {
 
     // Validate resource
     if (resource !== '*' && !FHIR_RESOURCES.includes(resource)) {
-      const similarResources = FHIR_RESOURCES.filter(r => 
-        r.toLowerCase().includes(resource.toLowerCase()) || 
+      const similarResources = FHIR_RESOURCES.filter(r =>
+        r.toLowerCase().includes(resource.toLowerCase()) ||
         resource.toLowerCase().includes(r.toLowerCase())
       ).slice(0, 3);
-      
-      return { 
-        valid: false, 
-        message: `'${resource}' is not a standard FHIR resource`, 
+
+      return {
+        valid: false,
+        message: `'${resource}' is not a standard FHIR resource`,
         type: 'warning',
-        suggestions: similarResources.length > 0 
+        suggestions: similarResources.length > 0
           ? similarResources.map(r => `${context}/${r}.${permissions}`)
           : [`${context}/Patient.${permissions}`, `${context}/Observation.${permissions}`]
       };
@@ -478,7 +520,7 @@ export function ScopeManager() {
     let lastIndex = -1;
     const permissionLabels = {
       'c': 'create',
-      'r': 'read', 
+      'r': 'read',
       'u': 'update',
       'd': 'delete',
       's': 'search'
@@ -487,9 +529,9 @@ export function ScopeManager() {
     for (const char of permissions) {
       const currentIndex = validPermissions.indexOf(char);
       if (currentIndex === -1) {
-        return { 
-          valid: false, 
-          message: `Invalid permission '${char}'. Valid permissions: c(create), r(read), u(update), d(delete), s(search)`, 
+        return {
+          valid: false,
+          message: `Invalid permission '${char}'. Valid permissions: c(create), r(read), u(update), d(delete), s(search)`,
           type: 'error',
           suggestions: [
             `${context}/${resource}.r`,
@@ -499,9 +541,9 @@ export function ScopeManager() {
         };
       }
       if (currentIndex <= lastIndex) {
-        return { 
-          valid: false, 
-          message: 'Permissions must be in order: c, r, u, d, s', 
+        return {
+          valid: false,
+          message: 'Permissions must be in order: c, r, u, d, s',
           type: 'error',
           suggestions: [`${context}/${resource}.${permissions.split('').sort((a, b) => validPermissions.indexOf(a) - validPermissions.indexOf(b)).join('')}`]
         };
@@ -522,13 +564,13 @@ export function ScopeManager() {
     }
 
     const permissionList = permissions.split('').map(p => permissionLabels[p as keyof typeof permissionLabels]).join(', ');
-    
-    return { 
-      valid: true, 
-      message: warnings.length > 0 
-        ? `Valid scope with ${permissionList} permissions. Warning: ${warnings[0]}` 
-        : `Valid FHIR scope: ${context}/${resource} with ${permissionList} permissions`, 
-      type: warnings.length > 0 ? 'warning' : 'success' 
+
+    return {
+      valid: true,
+      message: warnings.length > 0
+        ? `Valid scope with ${permissionList} permissions. Warning: ${warnings[0]}`
+        : `Valid FHIR scope: ${context}/${resource} with ${permissionList} permissions`,
+      type: warnings.length > 0 ? 'warning' : 'success'
     };
   };
 
@@ -542,7 +584,7 @@ export function ScopeManager() {
     }
 
     let scope = `${builderState.context}/${builderState.resource}.${builderState.permissions.sort().join('')}`;
-    
+
     if (builderState.searchParams) {
       scope += `?${builderState.searchParams}`;
     }
@@ -557,7 +599,7 @@ export function ScopeManager() {
         ...newScopeSet,
         scopes: [...newScopeSet.scopes, scope]
       });
-      
+
       // Reset builder for next scope
       setBuilderState({
         context: 'patient',
@@ -585,7 +627,7 @@ export function ScopeManager() {
     // In production, this would test the scope against the FHIR server
     const validation = validateScope(scope);
     console.log('Scope validation result:', validation);
-    
+
     // Simulate API test - would update UI with validation results
     setTimeout(() => {
       console.log('API test completed');
@@ -627,8 +669,8 @@ export function ScopeManager() {
               {t('Build and manage FHIR resource access scopes')}
             </div>
           </div>
-          <Button 
-            onClick={() => setShowBuilder(true)} 
+          <Button
+            onClick={() => setShowBuilder(true)}
             className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/20"
           >
             <Plus className="h-5 w-5 mr-2" />
@@ -688,6 +730,7 @@ export function ScopeManager() {
                     <option value="pharmacist">{t('Pharmacist')}</option>
                     <option value="therapist">{t('Therapist')}</option>
                     <option value="admin">{t('Administrator')}</option>
+                    <option value="agent">{t('Agent')}</option>
                   </select>
                 </div>
                 <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto">
@@ -732,7 +775,7 @@ export function ScopeManager() {
 
               <div className="space-y-4">
                 <Label className="text-sm font-semibold text-gray-700">{t('Visual Scope Builder')}</Label>
-                
+
                 {/* Context Selection */}
                 <div>
                   <Label className="text-xs text-gray-600 mb-2 block">{t('Context')}</Label>
@@ -826,21 +869,19 @@ export function ScopeManager() {
                     {(() => {
                       const previewScope = buildScope();
                       const validation = previewScope ? validateScope(previewScope) : null;
-                      
+
                       return (
-                        <div className={`p-3 rounded-lg border transition-all duration-200 ${
-                          !previewScope ? 'bg-gray-50 border-gray-200' :
+                        <div className={`p-3 rounded-lg border transition-all duration-200 ${!previewScope ? 'bg-gray-50 border-gray-200' :
                           validation?.type === 'success' ? 'bg-green-50 border-green-200' :
-                          validation?.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
-                          'bg-red-50 border-red-200'
-                        }`}>
+                            validation?.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
+                              'bg-red-50 border-red-200'
+                          }`}>
                           <div className="flex items-center justify-between">
-                            <code className={`text-sm font-mono ${
-                              !previewScope ? 'text-gray-400' : 'text-gray-900'
-                            }`}>
+                            <code className={`text-sm font-mono ${!previewScope ? 'text-gray-400' : 'text-gray-900'
+                              }`}>
                               {previewScope || t('Build a scope...')}
                             </code>
-                            <Button 
+                            <Button
                               onClick={addScopeToSet}
                               disabled={!previewScope || (validation?.valid === false)}
                               size="sm"
@@ -850,17 +891,16 @@ export function ScopeManager() {
                               {t('Add')}
                             </Button>
                           </div>
-                          
+
                           {validation && (
-                            <div className={`mt-2 text-xs font-medium ${
-                              validation.type === 'success' ? 'text-green-700' :
+                            <div className={`mt-2 text-xs font-medium ${validation.type === 'success' ? 'text-green-700' :
                               validation.type === 'warning' ? 'text-yellow-700' :
-                              'text-red-700'
-                            }`}>
+                                'text-red-700'
+                              }`}>
                               {validation.message}
                             </div>
                           )}
-                          
+
                           {validation?.suggestions && validation.suggestions.length > 0 && (
                             <div className="mt-2">
                               <div className="text-xs text-gray-600 mb-1">{t('Suggestions:')}</div>
@@ -902,11 +942,10 @@ export function ScopeManager() {
                     {newScopeSet.scopes.map((scope, index) => {
                       const validation = validateScope(scope);
                       return (
-                        <div key={index} className={`p-4 rounded-xl border transition-all duration-200 ${
-                          validation.type === 'success' ? 'bg-green-50 border-green-200' :
+                        <div key={index} className={`p-4 rounded-xl border transition-all duration-200 ${validation.type === 'success' ? 'bg-green-50 border-green-200' :
                           validation.type === 'warning' ? 'bg-yellow-50 border-yellow-200' :
-                          'bg-red-50 border-red-200'
-                        }`}>
+                            'bg-red-50 border-red-200'
+                          }`}>
                           <div className="flex items-start justify-between mb-2">
                             <div className="flex items-center space-x-2 flex-1">
                               <code className="text-sm font-mono text-gray-900 bg-white px-2 py-1 rounded border">
@@ -925,27 +964,27 @@ export function ScopeManager() {
                               </div>
                             </div>
                             <div className="flex items-center space-x-1 ml-2">
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
+                              <Button
+                                size="sm"
+                                variant="ghost"
                                 onClick={() => copyScope(scope)}
                                 className="p-1 h-8 w-8 hover:bg-white/80"
                                 title={t('Copy scope')}
                               >
                                 <Copy className="w-3 h-3" />
                               </Button>
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
+                              <Button
+                                size="sm"
+                                variant="ghost"
                                 onClick={() => testScope(scope)}
                                 className="p-1 h-8 w-8 hover:bg-white/80"
                                 title={t('Test scope')}
                               >
                                 <Play className="w-3 h-3" />
                               </Button>
-                              <Button 
-                                size="sm" 
-                                variant="ghost" 
+                              <Button
+                                size="sm"
+                                variant="ghost"
                                 onClick={() => removeScopeFromSet(index)}
                                 className="p-1 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-white/80"
                                 title={t('Remove scope')}
@@ -954,15 +993,14 @@ export function ScopeManager() {
                               </Button>
                             </div>
                           </div>
-                          
-                          <div className={`text-xs font-medium mb-1 ${
-                            validation.type === 'success' ? 'text-green-700' :
+
+                          <div className={`text-xs font-medium mb-1 ${validation.type === 'success' ? 'text-green-700' :
                             validation.type === 'warning' ? 'text-yellow-700' :
-                            'text-red-700'
-                          }`}>
+                              'text-red-700'
+                            }`}>
                             {validation.message}
                           </div>
-                          
+
                           {validation.suggestions && validation.suggestions.length > 0 && (
                             <div className="mt-2">
                               <div className="text-xs text-gray-600 mb-1">{t('Suggestions:')}</div>
@@ -991,15 +1029,15 @@ export function ScopeManager() {
               </div>
 
               <div className="flex gap-4 pt-4">
-                <Button 
+                <Button
                   onClick={() => saveScopeSet(newScopeSet)}
                   disabled={!newScopeSet.name || newScopeSet.scopes.length === 0}
                   className="px-8 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-xl"
                 >
                   {editingScope ? t('Update') : t('Save')} {t('Scope Set')}
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => {
                     setShowBuilder(false);
                     setEditingScope(null);
@@ -1155,7 +1193,7 @@ export function ScopeManager() {
                               {t('Copy Scopes')}
                             </DropdownMenuItem>
                             {!scopeSet.isTemplate && (
-                              <DropdownMenuItem 
+                              <DropdownMenuItem
                                 onClick={() => deleteScopeSet(scopeSet.id)}
                                 className="text-red-600"
                               >
