@@ -60,11 +60,11 @@ const app = new Elysia()
     }
   }))
   .use(keycloakPlugin)
-  .use(serverRoutes)// Server status and info endpoints, smart launcher, restart and shutdown too (will be moved to admin)
   .use(smartRoutes)// smart-config
   .use(authRoutes)
   .use(adminRoutes) //admin keycloak endpoints
   .use(fhirRoutes) // the actual FHIR proxy endpoints
+  .use(serverRoutes)// Server status and info endpoints, smart launcher, restart and shutdown too (will be moved to admin) - moved last to avoid static plugin interfering with FHIR routes
 
 // Initialize and start server
 initializeServer()
