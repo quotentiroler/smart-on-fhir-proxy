@@ -6,7 +6,7 @@ import type { IdentityProvider } from '../../types'
 /**
  * Identity Provider Management - handles external IdP integrations
  */
-export const identityProvidersRoutes = new Elysia({ prefix: '/admin/idps' })
+export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
   .use(keycloakPlugin)
 
   .get('/', async ({ getAdmin, headers, set }) => {

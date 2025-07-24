@@ -2,6 +2,7 @@ import { Elysia } from 'elysia'
 import KcAdminClient from '@keycloak/keycloak-admin-client'
 import { validateToken } from './auth'
 import { logger } from './logger'
+import { AuthenticationError } from './admin-utils'
 
 /**
  * Plugin that adds Keycloak admin client decorator
@@ -11,6 +12,7 @@ import { logger } from './logger'
 export const keycloakPlugin = new Elysia()
   .decorate('getAdmin', async (userToken: string) => {
     try {
+      logger.auth.debug('Keycloak plugin: Starting admin client creation', { tokenLength: userToken.length })
       logger.auth.debug('Validating user token for admin operations')
       // Validate the user's token and get payload
       const tokenPayload = await validateToken(userToken)
@@ -50,7 +52,7 @@ export const keycloakPlugin = new Elysia()
           isDevelopment 
         })
         if (!isDevelopment) {
-          throw new Error('User does not have admin permissions')
+          throw new AuthenticationError('User does not have admin permissions')
         }
         logger.auth.warn('DEVELOPMENT: Proceeding despite missing admin role')
       }
@@ -63,25 +65,46 @@ export const keycloakPlugin = new Elysia()
           isDevelopment
         })
         if (!isDevelopment) {
-          throw new Error('User does not have realm management permissions')
+          throw new AuthenticationError('User does not have realm management permissions')
         }
       }
       
       // Create admin client with user's token
+      logger.auth.debug('Creating Keycloak admin client...')
       const kcAdminClient = new KcAdminClient({
         baseUrl: process.env.KEYCLOAK_BASE_URL!,
         realmName: process.env.KEYCLOAK_REALM!,
       })
 
       // Use the user's token for admin operations
+      logger.auth.debug('Setting access token on admin client...')
       kcAdminClient.setAccessToken(userToken)
       
       logger.auth.debug('Keycloak admin client created successfully', {
-        username: tokenPayload.preferred_username
+        username: tokenPayload.preferred_username,
+        baseUrl: process.env.KEYCLOAK_BASE_URL,
+        realm: process.env.KEYCLOAK_REALM
       })
       return kcAdminClient
     } catch (error) {
       logger.auth.error('Error in keycloak plugin', { error })
+      
+      // Re-throw authentication errors to preserve their type
+      if (error instanceof AuthenticationError) {
+        throw error
+      }
+      
+      // For other errors, check if they might be auth-related
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('Unauthorized') || 
+          errorMessage.includes('Invalid token') ||
+          errorMessage.includes('Token expired') ||
+          errorMessage.includes('authentication') ||
+          errorMessage.includes('401')) {
+        throw new AuthenticationError(`Authentication failed: ${errorMessage}`);
+      }
+      
+      // For all other errors, re-throw as-is
       throw error
     }
   })

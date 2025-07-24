@@ -48,7 +48,7 @@ async function registerPublicKeyForClient(admin: KcAdminClient, clientId: string
  * All routes now use the user's access token to perform operations,
  * acting as a secure proxy for Keycloak admin operations.
  */
-export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: ['smart-apps'] })
+export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart-apps'] })
   .use(keycloakPlugin)
 
   .get('/', async ({ getAdmin, headers, set }) => {

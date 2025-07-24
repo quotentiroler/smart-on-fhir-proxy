@@ -14,17 +14,62 @@ import {
 let onAuthError: (() => void) | null = null;
 
 export const setAuthErrorHandler = (handler: () => void) => {
+  console.log('Auth error handler set');
   onAuthError = handler;
 };
 
 // Wrapper function to handle authentication errors
 export const handleApiError = (error: unknown) => {
-  if (error instanceof ResponseError && (error.response.status === 401 || error.response.status === 403)) {
-    console.warn('Authentication error detected, triggering logout');
-    if (onAuthError) {
-      onAuthError();
+  console.log('handleApiError called with:', error);
+  
+  // Check for ResponseError first
+  if (error instanceof ResponseError) {
+    console.log('ResponseError detected, status:', error.response.status);
+    if (error.response.status === 401 || error.response.status === 403) {
+      console.warn('Authentication error detected (ResponseError), triggering logout');
+      if (onAuthError) {
+        onAuthError();
+        return; // Don't throw again, auth error handler will handle logout
+      }
     }
   }
+  
+  // Check for other error formats that might contain status
+  if (error && typeof error === 'object') {
+    const err = error as Record<string, unknown>;
+    // Check various possible error formats
+    const status = (err.status as number) || 
+                  ((err.response as Record<string, unknown>)?.status as number) || 
+                  ((err.responseData as Record<string, unknown>)?.status as number);
+    if (status === 401 || status === 403) {
+      console.warn('Authentication error detected (status check), triggering logout');
+      if (onAuthError) {
+        onAuthError();
+        return; // Don't throw again
+      }
+    }
+    
+    // Check for HTTP 401 in error message
+    if (typeof err.message === 'string' && err.message.includes('401')) {
+      console.warn('Authentication error detected (message check), triggering logout');
+      if (onAuthError) {
+        onAuthError();
+        return; // Don't throw again
+      }
+    }
+    
+    // Check for nested error data
+    const responseData = err.responseData as Record<string, unknown>;
+    if (responseData && typeof responseData.error === 'string' && responseData.error.includes('401')) {
+      console.warn('Authentication error detected (responseData check), triggering logout');
+      if (onAuthError) {
+        onAuthError();
+        return; // Don't throw again
+      }
+    }
+  }
+  
+  console.log('No authentication error detected, rethrowing error');
   throw error;
 };
 

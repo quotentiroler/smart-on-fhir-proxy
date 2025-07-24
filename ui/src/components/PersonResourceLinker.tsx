@@ -24,36 +24,13 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-
-// FHIR Resource Types that can be linked to Person
-export type LinkedResourceType = 'Patient' | 'Practitioner' | 'RelatedPerson';
-
-// Identity Assurance Levels as per FHIR spec
-export type AssuranceLevel = 'level1' | 'level2' | 'level3' | 'level4';
-
-export interface PersonLink {
-  id: string;
-  target: {
-    resourceType: LinkedResourceType;
-    reference: string;
-    display?: string;
-  };
-  assurance: AssuranceLevel;
-  created: string;
-  notes?: string;
-}
-
-export interface PersonResource {
-  id: string;
-  serverName: string;
-  serverUrl: string;
-  display: string;
-  name: {
-    family: string;
-    given: string[];
-  };
-  links: PersonLink[];
-}
+import {
+  type PersonResource,
+  type PersonLink,
+  type LinkedResourceType,
+  type AssuranceLevel,
+  validateFhirReference,
+} from '@/lib/fhir-types';
 
 interface PersonResourceLinkerProps {
   availablePersons?: PersonResource[];
@@ -80,7 +57,7 @@ export function PersonResourceLinker({
     notes: ''
   });
 
-  const selectedPerson = availablePersons?.find(p => p.id === selectedPersonId);
+  const selectedPerson = availablePersons?.find(p => (p.id || p.display) === selectedPersonId);
 
   // Get resource type icon
   const getResourceTypeIcon = (resourceType: LinkedResourceType) => {
@@ -114,7 +91,14 @@ export function PersonResourceLinker({
 
   // Add new link
   const handleAddLink = () => {
-    if (!selectedPerson || !newLink.target?.reference) {
+    if (!selectedPerson || !newLink.target?.reference || !newLink.target?.resourceType) {
+      return;
+    }
+
+    // Validate FHIR reference format
+    if (!validateFhirReference(newLink.target.reference, newLink.target.resourceType)) {
+      // You might want to show an error message here
+      console.error('Invalid FHIR reference format');
       return;
     }
 
@@ -131,7 +115,7 @@ export function PersonResourceLinker({
     };
 
     const updatedLinks = [...selectedPerson.links, link];
-    onPersonUpdate(selectedPersonId, updatedLinks);
+    onPersonUpdate(selectedPerson.id || selectedPerson.display, updatedLinks);
     setShowAddLinkForm(false);
     resetNewLinkForm();
   };
@@ -141,7 +125,7 @@ export function PersonResourceLinker({
     if (!selectedPerson) return;
     
     const updatedLinks = selectedPerson.links.filter(link => link.id !== linkId);
-    onPersonUpdate(selectedPersonId, updatedLinks);
+    onPersonUpdate(selectedPerson.id || selectedPerson.display, updatedLinks);
   };
 
   // Reset new link form
@@ -194,12 +178,15 @@ export function PersonResourceLinker({
               </SelectTrigger>
               <SelectContent>
                 {availablePersons.map((person) => (
-                  <SelectItem key={person.id} value={person.id}>
+                  <SelectItem key={person.id || person.display} value={person.id || person.display}>
                     <div className="flex items-center space-x-2">
                       <User className="w-4 h-4" />
                       <span>{person.display}</span>
                       <Badge variant="outline" className="text-xs">
-                        {person.serverName}
+                        {person.serverInfo.displayName}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600">
+                        {person.serverInfo.version}
                       </Badge>
                     </div>
                   </SelectItem>
@@ -214,15 +201,20 @@ export function PersonResourceLinker({
                     <User className="w-5 h-5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="font-semibold text-blue-900">{selectedPerson.display}</p>
+                    <p className="font-semibold text-blue-900">
+                      {selectedPerson.display.split(' (')[0]} {/* Extract name without the ID part */}
+                    </p>
                     <div className="flex items-center space-x-2 mt-1">
                       <Database className="w-4 h-4 text-blue-600" />
                       <span className="text-sm text-blue-700">
-                        <strong>Server:</strong> {selectedPerson.serverName}
+                        <strong>Server:</strong> {selectedPerson.serverInfo.displayName}
                       </span>
                     </div>
                     <p className="text-xs text-blue-600 mt-1">
-                      <strong>Person ID:</strong> {selectedPerson.id}
+                      <strong>Person ID:</strong> {selectedPerson.id || 'N/A'}
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      <strong>FHIR Version:</strong> {selectedPerson.serverInfo.version}
                     </p>
                   </div>
                   <div className="ml-auto">
@@ -247,7 +239,7 @@ export function PersonResourceLinker({
                     <span>2. Manage Resource Links</span>
                   </CardTitle>
                   <CardDescription>
-                    Add or remove links to other resources on {selectedPerson.serverName}
+                    Add or remove links to other resources on {selectedPerson.serverInfo.displayName}
                   </CardDescription>
                 </div>
                 <Button
@@ -269,10 +261,18 @@ export function PersonResourceLinker({
                       <Label className="text-sm font-medium">Resource Type</Label>
                       <Select
                         value={newLink.target?.resourceType}
-                        onValueChange={(value) => setNewLink(prev => ({
-                          ...prev,
-                          target: { ...prev.target!, resourceType: value as LinkedResourceType }
-                        }))}
+                        onValueChange={(value) => {
+                          const currentId = newLink.target?.reference?.split('/')[1] || '';
+                          const newReference = currentId ? `${value}/${currentId}` : '';
+                          setNewLink(prev => ({
+                            ...prev,
+                            target: { 
+                              ...prev.target!, 
+                              resourceType: value as LinkedResourceType,
+                              reference: newReference
+                            }
+                          }));
+                        }}
                       >
                         <SelectTrigger className="rounded-xl">
                           <SelectValue placeholder="Select resource type" />
@@ -323,19 +323,28 @@ export function PersonResourceLinker({
                   </div>
 
                   <div className="mt-4">
-                    <Label className="text-sm font-medium">Resource Reference</Label>
+                    <Label className="text-sm font-medium">Resource ID</Label>
                     <Input
-                      placeholder="e.g., Patient/123 or Practitioner/456"
-                      value={newLink.target?.reference}
-                      onChange={(e) => setNewLink(prev => ({
-                        ...prev,
-                        target: { ...prev.target!, reference: e.target.value }
-                      }))}
+                      placeholder="e.g., 123 or 456"
+                      value={newLink.target?.reference?.split('/')[1] || ''}
+                      onChange={(e) => {
+                        const resourceType = newLink.target?.resourceType || 'Patient';
+                        const fullReference = e.target.value ? `${resourceType}/${e.target.value}` : '';
+                        setNewLink(prev => ({
+                          ...prev,
+                          target: { ...prev.target!, reference: fullReference }
+                        }));
+                      }}
                       className="rounded-xl"
                     />
                     <p className="text-xs text-gray-600 mt-1">
-                      Enter the resource ID that exists on {selectedPerson.serverName}
+                      Enter just the ID that exists on {selectedPerson.serverInfo.displayName}
                     </p>
+                    {newLink.target?.reference && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        <strong>Full reference:</strong> {newLink.target.reference}
+                      </p>
+                    )}
                   </div>
 
                   <div className="mt-4">
@@ -418,7 +427,7 @@ export function PersonResourceLinker({
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => window.open(`${selectedPerson.serverUrl}/${link.target.reference}`, '_blank')}
+                            onClick={() => window.open(`${selectedPerson.serverInfo.baseUrl}/${link.target.reference}`, '_blank')}
                             className="h-8 w-8 p-0 rounded-lg hover:bg-gray-100"
                           >
                             <ExternalLink className="w-4 h-4" />
@@ -450,7 +459,7 @@ export function PersonResourceLinker({
                     No links yet
                   </h3>
                   <p className="text-gray-600 mb-4">
-                    Link this Person to other resources on {selectedPerson.serverName}
+                    Link this Person to other resources on {selectedPerson.serverInfo.displayName}
                   </p>
                   <Button
                     onClick={() => setShowAddLinkForm(true)}

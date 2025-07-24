@@ -1,13 +1,13 @@
 import { Elysia, t } from 'elysia'
 import { keycloakPlugin } from '../../lib/keycloak-plugin'
 import { UserProfile, ErrorResponse, SuccessResponse, PaginationQuery } from '../../schemas/common'
-import { extractBearerToken, UNAUTHORIZED_RESPONSE, getValidatedAdmin, mapUserProfile } from '../../lib/admin-utils'
+import { extractBearerToken, UNAUTHORIZED_RESPONSE, getValidatedAdmin, mapUserProfile, AuthenticationError } from '../../lib/admin-utils'
 import { logger } from '../../lib/logger'
 
 /**
  * Healthcare User Management - specialized for healthcare professionals
  */
-export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-users' })
+export const healthcareUsersRoutes = new Elysia({ prefix: '/healthcare-users' })
   .use(keycloakPlugin)
   
   .get('/', async ({ getAdmin, query, set, headers }) => {
@@ -113,6 +113,35 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
       return healthcareUsers
     } catch (error) {
       logger.admin.error('Error in healthcare users endpoint', { error })
+      
+      // Check if it's an authentication error
+      if (error instanceof AuthenticationError) {
+        logger.admin.warn('AuthenticationError detected, returning 401')
+        set.status = 401
+        return UNAUTHORIZED_RESPONSE
+      }
+      
+      // Extract actual HTTP status from Keycloak response if available
+      const errorObj = error as Record<string, unknown>;
+      const response = errorObj?.response as Record<string, unknown> | undefined;
+      const keycloakStatus = response?.status as number | undefined;
+      
+      if (keycloakStatus && typeof keycloakStatus === 'number') {
+        logger.admin.warn(`Returning Keycloak status: ${keycloakStatus}`)
+        set.status = keycloakStatus
+        
+        // Return appropriate response based on status
+        if (keycloakStatus === 401) {
+          return UNAUTHORIZED_RESPONSE
+        } else if (keycloakStatus === 403) {
+          return { error: 'Forbidden - Insufficient permissions' }
+        } else {
+          return { error: 'Keycloak error', details: error }
+        }
+      }
+      
+      // Fallback to 500 for unknown errors
+      logger.admin.error('Unknown error, returning 500')
       set.status = 500
       return { error: 'Failed to fetch healthcare users', details: error }
     }
@@ -217,6 +246,33 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
       const created = result.id ? await admin.users.findOne({ id: result.id }) : undefined
       return created ? mapUserProfile(created) : { error: 'Failed to retrieve created user' }
     } catch (error) {
+      logger.admin.error('Error creating healthcare user', { error })
+      
+      // Check if it's an authentication error
+      if (error instanceof AuthenticationError) {
+        set.status = 401
+        return UNAUTHORIZED_RESPONSE
+      }
+      
+      // Extract actual HTTP status from Keycloak response if available
+      const errorObj = error as Record<string, unknown>;
+      const response = errorObj?.response as Record<string, unknown> | undefined;
+      const keycloakStatus = response?.status as number | undefined;
+      
+      if (keycloakStatus && typeof keycloakStatus === 'number') {
+        logger.admin.warn(`Returning Keycloak status: ${keycloakStatus}`)
+        set.status = keycloakStatus
+        
+        if (keycloakStatus === 401) {
+          return UNAUTHORIZED_RESPONSE
+        } else if (keycloakStatus === 403) {
+          return { error: 'Forbidden - Insufficient permissions' }
+        } else {
+          return { error: 'Keycloak error', details: error }
+        }
+      }
+      
+      // For validation or other client errors
       set.status = 400
       return { error: 'Failed to create healthcare user', details: error }
     }
@@ -272,6 +328,26 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
       }
       return mapUserProfile(user)
     } catch (error) {
+      // Extract actual HTTP status from Keycloak response if available
+      const errorObj = error as Record<string, unknown>;
+      const response = errorObj?.response as Record<string, unknown> | undefined;
+      const keycloakStatus = response?.status as number | undefined;
+      
+      if (keycloakStatus && typeof keycloakStatus === 'number') {
+        logger.admin.warn(`Get user - returning Keycloak status: ${keycloakStatus}`)
+        set.status = keycloakStatus
+        
+        if (keycloakStatus === 401) {
+          return UNAUTHORIZED_RESPONSE
+        } else if (keycloakStatus === 403) {
+          return { error: 'Forbidden - Insufficient permissions' }
+        } else if (keycloakStatus === 404) {
+          return { error: 'Healthcare user not found' }
+        } else {
+          return { error: 'Keycloak error', details: error }
+        }
+      }
+      
       set.status = 500
       return { error: 'Failed to fetch healthcare user', details: error }
     }
@@ -407,6 +483,26 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
       }
       return mapUserProfile(updated)
     } catch (error) {
+      // Extract actual HTTP status from Keycloak response if available
+      const errorObj = error as Record<string, unknown>;
+      const response = errorObj?.response as Record<string, unknown> | undefined;
+      const keycloakStatus = response?.status as number | undefined;
+      
+      if (keycloakStatus && typeof keycloakStatus === 'number') {
+        logger.admin.warn(`Update user - returning Keycloak status: ${keycloakStatus}`)
+        set.status = keycloakStatus
+        
+        if (keycloakStatus === 401) {
+          return UNAUTHORIZED_RESPONSE
+        } else if (keycloakStatus === 403) {
+          return { error: 'Forbidden - Insufficient permissions' }
+        } else if (keycloakStatus === 404) {
+          return { error: 'Healthcare user not found' }
+        } else {
+          return { error: 'Keycloak error', details: error }
+        }
+      }
+      
       set.status = 400
       return { error: 'Failed to update healthcare user', details: error }
     }
@@ -461,6 +557,26 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/admin/healthcare-use
       await admin.users.del({ id: params.userId })
       return { success: true, message: 'Healthcare user deleted successfully' }
     } catch (error) {
+      // Extract actual HTTP status from Keycloak response if available
+      const errorObj = error as Record<string, unknown>;
+      const response = errorObj?.response as Record<string, unknown> | undefined;
+      const keycloakStatus = response?.status as number | undefined;
+      
+      if (keycloakStatus && typeof keycloakStatus === 'number') {
+        logger.admin.warn(`Delete user - returning Keycloak status: ${keycloakStatus}`)
+        set.status = keycloakStatus
+        
+        if (keycloakStatus === 401) {
+          return UNAUTHORIZED_RESPONSE
+        } else if (keycloakStatus === 403) {
+          return { error: 'Forbidden - Insufficient permissions' }
+        } else if (keycloakStatus === 404) {
+          return { error: 'Healthcare user not found or could not be deleted' }
+        } else {
+          return { error: 'Keycloak error', details: error }
+        }
+      }
+      
       set.status = 404
       return { error: 'Healthcare user not found or could not be deleted', details: error }
     }

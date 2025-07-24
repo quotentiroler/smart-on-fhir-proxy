@@ -11,6 +11,7 @@ export const useAuthSetup = () => {
 
   useEffect(() => {
     // Set up global auth error handler
+    console.log('Setting up auth error handler');
     setAuthErrorHandler(() => {
       console.log('Authentication failed, logging out user');
       logout();
