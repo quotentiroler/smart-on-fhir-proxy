@@ -9,7 +9,13 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "generate": "bunx @openapitools/openapi-generator-cli generate -i http://localhost:8445/swagger/json -g typescript-fetch -o ./src/lib/api-client --skip-validate-spec",
-    "validate-api": "bunx @openapitools/openapi-generator-cli validate -i http://localhost:8445/swagger/json"
+    "validate-api": "bunx @openapitools/openapi-generator-cli validate -i http://localhost:8445/swagger/json",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:codegen": "playwright codegen",
+    "test:report": "playwright show-report"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -48,6 +54,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
+    "@playwright/test": "^1.54.1",
     "@tailwindcss/postcss": "^4.1.11",
     "@types/crypto-js": "^4.2.2",
     "@types/node": "^24.0.10",
