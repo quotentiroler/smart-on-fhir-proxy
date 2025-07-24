@@ -18,6 +18,7 @@ import type {
   GetAuthUserinfo200Response,
   PostAuthIntrospect200Response,
   PostAuthIntrospectRequest,
+  PostAuthRegisterRequest,
   PostAuthToken200Response,
   PostAuthTokenRequest,
   PostFhirServers401Response,
@@ -29,6 +30,8 @@ import {
     PostAuthIntrospect200ResponseToJSON,
     PostAuthIntrospectRequestFromJSON,
     PostAuthIntrospectRequestToJSON,
+    PostAuthRegisterRequestFromJSON,
+    PostAuthRegisterRequestToJSON,
     PostAuthToken200ResponseFromJSON,
     PostAuthToken200ResponseToJSON,
     PostAuthTokenRequestFromJSON,
@@ -70,6 +73,10 @@ export interface GetAuthUserinfoRequest {
 
 export interface PostAuthIntrospectOperationRequest {
     postAuthIntrospectRequest: PostAuthIntrospectRequest;
+}
+
+export interface PostAuthRegisterOperationRequest {
+    postAuthRegisterRequest: PostAuthRegisterRequest;
 }
 
 export interface PostAuthTokenOperationRequest {
@@ -332,6 +339,46 @@ export class AuthenticationApi extends runtime.BaseAPI {
     async postAuthIntrospect(requestParameters: PostAuthIntrospectOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostAuthIntrospect200Response> {
         const response = await this.postAuthIntrospectRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Register a new OAuth2 client dynamically according to RFC 7591. This is a public endpoint that does not require authentication.
+     * Dynamic Client Registration
+     */
+    async postAuthRegisterRaw(requestParameters: PostAuthRegisterOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        if (requestParameters['postAuthRegisterRequest'] == null) {
+            throw new runtime.RequiredError(
+                'postAuthRegisterRequest',
+                'Required parameter "postAuthRegisterRequest" was null or undefined when calling postAuthRegister().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/auth/register`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PostAuthRegisterRequestToJSON(requestParameters['postAuthRegisterRequest']),
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Register a new OAuth2 client dynamically according to RFC 7591. This is a public endpoint that does not require authentication.
+     * Dynamic Client Registration
+     */
+    async postAuthRegister(requestParameters: PostAuthRegisterOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.postAuthRegisterRaw(requestParameters, initOverrides);
     }
 
     /**

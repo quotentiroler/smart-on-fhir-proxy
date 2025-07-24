@@ -59,9 +59,7 @@ export async function getValidatedAdmin(
   logger.debug('admin', 'getValidatedAdmin called', { tokenLength: token.length })
   
   try {
-    logger.debug('admin', 'Calling getAdmin function...')
     const adminClient = await getAdmin(token)
-    logger.debug('admin', 'getAdmin function completed successfully')
     return adminClient
   } catch (error) {
     logger.error('admin', 'Error in getValidatedAdmin', { 

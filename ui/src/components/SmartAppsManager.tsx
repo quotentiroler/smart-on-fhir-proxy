@@ -1,20 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -27,64 +13,30 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '@/components/ui/tabs';
 import { useState, useEffect } from 'react';
 import { 
-  MoreHorizontal, 
   Plus, 
-  Settings, 
   Shield, 
-  Activity, 
-  Edit, 
-  Eye, 
-  Trash2, 
   X,
   Database,
   CheckCircle,
   AlertCircle,
-  Server,
-  Users,
-  Globe
+  UserPlus
 } from 'lucide-react';
 import { SmartAppAddForm } from './SmartAppAddForm';
+import { SmartAppsTable } from './SmartAppsTable';
+import { SmartAppsStatistics } from './SmartAppsStatistics';
+import { DynamicClientRegistrationSettings } from './DynamicClientRegistrationSettings';
 import { createAuthenticatedApiClients, handleApiError } from '@/lib/apiClient';
+import { useAppStore } from '@/stores/appStore';
 import type { GetAdminSmartApps200ResponseInner } from '@/lib/api-client';
-
-// SMART on FHIR App Types
-type SmartAppType = 'backend-service' | 'standalone-app' | 'ehr-launch-app' | 'agent';
-type AuthenticationType = 'asymmetric' | 'symmetric' | 'none';
-
-// FHIR Server Access Types
-type ServerAccessType = 'all-servers' | 'specific-servers' | 'user-person-servers';
-
-// Interface for Scope Sets (matching ScopeManager)
-interface ScopeSet {
-  id: string;
-  name: string;
-  description: string;
-  scopes: string[];
-  createdAt: string;
-  updatedAt: string;
-  isTemplate: boolean;
-}
-
-// Enhanced Smart App interface with scope management and server access control
-interface SmartApp {
-  id: string;
-  name: string;
-  clientId: string;
-  redirectUri: string;
-  scopes: string[];
-  scopeSetId?: string; // Reference to selected scope set
-  customScopes: string[]; // Additional custom scopes
-  status: 'active' | 'inactive';
-  lastUsed: string;
-  description: string;
-  appType: SmartAppType;
-  authenticationType: AuthenticationType;
-  // Server Access Configuration
-  serverAccessType: ServerAccessType;
-  allowedServerIds?: string[]; // For 'specific-servers' type
-}
+import type { SmartApp, ScopeSet } from '@/types/smartApp';
 
 // Mock data for SMART on FHIR applications
 const mockApps: SmartApp[] = [
@@ -193,6 +145,7 @@ const mockApps: SmartApp[] = [
 ];
 
 export function SmartAppsManager() {
+  const { smartAppsManagerTab, setSmartAppsManagerTab } = useAppStore();
   const [apps, setApps] = useState<SmartApp[]>([]);
   const [loading, setLoading] = useState(true);
   const [backendApps, setBackendApps] = useState<GetAdminSmartApps200ResponseInner[]>([]);
@@ -200,35 +153,6 @@ export function SmartAppsManager() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showScopeDialog, setShowScopeDialog] = useState(false);
   const [editingApp, setEditingApp] = useState<SmartApp | null>(null);
-
-  const getServerAccessBadge = (app: SmartApp) => {
-    switch (app.serverAccessType) {
-      case 'all-servers':
-        return {
-          label: 'All Servers',
-          className: 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300',
-          icon: Globe,
-        };
-      case 'specific-servers':
-        return {
-          label: `${app.allowedServerIds?.length || 0} Servers`,
-          className: 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300',
-          icon: Server,
-        };
-      case 'user-person-servers':
-        return {
-          label: 'User Person Servers',
-          className: 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border-purple-300',
-          icon: Users,
-        };
-      default:
-        return {
-          label: 'Unknown',
-          className: 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-300',
-          icon: AlertCircle,
-        };
-    }
-  };
 
   // Load scope sets from ScopeManager
   useEffect(() => {
@@ -292,51 +216,6 @@ export function SmartAppsManager() {
     fetchApps();
   }, []);
 
-  const getAppTypeBadge = (appType: SmartAppType, authenticationType: AuthenticationType) => {
-    switch (appType) {
-      case 'backend-service':
-        return {
-          label: 'Backend Service',
-          className: 'bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 border-orange-300',
-        };
-      case 'standalone-app':
-        return {
-          label: `Standalone (${authenticationType === 'asymmetric' ? 'Asymmetric' : 'Symmetric'})`,
-          className: 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300',
-        };
-      case 'ehr-launch-app':
-        return {
-          label: `EHR Launch (${authenticationType === 'asymmetric' ? 'Asymmetric' : 'Symmetric'})`,
-          className: 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300',
-        };
-      case 'agent':
-        return {
-          label: `AI Agent (${authenticationType === 'asymmetric' ? 'Asymmetric' : 'Symmetric'})`,
-          className: 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border-purple-300',
-        };
-      default:
-        return {
-          label: 'Unknown',
-          className: 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-300',
-        };
-    }
-  };
-
-  const getAppTypeIcon = (appType: SmartAppType) => {
-    switch (appType) {
-      case 'backend-service':
-        return '🔧';
-      case 'standalone-app':
-        return '📱';
-      case 'ehr-launch-app':
-        return '🏥';
-      case 'agent':
-        return '🤖';
-      default:
-        return '❓';
-    }
-  };
-
   const handleAddApp = (appData: Omit<SmartApp, 'id' | 'status' | 'lastUsed'>) => {
     const app: SmartApp = {
       ...appData,
@@ -398,65 +277,81 @@ export function SmartAppsManager() {
   };
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-8 space-y-8 bg-background">
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-3 text-gray-600">Loading SMART applications...</span>
+          <span className="ml-3 text-muted-foreground">Loading SMART applications...</span>
         </div>
       ) : (
         <>
-      {/* Enhanced Header Section */}
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-8 rounded-3xl border border-indigo-100/50 shadow-lg">
-        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-6 lg:space-y-0">
-          <div className="flex-1">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
-              SMART on FHIR Applications
-            </h1>
-            <div className="text-gray-600 text-lg flex items-center">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-3 shadow-sm">
-                <Shield className="w-5 h-5 text-blue-600" />
+          {/* Enhanced Header Section */}
+          <div className="bg-card/80 backdrop-blur-sm p-8 rounded-3xl border border-border/50 shadow-lg">
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-6 lg:space-y-0">
+              <div className="flex-1">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
+                  SMART on FHIR Applications
+                </h1>
+                <div className="text-muted-foreground text-lg flex items-center">
+                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center mr-3 shadow-sm">
+                    <Shield className="w-5 h-5 text-primary" />
+                  </div>
+                  Manage registered healthcare applications and their SMART on FHIR permissions
+                </div>
+                {isShowingMockData && (
+                  <div className="mt-4 flex items-center space-x-2 text-sm">
+                    <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                    <span className="text-orange-700 dark:text-orange-300 font-medium">
+                      Showing sample applications - no real apps found in backend
+                    </span>
+                  </div>
+                )}
+                {scopeSets.length > 0 && (
+                  <div className="mt-4 flex items-center space-x-2 text-sm">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-emerald-700 dark:text-emerald-300 font-medium">
+                      {scopeSets.length} scope templates available for quick configuration
+                    </span>
+                  </div>
+                )}
               </div>
-              Manage registered healthcare applications and their SMART on FHIR permissions
+              <Button
+                onClick={() => setShowAddForm(true)}
+                className="px-8 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-blue-500/20"
+              >
+                <Plus className="h-5 h-5 mr-2" />
+                Register New App
+              </Button>
             </div>
-            {isShowingMockData && (
-              <div className="mt-4 flex items-center space-x-2 text-sm">
-                <AlertCircle className="w-4 h-4 text-orange-600" />
-                <span className="text-orange-700 font-medium">
-                  Showing sample applications - no real apps found in backend
-                </span>
-              </div>
-            )}
-            {scopeSets.length > 0 && (
-              <div className="mt-4 flex items-center space-x-2 text-sm">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <span className="text-green-700 font-medium">
-                  {scopeSets.length} scope templates available for quick configuration
-                </span>
-              </div>
-            )}
           </div>
-          <Button
-            onClick={() => setShowAddForm(true)}
-            className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/20"
-          >
-            <Plus className="h-5 h-5 mr-2" />
-            Register New App
-          </Button>
-        </div>
-      </div>
+
+          {/* Tabs for different sections */}
+          <div className="bg-card/70 backdrop-blur-sm rounded-2xl border border-border/50 shadow-lg">
+            <Tabs value={smartAppsManagerTab} onValueChange={setSmartAppsManagerTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 bg-muted/50 rounded-t-2xl">
+                <TabsTrigger value="apps" className="flex items-center space-x-2 rounded-xl data-[state=active]:bg-background data-[state=active]:text-foreground">
+                  <Shield className="w-4 h-4" />
+                  <span>Registered Apps</span>
+                </TabsTrigger>
+                <TabsTrigger value="registration" className="flex items-center space-x-2 rounded-xl data-[state=active]:bg-background data-[state=active]:text-foreground">
+                  <UserPlus className="w-4 h-4" />
+                  <span>Dynamic Registration</span>
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="apps" className="p-6 space-y-6">
 
       {/* Add App Form - Inline when shown */}
       {showAddForm && (
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-8 mb-8">
+        <div className="bg-card/70 backdrop-blur-sm rounded-2xl border border-border/50 shadow-lg p-8 mb-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm">
-                <Plus className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-emerald-500/10 dark:bg-emerald-400/20 rounded-xl flex items-center justify-center shadow-sm">
+                <Plus className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Register New Application</h3>
-                <p className="text-gray-600 font-medium">Configure a new SMART on FHIR application</p>
+                <h3 className="text-xl font-bold text-foreground tracking-tight">Register New Application</h3>
+                <p className="text-muted-foreground font-medium">Configure a new SMART on FHIR application</p>
               </div>
             </div>
             <Button
@@ -478,270 +373,30 @@ export function SmartAppsManager() {
       )}
 
       {/* Enhanced Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Activity className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="text-sm font-semibold text-blue-800 tracking-wide">Total Apps</div>
-              </div>
-              <div className="text-3xl font-bold text-blue-900 mb-2">{apps.length}</div>
-            </div>
-          </div>
-        </div>
+      <SmartAppsStatistics apps={apps} />
 
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Shield className="w-6 h-6 text-green-600" />
-                </div>
-                <div className="text-sm font-semibold text-green-800 tracking-wide">EHR Launch</div>
-              </div>
-              <div className="text-3xl font-bold text-green-900 mb-2">
-                {apps.filter(app => app.appType === 'ehr-launch-app').length}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Activity className="w-6 h-6 text-blue-600" />
-                </div>
-                <div className="text-sm font-semibold text-blue-800 tracking-wide">Standalone</div>
-              </div>
-              <div className="text-3xl font-bold text-blue-900 mb-2">
-                {apps.filter(app => app.appType === 'standalone-app').length}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Settings className="w-6 h-6 text-orange-600" />
-                </div>
-                <div className="text-sm font-semibold text-orange-800 tracking-wide">Backend Service</div>
-              </div>
-              <div className="text-3xl font-bold text-orange-900 mb-2">
-                {apps.filter(app => app.appType === 'backend-service').length}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <span className="text-xl">🤖</span>
-                </div>
-                <div className="text-sm font-semibold text-purple-800 tracking-wide">AI Agents</div>
-              </div>
-              <div className="text-3xl font-bold text-purple-900 mb-2">
-                {apps.filter(app => app.appType === 'agent').length}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    
       {/* Enhanced Applications Table */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
-        <div className="p-8 pb-6">
-          <div className="flex items-center space-x-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl flex items-center justify-center shadow-sm">
-              <Settings className="w-6 h-6 text-indigo-600" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 tracking-tight">Registered Applications</h3>
-              <p className="text-gray-600 font-medium">View and manage all SMART on FHIR applications</p>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="border-gray-200/50">
-                  <TableHead className="font-semibold text-gray-700">Application</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Type & Auth</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Server Access</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Client ID</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Scopes</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Last Used</TableHead>
-                  <TableHead className="w-12"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {apps.map((app) => {
-                  const appTypeBadge = getAppTypeBadge(app.appType, app.authenticationType);
-                  return (
-                    <TableRow key={app.id} className="border-gray-200/50 hover:bg-gray-50/50 transition-colors duration-200">
-                      <TableCell>
-                        <div className="py-2">
-                          <div className="flex items-center space-x-3">
-                            <span className="text-lg">{getAppTypeIcon(app.appType)}</span>
-                            <div>
-                              <div className="font-semibold text-gray-900">{app.name}</div>
-                              <div className="text-sm text-gray-600 mt-1">{app.description}</div>
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`${appTypeBadge.className} shadow-sm`}>
-                          {appTypeBadge.label}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {(() => {
-                          const accessBadge = getServerAccessBadge(app);
-                          const IconComponent = accessBadge.icon;
-                          return (
-                            <div className="space-y-1">
-                              <Badge className={`${accessBadge.className} shadow-sm`}>
-                                <IconComponent className="w-3 h-3 mr-1" />
-                                {accessBadge.label}
-                              </Badge>
-                              {app.serverAccessType === 'specific-servers' && app.allowedServerIds && (
-                                <div className="text-xs text-gray-500">
-                                  {app.allowedServerIds.join(', ')}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </TableCell>
-                      <TableCell>
-                        <code className="bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-2 rounded-lg text-sm font-medium text-gray-800 shadow-sm">
-                          {app.clientId}
-                        </code>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={app.status === 'active' ? 'default' : 'secondary'}
-                          className={app.status === 'active'
-                            ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-sm'
-                            : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-300 shadow-sm'
-                          }
-                        >
-                          {app.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-700">
-                              {getScopeSetName(app.scopeSetId)}
-                            </span>
-                            <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
-                              {app.scopes.length} scopes
-                            </Badge>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {app.scopes.slice(0, 2).map((scope, index) => (
-                              <Badge key={index} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 font-mono">
-                                {scope.split('/')[1]?.split('.')[0] || scope}
-                              </Badge>
-                            ))}
-                            {app.scopes.length > 2 && (
-                              <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
-                                +{app.scopes.length - 2}
-                              </Badge>
-                            )}
-                          </div>
-                          {app.customScopes.length > 0 && (
-                            <div className="flex items-center space-x-1">
-                              <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
-                                +{app.customScopes.length} custom
-                              </Badge>
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600 font-medium">
-                        {app.lastUsed}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-10 w-10 p-0 rounded-xl hover:bg-gray-100 transition-colors duration-200">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-xl border-gray-200/50 shadow-lg">
-                            <DropdownMenuItem onClick={() => toggleAppStatus(app.id)} className="rounded-lg">
-                              <div className="flex items-center">
-                                {app.status === 'active' ? (
-                                  <X className="w-4 h-4 mr-2 text-red-600" />
-                                ) : (
-                                  <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
-                                )}
-                                {app.status === 'active' ? 'Deactivate' : 'Activate'}
-                              </div>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => openScopeEditor(app)} className="rounded-lg">
-                              <Shield className="w-4 h-4 mr-2 text-blue-600" />
-                              Manage Scopes
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-lg">
-                              <Edit className="w-4 h-4 mr-2 text-gray-600" />
-                              Edit Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-lg">
-                              <Eye className="w-4 h-4 mr-2 text-gray-600" />
-                              View Configuration
-                            </DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-lg">
-                              <Settings className="w-4 h-4 mr-2 text-gray-600" />
-                              Authentication Settings
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => deleteApp(app.id)}
-                              className="text-red-600 rounded-lg hover:bg-red-50"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      </div>
+      <SmartAppsTable
+        apps={apps}
+        scopeSets={scopeSets}
+        onToggleAppStatus={toggleAppStatus}
+        onOpenScopeEditor={openScopeEditor}
+        onDeleteApp={deleteApp}
+      />
 
       {/* Scope Management Dialog */}
       <Dialog open={showScopeDialog} onOpenChange={setShowScopeDialog}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader className="pb-6">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                <Shield className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm">
+                <Shield className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <DialogTitle className="text-2xl font-bold text-gray-900 tracking-tight">
+                <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">
                   Manage Scopes: {editingApp?.name}
                 </DialogTitle>
-                <DialogDescription className="text-gray-600 font-medium mt-1">
+                <DialogDescription className="text-muted-foreground font-medium mt-1">
                   Configure SMART on FHIR scopes for this application
                 </DialogDescription>
               </div>
@@ -751,43 +406,43 @@ export function SmartAppsManager() {
           {editingApp && (
             <div className="space-y-6">
               {/* Current Configuration */}
-              <Card className="bg-blue-50/50 border-blue-200/50">
+              <Card className="bg-primary/5 border-primary/20">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center">
-                    <Database className="w-5 h-5 mr-2 text-blue-600" />
+                  <CardTitle className="text-lg font-bold text-foreground flex items-center">
+                    <Database className="w-5 h-5 mr-2 text-primary" />
                     Current Configuration
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <div className="text-sm font-semibold text-gray-700 mb-2">Current Scope Set</div>
-                      <div className="p-3 bg-white rounded-lg border">
-                        <span className="font-medium text-gray-900">
+                      <div className="text-sm font-semibold text-muted-foreground mb-2">Current Scope Set</div>
+                      <div className="p-3 bg-background rounded-lg border border-border">
+                        <span className="font-medium text-foreground">
                           {getScopeSetName(editingApp.scopeSetId)}
                         </span>
                         {editingApp.scopeSetId && (
-                          <p className="text-xs text-gray-600 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {scopeSets.find(set => set.id === editingApp.scopeSetId)?.description}
                           </p>
                         )}
                       </div>
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-gray-700 mb-2">Total Scopes</div>
-                      <div className="p-3 bg-white rounded-lg border">
-                        <span className="font-bold text-2xl text-blue-600">{editingApp.scopes.length}</span>
-                        <span className="text-sm text-gray-600 ml-2">active scopes</span>
+                      <div className="text-sm font-semibold text-muted-foreground mb-2">Total Scopes</div>
+                      <div className="p-3 bg-background rounded-lg border border-border">
+                        <span className="font-bold text-2xl text-primary">{editingApp.scopes.length}</span>
+                        <span className="text-sm text-muted-foreground ml-2">active scopes</span>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-sm font-semibold text-gray-700 mb-2">Active Scopes</div>
-                    <div className="bg-white p-4 rounded-lg border max-h-32 overflow-y-auto">
+                    <div className="text-sm font-semibold text-muted-foreground mb-2">Active Scopes</div>
+                    <div className="bg-background p-4 rounded-lg border border-border max-h-32 overflow-y-auto">
                       <div className="flex flex-wrap gap-2">
                         {editingApp.scopes.map((scope, index) => (
-                          <Badge key={index} variant="outline" className="text-xs font-mono bg-green-50 text-green-800 border-green-200">
+                          <Badge key={index} variant="outline" className="text-xs font-mono bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20">
                             {scope}
                           </Badge>
                         ))}
@@ -798,17 +453,17 @@ export function SmartAppsManager() {
               </Card>
 
               {/* Scope Set Selection */}
-              <Card className="bg-white/70 border-gray-200/50">
+              <Card className="bg-card border-border">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center">
-                    <Shield className="w-5 h-5 mr-2 text-purple-600" />
+                  <CardTitle className="text-lg font-bold text-foreground flex items-center">
+                    <Shield className="w-5 h-5 mr-2 text-violet-600 dark:text-violet-400" />
                     Update Scope Configuration
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-3">
-                      <div className="text-sm font-semibold text-gray-700">Select Scope Set</div>
+                      <div className="text-sm font-semibold text-muted-foreground">Select Scope Set</div>
                       <select
                         value={editingApp.scopeSetId || ''}
                         onChange={(e) => {
@@ -822,7 +477,7 @@ export function SmartAppsManager() {
                               : editingApp.customScopes
                           });
                         }}
-                        className="flex h-10 w-full rounded-xl border border-gray-300 bg-background px-3 py-2 text-sm shadow-sm"
+                        className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm text-foreground"
                       >
                         <option value="">Custom Scopes Only</option>
                         {scopeSets.map((scopeSet) => (
@@ -833,7 +488,7 @@ export function SmartAppsManager() {
                       </select>
                     </div>
                     <div className="space-y-3">
-                      <div className="text-sm font-semibold text-gray-700">Additional Custom Scopes</div>
+                      <div className="text-sm font-semibold text-muted-foreground">Additional Custom Scopes</div>
                       <textarea
                         value={editingApp.customScopes.join('\n')}
                         onChange={(e) => {
@@ -848,7 +503,7 @@ export function SmartAppsManager() {
                           });
                         }}
                         rows={5}
-                        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm font-mono focus:border-blue-500 focus:ring-blue-500"
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm font-mono text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-ring"
                         placeholder="patient/Patient.read&#10;patient/Observation.read&#10;openid profile"
                       />
                     </div>
@@ -865,6 +520,13 @@ export function SmartAppsManager() {
           )}
         </DialogContent>
       </Dialog>
+              </TabsContent>
+
+              <TabsContent value="registration" className="p-6 space-y-6">
+                <DynamicClientRegistrationSettings />
+              </TabsContent>
+            </Tabs>
+          </div>
         </>
       )}
     </div>

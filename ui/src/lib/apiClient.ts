@@ -1,4 +1,5 @@
 import { 
+  AdminApi,
   AuthenticationApi, 
   HealthcareUsersApi,
   IdentityProvidersApi,
@@ -84,6 +85,7 @@ const createConfig = (token?: string) => {
 };
 
 // Create individual API clients
+export const createAdminApi = (token?: string) => new AdminApi(createConfig(token));
 export const createAuthApi = (token?: string) => new AuthenticationApi(createConfig(token));
 export const createHealthcareUsersApi = (token?: string) => new HealthcareUsersApi(createConfig(token));
 export const createIdentityProvidersApi = (token?: string) => new IdentityProvidersApi(createConfig(token));
@@ -94,6 +96,7 @@ export const createServersApi = (token?: string) => new ServersApi(createConfig(
 
 // Create all API clients at once
 export const createApiClients = (token?: string) => ({
+  admin: createAdminApi(token),
   auth: createAuthApi(token),
   healthcareUsers: createHealthcareUsersApi(token),
   identityProviders: createIdentityProvidersApi(token),

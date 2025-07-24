@@ -51,5 +51,9 @@
   "Platform Version": "Platform Version",
   "Environment": "Environment",
   "Language": "Language",
+  "Theme": "Theme",
+  "Light": "Light",
+  "Dark": "Dark",
+  "System": "System",
   "Authenticating and preparing your clinical workspace": "TODO: Translate Authenticating and preparing your clinical workspace..."
 }

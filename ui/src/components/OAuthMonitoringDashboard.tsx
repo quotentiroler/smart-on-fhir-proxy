@@ -244,8 +244,8 @@ export function OAuthMonitoringDashboard() {
       <div className="p-8 space-y-6">
         <div className="flex items-center justify-center min-h-[400px]">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">{t('Loading OAuth monitoring data...')}</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+            <p className="mt-4 text-muted-foreground">{t('Loading OAuth monitoring data...')}</p>
           </div>
         </div>
       </div>
@@ -255,15 +255,15 @@ export function OAuthMonitoringDashboard() {
   return (
     <div className="p-8 space-y-8">
       {/* Enhanced Header Section */}
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-8 rounded-3xl border border-indigo-100/50 shadow-lg">
+      <div className="bg-gradient-to-r from-background to-muted/50 p-8 rounded-3xl border border-border shadow-lg">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-6 lg:space-y-0">
           <div className="flex-1">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
               {t('OAuth Flow Monitoring')}
             </h1>
-            <div className="text-gray-600 text-lg flex items-center">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-3 shadow-sm">
-                <Activity className="w-5 h-5 text-blue-600" />
+            <div className="text-muted-foreground text-lg flex items-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-primary/30 rounded-xl flex items-center justify-center mr-3 shadow-sm">
+                <Activity className="w-5 h-5 text-primary" />
               </div>
               {t('Real-time monitoring and analytics for OAuth 2.0 flows')}
             </div>
@@ -272,10 +272,10 @@ export function OAuthMonitoringDashboard() {
             <Button
               variant={isRealTimeActive ? "default" : "outline"}
               onClick={() => setIsRealTimeActive(!isRealTimeActive)}
-              className={`px-6 py-3 font-semibold rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/20 ${
+              className={`px-6 py-3 font-semibold rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-border ${
                 isRealTimeActive 
                   ? 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800' 
-                  : 'bg-white text-gray-700 hover:bg-gray-50'
+                  : 'bg-background text-foreground hover:bg-muted'
               }`}
             >
               {isRealTimeActive ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
@@ -284,14 +284,14 @@ export function OAuthMonitoringDashboard() {
             <Button
               variant="outline"
               onClick={generateMockData}
-              className="px-6 py-3 bg-white text-gray-700 font-semibold rounded-2xl hover:bg-gray-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-gray-200"
+              className="px-6 py-3 bg-background text-foreground font-semibold rounded-2xl hover:bg-muted transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-border"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               {t('Refresh')}
             </Button>
             <Button
               variant="outline"
-              className="px-6 py-3 bg-white text-gray-700 font-semibold rounded-2xl hover:bg-gray-50 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-gray-200"
+              className="px-6 py-3 bg-background text-foreground font-semibold rounded-2xl hover:bg-muted transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-border"
             >
               <Download className="w-4 h-4 mr-2" />
               {t('Export')}
@@ -302,33 +302,33 @@ export function OAuthMonitoringDashboard() {
 
       {/* Real-time Status */}
       {isRealTimeActive && (
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-6 rounded-2xl border border-green-200/50 shadow-lg">
+        <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 p-6 rounded-2xl border border-green-500/20 shadow-lg">
           <div className="flex items-center">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center mr-4 shadow-sm">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-green-600/30 rounded-xl flex items-center justify-center mr-4 shadow-sm">
               <Activity className="h-5 w-5 text-green-600 animate-pulse" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-green-900 mb-1">{t('Real-time Monitoring Active')}</h3>
-              <p className="text-green-800 font-medium">{t('Data refreshes every 30 seconds. OAuth events are being tracked live.')}</p>
+              <h3 className="text-lg font-bold text-green-900 dark:text-green-300 mb-1">{t('Real-time Monitoring Active')}</h3>
+              <p className="text-green-800 dark:text-green-400 font-medium">{t('Data refreshes every 30 seconds. OAuth events are being tracked live.')}</p>
             </div>
           </div>
         </div>
       )}
 
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg overflow-hidden">
+      <div className="bg-card/70 backdrop-blur-sm rounded-2xl border border-border shadow-lg overflow-hidden">
         <div className="p-8 pb-6">
           <div className="flex items-center space-x-3 mb-6">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-              <BarChart3 className="w-6 h-6 text-blue-600" />
+            <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/30 rounded-xl flex items-center justify-center shadow-sm">
+              <BarChart3 className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900 tracking-tight">{t('OAuth Analytics Dashboard')}</h3>
-              <p className="text-gray-600 font-medium">{t('Monitor OAuth flows, tokens, and system performance')}</p>
+              <h3 className="text-xl font-bold text-foreground tracking-tight">{t('OAuth Analytics Dashboard')}</h3>
+              <p className="text-muted-foreground font-medium">{t('Monitor OAuth flows, tokens, and system performance')}</p>
             </div>
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 bg-gray-100/50 rounded-2xl p-2">
+            <TabsList className="grid w-full grid-cols-4 bg-muted/50 rounded-2xl p-2">
               <TabsTrigger value="overview" className="rounded-xl font-medium">{t('Overview')}</TabsTrigger>
               <TabsTrigger value="flows" className="rounded-xl font-medium">{t('OAuth Flows')}</TabsTrigger>
               <TabsTrigger value="analytics" className="rounded-xl font-medium">{t('Analytics')}</TabsTrigger>
@@ -338,70 +338,70 @@ export function OAuthMonitoringDashboard() {
             <TabsContent value="overview" className="space-y-6">
               {/* Key Metrics */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                          <BarChart3 className="w-6 h-6 text-blue-600" />
+                        <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/30 rounded-xl flex items-center justify-center shadow-sm">
+                          <BarChart3 className="w-6 h-6 text-primary" />
                         </div>
-                        <h3 className="text-sm font-semibold text-blue-800 tracking-wide">{t('Total Flows')}</h3>
+                        <h3 className="text-sm font-semibold text-primary tracking-wide">{t('Total Flows')}</h3>
                       </div>
-                      <div className="text-3xl font-bold text-blue-900 mb-2">{analytics?.totalFlows.toLocaleString()}</div>
-                      <p className="text-sm text-blue-700 font-medium">{t('Last 24 hours')}</p>
+                      <div className="text-3xl font-bold text-foreground mb-2">{analytics?.totalFlows.toLocaleString()}</div>
+                      <p className="text-sm text-muted-foreground font-medium">{t('Last 24 hours')}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm">
+                        <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-green-600/30 rounded-xl flex items-center justify-center shadow-sm">
                           <TrendingUp className="w-6 h-6 text-green-600" />
                         </div>
-                        <h3 className="text-sm font-semibold text-green-800 tracking-wide">{t('Success Rate')}</h3>
+                        <h3 className="text-sm font-semibold text-green-800 dark:text-green-300 tracking-wide">{t('Success Rate')}</h3>
                       </div>
-                      <div className="text-3xl font-bold text-green-900 mb-2">
+                      <div className="text-3xl font-bold text-green-900 dark:text-green-300 mb-2">
                         {analytics?.successRate.toFixed(1)}%
                       </div>
-                      <p className="text-sm text-green-700 font-medium">
+                      <p className="text-sm text-green-700 dark:text-green-400 font-medium">
                         <span className="text-green-600">↗ 2.1%</span> {t('from yesterday')}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center shadow-sm">
+                        <div className="w-12 h-12 bg-gradient-to-br from-orange-500/20 to-orange-600/30 rounded-xl flex items-center justify-center shadow-sm">
                           <Timer className="w-6 h-6 text-orange-600" />
                         </div>
-                        <h3 className="text-sm font-semibold text-orange-800 tracking-wide">{t('Avg Response Time')}</h3>
+                        <h3 className="text-sm font-semibold text-orange-800 dark:text-orange-300 tracking-wide">{t('Avg Response Time')}</h3>
                       </div>
-                      <div className="text-3xl font-bold text-orange-900 mb-2">
+                      <div className="text-3xl font-bold text-orange-900 dark:text-orange-300 mb-2">
                         {analytics?.averageResponseTime.toFixed(0)}ms
                       </div>
-                      <p className="text-sm text-orange-700 font-medium">
+                      <p className="text-sm text-orange-700 dark:text-orange-400 font-medium">
                         <span className="text-green-600">↘ 15ms</span> {t('improvement')}
                       </p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
                       <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center shadow-sm">
+                        <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/30 rounded-xl flex items-center justify-center shadow-sm">
                           <Shield className="w-6 h-6 text-purple-600" />
                         </div>
-                        <h3 className="text-sm font-semibold text-purple-800 tracking-wide">{t('Active Tokens')}</h3>
+                        <h3 className="text-sm font-semibold text-purple-800 dark:text-purple-300 tracking-wide">{t('Active Tokens')}</h3>
                       </div>
-                      <div className="text-3xl font-bold text-purple-900 mb-2">{analytics?.activeTokens}</div>
-                      <p className="text-sm text-purple-700 font-medium">{t('Currently valid')}</p>
+                      <div className="text-3xl font-bold text-purple-900 dark:text-purple-300 mb-2">{analytics?.activeTokens}</div>
+                      <p className="text-sm text-purple-700 dark:text-purple-400 font-medium">{t('Currently valid')}</p>
                     </div>
                   </div>
                 </div>
@@ -409,49 +409,49 @@ export function OAuthMonitoringDashboard() {
 
               {/* Charts */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg">
+                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg">
                   <div className="flex items-center space-x-3 mb-6">
-                    <div className="w-12 h-12 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl flex items-center justify-center shadow-sm">
-                      <BarChart3 className="w-6 h-6 text-indigo-600" />
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/30 rounded-xl flex items-center justify-center shadow-sm">
+                      <BarChart3 className="w-6 h-6 text-primary" />
                     </div>
                     <div>
-                      <h4 className="text-lg font-bold text-gray-900 tracking-tight">{t('Flow Activity (24h)')}</h4>
-                      <p className="text-gray-600 font-medium">{t('OAuth flows over time')}</p>
+                      <h4 className="text-lg font-bold text-foreground tracking-tight">{t('Flow Activity (24h)')}</h4>
+                      <p className="text-muted-foreground font-medium">{t('OAuth flows over time')}</p>
                     </div>
                   </div>
-                  <div className="h-[300px] flex items-center justify-center text-gray-500">
+                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
                     <div className="text-center">
-                      <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                      <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                       <p className="font-medium">{t('Chart visualization would be implemented here')}</p>
                       <p className="text-sm mt-2">{t('Integration with charting library needed')}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg">
+                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg">
                   <div className="flex items-center space-x-3 mb-6">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center shadow-sm">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/30 rounded-xl flex items-center justify-center shadow-sm">
                       <Shield className="w-6 h-6 text-purple-600" />
                     </div>
                     <div>
-                      <h4 className="text-lg font-bold text-gray-900 tracking-tight">{t('Top Applications')}</h4>
-                      <p className="text-gray-600 font-medium">{t('Most active OAuth clients')}</p>
+                      <h4 className="text-lg font-bold text-foreground tracking-tight">{t('Top Applications')}</h4>
+                      <p className="text-muted-foreground font-medium">{t('Most active OAuth clients')}</p>
                     </div>
                   </div>
                   <div className="space-y-4">
                     {analytics?.topClients.map((client, index) => (
-                      <div key={client.clientId} className="flex items-center justify-between p-4 bg-gray-50/50 rounded-xl hover:bg-gray-100/50 transition-colors">
+                      <div key={client.clientId} className="flex items-center justify-between p-4 bg-muted/50 rounded-xl hover:bg-muted transition-colors">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm">
                             {index + 1}
                           </div>
                           <div>
-                            <p className="font-bold text-gray-900">{client.clientName}</p>
-                            <p className="text-sm text-gray-600 font-medium">{client.count} {t('flows')}</p>
+                            <p className="font-bold text-foreground">{client.clientName}</p>
+                            <p className="text-sm text-muted-foreground font-medium">{client.count} {t('flows')}</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <Badge className={client.successRate > 95 ? "bg-green-100 text-green-800 border-green-200" : "bg-yellow-100 text-yellow-800 border-yellow-200"}>
+                          <Badge className={client.successRate > 95 ? "bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20" : "bg-yellow-500/10 text-yellow-800 dark:text-yellow-300 border-yellow-500/20"}>
                             {client.successRate.toFixed(1)}%
                           </Badge>
                         </div>
@@ -464,20 +464,20 @@ export function OAuthMonitoringDashboard() {
 
             <TabsContent value="flows" className="space-y-6">
               {/* Filters */}
-              <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg">
+              <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg">
                 <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl flex items-center justify-center shadow-sm">
-                    <Search className="w-5 h-5 text-indigo-600" />
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-primary/30 rounded-xl flex items-center justify-center shadow-sm">
+                    <Search className="w-5 h-5 text-primary" />
                   </div>
-                  <h4 className="text-lg font-bold text-gray-900 tracking-tight">{t('Filter OAuth Flows')}</h4>
+                  <h4 className="text-lg font-bold text-foreground tracking-tight">{t('Filter OAuth Flows')}</h4>
                 </div>
                 <div className="flex flex-wrap gap-4">
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">{t('Type:')}</label>
+                    <label className="text-sm font-medium text-foreground">{t('Type:')}</label>
                     <select
                       value={filterType}
                       onChange={(e) => setFilterType(e.target.value)}
-                      className="border rounded-xl px-3 py-2 bg-white shadow-sm"
+                      className="border border-border rounded-xl px-3 py-2 bg-background text-foreground shadow-sm"
                     >
                       <option value="all">{t('All Types')}</option>
                       <option value="authorization">{t('Authorization')}</option>
@@ -489,11 +489,11 @@ export function OAuthMonitoringDashboard() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <label className="text-sm font-medium">{t('Status:')}</label>
+                    <label className="text-sm font-medium text-foreground">{t('Status:')}</label>
                     <select
                       value={filterStatus}
                       onChange={(e) => setFilterStatus(e.target.value)}
-                      className="border rounded-xl px-3 py-2 bg-white shadow-sm"
+                      className="border border-border rounded-xl px-3 py-2 bg-background text-foreground shadow-sm"
                     >
                       <option value="all">{t('All Statuses')}</option>
                       <option value="success">{t('Success')}</option>
@@ -504,27 +504,27 @@ export function OAuthMonitoringDashboard() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Search className="w-4 h-4 text-gray-400" />
+                    <Search className="w-4 h-4 text-muted-foreground" />
                     <input
                       type="text"
                       placeholder={t('Search by client or user...')}
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="border rounded-xl px-3 py-2 min-w-[200px] bg-white shadow-sm"
+                      className="border border-border rounded-xl px-3 py-2 min-w-[200px] bg-background text-foreground shadow-sm"
                     />
                   </div>
                 </div>
               </div>
 
               {/* Events List - Simplified for brevity */}
-              <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg">
+              <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg">
                 <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                    <Activity className="w-5 h-5 text-blue-600" />
+                  <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-primary/30 rounded-xl flex items-center justify-center shadow-sm">
+                    <Activity className="w-5 h-5 text-primary" />
                   </div>
                   <div>
-                    <h4 className="text-lg font-bold text-gray-900 tracking-tight">{t('Recent OAuth Events')}</h4>
-                    <p className="text-gray-600 font-medium">
+                    <h4 className="text-lg font-bold text-foreground tracking-tight">{t('Recent OAuth Events')}</h4>
+                    <p className="text-muted-foreground font-medium">
                       {t('Showing {{count}} of {{total}} events', { 
                         count: filteredEvents.length, 
                         total: events.length 
@@ -532,8 +532,8 @@ export function OAuthMonitoringDashboard() {
                     </p>
                   </div>
                 </div>
-                <div className="text-center text-gray-500 py-8">
-                  <Activity className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <div className="text-center text-muted-foreground py-8">
+                  <Activity className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                   <p>{t('OAuth events would be displayed here')}</p>
                   <p className="text-sm mt-2">{t('Full event list implementation in progress')}</p>
                 </div>
@@ -541,113 +541,113 @@ export function OAuthMonitoringDashboard() {
             </TabsContent>
 
             <TabsContent value="analytics" className="space-y-6">
-              <div className="text-center text-gray-500 py-12">
-                <BarChart3 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <div className="text-center text-muted-foreground py-12">
+                <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p>{t('Advanced analytics charts coming soon')}</p>
               </div>
             </TabsContent>
 
             <TabsContent value="monitoring" className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg hover:shadow-xl transition-all duration-300">
                   <div className="flex items-center space-x-3 mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm">
+                    <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-green-600/30 rounded-xl flex items-center justify-center shadow-sm">
                       <Server className="w-6 h-6 text-green-600" />
                     </div>
-                    <h4 className="text-lg font-bold text-gray-900 tracking-tight">{t('OAuth Server')}</h4>
+                    <h4 className="text-lg font-bold text-foreground tracking-tight">{t('OAuth Server')}</h4>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 font-medium">{t('Status')}</span>
-                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                      <span className="text-muted-foreground font-medium">{t('Status')}</span>
+                      <Badge className="bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         {t('Healthy')}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 font-medium">{t('Uptime')}</span>
-                      <span className="font-bold text-gray-900">99.9%</span>
+                      <span className="text-muted-foreground font-medium">{t('Uptime')}</span>
+                      <span className="font-bold text-foreground">99.9%</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 font-medium">{t('Response Time')}</span>
-                      <span className="font-bold text-gray-900">142ms</span>
+                      <span className="text-muted-foreground font-medium">{t('Response Time')}</span>
+                      <span className="font-bold text-foreground">142ms</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg hover:shadow-xl transition-all duration-300">
                   <div className="flex items-center space-x-3 mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                      <Database className="w-6 h-6 text-blue-600" />
+                    <div className="w-12 h-12 bg-gradient-to-br from-primary/20 to-primary/30 rounded-xl flex items-center justify-center shadow-sm">
+                      <Database className="w-6 h-6 text-primary" />
                     </div>
-                    <h4 className="text-lg font-bold text-gray-900 tracking-tight">{t('Token Store')}</h4>
+                    <h4 className="text-lg font-bold text-foreground tracking-tight">{t('Token Store')}</h4>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 font-medium">{t('Status')}</span>
-                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                      <span className="text-muted-foreground font-medium">{t('Status')}</span>
+                      <Badge className="bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         {t('Healthy')}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 font-medium">{t('Storage Used')}</span>
-                      <span className="font-bold text-gray-900">68%</span>
+                      <span className="text-muted-foreground font-medium">{t('Storage Used')}</span>
+                      <span className="font-bold text-foreground">68%</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 font-medium">{t('Active Tokens')}</span>
-                      <span className="font-bold text-gray-900">{analytics?.activeTokens}</span>
+                      <span className="text-muted-foreground font-medium">{t('Active Tokens')}</span>
+                      <span className="font-bold text-foreground">{analytics?.activeTokens}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300">
+                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg hover:shadow-xl transition-all duration-300">
                   <div className="flex items-center space-x-3 mb-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center shadow-sm">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/30 rounded-xl flex items-center justify-center shadow-sm">
                       <Network className="w-6 h-6 text-purple-600" />
                     </div>
-                    <h4 className="text-lg font-bold text-gray-900 tracking-tight">{t('Network')}</h4>
+                    <h4 className="text-lg font-bold text-foreground tracking-tight">{t('Network')}</h4>
                   </div>
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 font-medium">{t('Status')}</span>
-                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                      <span className="text-muted-foreground font-medium">{t('Status')}</span>
+                      <Badge className="bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         {t('Healthy')}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 font-medium">{t('Throughput')}</span>
-                      <span className="font-bold text-gray-900">1.2k req/min</span>
+                      <span className="text-muted-foreground font-medium">{t('Throughput')}</span>
+                      <span className="font-bold text-foreground">1.2k req/min</span>
                     </div>
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-600 font-medium">{t('Error Rate')}</span>
-                      <span className="font-bold text-gray-900">0.3%</span>
+                      <span className="text-muted-foreground font-medium">{t('Error Rate')}</span>
+                      <span className="font-bold text-foreground">0.3%</span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg">
+              <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg">
                 <div className="flex items-center space-x-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center shadow-sm">
+                  <div className="w-10 h-10 bg-gradient-to-br from-orange-500/20 to-orange-600/30 rounded-xl flex items-center justify-center shadow-sm">
                     <AlertTriangle className="w-5 h-5 text-orange-600" />
                   </div>
-                  <h4 className="text-lg font-bold text-gray-900 tracking-tight">{t('System Alerts')}</h4>
+                  <h4 className="text-lg font-bold text-foreground tracking-tight">{t('System Alerts')}</h4>
                 </div>
                 <div className="space-y-3">
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
                     <div className="flex items-center">
                       <AlertCircle className="h-5 w-5 text-yellow-600 mr-3" />
-                      <p className="text-yellow-800 font-medium">
+                      <p className="text-yellow-800 dark:text-yellow-300 font-medium">
                         {t('High response time detected on authorization endpoint (avg 850ms)')}
                       </p>
                     </div>
                   </div>
-                  <div className="bg-orange-50 border border-orange-200 rounded-xl p-4">
+                  <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
                     <div className="flex items-center">
                       <AlertTriangle className="h-5 w-5 text-orange-600 mr-3" />
-                      <p className="text-orange-800 font-medium">
+                      <p className="text-orange-800 dark:text-orange-300 font-medium">
                         {t('Token storage is at 68% capacity. Consider cleanup or expansion.')}
                       </p>
                     </div>

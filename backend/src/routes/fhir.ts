@@ -132,6 +132,7 @@ export const fhirRoutes = new Elysia({ prefix: `/${config.appName}/:server_name/
       authorization_endpoint: t.String({ description: 'OAuth2 authorization endpoint' }),
       token_endpoint: t.String({ description: 'OAuth2 token endpoint' }),
       introspection_endpoint: t.String({ description: 'OAuth2 token introspection endpoint' }),
+      registration_endpoint: t.Optional(t.String({ description: 'RFC 7591 Dynamic Client Registration endpoint' })),
       code_challenge_methods_supported: t.Array(t.String({ description: 'Supported PKCE code challenge methods' })),
       grant_types_supported: t.Array(t.String({ description: 'Supported OAuth2 grant types' })),
       response_types_supported: t.Array(t.String({ description: 'Supported OAuth2 response types' })),

@@ -190,10 +190,13 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
           
           // Debug: Log what we're about to return as HTTP response
           const finalResponse = updatedClient || fullClient
-          console.log('🌐 HTTP Response Fields:', Object.keys(finalResponse))
-          console.log('🔑 HTTP Response clientAuthenticatorType:', finalResponse.clientAuthenticatorType)
-          console.log('⚙️  HTTP Response serviceAccountsEnabled:', finalResponse.serviceAccountsEnabled)
-          console.log('🔄 HTTP Response standardFlowEnabled:', finalResponse.standardFlowEnabled)
+          logger.admin.debug('HTTP Response for Backend Services client after key registration', {
+            fields: Object.keys(finalResponse),
+            clientId: finalResponse.clientId,
+            clientAuthenticatorType: finalResponse.clientAuthenticatorType,
+            serviceAccountsEnabled: finalResponse.serviceAccountsEnabled,
+            standardFlowEnabled: finalResponse.standardFlowEnabled
+          })
           
           return finalResponse
         } catch (keyError) {
@@ -205,10 +208,13 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
       }
       
       // Debug: Log what we're about to return as HTTP response  
-      console.log('🌐 HTTP Response Fields (no key registration):', Object.keys(fullClient))
-      console.log('🔑 HTTP Response clientAuthenticatorType:', fullClient.clientAuthenticatorType)
-      console.log('⚙️  HTTP Response serviceAccountsEnabled:', fullClient.serviceAccountsEnabled)
-      console.log('🔄 HTTP Response standardFlowEnabled:', fullClient.standardFlowEnabled)
+      logger.admin.debug('HTTP Response for standard client creation', {
+        fields: Object.keys(fullClient),
+        clientId: fullClient.clientId,
+        clientAuthenticatorType: fullClient.clientAuthenticatorType,
+        serviceAccountsEnabled: fullClient.serviceAccountsEnabled,
+        standardFlowEnabled: fullClient.standardFlowEnabled
+      })
       
       return fullClient
     } catch (error) {
@@ -272,10 +278,13 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
       }
       
       // Debug: Log what we're about to return for individual client retrieval
-      console.log('🔍 Individual Client Response Fields:', Object.keys(clients[0]))
-      console.log('🔑 Individual Client clientAuthenticatorType:', clients[0].clientAuthenticatorType)
-      console.log('⚙️  Individual Client serviceAccountsEnabled:', clients[0].serviceAccountsEnabled)
-      console.log('🔄 Individual Client standardFlowEnabled:', clients[0].standardFlowEnabled)
+      logger.admin.debug('Individual Client Response', {
+        fields: Object.keys(clients[0]),
+        clientId: clients[0].clientId,
+        clientAuthenticatorType: clients[0].clientAuthenticatorType,
+        serviceAccountsEnabled: clients[0].serviceAccountsEnabled,
+        standardFlowEnabled: clients[0].standardFlowEnabled
+      })
       
       return clients[0]
     } catch (error) {

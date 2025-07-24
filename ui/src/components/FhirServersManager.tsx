@@ -325,11 +325,11 @@ export function FhirServersManager() {
     return (
       <div className="p-8 flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center shadow-lg">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="w-16 h-16 mx-auto mb-6 bg-primary/10 rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Loading FHIR Servers</h2>
-          <p className="text-gray-600 font-medium">Fetching server information...</p>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Loading FHIR Servers</h2>
+          <p className="text-muted-foreground font-medium">Fetching server information...</p>
         </div>
       </div>
     );
@@ -338,19 +338,19 @@ export function FhirServersManager() {
   if (error) {
     return (
       <div className="p-8">
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 shadow-lg">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-6 shadow-lg">
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-              <AlertCircle className="h-6 w-6 text-red-600" />
+            <div className="w-12 h-12 bg-destructive/10 rounded-xl flex items-center justify-center">
+              <AlertCircle className="h-6 w-6 text-destructive" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-red-900">Error Loading Servers</h3>
-              <p className="text-red-700">{error}</p>
+              <h3 className="text-lg font-semibold text-destructive">Error Loading Servers</h3>
+              <p className="text-destructive/80">{error}</p>
             </div>
           </div>
           <Button
             onClick={fetchServers}
-            className="px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-semibold rounded-xl hover:from-red-700 hover:to-red-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             <RefreshCw className="w-4 h-4 mr-2" />
             Retry
@@ -363,31 +363,31 @@ export function FhirServersManager() {
   return (
     <div className="p-8 space-y-8">
       {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-8 rounded-3xl border border-indigo-100/50 shadow-lg">
+      <div className="bg-card/80 backdrop-blur-sm p-8 rounded-3xl border border-border/50 shadow-lg">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-6 lg:space-y-0">
           <div className="flex-1">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
               FHIR Server Management
             </h1>
 
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-3 shadow-sm">
-              <Database className="w-5 h-5 text-blue-600" />
-            </div>
-            <p className="text-gray-600 text-lg flex items-center">
+            <div className="text-muted-foreground text-lg flex items-center">
+              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center mr-3 shadow-sm">
+                <Database className="w-5 h-5 text-primary" />
+              </div>
               Manage and monitor FHIR server connections
-            </p>
+            </div>
           </div>
           <div className="flex space-x-3">
             <Button
               onClick={() => setShowAddDialog(true)}
-              className="px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-2xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/20"
+              className="px-8 py-4 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white font-semibold rounded-2xl hover:from-emerald-700 hover:to-emerald-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-emerald-500/20"
             >
               <Plus className="w-5 h-5 mr-2" />
               Add Server
             </Button>
             <Button
               onClick={fetchServers}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/20"
+              className="px-8 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-blue-500/20"
             >
               <RefreshCw className="w-5 h-5 mr-2" />
               Refresh
@@ -398,103 +398,103 @@ export function FhirServersManager() {
 
       {/* Enhanced Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+        <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Server className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm">
+                  <Server className="w-6 h-6 text-primary" />
                 </div>
-                <div className="text-sm font-semibold text-blue-800 tracking-wide">Total Servers</div>
+                <div className="text-sm font-semibold text-primary tracking-wide">Total Servers</div>
               </div>
-              <div className="text-3xl font-bold text-blue-900 mb-2">{servers.length}</div>
+              <div className="text-3xl font-bold text-foreground mb-2">{servers.length}</div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+        <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Check className="w-6 h-6 text-green-600" />
+                <div className="w-12 h-12 bg-emerald-500/10 dark:bg-emerald-400/20 rounded-xl flex items-center justify-center shadow-sm">
+                  <Check className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                <div className="text-sm font-semibold text-green-800 tracking-wide">Supported Servers</div>
+                <div className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 tracking-wide">Supported Servers</div>
               </div>
-              <div className="text-3xl font-bold text-green-900 mb-2">
+              <div className="text-3xl font-bold text-foreground mb-2">
                 {servers.filter(s => s.supported).length}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+        <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-red-100 to-red-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <X className="w-6 h-6 text-red-600" />
+                <div className="w-12 h-12 bg-destructive/10 rounded-xl flex items-center justify-center shadow-sm">
+                  <X className="w-6 h-6 text-destructive" />
                 </div>
-                <div className="text-sm font-semibold text-red-800 tracking-wide">Unsupported Servers</div>
+                <div className="text-sm font-semibold text-destructive tracking-wide">Unsupported Servers</div>
               </div>
-              <div className="text-3xl font-bold text-red-900 mb-2">
+              <div className="text-3xl font-bold text-foreground mb-2">
                 {servers.filter(s => !s.supported).length}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+        <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Play className="w-6 h-6 text-purple-600" />
+                <div className="w-12 h-12 bg-violet-500/10 dark:bg-violet-400/20 rounded-xl flex items-center justify-center shadow-sm">
+                  <Play className="w-6 h-6 text-violet-600 dark:text-violet-400" />
                 </div>
-                <div className="text-sm font-semibold text-purple-800 tracking-wide">Launch Contexts</div>
+                <div className="text-sm font-semibold text-violet-700 dark:text-violet-300 tracking-wide">Launch Contexts</div>
               </div>
-              <div className="text-3xl font-bold text-purple-900 mb-2">12</div>
-              <p className="text-sm text-purple-700 font-medium">Available contexts</p>
+              <div className="text-3xl font-bold text-foreground mb-2">12</div>
+              <p className="text-sm text-violet-700 dark:text-violet-300 font-medium">Available contexts</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Enhanced Main Content */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg">
+      <div className="bg-card/70 backdrop-blur-sm rounded-2xl border border-border/50 shadow-lg">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 m-4 bg-gray-100/50">
-            <TabsTrigger value="overview" className="rounded-xl">Server Overview</TabsTrigger>
-            <TabsTrigger value="details" className="rounded-xl">Server Details</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-2 bg-muted/50 rounded-t-2xl">
+            <TabsTrigger value="overview" className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-foreground">Server Overview</TabsTrigger>
+            <TabsTrigger value="details" className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-foreground">Server Details</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="p-6 space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {servers.map((server) => (
-                <div key={server.id} className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <div key={server.id} className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-3">
-                      <div className={`w-12 h-12 bg-gradient-to-br rounded-xl flex items-center justify-center shadow-sm ${
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
                         server.hasConnectionError 
-                          ? 'from-red-100 to-red-200' 
-                          : 'from-blue-100 to-blue-200'
+                          ? 'bg-destructive/10' 
+                          : 'bg-primary/10'
                       }`}>
                         {server.hasConnectionError ? (
-                          <AlertTriangle className="w-6 h-6 text-red-600" />
+                          <AlertTriangle className="w-6 h-6 text-destructive" />
                         ) : (
-                          <Server className="w-6 h-6 text-blue-600" />
+                          <Server className="w-6 h-6 text-primary" />
                         )}
                       </div>
                       <div>
                         <div className="flex items-center space-x-2">
-                          <h3 className="text-lg font-bold text-gray-900 tracking-tight">{server.displayName}</h3>
+                          <h3 className="text-lg font-bold text-foreground tracking-tight">{server.displayName}</h3>
                           {server.hasConnectionError && (
                             <AlertTriangle className="w-4 h-4 text-orange-500" />
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 font-medium">{server.name}</p>
+                        <p className="text-sm text-muted-foreground font-medium">{server.name}</p>
                         {server.hasConnectionError && (
-                          <p className="text-xs text-red-600 font-medium">Unable to connect to server</p>
+                          <p className="text-xs text-destructive font-medium">Unable to connect to server</p>
                         )}
                       </div>
                     </div>
@@ -502,8 +502,8 @@ export function FhirServersManager() {
                       <Badge
                         variant={server.supported ? "default" : "destructive"}
                         className={server.supported
-                          ? "bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-sm"
-                          : "bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-300 shadow-sm"
+                          ? "bg-emerald-500/10 dark:bg-emerald-400/20 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-400/30 shadow-sm"
+                          : "bg-destructive/10 text-destructive border-destructive/30 shadow-sm"
                         }
                       >
                         {server.supported ? (
@@ -517,7 +517,7 @@ export function FhirServersManager() {
                       {securityChecks[server.id] === 'insecure' && (
                         <Badge 
                           variant="destructive" 
-                          className="bg-gradient-to-r from-yellow-100 to-orange-200 text-orange-800 border-orange-300 shadow-sm"
+                          className="bg-orange-500/10 dark:bg-orange-400/20 text-orange-700 dark:text-orange-300 border-orange-300 dark:border-orange-400/30 shadow-sm"
                         >
                           <AlertTriangle className="w-3 h-3 mr-1" />
                           Security Warning
@@ -526,7 +526,7 @@ export function FhirServersManager() {
                       {securityChecks[server.id] === 'secure' && (
                         <Badge 
                           variant="default" 
-                          className="bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-sm"
+                          className="bg-emerald-500/10 dark:bg-emerald-400/20 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-400/30 shadow-sm"
                         >
                           <Check className="w-3 h-3 mr-1" />
                           Secure
@@ -535,7 +535,7 @@ export function FhirServersManager() {
                       {securityChecks[server.id] === 'checking' && (
                         <Badge 
                           variant="secondary" 
-                          className="bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300 shadow-sm"
+                          className="bg-primary/10 text-primary border-primary/30 shadow-sm"
                         >
                           <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                           Checking...
@@ -546,41 +546,41 @@ export function FhirServersManager() {
 
                   <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-gray-50/50 p-3 rounded-xl">
-                        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">FHIR Version</span>
-                        <p className="text-sm font-bold text-gray-900 mt-1">{server.fhirVersion}</p>
+                      <div className="bg-muted/50 p-3 rounded-xl">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">FHIR Version</span>
+                        <p className="text-sm font-bold text-foreground mt-1">{server.fhirVersion}</p>
                       </div>
-                      <div className="bg-gray-50/50 p-3 rounded-xl">
-                        <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Server Software</span>
-                        <p className="text-sm font-bold text-gray-900 mt-1">{server.serverName || 'Unknown'}</p>
+                      <div className="bg-muted/50 p-3 rounded-xl">
+                        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Server Software</span>
+                        <p className="text-sm font-bold text-foreground mt-1">{server.serverName || 'Unknown'}</p>
                       </div>
                     </div>
 
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-gray-600">Base URL:</span>
+                        <span className="text-sm font-semibold text-muted-foreground">Base URL:</span>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => copyToClipboard(server.url)}
-                          className="h-8 px-3 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                          className="h-8 px-3 rounded-lg hover:bg-muted transition-colors duration-200"
                         >
                           <Copy className="w-3 h-3" />
                         </Button>
                       </div>
-                      <p className="text-sm text-gray-900 bg-gradient-to-r from-gray-50 to-gray-100 p-3 rounded-xl font-mono break-all border border-gray-200/50">
+                      <p className="text-sm text-foreground bg-muted/50 p-3 rounded-xl font-mono break-all border border-border/50">
                         {server.url}
                       </p>
                     </div>
 
                     {/* Security Warning - only show for servers without connection errors */}
                     {!server.hasConnectionError && securityChecks[server.id] === 'insecure' && (
-                      <div className="bg-gradient-to-r from-yellow-50 to-orange-50 p-3 rounded-xl border border-orange-200">
+                      <div className="bg-orange-500/10 dark:bg-orange-400/10 p-3 rounded-xl border border-orange-500/20 dark:border-orange-400/20">
                         <div className="flex items-center space-x-2 mb-2">
-                          <AlertTriangle className="w-4 h-4 text-orange-600" />
-                          <span className="text-sm font-semibold text-orange-800">Security Warning</span>
+                          <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                          <span className="text-sm font-semibold text-orange-700 dark:text-orange-300">Security Warning</span>
                         </div>
-                        <p className="text-xs text-orange-700">
+                        <p className="text-xs text-orange-700 dark:text-orange-300">
                           This FHIR server is publicly accessible and can be reached directly, 
                           bypassing the secure proxy. For proper security, the FHIR server should only be accessible 
                           through the SMART on FHIR Proxy.
@@ -591,17 +591,17 @@ export function FhirServersManager() {
                     {/* Launch Context Summary */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-semibold text-gray-600">Launch Contexts:</span>
-                        <span className="text-xs text-gray-500">3 available</span>
+                        <span className="text-sm font-semibold text-muted-foreground">Launch Contexts:</span>
+                        <span className="text-xs text-muted-foreground">3 available</span>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Badge variant="secondary" className="text-xs bg-emerald-50 text-emerald-700 border-emerald-200">
+                        <Badge variant="secondary" className="text-xs bg-emerald-500/10 dark:bg-emerald-400/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/20 dark:border-emerald-400/20">
                           Global
                         </Badge>
-                        <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                        <Badge variant="secondary" className="text-xs bg-primary/10 text-primary border-primary/20">
                           Patient Chart
                         </Badge>
-                        <Badge variant="secondary" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                        <Badge variant="secondary" className="text-xs bg-violet-500/10 dark:bg-violet-400/20 text-violet-700 dark:text-violet-300 border-violet-500/20 dark:border-violet-400/20">
                           Provider Context
                         </Badge>
                       </div>
@@ -612,7 +612,7 @@ export function FhirServersManager() {
                         variant="outline"
                         size="sm"
                         onClick={() => fetchServerDetail(server.id)}
-                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border-gray-300 hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md"
+                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border-border hover:bg-muted transition-all duration-200 shadow-sm hover:shadow-md"
                       >
                         <Eye className="w-3 h-3" />
                         <span>View Details</span>
@@ -629,7 +629,7 @@ export function FhirServersManager() {
                           });
                           checkServerSecurity(server);
                         }}
-                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border-blue-300 text-blue-700 hover:bg-blue-50 transition-all duration-200 shadow-sm hover:shadow-md"
+                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border-primary/30 text-primary hover:bg-primary/10 transition-all duration-200 shadow-sm hover:shadow-md"
                       >
                         <RefreshCw className="w-3 h-3" />
                         <span>Check Security</span>
@@ -639,7 +639,7 @@ export function FhirServersManager() {
                           variant="outline"
                           size="sm"
                           onClick={() => handleEditServer(server)}
-                          className="flex items-center space-x-2 px-4 py-2 rounded-xl border-orange-300 text-orange-700 hover:bg-orange-50 transition-all duration-200 shadow-sm hover:shadow-md"
+                          className="flex items-center space-x-2 px-4 py-2 rounded-xl border-orange-500/30 text-orange-700 dark:text-orange-400 hover:bg-orange-500/10 transition-all duration-200 shadow-sm hover:shadow-md"
                         >
                           <Edit className="w-3 h-3" />
                           <span>Fix URL</span>
@@ -650,7 +650,7 @@ export function FhirServersManager() {
                           variant="outline"
                           size="sm"
                           onClick={() => window.open(server.endpoints.metadata, '_blank')}
-                          className="flex items-center space-x-2 px-4 py-2 rounded-xl border-gray-300 hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md"
+                          className="flex items-center space-x-2 px-4 py-2 rounded-xl border-border hover:bg-muted transition-all duration-200 shadow-sm hover:shadow-md"
                         >
                           <ExternalLink className="w-3 h-3" />
                           <span>Metadata</span>
@@ -665,22 +665,22 @@ export function FhirServersManager() {
 
           <TabsContent value="details" className="p-6 space-y-6">
             {selectedServer ? (
-              <div className="bg-white/70 backdrop-blur-sm p-8 rounded-2xl border border-gray-200/50 shadow-lg">
+              <div className="bg-card/70 backdrop-blur-sm p-8 rounded-2xl border border-border/50 shadow-lg">
                 <div className="flex items-center justify-between mb-8">
                   <div className="flex items-center space-x-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-2xl flex items-center justify-center shadow-sm">
-                      <Server className="w-7 h-7 text-indigo-600" />
+                    <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center shadow-sm">
+                      <Server className="w-7 h-7 text-primary" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-900 tracking-tight">{selectedServer.displayName}</h2>
-                      <p className="text-gray-600 font-medium">{selectedServer.name}</p>
+                      <h2 className="text-2xl font-bold text-foreground tracking-tight">{selectedServer.displayName}</h2>
+                      <p className="text-muted-foreground font-medium">{selectedServer.name}</p>
                     </div>
                   </div>
                   <Badge
                     variant={selectedServer.supported ? "default" : "destructive"}
                     className={selectedServer.supported
-                      ? "bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-sm px-4 py-2"
-                      : "bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-300 shadow-sm px-4 py-2"
+                      ? "bg-emerald-500/10 dark:bg-emerald-400/20 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-400/30 shadow-sm px-4 py-2"
+                      : "bg-destructive/10 text-destructive border-destructive/30 shadow-sm px-4 py-2"
                     }
                   >
                     {selectedServer.supported ? (
@@ -694,28 +694,28 @@ export function FhirServersManager() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                          <Info className="w-4 h-4 text-blue-600" />
+                      <h3 className="text-lg font-bold text-foreground mb-4 flex items-center">
+                        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
+                          <Info className="w-4 h-4 text-primary" />
                         </div>
                         Server Information
                       </h3>
                       <div className="space-y-3">
-                        <div className="flex justify-between items-center p-3 bg-gray-50/50 rounded-xl">
-                          <span className="text-sm font-semibold text-gray-600">Server Name:</span>
-                          <span className={`text-sm font-bold ${(selectedServer.serverName === 'Unknown FHIR Server' || !selectedServer.serverName) ? 'text-gray-500' : 'text-gray-900'}`}>
+                        <div className="flex justify-between items-center p-3 bg-muted/50 rounded-xl">
+                          <span className="text-sm font-semibold text-muted-foreground">Server Name:</span>
+                          <span className={`text-sm font-bold ${(selectedServer.serverName === 'Unknown FHIR Server' || !selectedServer.serverName) ? 'text-muted-foreground' : 'text-foreground'}`}>
                             {selectedServer.serverName || 'Unknown'}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center p-3 bg-gray-50/50 rounded-xl">
-                          <span className="text-sm font-semibold text-gray-600">FHIR Version:</span>
-                          <span className={`text-sm font-bold ${selectedServer.fhirVersion === 'Unknown' ? 'text-gray-500' : 'text-gray-900'}`}>
+                        <div className="flex justify-between items-center p-3 bg-muted/50 rounded-xl">
+                          <span className="text-sm font-semibold text-muted-foreground">FHIR Version:</span>
+                          <span className={`text-sm font-bold ${selectedServer.fhirVersion === 'Unknown' ? 'text-muted-foreground' : 'text-foreground'}`}>
                             {selectedServer.fhirVersion}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center p-3 bg-gray-50/50 rounded-xl">
-                          <span className="text-sm font-semibold text-gray-600">Server Version:</span>
-                          <span className={`text-sm font-bold ${(!selectedServer.serverVersion || selectedServer.serverVersion === 'Unknown') ? 'text-gray-500' : 'text-gray-900'}`}>
+                        <div className="flex justify-between items-center p-3 bg-muted/50 rounded-xl">
+                          <span className="text-sm font-semibold text-muted-foreground">Server Version:</span>
+                          <span className={`text-sm font-bold ${(!selectedServer.serverVersion || selectedServer.serverVersion === 'Unknown') ? 'text-muted-foreground' : 'text-foreground'}`}>
                             {selectedServer.serverVersion || 'Unknown'}
                           </span>
                         </div>
@@ -725,25 +725,25 @@ export function FhirServersManager() {
 
                   <div className="space-y-6">
                     <div>
-                      <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
-                        <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center mr-3">
-                          <Database className="w-4 h-4 text-green-600" />
+                      <h3 className="text-lg font-bold text-foreground mb-4 flex items-center">
+                        <div className="w-8 h-8 bg-emerald-500/10 dark:bg-emerald-400/20 rounded-lg flex items-center justify-center mr-3">
+                          <Database className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                         </div>
                         Connection
                       </h3>
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-semibold text-gray-600">Base URL:</span>
+                          <span className="text-sm font-semibold text-muted-foreground">Base URL:</span>
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => copyToClipboard(selectedServer.url)}
-                            className="h-8 px-3 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+                            className="h-8 px-3 rounded-lg hover:bg-muted transition-colors duration-200"
                           >
                             <Copy className="w-3 h-3" />
                           </Button>
                         </div>
-                        <p className="text-sm text-gray-900 bg-gradient-to-r from-gray-50 to-gray-100 p-3 rounded-xl font-mono break-all border border-gray-200/50">
+                        <p className="text-sm text-foreground bg-muted/50 p-3 rounded-xl font-mono break-all border border-border">
                           {selectedServer.url}
                         </p>
                       </div>
@@ -754,25 +754,25 @@ export function FhirServersManager() {
                 {/* API Endpoints - only show for servers without connection errors */}
                 {selectedServer.fhirVersion !== 'Unknown' && selectedServer.supported && (
                   <div className="mt-8">
-                    <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
-                      <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center mr-3">
-                        <ExternalLink className="w-4 h-4 text-purple-600" />
+                    <h3 className="text-lg font-bold text-foreground mb-6 flex items-center">
+                      <div className="w-8 h-8 bg-purple-500/10 dark:bg-purple-400/20 rounded-lg flex items-center justify-center mr-3">
+                        <ExternalLink className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                       </div>
                       API Endpoints
                     </h3>
                     <div className="grid grid-cols-1 gap-4">
                       {Object.entries(selectedServer.endpoints).map(([key, url]) => (
-                        <div key={key} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200/50 hover:from-gray-100 hover:to-gray-200 transition-all duration-200">
+                        <div key={key} className="flex items-center justify-between p-4 bg-muted/50 rounded-xl border border-border hover:bg-muted/70 transition-all duration-200">
                           <div className="flex-1">
-                            <p className="font-semibold text-gray-900 capitalize mb-1">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                            <p className="text-sm text-gray-600 font-mono break-all">{url}</p>
+                            <p className="font-semibold text-foreground capitalize mb-1">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                            <p className="text-sm text-muted-foreground font-mono break-all">{url}</p>
                           </div>
                           <div className="flex space-x-2 ml-4">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => copyToClipboard(url)}
-                              className="h-10 px-3 rounded-xl hover:bg-white transition-colors duration-200"
+                              className="h-10 px-3 rounded-xl hover:bg-background transition-colors duration-200"
                             >
                               <Copy className="w-4 h-4" />
                             </Button>
@@ -780,7 +780,7 @@ export function FhirServersManager() {
                               variant="ghost"
                               size="sm"
                               onClick={() => window.open(url, '_blank')}
-                              className="h-10 px-3 rounded-xl hover:bg-white transition-colors duration-200"
+                              className="h-10 px-3 rounded-xl hover:bg-background transition-colors duration-200"
                             >
                               <ExternalLink className="w-4 h-4" />
                             </Button>
@@ -794,17 +794,17 @@ export function FhirServersManager() {
                 {/* Connection Error Message for servers with issues */}
                 {(selectedServer.fhirVersion === 'Unknown' || !selectedServer.supported) && (
                   <div className="mt-8">
-                    <div className="bg-gradient-to-r from-red-50 to-orange-50 p-6 rounded-xl border border-red-200">
+                    <div className="bg-destructive/10 p-6 rounded-xl border border-destructive/20">
                       <div className="flex items-center space-x-3 mb-4">
-                        <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-                          <AlertTriangle className="w-5 h-5 text-red-600" />
+                        <div className="w-10 h-10 bg-destructive/10 rounded-xl flex items-center justify-center">
+                          <AlertTriangle className="w-5 h-5 text-destructive" />
                         </div>
                         <div>
-                          <h4 className="font-semibold text-red-900">Connection Error</h4>
-                          <p className="text-red-700 text-sm">Unable to connect to this FHIR server or retrieve metadata</p>
+                          <h4 className="font-semibold text-destructive">Connection Error</h4>
+                          <p className="text-destructive/80 text-sm">Unable to connect to this FHIR server or retrieve metadata</p>
                         </div>
                       </div>
-                      <p className="text-red-600 text-sm">
+                      <p className="text-destructive/70 text-sm">
                         This server cannot be reached or does not respond with valid FHIR metadata. 
                         API endpoints and advanced features are not available for this server.
                       </p>
@@ -814,83 +814,83 @@ export function FhirServersManager() {
 
                 {/* Launch Context Associations */}
                 <div className="mt-8">
-                  <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
-                    <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center mr-3">
-                      <Database className="w-4 h-4 text-indigo-600" />
+                  <h3 className="text-lg font-bold text-foreground mb-6 flex items-center">
+                    <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
+                      <Database className="w-4 h-4 text-primary" />
                     </div>
                     Associated Launch Contexts
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Sample launch contexts - in a real app, these would come from API */}
-                    <div className="p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200/50">
+                    <div className="p-4 bg-blue-500/10 dark:bg-blue-400/10 rounded-xl border border-blue-500/20 dark:border-blue-400/20">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-blue-900">Patient Chart Launch</h4>
-                        <Badge variant="secondary" className="bg-blue-100 text-blue-800 border-blue-300">
+                        <h4 className="font-semibold text-blue-900 dark:text-blue-100">Patient Chart Launch</h4>
+                        <Badge variant="secondary" className="bg-blue-500/10 dark:bg-blue-400/20 text-blue-800 dark:text-blue-300 border-blue-500/30 dark:border-blue-400/30">
                           Global
                         </Badge>
                       </div>
-                      <p className="text-sm text-blue-700 mb-2">Standard patient chart context for EHR integration</p>
+                      <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">Standard patient chart context for EHR integration</p>
                       <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-xs text-blue-600 font-medium">Active</span>
+                        <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">Active</span>
                       </div>
                     </div>
 
-                    <div className="p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl border border-purple-200/50">
+                    <div className="p-4 bg-purple-500/10 dark:bg-purple-400/10 rounded-xl border border-purple-500/20 dark:border-purple-400/20">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-purple-900">Provider Summary</h4>
-                        <Badge variant="secondary" className="bg-purple-100 text-purple-800 border-purple-300">
+                        <h4 className="font-semibold text-purple-900 dark:text-purple-100">Provider Summary</h4>
+                        <Badge variant="secondary" className="bg-purple-500/10 dark:bg-purple-400/20 text-purple-800 dark:text-purple-300 border-purple-500/30 dark:border-purple-400/30">
                           Server-specific
                         </Badge>
                       </div>
-                      <p className="text-sm text-purple-700 mb-2">Provider-focused clinical decision support context</p>
+                      <p className="text-sm text-purple-700 dark:text-purple-300 mb-2">Provider-focused clinical decision support context</p>
                       <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-xs text-purple-600 font-medium">Active</span>
+                        <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">Active</span>
                       </div>
                     </div>
 
-                    <div className="p-4 bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200/50">
+                    <div className="p-4 bg-emerald-500/10 dark:bg-emerald-400/10 rounded-xl border border-emerald-500/20 dark:border-emerald-400/20">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-emerald-900">Encounter Context</h4>
-                        <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 border-emerald-300">
+                        <h4 className="font-semibold text-emerald-900 dark:text-emerald-100">Encounter Context</h4>
+                        <Badge variant="secondary" className="bg-emerald-500/10 dark:bg-emerald-400/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/30 dark:border-emerald-400/30">
                           Global
                         </Badge>
                       </div>
-                      <p className="text-sm text-emerald-700 mb-2">Encounter-specific clinical workflow context</p>
+                      <p className="text-sm text-emerald-700 dark:text-emerald-300 mb-2">Encounter-specific clinical workflow context</p>
                       <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-xs text-emerald-600 font-medium">Active</span>
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Active</span>
                       </div>
                     </div>
 
-                    <div className="p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200/50">
+                    <div className="p-4 bg-orange-500/10 dark:bg-orange-400/10 rounded-xl border border-orange-500/20 dark:border-orange-400/20">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-orange-900">Quality Reporting</h4>
-                        <Badge variant="secondary" className="bg-orange-100 text-orange-800 border-orange-300">
+                        <h4 className="font-semibold text-orange-900 dark:text-orange-100">Quality Reporting</h4>
+                        <Badge variant="secondary" className="bg-orange-500/10 dark:bg-orange-400/20 text-orange-800 dark:text-orange-300 border-orange-500/30 dark:border-orange-400/30">
                           Server-specific
                         </Badge>
                       </div>
-                      <p className="text-sm text-orange-700 mb-2">Clinical quality measure reporting context</p>
+                      <p className="text-sm text-orange-700 dark:text-orange-300 mb-2">Clinical quality measure reporting context</p>
                       <div className="flex items-center space-x-2">
                         <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                        <span className="text-xs text-orange-600 font-medium">Pending</span>
+                        <span className="text-xs text-orange-600 dark:text-orange-400 font-medium">Pending</span>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="bg-white/70 backdrop-blur-sm p-12 rounded-2xl border border-gray-200/50 shadow-lg text-center">
-                <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center shadow-sm">
-                  <Info className="w-8 h-8 text-gray-500" />
+              <div className="bg-card/70 backdrop-blur-sm p-12 rounded-2xl border border-border shadow-lg text-center">
+                <div className="w-16 h-16 mx-auto mb-6 bg-muted/50 rounded-2xl flex items-center justify-center shadow-sm">
+                  <Info className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">No Server Selected</h3>
-                <p className="text-gray-600 mb-6 font-medium">
+                <h3 className="text-xl font-bold text-foreground mb-3">No Server Selected</h3>
+                <p className="text-muted-foreground mb-6 font-medium">
                   Select a server from the overview tab to view detailed information
                 </p>
                 {loadingServerDetail && (
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 )}
               </div>
             )}

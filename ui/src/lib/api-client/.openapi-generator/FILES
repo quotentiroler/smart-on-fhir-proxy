@@ -11,9 +11,12 @@ apis/SmartAppsApi.ts
 apis/index.ts
 index.ts
 models/DeleteAdminRolesByRoleName200Response.ts
+models/GetAdminClientRegistrationSettings200Response.ts
 models/GetAdminHealthcareUsers200ResponseInner.ts
 models/GetAdminHealthcareUsersLimitParameter.ts
+models/GetAdminHealthcareUsersLimitParameterAnyOf.ts
 models/GetAdminHealthcareUsersOffsetParameter.ts
+models/GetAdminHealthcareUsersOffsetParameterAnyOf.ts
 models/GetAdminIdps200ResponseInner.ts
 models/GetAdminLaunchContexts200ResponseInner.ts
 models/GetAdminRoles200ResponseInner.ts
@@ -44,6 +47,7 @@ models/PostAdminSmartAppsRequest.ts
 models/PostAdminSmartAppsRequestClientType.ts
 models/PostAuthIntrospect200Response.ts
 models/PostAuthIntrospectRequest.ts
+models/PostAuthRegisterRequest.ts
 models/PostAuthToken200Response.ts
 models/PostAuthToken200ResponseAuthorizationDetailsInner.ts
 models/PostAuthToken200ResponseFhirContextInner.ts

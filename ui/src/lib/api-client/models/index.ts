@@ -1,9 +1,12 @@
 /* tslint:disable */
 /* eslint-disable */
 export * from './DeleteAdminRolesByRoleName200Response';
+export * from './GetAdminClientRegistrationSettings200Response';
 export * from './GetAdminHealthcareUsers200ResponseInner';
 export * from './GetAdminHealthcareUsersLimitParameter';
+export * from './GetAdminHealthcareUsersLimitParameterAnyOf';
 export * from './GetAdminHealthcareUsersOffsetParameter';
+export * from './GetAdminHealthcareUsersOffsetParameterAnyOf';
 export * from './GetAdminIdps200ResponseInner';
 export * from './GetAdminLaunchContexts200ResponseInner';
 export * from './GetAdminRoles200ResponseInner';
@@ -34,6 +37,7 @@ export * from './PostAdminSmartAppsRequest';
 export * from './PostAdminSmartAppsRequestClientType';
 export * from './PostAuthIntrospect200Response';
 export * from './PostAuthIntrospectRequest';
+export * from './PostAuthRegisterRequest';
 export * from './PostAuthToken200Response';
 export * from './PostAuthToken200ResponseAuthorizationDetailsInner';
 export * from './PostAuthToken200ResponseFhirContextInner';
