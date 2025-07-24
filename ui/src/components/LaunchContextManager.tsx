@@ -392,11 +392,11 @@ export function LaunchContextManager() {
     return (
       <div className="p-8 flex items-center justify-center min-h-[400px]">
         <div className="text-center">
-          <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-blue-100 to-blue-200 rounded-2xl flex items-center justify-center shadow-lg">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="w-16 h-16 mx-auto mb-6 bg-primary/10 rounded-2xl flex items-center justify-center shadow-lg">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Loading Launch Contexts</h2>
-          <p className="text-gray-600 font-medium">Fetching context configurations...</p>
+          <h2 className="text-2xl font-bold text-foreground mb-2">Loading Launch Contexts</h2>
+          <p className="text-muted-foreground font-medium">Fetching context configurations...</p>
         </div>
       </div>
     );
@@ -405,17 +405,17 @@ export function LaunchContextManager() {
   return (
     <div className="p-8 space-y-8">
       {/* Enhanced Header */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-8 rounded-3xl border border-blue-100/50 shadow-lg">
+      <div className="bg-gradient-to-r from-background to-muted/50 p-8 rounded-3xl border border-border shadow-lg">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-6 lg:space-y-0">
           <div className="flex-1">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
               Launch Context Management
             </h1>
             <div className="flex items-center">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-3 shadow-sm">
-                <Rocket className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-primary/30 rounded-xl flex items-center justify-center mr-3 shadow-sm">
+                <Rocket className="w-5 h-5 text-primary" />
               </div>
-              <p className="text-gray-600 text-lg">
+              <p className="text-muted-foreground text-lg">
                 Configure SMART on FHIR launch contexts and scope templates
               </p>
             </div>
@@ -423,14 +423,14 @@ export function LaunchContextManager() {
           <div className="flex space-x-3">
             <Button
               onClick={() => setShowBuilder(true)}
-              className="px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-2xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/20"
+              className="px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-2xl hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-green-500/20"
             >
               <Plus className="w-5 h-5 mr-2" />
               New Context Set
             </Button>
             <Button
               onClick={() => window.location.reload()}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/20"
+              className="px-8 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-blue-500/20"
             >
               <RefreshCw className="w-5 h-5 mr-2" />
               Refresh
@@ -441,74 +441,74 @@ export function LaunchContextManager() {
 
       {/* Enhanced Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+        <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Target className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-xl flex items-center justify-center shadow-sm">
+                  <Target className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
-                <div className="text-sm font-semibold text-blue-800 tracking-wide">Total Context Sets</div>
+                <div className="text-sm font-semibold text-blue-800 dark:text-blue-300 tracking-wide">Total Context Sets</div>
               </div>
-              <div className="text-3xl font-bold text-blue-900 mb-2">{contextSets.length}</div>
+              <div className="text-3xl font-bold text-foreground mb-2">{contextSets.length}</div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+        <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Settings className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500/20 to-blue-600/30 rounded-xl flex items-center justify-center shadow-sm">
+                  <Settings className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                 </div>
-                <div className="text-sm font-semibold text-blue-800 tracking-wide">Templates</div>
+                <div className="text-sm font-semibold text-blue-800 dark:text-blue-300 tracking-wide">Templates</div>
               </div>
-              <div className="text-3xl font-bold text-blue-900 mb-2">
+              <div className="text-3xl font-bold text-foreground mb-2">
                 {contextSets.filter(s => s.isTemplate).length}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+        <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Check className="w-6 h-6 text-green-600" />
+                <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-green-600/30 rounded-xl flex items-center justify-center shadow-sm">
+                  <Check className="w-6 h-6 text-green-600 dark:text-green-400" />
                 </div>
-                <div className="text-sm font-semibold text-green-800 tracking-wide">Custom Sets</div>
+                <div className="text-sm font-semibold text-green-800 dark:text-green-300 tracking-wide">Custom Sets</div>
               </div>
-              <div className="text-3xl font-bold text-green-900 mb-2">
+              <div className="text-3xl font-bold text-foreground mb-2">
                 {contextSets.filter(s => !s.isTemplate).length}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+        <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Rocket className="w-6 h-6 text-indigo-600" />
+                <div className="w-12 h-12 bg-gradient-to-br from-indigo-500/20 to-indigo-600/30 rounded-xl flex items-center justify-center shadow-sm">
+                  <Rocket className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
                 </div>
-                <div className="text-sm font-semibold text-indigo-800 tracking-wide">Launch Scopes</div>
+                <div className="text-sm font-semibold text-indigo-800 dark:text-indigo-300 tracking-wide">Launch Scopes</div>
               </div>
-              <div className="text-3xl font-bold text-indigo-900 mb-2">
+              <div className="text-3xl font-bold text-foreground mb-2">
                 {contextSets.reduce((total, set) => total + set.contexts.length, 0)}
               </div>
-              <p className="text-sm text-indigo-700 font-medium">Total scopes</p>
+              <p className="text-sm text-indigo-700 dark:text-indigo-300 font-medium">Total scopes</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Enhanced Main Content */}
-      <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg">
+      <div className="bg-card/70 backdrop-blur-sm rounded-2xl border border-border shadow-lg">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className={`grid w-full ${profile?.roles?.includes('admin') ? 'grid-cols-3' : 'grid-cols-2'} m-4 bg-gray-100/50`}>
+          <TabsList className={`grid w-full ${profile?.roles?.includes('admin') ? 'grid-cols-3' : 'grid-cols-2'} m-4 bg-muted/50`}>
             <TabsTrigger value="overview" className="rounded-xl">Context Overview</TabsTrigger>
             <TabsTrigger value="templates" className="rounded-xl">Template Library</TabsTrigger>
             {profile?.roles?.includes('admin') && (
@@ -518,17 +518,17 @@ export function LaunchContextManager() {
 
           <TabsContent value="overview" className="p-6 space-y-6">
             {contextSets.filter(s => !s.isTemplate).length === 0 ? (
-              <div className="bg-white/70 backdrop-blur-sm p-12 rounded-2xl border border-gray-200/50 shadow-lg text-center">
-                <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center shadow-sm">
-                  <Target className="w-8 h-8 text-gray-500" />
+              <div className="bg-card/70 backdrop-blur-sm p-12 rounded-2xl border border-border shadow-lg text-center">
+                <div className="w-16 h-16 mx-auto mb-6 bg-muted rounded-2xl flex items-center justify-center shadow-sm">
+                  <Target className="w-8 h-8 text-muted-foreground" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">No Custom Context Sets</h3>
-                <p className="text-gray-600 mb-6 font-medium">
+                <h3 className="text-xl font-bold text-foreground mb-3">No Custom Context Sets</h3>
+                <p className="text-muted-foreground mb-6 font-medium">
                   Create your first launch context set or use a template from the Template Library
                 </p>
                 <Button
                   onClick={() => setShowBuilder(true)}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                  className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Create Context Set
@@ -537,44 +537,44 @@ export function LaunchContextManager() {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {contextSets.filter(s => !s.isTemplate).map((set) => (
-                  <div key={set.id} className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                  <div key={set.id} className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                          <Target className="w-5 h-5 text-blue-600" />
+                        <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-primary/30 rounded-xl flex items-center justify-center shadow-sm">
+                          <Target className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-gray-900">{set.name}</h3>
+                          <h3 className="text-lg font-bold text-foreground">{set.name}</h3>
                           {set.description && (
-                            <p className="text-sm text-gray-600">{set.description}</p>
+                            <p className="text-sm text-muted-foreground">{set.description}</p>
                           )}
                         </div>
                       </div>
-                      <Badge className="bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300">
+                      <Badge className="bg-primary/10 text-primary border-primary/30">
                         {set.contexts.length} contexts
                       </Badge>
                     </div>
 
                     <div className="space-y-3 mb-4">
-                      <h4 className="text-sm font-semibold text-gray-700">Launch Contexts:</h4>
+                      <h4 className="text-sm font-semibold text-foreground">Launch Contexts:</h4>
                       <div className="flex flex-wrap gap-2">
                         {set.contexts.map((ctx) => (
                           <div key={ctx} className="flex items-center group">
                             <Badge
                               variant="outline"
-                              className="text-xs bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                              className="text-xs bg-muted hover:bg-muted/80 cursor-pointer transition-colors"
                               onClick={() => copyToClipboard(ctx)}
                             >
                               {ctx}
                             </Badge>
-                            <Copy className="w-3 h-3 ml-1 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                            <Copy className="w-3 h-3 ml-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                               onClick={() => copyToClipboard(ctx)} />
                           </div>
                         ))}
                       </div>
                     </div>
 
-                    <div className="flex justify-between items-center text-xs text-gray-500 mb-4">
+                    <div className="flex justify-between items-center text-xs text-muted-foreground mb-4">
                       <span>Updated: {new Date(set.updatedAt).toLocaleDateString()}</span>
                     </div>
 
@@ -582,7 +582,7 @@ export function LaunchContextManager() {
                       <Button
                         size="sm"
                         onClick={() => editSet(set)}
-                        className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
+                        className="flex-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500"
                       >
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
@@ -605,37 +605,37 @@ export function LaunchContextManager() {
           <TabsContent value="templates" className="p-6 space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {contextSets.filter(s => s.isTemplate).map((template) => (
-                <div key={template.id} className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                <div key={template.id} className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                        <Settings className="w-5 h-5 text-blue-600" />
+                      <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-primary/30 rounded-xl flex items-center justify-center shadow-sm">
+                        <Settings className="w-5 h-5 text-primary" />
                       </div>
                       <div>
-                        <h3 className="text-lg font-bold text-gray-900">{template.name}</h3>
+                        <h3 className="text-lg font-bold text-foreground">{template.name}</h3>
                         {template.description && (
-                          <p className="text-sm text-gray-600">{template.description}</p>
+                          <p className="text-sm text-muted-foreground">{template.description}</p>
                         )}
                       </div>
                     </div>
-                    <Badge className="bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300">
+                    <Badge className="bg-primary/10 text-primary border-primary/30">
                       Template
                     </Badge>
                   </div>
 
                   <div className="space-y-3 mb-4">
-                    <h4 className="text-sm font-semibold text-gray-700">Launch Contexts:</h4>
+                    <h4 className="text-sm font-semibold text-foreground">Launch Contexts:</h4>
                     <div className="flex flex-wrap gap-2">
                       {template.contexts.map((ctx) => (
                         <div key={ctx} className="flex items-center group">
                           <Badge
                             variant="outline"
-                            className="text-xs bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                            className="text-xs bg-muted hover:bg-muted/80 cursor-pointer transition-colors"
                             onClick={() => copyToClipboard(ctx)}
                           >
                             {ctx}
                           </Badge>
-                          <Copy className="w-3 h-3 ml-1 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                          <Copy className="w-3 h-3 ml-1 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                             onClick={() => copyToClipboard(ctx)} />
                         </div>
                       ))}
@@ -664,14 +664,14 @@ export function LaunchContextManager() {
             </div>
           </TabsContent>
           <TabsContent value="users" className="p-6 space-y-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
+            <div className="bg-primary/10 border border-primary/20 rounded-2xl p-4 mb-6">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <Users className="w-4 h-4 text-blue-600" />
+                <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                  <Users className="w-4 h-4 text-primary" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-blue-900">User Launch Contexts</h3>
-                  <p className="text-xs text-blue-700">
+                  <h3 className="text-sm font-semibold text-foreground">User Launch Contexts</h3>
+                  <p className="text-xs text-muted-foreground">
                     View users who have SMART launch context attributes.
                   </p>
                 </div>
@@ -681,23 +681,23 @@ export function LaunchContextManager() {
             {usersLoading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="text-center">
-                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-                  <p className="text-gray-600">Loading users with launch contexts...</p>
+                  <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+                  <p className="text-muted-foreground">Loading users with launch contexts...</p>
                 </div>
               </div>
             ) : error ? (
               <div className="space-y-6">
-                <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
+                <div className="bg-destructive/10 border border-destructive/20 rounded-2xl p-6">
                   <div className="flex items-center space-x-3 mb-4">
-                    <AlertCircle className="w-6 h-6 text-red-600" />
+                    <AlertCircle className="w-6 h-6 text-destructive" />
                     <div>
-                      <h3 className="text-lg font-semibold text-red-900">Unable to Load Real User Contexts</h3>
-                      <p className="text-red-700">{error}</p>
+                      <h3 className="text-lg font-semibold text-destructive">Unable to Load Real User Contexts</h3>
+                      <p className="text-destructive/80">{error}</p>
                     </div>
                   </div>
                   {error.includes('admin privileges') && (
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-4">
-                      <p className="text-sm text-yellow-800">
+                    <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3 mt-4">
+                      <p className="text-sm text-amber-700 dark:text-amber-300">
                         <strong>Note:</strong> To view user launch contexts, you need admin privileges in Keycloak.
                         Contact your system administrator to grant you the necessary permissions.
                       </p>
@@ -706,7 +706,7 @@ export function LaunchContextManager() {
                   <div className="flex space-x-3 mt-4">
                     <Button
                       onClick={retryLoadUsers}
-                      className="bg-red-600 hover:bg-red-700"
+                      className="bg-destructive hover:bg-destructive/90"
                     >
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Retry
