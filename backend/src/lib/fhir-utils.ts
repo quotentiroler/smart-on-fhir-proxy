@@ -148,24 +148,12 @@ export async function getFHIRServerInfo(baseUrl?: string): Promise<FHIRVersionIn
 /**
  * Validate if a requested FHIR version is supported by the server
  */
-export async function validateFHIRVersion(requestedVersion: string, baseUrl?: string): Promise<boolean> {
-  try {
-    const serverInfo = await getFHIRServerInfo(baseUrl)
-
-    // Normalize both versions for comparison
-    const normalizedRequested = normalizeFHIRVersion(requestedVersion)
-    const normalizedServer = normalizeFHIRVersion(serverInfo.fhirVersion)
-
-    // Check if requested version matches server version
-    const versionMatch = normalizedRequested === normalizedServer
-
-    // Also check if the version is generally supported by our proxy
-    const proxySupported = config.fhir.supportedVersions.includes(normalizedRequested)
-
-    return versionMatch && proxySupported && serverInfo.supported
-  } catch {
-    return false
-  }
+export async function validateFHIRVersion(requestedVersion: string): Promise<boolean> {
+  // Normalize the version first
+  const normalizedVersion = normalizeFHIRVersion(requestedVersion)
+  
+  // Check if the version is in our supported list
+  return config.fhir.supportedVersions.includes(normalizedVersion)
 }
 
 /**
