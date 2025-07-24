@@ -1,0 +1,300 @@
+import React from 'react';
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { createAuthenticatedApiClients } from '@/lib/apiClient';
+import type { 
+  GetFhirServers200Response, 
+  GetFhirServers200ResponseServersInner,
+  GetAdminHealthcareUsers200ResponseInner 
+} from '@/lib/api-client';
+
+interface FhirServerState {
+  // FHIR Servers
+  servers: GetFhirServers200ResponseServersInner[];
+  serversLoading: boolean;
+  serversError: string | null;
+  serversLastFetched: number | null;
+  
+  // Healthcare Users
+  healthcareUsers: GetAdminHealthcareUsers200ResponseInner[];
+  healthcareUsersLoading: boolean;
+  healthcareUsersError: string | null;
+  healthcareUsersLastFetched: number | null;
+  
+  // Launch Context Sets
+  launchContextSets: ContextSet[];
+  launchContextSetsLastUpdated: number | null;
+  
+  // Actions
+  fetchServers: () => Promise<void>;
+  fetchHealthcareUsers: () => Promise<void>;
+  clearServersError: () => void;
+  clearHealthcareUsersError: () => void;
+  refreshAll: () => Promise<void>;
+  updateHealthcareUser: (userId: string, updatedUser: GetAdminHealthcareUsers200ResponseInner) => void;
+  
+  // Launch Context Actions
+  addLaunchContextSet: (contextSet: ContextSet) => void;
+  updateLaunchContextSet: (id: string, contextSet: ContextSet) => void;
+  deleteLaunchContextSet: (id: string) => void;
+  getLaunchContextSets: () => ContextSet[];
+  
+  // Cache management
+  invalidateServers: () => void;
+  invalidateHealthcareUsers: () => void;
+  isServersCacheValid: () => boolean;
+  isHealthcareUsersCacheValid: () => boolean;
+}
+
+// Launch Context Set interface
+interface ContextSet {
+  id: string;
+  name: string;
+  description?: string;
+  contexts: string[];
+  category?: string;
+  createdAt: string;
+  updatedAt: string;
+  isTemplate: boolean;
+}
+
+// Cache duration: 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000;
+
+export const useFhirStore = create<FhirServerState>()(
+  persist(
+    (set, get) => ({
+      // Initial state
+      servers: [],
+      serversLoading: false,
+      serversError: null,
+      serversLastFetched: null,
+      
+      healthcareUsers: [],
+      healthcareUsersLoading: false,
+      healthcareUsersError: null,
+      healthcareUsersLastFetched: null,
+      
+      launchContextSets: [],
+      launchContextSetsLastUpdated: null,
+
+      // Actions
+      fetchServers: async () => {
+        // Check cache validity first
+        if (get().isServersCacheValid() && get().servers.length > 0) {
+          console.debug('🎯 Using cached FHIR servers data');
+          return;
+        }
+
+        set({ serversLoading: true, serversError: null });
+
+        try {
+          console.debug('🔄 Fetching FHIR servers from API...');
+          const { servers } = createAuthenticatedApiClients();
+          const response: GetFhirServers200Response = await servers.getFhirServers();
+          
+          console.debug('✅ FHIR servers fetched successfully:', {
+            totalServers: response.totalServers,
+            servers: response.servers.map(s => ({ name: s.name, url: s.url, supported: s.supported }))
+          });
+          
+          set({ 
+            servers: response.servers,
+            serversLoading: false,
+            serversError: null,
+            serversLastFetched: Date.now()
+          });
+        } catch (error) {
+          console.error('❌ Failed to fetch FHIR servers:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to fetch FHIR servers';
+          set({ 
+            serversLoading: false, 
+            serversError: errorMessage 
+          });
+          throw error;
+        }
+      },
+
+      fetchHealthcareUsers: async () => {
+        // Check cache validity first
+        if (get().isHealthcareUsersCacheValid() && get().healthcareUsers.length > 0) {
+          console.debug('🎯 Using cached healthcare users data');
+          return;
+        }
+
+        set({ healthcareUsersLoading: true, healthcareUsersError: null });
+
+        try {
+          console.debug('🔄 Fetching healthcare users from API...');
+          const { healthcareUsers } = createAuthenticatedApiClients();
+          const users = await healthcareUsers.getAdminHealthcareUsers();
+          
+          console.debug('✅ Healthcare users fetched successfully:', {
+            totalUsers: users.length,
+            usernames: users.map((u: GetAdminHealthcareUsers200ResponseInner) => u.username)
+          });
+          
+          set({ 
+            healthcareUsers: users,
+            healthcareUsersLoading: false,
+            healthcareUsersError: null,
+            healthcareUsersLastFetched: Date.now()
+          });
+        } catch (error) {
+          console.error('❌ Failed to fetch healthcare users:', error);
+          const errorMessage = error instanceof Error ? error.message : 'Failed to fetch healthcare users';
+          set({ 
+            healthcareUsersLoading: false, 
+            healthcareUsersError: errorMessage 
+          });
+          throw error;
+        }
+      },
+
+      clearServersError: () => set({ serversError: null }),
+      clearHealthcareUsersError: () => set({ healthcareUsersError: null }),
+
+      updateHealthcareUser: (userId: string, updatedUser: GetAdminHealthcareUsers200ResponseInner) => {
+        const { healthcareUsers } = get();
+        const updatedUsers = healthcareUsers.map(user => 
+          user.id === userId ? updatedUser : user
+        );
+        set({ healthcareUsers: updatedUsers });
+        console.debug('✅ Healthcare user updated in store:', { userId, username: updatedUser.username });
+      },
+
+      // Launch Context Actions
+      addLaunchContextSet: (contextSet: ContextSet) => {
+        const { launchContextSets } = get();
+        const updated = [...launchContextSets, contextSet];
+        set({ 
+          launchContextSets: updated,
+          launchContextSetsLastUpdated: Date.now()
+        });
+        console.debug('✅ Launch context set added:', { id: contextSet.id, name: contextSet.name });
+      },
+
+      updateLaunchContextSet: (id: string, contextSet: ContextSet) => {
+        const { launchContextSets } = get();
+        const updated = launchContextSets.map(set => set.id === id ? contextSet : set);
+        set({ 
+          launchContextSets: updated,
+          launchContextSetsLastUpdated: Date.now()
+        });
+        console.debug('✅ Launch context set updated:', { id, name: contextSet.name });
+      },
+
+      deleteLaunchContextSet: (id: string) => {
+        const { launchContextSets } = get();
+        const updated = launchContextSets.filter(set => set.id !== id);
+        set({ 
+          launchContextSets: updated,
+          launchContextSetsLastUpdated: Date.now()
+        });
+        console.debug('✅ Launch context set deleted:', { id });
+      },
+
+      getLaunchContextSets: () => {
+        return get().launchContextSets;
+      },
+
+      refreshAll: async () => {
+        console.debug('🔄 Refreshing all FHIR data...');
+        const promises = [
+          get().fetchServers(),
+          get().fetchHealthcareUsers()
+        ];
+        
+        try {
+          await Promise.allSettled(promises);
+          console.debug('✅ All FHIR data refreshed');
+        } catch (error) {
+          console.error('❌ Some data failed to refresh:', error);
+        }
+      },
+
+      // Cache management
+      invalidateServers: () => set({ serversLastFetched: null }),
+      invalidateHealthcareUsers: () => set({ healthcareUsersLastFetched: null }),
+
+      isServersCacheValid: () => {
+        const { serversLastFetched } = get();
+        if (!serversLastFetched) return false;
+        return Date.now() - serversLastFetched < CACHE_DURATION;
+      },
+
+      isHealthcareUsersCacheValid: () => {
+        const { healthcareUsersLastFetched } = get();
+        if (!healthcareUsersLastFetched) return false;
+        return Date.now() - healthcareUsersLastFetched < CACHE_DURATION;
+      },
+    }),
+    {
+      name: 'fhir-store',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        servers: state.servers,
+        serversLastFetched: state.serversLastFetched,
+        healthcareUsers: state.healthcareUsers,
+        healthcareUsersLastFetched: state.healthcareUsersLastFetched,
+        launchContextSets: state.launchContextSets,
+        launchContextSetsLastUpdated: state.launchContextSetsLastUpdated,
+      }),
+    }
+  )
+);
+
+// Hook for easy access to FHIR servers with auto-fetch
+export const useFhirServers = () => {
+  const store = useFhirStore();
+  
+  // Auto-fetch servers if not loaded and not currently loading
+  React.useEffect(() => {
+    if (!store.isServersCacheValid() && !store.serversLoading && store.servers.length === 0) {
+      store.fetchServers().catch(console.error);
+    }
+  }, [store]);
+
+  return {
+    servers: store.servers,
+    loading: store.serversLoading,
+    error: store.serversError,
+    refresh: store.fetchServers,
+    clearError: store.clearServersError,
+  };
+};
+
+// Hook for easy access to healthcare users with auto-fetch
+export const useHealthcareUsers = () => {
+  const store = useFhirStore();
+  
+  // Auto-fetch users if not loaded and not currently loading
+  React.useEffect(() => {
+    if (!store.isHealthcareUsersCacheValid() && !store.healthcareUsersLoading && store.healthcareUsers.length === 0) {
+      store.fetchHealthcareUsers().catch(console.error);
+    }
+  }, [store]);
+
+  return {
+    users: store.healthcareUsers,
+    loading: store.healthcareUsersLoading,
+    error: store.healthcareUsersError,
+    refresh: store.fetchHealthcareUsers,
+    clearError: store.clearHealthcareUsersError,
+    updateUser: store.updateHealthcareUser,
+  };
+};
+
+// Hook for launch context sets management
+export const useLaunchContextSets = () => {
+  const store = useFhirStore();
+
+  return {
+    contextSets: store.launchContextSets,
+    lastUpdated: store.launchContextSetsLastUpdated,
+    addContextSet: store.addLaunchContextSet,
+    updateContextSet: store.updateLaunchContextSet,
+    deleteContextSet: store.deleteLaunchContextSet,
+    getContextSets: store.getLaunchContextSets,
+  };
+};

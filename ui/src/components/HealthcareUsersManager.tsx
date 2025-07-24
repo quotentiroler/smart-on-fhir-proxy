@@ -29,9 +29,11 @@ import { MoreHorizontal, Plus, Users, UserCheck, Shield, GraduationCap, Loader2,
 import { createAuthenticatedApiClients, handleApiError } from '@/lib/apiClient';
 import { useAuth } from '@/stores/authStore';
 import { useAuthSetup } from '@/hooks/useAuthSetup';
-import { PersonResourceLinkerTrigger, type PersonResource, type PersonLink } from './PersonResourceLinker';
+import { useFhirServers } from '@/stores/fhirStore';
+import { PersonResourceLinkerTrigger } from './PersonResourceLinker';
 import { AddFhirPersonModal } from './AddFhirPersonModal';
 import type { GetAdminHealthcareUsers200ResponseInner } from '@/lib/api-client';
+import type { PersonLink, PersonResource } from '@/lib/fhir-types';
 
 interface FhirPersonAssociation {
   serverName: string;
@@ -133,14 +135,6 @@ const getAllAvailableRoles = () => {
   return allRoles;
 };
 
-// Sample FHIR servers for demonstration
-const sampleFhirServers = [
-  { name: 'Epic Production', baseUrl: 'https://fhir.epic.com/interconnect-fhir-oauth', status: 'active' },
-  { name: 'Cerner Sandbox', baseUrl: 'https://fhir-open.cerner.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d', status: 'active' },
-  { name: 'SMART Health IT', baseUrl: 'https://launch.smarthealthit.org/v/r4/fhir', status: 'active' },
-  { name: 'Test Server', baseUrl: 'http://localhost:8080/fhir', status: 'development' }
-];
-
 /**
  * Parse FHIR user string into structured associations
  */
@@ -179,9 +173,11 @@ function transformApiUser(apiUser: GetAdminHealthcareUsers200ResponseInner): Hea
   const organization = apiUser.organization || '';
   const fhirUser = apiUser.fhirUser || '';
   const clientRoles = apiUser.clientRoles as Record<string, string[]> || {};
+  const realmRoles = apiUser.realmRoles || [];
   
-// Removed console.log statement to prevent logging sensitive user information.
-
+  // Calculate the primary role using the existing function
+  const primaryRole = getPrimaryRole(realmRoles, clientRoles);
+  
   return {
     id: apiUser.id,
     name: `${apiUser.firstName} ${apiUser.lastName}`.trim(),
@@ -193,10 +189,10 @@ function transformApiUser(apiUser: GetAdminHealthcareUsers200ResponseInner): Hea
     fhirPersons: parseFhirPersons(fhirUser),
     status: apiUser.enabled ? 'active' : 'inactive',
     enabled: apiUser.enabled,
-    primaryRole: '', // TODO: Add primaryRole support to API
+    primaryRole: primaryRole,
     lastLogin: apiUser.lastLogin,
     createdTimestamp: apiUser.createdTimestamp,
-    realmRoles: apiUser.realmRoles,
+    realmRoles: realmRoles,
     clientRoles: clientRoles,
     attributes: attributes
   }
@@ -204,6 +200,11 @@ function transformApiUser(apiUser: GetAdminHealthcareUsers200ResponseInner): Hea
 
 export function HealthcareUsersManager() {
   const { isAuthenticated } = useAuth();
+  
+  // Store hooks for FHIR servers and healthcare users
+  const { servers: fhirServers } = useFhirServers();
+  // const { users: healthcareUsersData, loading: usersLoading, error: usersError, refresh: refreshUsers } = useHealthcareUsers();
+  
   const [users, setUsers] = useState<HealthcareUserWithPersons[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -570,17 +571,28 @@ export function HealthcareUsersManager() {
     // Only return Person resources that exist
     return user.fhirPersons
       .filter(assoc => assoc.personId.startsWith('Person/'))
-      .map(assoc => ({
-        id: assoc.personId,
-        serverName: assoc.serverName,
-        serverUrl: sampleFhirServers.find(s => s.name === assoc.serverName)?.baseUrl || '',
-        display: assoc.display || `${user.firstName} ${user.lastName} (${assoc.personId})`,
-        name: {
-          family: user.lastName,
-          given: [user.firstName]
-        },
-        links: [] // Links will be loaded separately when needed
-      }));
+      .map(assoc => {
+        const fhirServer = fhirServers.find(s => s.name === assoc.serverName);
+        return {
+          id: assoc.personId,
+          serverInfo: {
+            identifier: assoc.serverName.toLowerCase().replace(/\s+/g, '-'),
+            displayName: assoc.serverName,
+            baseUrl: fhirServer?.url || '',
+            status: 'healthy' as const,
+            accessible: true,
+            version: fhirServer?.fhirVersion || 'R4',
+            serverName: assoc.serverName,
+            serverVersion: fhirServer?.serverVersion,
+          },
+          display: assoc.display || `${user.firstName} ${user.lastName} (${assoc.personId})`,
+          name: [{
+            family: user.lastName,
+            given: [user.firstName]
+          }],
+          links: [] // Links will be loaded separately when needed
+        };
+      });
   };
 
   // Update healthcare user when Person resource links are updated
@@ -593,7 +605,7 @@ export function HealthcareUsersManager() {
         return;
       }
 
-      const fhirServer = sampleFhirServers.find(server => server.name === personAssociation.serverName);
+      const fhirServer = fhirServers.find(server => server.name === personAssociation.serverName);
       if (!fhirServer) {
         console.error(`FHIR server not found: ${personAssociation.serverName}`);
         return;
@@ -620,7 +632,7 @@ export function HealthcareUsersManager() {
       };
 
       // Make the FHIR API call to update the Person resource
-      const response = await fetch(`${fhirServer.baseUrl}/${personId}`, {
+      const response = await fetch(`${fhirServer.url}/${personId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/fhir+json',
@@ -632,12 +644,26 @@ export function HealthcareUsersManager() {
       if (!response.ok) {
         throw new Error(`Failed to update Person resource: ${response.status} ${response.statusText}`);
       }
-
-      const updatedPerson = await response.json();
-      console.log(`Successfully updated Person ${personId} links:`, updatedPerson);
       
-      // Optionally show a success message to the user
-      // You could add a toast notification here
+      // After successful FHIR update, reload the user data from API to preserve all fields
+      try {
+        const apiClients = createAuthenticatedApiClients();
+        const refreshedUser = await apiClients.healthcareUsers.getAdminHealthcareUsersByUserId({ userId: user.id });
+        
+        // Transform the refreshed user data
+        const transformedRefreshedUser = transformApiUser(refreshedUser);
+        
+        // Update the local state with the refreshed user (preserving all role data)
+        setUsers(prevUsers => prevUsers.map(u => 
+          u.id === user.id ? transformedRefreshedUser : u
+        ));
+        
+        console.debug('✅ User data refreshed after Person resource update', { userId: user.id, username: user.username });
+      } catch (refreshError) {
+        console.error('Failed to refresh user data after Person update:', refreshError);
+        // Even if refresh fails, we can show a warning but the FHIR update was successful
+        setError('Person resource updated successfully, but failed to refresh user data. Please refresh the page.');
+      }
       
     } catch (error) {
       console.error(`Failed to update Person ${personId} links:`, error);
@@ -871,7 +897,7 @@ export function HealthcareUsersManager() {
                               <SelectValue placeholder="Select FHIR server" />
                             </SelectTrigger>
                             <SelectContent>
-                              {sampleFhirServers.map(server => (
+                              {fhirServers.map(server => (
                                 <SelectItem key={server.name} value={server.name}>
                                   <div className="flex items-center space-x-2">
                                     <Server className="w-4 h-4" />
@@ -1188,7 +1214,7 @@ export function HealthcareUsersManager() {
                               <SelectValue placeholder="Select FHIR server" />
                             </SelectTrigger>
                             <SelectContent>
-                              {sampleFhirServers.map(server => (
+                              {fhirServers.map(server => (
                                 <SelectItem key={server.name} value={server.name}>
                                   <div className="flex items-center space-x-2">
                                     <Server className="w-4 h-4" />
@@ -1577,7 +1603,11 @@ export function HealthcareUsersManager() {
           }}
           user={selectedUserForPerson}
           onPersonAdded={handlePersonAdded}
-          availableServers={sampleFhirServers}
+          availableServers={fhirServers.map(server => ({
+            name: server.name,
+            baseUrl: server.url,
+            status: server.supported ? 'active' : 'inactive'
+          }))}
         />
       )}
     </div>

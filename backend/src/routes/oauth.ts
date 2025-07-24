@@ -167,9 +167,27 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
       url.searchParams.set('post_logout_redirect_uri', postLogoutRedirectUri)
     }
     
-    // Add any additional parameters passed through
+    // Only pass valid id_token_hint if present and looks like a JWT
+    if (query.id_token_hint) {
+      // Basic validation: JWTs have 3 parts separated by dots
+      const isValidJwtFormat = typeof query.id_token_hint === 'string' && 
+                              query.id_token_hint.split('.').length === 3 &&
+                              query.id_token_hint.length > 50 // Reasonable minimum length
+      
+      if (isValidJwtFormat) {
+        url.searchParams.set('id_token_hint', query.id_token_hint)
+        logger.auth.debug('Added valid id_token_hint to logout URL')
+      } else {
+        logger.auth.warn('Invalid id_token_hint format, skipping', { 
+          hintLength: query.id_token_hint?.length,
+          hintParts: query.id_token_hint?.split?.('.')?.length 
+        })
+      }
+    }
+    
+    // Add other safe parameters (excluding id_token_hint which we handled above)
     Object.entries(query).forEach(([k, v]) => {
-      if (k !== 'post_logout_redirect_uri') {
+      if (k !== 'post_logout_redirect_uri' && k !== 'id_token_hint' && k === 'client_id') {
         url.searchParams.set(k, v as string)
       }
     })

@@ -9,7 +9,12 @@ import { smartConfigAdminRoutes } from './smart-config'
 /**
  * Admin routes aggregator - combines all admin functionality
  */
-export const adminRoutes = new Elysia()
+export const adminRoutes = new Elysia({ prefix: '/admin' })
+  .guard({
+    detail: {
+      security: [{ BearerAuth: [] }]
+    }
+  })
   .use(smartAppsRoutes)
   .use(healthcareUsersRoutes)
   .use(rolesRoutes)

@@ -8,7 +8,7 @@ import { ErrorResponse } from '../../schemas/common'
  * All routes now use the user's access token to perform operations,
  * acting as a secure proxy for Keycloak admin operations.
  */
-export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
+export const rolesRoutes = new Elysia({ prefix: '/roles' })
   .use(keycloakPlugin)
 
   .get('/', async ({ getAdmin, headers, set }) => {
