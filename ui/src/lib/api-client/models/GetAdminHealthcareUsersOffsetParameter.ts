@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { GetAdminHealthcareUsersOffsetParameterAnyOf } from './GetAdminHealthcareUsersOffsetParameterAnyOf';
+import {
+    GetAdminHealthcareUsersOffsetParameterAnyOfFromJSON,
+    GetAdminHealthcareUsersOffsetParameterAnyOfFromJSONTyped,
+    GetAdminHealthcareUsersOffsetParameterAnyOfToJSON,
+    GetAdminHealthcareUsersOffsetParameterAnyOfToJSONTyped,
+} from './GetAdminHealthcareUsersOffsetParameterAnyOf';
+
 /**
  * 
  * @export
