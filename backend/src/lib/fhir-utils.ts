@@ -41,6 +41,8 @@ const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
  * - "3.0.2" → "STU3"
  * - "1.0.2" → "DSTU2"
  * - "R4" → "R4" (already normalized)
+ * 
+ * @throws {Error} When version cannot be normalized
  */
 export function normalizeFHIRVersion(version: string): string {
   if (!version) throw new Error('FHIR version cannot be empty')
@@ -59,7 +61,7 @@ export function normalizeFHIRVersion(version: string): string {
       case 4: return 'R4'
       case 3: return 'STU3'
       case 1: return 'DSTU2'
-      default: return config.fhir.supportedVersions[0] // Default fallback to first supported version
+      default: throw new Error(`Unsupported FHIR major version: ${majorVersion}`)
     }
   }
 
@@ -70,8 +72,8 @@ export function normalizeFHIRVersion(version: string): string {
   if (lowerVersion.includes('stu3') || lowerVersion.includes('3.0')) return 'STU3'
   if (lowerVersion.includes('dstu2') || lowerVersion.includes('1.0')) return 'DSTU2'
 
-  // Ultimate fallback
-  return config.fhir.supportedVersions[0]
+  // No more fallback - throw error for invalid versions
+  throw new Error(`Cannot normalize FHIR version: ${version}`)
 }
 
 /**
@@ -152,7 +154,7 @@ export async function validateFHIRVersion(requestedVersion: string, baseUrl?: st
   try {
     const serverInfo = await getFHIRServerInfo(baseUrl)
 
-    // Normalize both versions for comparison
+    // Normalize both versions for comparison - this will throw for invalid versions
     const normalizedRequested = normalizeFHIRVersion(requestedVersion)
     const normalizedServer = normalizeFHIRVersion(serverInfo.fhirVersion)
 
@@ -163,7 +165,13 @@ export async function validateFHIRVersion(requestedVersion: string, baseUrl?: st
     const proxySupported = config.fhir.supportedVersions.includes(normalizedRequested)
 
     return versionMatch && proxySupported && serverInfo.supported
-  } catch {
+  } catch (error) {
+    // Log the validation failure for debugging
+    logger.fhir.debug('FHIR version validation failed', { 
+      requestedVersion, 
+      baseUrl, 
+      error: error instanceof Error ? error.message : error 
+    })
     return false
   }
 }

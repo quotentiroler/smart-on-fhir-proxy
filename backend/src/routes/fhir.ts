@@ -3,7 +3,7 @@ import fetch, { Headers } from 'cross-fetch'
 import { validateToken } from '../lib/auth'
 import { config } from '../config'
 import { validateFHIRVersion } from '../lib/fhir-utils'
-import { fhirServerStore, getServerByName, getServerInfoByName } from '../lib/fhir-server-store'
+import { fhirServerStore, getServerInfoByName } from '../lib/fhir-server-store'
 import { ErrorResponse } from '../schemas/common'
 import { smartConfigService } from '../lib/smart-config'
 import { logger } from '../lib/logger'
@@ -88,11 +88,20 @@ export const fhirRoutes = new Elysia({ prefix: `/${config.appName}/:server_name/
     set: { status: number, headers: Record<string, string> } 
   }) => {
     try {
-      // Use the store to get server URL - this will initialize the store if needed
-      const serverUrl = await getServerByName(params.server_name)
-      if (!serverUrl) {
+      // Get server info by name (automatically initializes if needed)
+      const serverInfo = await getServerInfoByName(params.server_name)
+      if (!serverInfo) {
         set.status = 404
         return { error: `FHIR server '${params.server_name}' not found` }
+      }
+
+      const serverUrl = serverInfo.url
+
+      // Validate that we can handle the client's requested version against the specific server
+      const isValidVersion = await validateFHIRVersion(params.fhir_version, serverUrl)
+      if (!isValidVersion) {
+        set.status = 400
+        return { error: `Unsupported FHIR version: ${params.fhir_version}. Server info available at /${params.server_name}/${params.fhir_version}/server-info` }
       }
 
       const headers = new Headers()
@@ -163,8 +172,8 @@ export const fhirRoutes = new Elysia({ prefix: `/${config.appName}/:server_name/
       const serverUrl = serverInfo.url
       const serverMetadata = serverInfo.metadata
 
-      // Validate that we can handle the client's requested version
-      const isValidVersion = await validateFHIRVersion(params.fhir_version)
+      // Validate that we can handle the client's requested version against the specific server
+      const isValidVersion = await validateFHIRVersion(params.fhir_version, serverUrl)
       if (!isValidVersion) {
         set.status = 400
         return { error: `Unsupported FHIR version: ${params.fhir_version}. Server info available at /${params.server_name}/${params.fhir_version}/server-info` }
