@@ -465,13 +465,14 @@ export function LaunchContextManager() {
 
   // Generate launch URL
   const generateLaunchUrl = (context: LaunchContext) => {
-    const baseUrl = window.location.origin;
-    const params = new URLSearchParams({
+    const baseUrl = new URL(window.location.origin);
+    baseUrl.pathname = '/launch';
+    baseUrl.search = new URLSearchParams({
       launch: context.id,
       intent: context.intent,
       ...(context.parameters || {})
-    });
-    return `${baseUrl}/launch?${params.toString()}`;
+    }).toString();
+    return baseUrl.toString();
   };
 
   // Copy to clipboard
