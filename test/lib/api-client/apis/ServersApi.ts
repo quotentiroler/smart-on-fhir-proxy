@@ -18,8 +18,10 @@ import type {
   GetFhirServers200Response,
   GetFhirServers500Response,
   GetFhirServersByServerName200Response,
-  GetFhirServersByServerName404Response,
   GetFhirServersByServerName500Response,
+  PostFhirServers200Response,
+  PostFhirServers401Response,
+  PostFhirServersRequest,
 } from '../models/index';
 import {
     GetFhirServers200ResponseFromJSON,
@@ -28,14 +30,22 @@ import {
     GetFhirServers500ResponseToJSON,
     GetFhirServersByServerName200ResponseFromJSON,
     GetFhirServersByServerName200ResponseToJSON,
-    GetFhirServersByServerName404ResponseFromJSON,
-    GetFhirServersByServerName404ResponseToJSON,
     GetFhirServersByServerName500ResponseFromJSON,
     GetFhirServersByServerName500ResponseToJSON,
+    PostFhirServers200ResponseFromJSON,
+    PostFhirServers200ResponseToJSON,
+    PostFhirServers401ResponseFromJSON,
+    PostFhirServers401ResponseToJSON,
+    PostFhirServersRequestFromJSON,
+    PostFhirServersRequestToJSON,
 } from '../models/index';
 
 export interface GetFhirServersByServerNameRequest {
     serverName: string;
+}
+
+export interface PostFhirServersOperationRequest {
+    postFhirServersRequest: PostFhirServersRequest;
 }
 
 /**
@@ -110,6 +120,55 @@ export class ServersApi extends runtime.BaseAPI {
      */
     async getFhirServersByServerName(requestParameters: GetFhirServersByServerNameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetFhirServersByServerName200Response> {
         const response = await this.getFhirServersByServerNameRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Add a new FHIR server to the system by providing its base URL
+     * Add New FHIR Server
+     */
+    async postFhirServersRaw(requestParameters: PostFhirServersOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostFhirServers200Response>> {
+        if (requestParameters['postFhirServersRequest'] == null) {
+            throw new runtime.RequiredError(
+                'postFhirServersRequest',
+                'Required parameter "postFhirServersRequest" was null or undefined when calling postFhirServers().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/fhir-servers/`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PostFhirServersRequestToJSON(requestParameters['postFhirServersRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PostFhirServers200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Add a new FHIR server to the system by providing its base URL
+     * Add New FHIR Server
+     */
+    async postFhirServers(requestParameters: PostFhirServersOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostFhirServers200Response> {
+        const response = await this.postFhirServersRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

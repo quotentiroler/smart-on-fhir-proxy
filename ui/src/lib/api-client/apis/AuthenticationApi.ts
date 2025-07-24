@@ -16,17 +16,15 @@
 import * as runtime from '../runtime';
 import type {
   GetAuthUserinfo200Response,
-  GetFhirServersByServerName404Response,
   PostAuthIntrospect200Response,
   PostAuthIntrospectRequest,
   PostAuthToken200Response,
   PostAuthTokenRequest,
+  PostFhirServers401Response,
 } from '../models/index';
 import {
     GetAuthUserinfo200ResponseFromJSON,
     GetAuthUserinfo200ResponseToJSON,
-    GetFhirServersByServerName404ResponseFromJSON,
-    GetFhirServersByServerName404ResponseToJSON,
     PostAuthIntrospect200ResponseFromJSON,
     PostAuthIntrospect200ResponseToJSON,
     PostAuthIntrospectRequestFromJSON,
@@ -35,6 +33,8 @@ import {
     PostAuthToken200ResponseToJSON,
     PostAuthTokenRequestFromJSON,
     PostAuthTokenRequestToJSON,
+    PostFhirServers401ResponseFromJSON,
+    PostFhirServers401ResponseToJSON,
 } from '../models/index';
 
 export interface GetAuthAuthorizeRequest {

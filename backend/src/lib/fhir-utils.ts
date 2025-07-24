@@ -128,11 +128,11 @@ export async function getFHIRServerInfo(baseUrl?: string): Promise<FHIRVersionIn
       error: error instanceof Error ? error.message : String(error) 
     })
 
-    // Return default/fallback version info
+    // Return default/fallback version info when metadata can't be retrieved
     const fallback: FHIRVersionInfo = {
-      fhirVersion: config.fhir.supportedVersions[0],
+      fhirVersion: 'Unknown',
       serverName: 'Unknown FHIR Server',
-      supported: true
+      supported: false
     }
 
     // Cache the fallback for a shorter period

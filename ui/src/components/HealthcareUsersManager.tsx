@@ -40,25 +40,17 @@ interface FhirPersonAssociation {
   created?: string;
 }
 
-
-interface HealthcareUser {
-  id: string;
-  name: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  organization: string;
-  fhirPersons: FhirPersonAssociation[]; // Multiple FHIR Person resources
-  status: 'active' | 'inactive';
-  enabled: boolean;
-  primaryRole?: string;
-  lastLogin?: number | null;
-  createdTimestamp?: number;
-  realmRoles?: string[];
+// Extend the API type to include our UI-specific computed properties
+type HealthcareUserWithPersons = GetAdminHealthcareUsers200ResponseInner & {
+  name: string; // Computed from firstName + lastName
+  organization: string; // Computed from attributes
+  fhirPersons: FhirPersonAssociation[]; // UI-specific Person associations
+  status: 'active' | 'inactive'; // Computed from enabled status
+  primaryRole?: string; // Computed from roles
+  // Override the object types to be more specific
   clientRoles?: Record<string, string[]>;
-  attributes?: Record<string, string[]>;
-}
+  realmRoles?: string[];
+};
 
 /**
  * Get primary role from Keycloak roles
@@ -182,7 +174,7 @@ function serializeFhirPersons(fhirPersons: FhirPersonAssociation[]): string {
 /**
  * Transform API user data to our internal format
  */
-function transformApiUser(apiUser: GetAdminHealthcareUsers200ResponseInner): HealthcareUser {
+function transformApiUser(apiUser: GetAdminHealthcareUsers200ResponseInner): HealthcareUserWithPersons {
   const attributes = apiUser.attributes as Record<string, string[]> || {};
   const organization = apiUser.organization || '';
   const fhirUser = apiUser.fhirUser || '';
@@ -227,15 +219,15 @@ function transformApiUser(apiUser: GetAdminHealthcareUsers200ResponseInner): Hea
 
 export function HealthcareUsersManager() {
   const { isAuthenticated } = useAuth();
-  const [users, setUsers] = useState<HealthcareUser[]>([]);
+  const [users, setUsers] = useState<HealthcareUserWithPersons[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showEditForm, setShowEditForm] = useState(false);
-  const [editingUser, setEditingUser] = useState<HealthcareUser | null>(null);
+  const [editingUser, setEditingUser] = useState<HealthcareUserWithPersons | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [showAddPersonModal, setShowAddPersonModal] = useState(false);
-  const [selectedUserForPerson, setSelectedUserForPerson] = useState<HealthcareUser | null>(null);
+  const [selectedUserForPerson, setSelectedUserForPerson] = useState<HealthcareUserWithPersons | null>(null);
 
   // Set up auth error handler
   useAuthSetup();
@@ -359,7 +351,7 @@ export function HealthcareUsersManager() {
     }
   };
 
-  const handleEditUser = (user: HealthcareUser) => {
+  const handleEditUser = (user: HealthcareUserWithPersons) => {
     setEditingUser(user);
     setEditUser({
       id: user.id,
@@ -566,7 +558,7 @@ export function HealthcareUsersManager() {
   };
 
   // Handle opening the Add FHIR Person modal
-  const handleAddFhirPerson = (user: HealthcareUser) => {
+  const handleAddFhirPerson = (user: HealthcareUserWithPersons) => {
     setSelectedUserForPerson(user);
     setShowAddPersonModal(true);
   };
@@ -589,7 +581,7 @@ export function HealthcareUsersManager() {
   };
 
   // Convert healthcare user to Person resources for the linker
-  const convertToPersonResourceData = (user: HealthcareUser): PersonResource[] => {
+  const convertToPersonResourceData = (user: HealthcareUserWithPersons): PersonResource[] => {
     // Only return Person resources that exist
     return user.fhirPersons
       .filter(assoc => assoc.personId.startsWith('Person/'))
@@ -607,14 +599,68 @@ export function HealthcareUsersManager() {
   };
 
   // Update healthcare user when Person resource links are updated
-  const updateFromPersonResourceData = (user: HealthcareUser, personId: string, updatedLinks: PersonLink[]) => {
-    // For now, just log the update since we don't have a backend API to persist Person links
-    console.log(`Updated links for Person ${personId} (user: ${user.username}):`, updatedLinks);
-    
-    // In a real implementation, you would:
-    // 1. Call a backend API to update the Person resource links
-    // 2. Update the local state if needed
-    // 3. Show success/error messages
+  const updateFromPersonResourceData = async (user: HealthcareUserWithPersons, personId: string, updatedLinks: PersonLink[]) => {
+    try {
+      // Find the FHIR server for this Person resource
+      const personAssociation = user.fhirPersons.find(assoc => assoc.personId === personId);
+      if (!personAssociation) {
+        console.error(`Person association not found for ${personId}`);
+        return;
+      }
+
+      const fhirServer = sampleFhirServers.find(server => server.name === personAssociation.serverName);
+      if (!fhirServer) {
+        console.error(`FHIR server not found: ${personAssociation.serverName}`);
+        return;
+      }
+
+      // Prepare the Person resource update with links
+      const personResource = {
+        resourceType: 'Person',
+        id: personId.replace('Person/', ''),
+        name: [{
+          family: user.lastName,
+          given: [user.firstName]
+        }],
+        telecom: [{
+          system: 'email',
+          value: user.email
+        }],
+        link: updatedLinks.map(link => ({
+          target: {
+            reference: link.target.reference
+          },
+          assurance: link.assurance || 'level1'
+        }))
+      };
+
+      // Make the FHIR API call to update the Person resource
+      const response = await fetch(`${fhirServer.baseUrl}/${personId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/fhir+json',
+          'Accept': 'application/fhir+json'
+        },
+        body: JSON.stringify(personResource)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to update Person resource: ${response.status} ${response.statusText}`);
+      }
+
+      const updatedPerson = await response.json();
+      console.log(`Successfully updated Person ${personId} links:`, updatedPerson);
+      
+      // Optionally show a success message to the user
+      // You could add a toast notification here
+      
+    } catch (error) {
+      console.error(`Failed to update Person ${personId} links:`, error);
+      
+      // Optionally show an error message to the user
+      // You could add a toast notification here
+      setError(`Failed to update Person resource links: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   };
 
   return (

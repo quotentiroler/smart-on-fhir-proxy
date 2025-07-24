@@ -20,7 +20,7 @@ import { mapValues } from '../runtime';
  */
 export interface PostAuthTokenRequest {
     /**
-     * OAuth grant type (e.g., authorization_code, client_credentials)
+     * OAuth grant type (e.g., authorization_code, client_credentials, password)
      * @type {string}
      * @memberof PostAuthTokenRequest
      */
@@ -73,6 +73,30 @@ export interface PostAuthTokenRequest {
      * @memberof PostAuthTokenRequest
      */
     audience?: string;
+    /**
+     * Username for password grant
+     * @type {string}
+     * @memberof PostAuthTokenRequest
+     */
+    username?: string;
+    /**
+     * Password for password grant
+     * @type {string}
+     * @memberof PostAuthTokenRequest
+     */
+    password?: string;
+    /**
+     * Client assertion type for JWT authentication
+     * @type {string}
+     * @memberof PostAuthTokenRequest
+     */
+    clientAssertionType?: string;
+    /**
+     * Client assertion JWT for Backend Services authentication
+     * @type {string}
+     * @memberof PostAuthTokenRequest
+     */
+    clientAssertion?: string;
 }
 
 /**
@@ -102,6 +126,10 @@ export function PostAuthTokenRequestFromJSONTyped(json: any, ignoreDiscriminator
         'refreshToken': json['refresh_token'] == null ? undefined : json['refresh_token'],
         'scope': json['scope'] == null ? undefined : json['scope'],
         'audience': json['audience'] == null ? undefined : json['audience'],
+        'username': json['username'] == null ? undefined : json['username'],
+        'password': json['password'] == null ? undefined : json['password'],
+        'clientAssertionType': json['client_assertion_type'] == null ? undefined : json['client_assertion_type'],
+        'clientAssertion': json['client_assertion'] == null ? undefined : json['client_assertion'],
     };
 }
 
@@ -125,6 +153,10 @@ export function PostAuthTokenRequestToJSONTyped(value?: PostAuthTokenRequest | n
         'refresh_token': value['refreshToken'],
         'scope': value['scope'],
         'audience': value['audience'],
+        'username': value['username'],
+        'password': value['password'],
+        'client_assertion_type': value['clientAssertionType'],
+        'client_assertion': value['clientAssertion'],
     };
 }
 
