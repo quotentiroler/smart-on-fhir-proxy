@@ -3,6 +3,7 @@ import { swagger } from '@elysiajs/swagger'
 import { cors } from '@elysiajs/cors'
 import { keycloakPlugin } from './lib/keycloak-plugin'
 import { fhirRoutes } from './routes/fhir'
+import { wildcardFhirRoutes } from './routes/wildcard-fhir'
 import { serverRoutes } from './routes/info'
 import { serverDiscoveryRoutes } from './routes/fhir-servers'
 import { config } from './config'
@@ -57,84 +58,8 @@ const app = new Elysia()
   .use(serverDiscoveryRoutes)// Server discovery endpoints
   .use(authRoutes)
   .use(adminRoutes) //admin keycloak endpoints
-  
-  // Wildcard catch-all routes for common FHIR paths that don't include server/version
-  // Based on issue: /metadata should return 200, /Patient should return 401
-  .get('/metadata', ({ set }) => {
-    // For FHIR proxies, metadata should indicate available servers rather than serving a default
-    set.status = 200
-    return { 
-      resourceType: 'CapabilityStatement',
-      id: 'smart-proxy-capability',
-      status: 'active',
-      experimental: true,
-      name: 'SMART on FHIR Proxy',
-      title: 'SMART on FHIR Proxy Server',
-      description: 'This is a SMART on FHIR proxy server. Please specify a server name and FHIR version in your requests.',
-      kind: 'instance',
-      software: {
-        name: 'SMART on FHIR Proxy',
-        version: '1.0.0'
-      },
-      fhirVersion: '4.0.1',
-      format: ['application/fhir+json'],
-      rest: [{
-        mode: 'server',
-        documentation: `Available FHIR servers can be found at: ${config.baseUrl}/fhir-servers`,
-        resource: []
-      }]
-    }
-  })
-  .all('/Patient*', ({ set }) => {
-    set.status = 401
-    return { 
-      error: 'Authentication required',
-      message: 'FHIR resource requests must include server name, version, and authorization. Example: /smart-proxy/{server_name}/{fhir_version}/Patient with Bearer token',
-      availableServers: `${config.baseUrl}/fhir-servers`
-    }
-  })
-  .all('/Patient', ({ set }) => {
-    set.status = 401
-    return { 
-      error: 'Authentication required',
-      message: 'FHIR resource requests must include server name, version, and authorization. Example: /smart-proxy/{server_name}/{fhir_version}/Patient with Bearer token',
-      availableServers: `${config.baseUrl}/fhir-servers`
-    }
-  })
-  .all('/Observation*', ({ set }) => {
-    set.status = 401
-    return { 
-      error: 'Authentication required',
-      message: 'FHIR resource requests must include server name, version, and authorization. Example: /smart-proxy/{server_name}/{fhir_version}/Observation with Bearer token',
-      availableServers: `${config.baseUrl}/fhir-servers`
-    }
-  })
-  .all('/Observation', ({ set }) => {
-    set.status = 401
-    return { 
-      error: 'Authentication required',
-      message: 'FHIR resource requests must include server name, version, and authorization. Example: /smart-proxy/{server_name}/{fhir_version}/Observation with Bearer token',
-      availableServers: `${config.baseUrl}/fhir-servers`
-    }
-  })
-  .all('/Encounter*', ({ set }) => {
-    set.status = 401
-    return { 
-      error: 'Authentication required',
-      message: 'FHIR resource requests must include server name, version, and authorization. Example: /smart-proxy/{server_name}/{fhir_version}/Encounter with Bearer token',
-      availableServers: `${config.baseUrl}/fhir-servers`
-    }
-  })
-  .all('/Encounter', ({ set }) => {
-    set.status = 401
-    return { 
-      error: 'Authentication required',
-      message: 'FHIR resource requests must include server name, version, and authorization. Example: /smart-proxy/{server_name}/{fhir_version}/Encounter with Bearer token',
-      availableServers: `${config.baseUrl}/fhir-servers`
-    }
-  })
-  
   .use(fhirRoutes) // the actual FHIR proxy endpoints
+  .use(wildcardFhirRoutes) // wildcard routes for direct FHIR paths
 
 // Initialize and start server
 initializeServer()
