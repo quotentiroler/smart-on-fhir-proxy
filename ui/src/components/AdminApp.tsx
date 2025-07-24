@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Navigation } from './Navigation';
 import { HealthcareUsersManager } from './HealthcareUsersManager';
 import { useAuth } from '../stores/authStore';
+import { useAppStore } from '../stores/appStore';
 import { LoginForm } from './LoginForm';
 import { cn } from '../lib/utils';
 import {
@@ -46,7 +47,7 @@ import {
 } from './ui/card';
 
 export function AdminApp() {
-    const [activeTab, setActiveTab] = useState('dashboard');
+    const { activeTab, setActiveTab } = useAppStore();
     const { profile, loading, error } = useAuth();
     const { t } = useTranslation();
     

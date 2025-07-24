@@ -62,8 +62,17 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
 
       const admin = await getAdmin(token)
       let clients = await admin.clients.find()
-      //Filter out admin-ui
+      
+      // Filter for SMART on FHIR applications only
+      clients = clients.filter(client => 
+        client.protocol === 'openid-connect' && 
+        (client.attributes?.['smart_app']?.includes('true') || 
+         client.clientId?.includes('smart'))
+      )
+      
+      // Filter out admin-ui if it somehow gets through
       clients = clients.filter(client => client.clientId !== 'admin-ui')
+      
       return clients;
     } catch (error) {
       set.status = 500

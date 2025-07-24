@@ -29,7 +29,7 @@ import { MoreHorizontal, Plus, Users, UserCheck, Shield, GraduationCap, Loader2,
 import { createAuthenticatedApiClients, handleApiError } from '@/lib/apiClient';
 import { useAuth } from '@/stores/authStore';
 import { useAuthSetup } from '@/hooks/useAuthSetup';
-import { useFhirServers } from '@/stores/fhirStore';
+import { useFhirServers } from '@/stores/smartStore';
 import { PersonResourceLinkerTrigger } from './PersonResourceLinker';
 import { AddFhirPersonModal } from './AddFhirPersonModal';
 import type { GetAdminHealthcareUsers200ResponseInner } from '@/lib/api-client';
