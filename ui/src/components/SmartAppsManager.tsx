@@ -250,7 +250,6 @@ export function SmartAppsManager() {
     const fetchApps = async () => {
       try {
         setLoading(true);
-        
         const apiClients = createAuthenticatedApiClients();
         const fetchedApps = await apiClients.smartApps.getAdminSmartApps();
         
@@ -285,7 +284,6 @@ export function SmartAppsManager() {
         handleApiError(error);
         // Fallback to mock apps on error
         setApps(mockApps);
-        setBackendApps([]); // Ensure backend apps is empty so we show the warning
       } finally {
         setLoading(false);
       }
@@ -447,6 +445,37 @@ export function SmartAppsManager() {
           </Button>
         </div>
       </div>
+
+      {/* Add App Form - Inline when shown */}
+      {showAddForm && (
+        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-8 mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm">
+                <Plus className="w-6 h-6 text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Register New Application</h3>
+                <p className="text-gray-600 font-medium">Configure a new SMART on FHIR application</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowAddForm(false)}
+              className="rounded-xl"
+            >
+              <X className="h-4 w-4 mr-2" />
+              Cancel
+            </Button>
+          </div>
+          <SmartAppAddForm
+            open={true}
+            onClose={() => setShowAddForm(false)}
+            onAddApp={handleAddApp}
+            scopeSets={scopeSets}
+          />
+        </div>
+      )}
 
       {/* Enhanced Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
@@ -699,16 +728,6 @@ export function SmartAppsManager() {
           </div>
         </div>
       </div>
-
-      {/* Add Form Dialog */}
-      {showAddForm && (
-        <SmartAppAddForm
-          open={showAddForm}
-          onClose={() => setShowAddForm(false)}
-          onAddApp={handleAddApp}
-          scopeSets={scopeSets}
-        />
-      )}
 
       {/* Scope Management Dialog */}
       <Dialog open={showScopeDialog} onOpenChange={setShowScopeDialog}>
