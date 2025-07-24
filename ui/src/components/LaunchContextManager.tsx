@@ -113,7 +113,151 @@ const sampleFhirServers = [
   { name: 'Epic Production', baseUrl: 'https://fhir.epic.com/interconnect-fhir-oauth', status: 'active' },
   { name: 'Cerner Sandbox', baseUrl: 'https://fhir-open.cerner.com/r4/ec2458f2-1e24-41c8-b71b-0e701af7583d', status: 'active' },
   { name: 'SMART Health IT', baseUrl: 'https://launch.smarthealthit.org/v/r4/fhir', status: 'active' },
+  { name: 'HAPI FHIR Server', baseUrl: 'https://hapi.fhir.org/baseR4', status: 'active' },
   { name: 'Test Server', baseUrl: 'http://localhost:8080/fhir', status: 'development' }
+];
+
+// Sample launch contexts for demonstration
+const sampleLaunchContexts: LaunchContext[] = [
+  {
+    id: 'sample-1',
+    name: 'Patient Chart Review',
+    description: 'Launch context for reviewing a specific patient\'s complete medical chart with full read access',
+    intent: 'patient-chart',
+    fhirContext: [
+      { type: 'Patient', reference: 'Patient/example-patient-123', display: 'John Doe (DOB: 1985-03-15)' }
+    ],
+    requiredScopes: ['openid', 'profile', 'launch', 'patient/*.read'],
+    optionalScopes: ['user/*.read', 'offline_access'],
+    needPatientBanner: true,
+    needEncounterContext: false,
+    smartStyleUrl: 'https://example-ehr.com/smart-styles.json',
+    parameters: { theme: 'clinical', view: 'comprehensive' },
+    fhirServerName: 'Epic Production',
+    supportedServers: ['Epic Production', 'Cerner Sandbox', 'HAPI FHIR Server'],
+    serverScope: 'global',
+    createdBy: 'Dr. Sarah Johnson',
+    createdAt: '2024-01-15T10:30:00Z',
+    lastModified: '2024-02-20T14:45:00Z',
+    isActive: true
+  },
+  {
+    id: 'sample-2',
+    name: 'Emergency Department Triage',
+    description: 'Quick patient assessment context for emergency department with encounter-specific information',
+    intent: 'encounter-chart',
+    fhirContext: [
+      { type: 'Patient', reference: 'Patient/emergency-patient-456', display: 'Jane Smith (Emergency)' },
+      { type: 'Encounter', reference: 'Encounter/ed-visit-789', display: 'ED Visit - Chest Pain' },
+      { type: 'Practitioner', reference: 'Practitioner/dr-wilson-101', display: 'Dr. Michael Wilson' }
+    ],
+    requiredScopes: ['openid', 'profile', 'launch', 'patient/*.read', 'user/Practitioner.read'],
+    optionalScopes: ['patient/*.write', 'user/Observation.write'],
+    needPatientBanner: true,
+    needEncounterContext: true,
+    smartStyleUrl: '',
+    parameters: { priority: 'urgent', department: 'emergency' },
+    fhirServerName: 'Epic Production',
+    supportedServers: ['Epic Production', 'Cerner Sandbox'],
+    serverScope: 'server-specific',
+    createdBy: 'ED Charge Nurse',
+    createdAt: '2024-02-01T08:15:00Z',
+    lastModified: '2024-02-15T16:20:00Z',
+    isActive: true
+  },
+  {
+    id: 'sample-3',
+    name: 'Medication Management',
+    description: 'Comprehensive medication review and management for pharmacy consultation',
+    intent: 'provider-order',
+    fhirContext: [
+      { type: 'Patient', reference: 'Patient/med-patient-789', display: 'Robert Chen (Age: 67)' },
+      { type: 'Practitioner', reference: 'Practitioner/pharmacist-202', display: 'PharmD Lisa Chang' }
+    ],
+    requiredScopes: ['openid', 'profile', 'launch', 'patient/MedicationRequest.read', 'patient/MedicationStatement.read', 'user/Practitioner.read'],
+    optionalScopes: ['patient/MedicationRequest.write', 'patient/AllergyIntolerance.read', 'offline_access'],
+    needPatientBanner: true,
+    needEncounterContext: false,
+    smartStyleUrl: 'https://pharmacy-ehr.com/medication-styles.json',
+    parameters: { focus: 'medications', alerts: 'enabled' },
+    fhirServerName: '',
+    supportedServers: ['Epic Production', 'Cerner Sandbox', 'SMART Health IT', 'HAPI FHIR Server'],
+    serverScope: 'global',
+    createdBy: 'Pharmacy Director',
+    createdAt: '2024-01-20T13:45:00Z',
+    lastModified: '2024-03-01T11:30:00Z',
+    isActive: true
+  },
+  {
+    id: 'sample-4',
+    name: 'Population Health Dashboard',
+    description: 'Aggregate view for monitoring population health metrics and quality measures',
+    intent: 'population-health',
+    fhirContext: [
+      { type: 'Organization', reference: 'Organization/hospital-main', display: 'General Hospital Main Campus' },
+      { type: 'Practitioner', reference: 'Practitioner/quality-manager-303', display: 'Dr. Amanda Rodriguez (Quality Manager)' }
+    ],
+    requiredScopes: ['openid', 'profile', 'launch', 'user/*.read'],
+    optionalScopes: ['system/*.read'],
+    needPatientBanner: false,
+    needEncounterContext: false,
+    smartStyleUrl: '',
+    parameters: { dashboard: 'quality', timeframe: '30days' },
+    fhirServerName: 'Epic Production',
+    supportedServers: ['Epic Production'],
+    serverScope: 'server-specific',
+    createdBy: 'Quality Assurance Team',
+    createdAt: '2024-02-10T09:00:00Z',
+    lastModified: '2024-02-25T15:15:00Z',
+    isActive: true
+  },
+  {
+    id: 'sample-5',
+    name: 'Care Team Collaboration',
+    description: 'Multi-disciplinary team access for coordinated care planning and communication',
+    intent: 'care-management',
+    fhirContext: [
+      { type: 'Patient', reference: 'Patient/care-patient-321', display: 'Maria Garcia (Diabetes Care Plan)' },
+      { type: 'Encounter', reference: 'Encounter/care-visit-654', display: 'Care Plan Review' },
+      { type: 'Practitioner', reference: 'Practitioner/care-coordinator-404', display: 'RN Jennifer Adams (Care Coordinator)' }
+    ],
+    requiredScopes: ['openid', 'profile', 'launch', 'patient/*.read', 'user/CareTeam.read', 'user/CarePlan.read'],
+    optionalScopes: ['patient/CarePlan.write', 'patient/Goal.write', 'user/Communication.write'],
+    needPatientBanner: true,
+    needEncounterContext: true,
+    smartStyleUrl: 'https://care-platform.com/team-styles.json',
+    parameters: { team: 'diabetes-care', collaboration: 'enabled' },
+    fhirServerName: '',
+    supportedServers: ['Epic Production', 'Cerner Sandbox', 'SMART Health IT'],
+    serverScope: 'global',
+    createdBy: 'Care Coordination Team',
+    createdAt: '2024-01-25T11:20:00Z',
+    lastModified: '2024-02-28T10:45:00Z',
+    isActive: true
+  },
+  {
+    id: 'sample-6',
+    name: 'Clinical Decision Support',
+    description: 'Context for launching clinical decision support tools with real-time patient data integration',
+    intent: 'clinical-decision-support',
+    fhirContext: [
+      { type: 'Patient', reference: 'Patient/cds-patient-987', display: 'David Thompson (Risk Assessment)' },
+      { type: 'Practitioner', reference: 'Practitioner/attending-505', display: 'Dr. Kevin Park (Attending Physician)' }
+    ],
+    requiredScopes: ['openid', 'profile', 'launch', 'patient/Observation.read', 'patient/Condition.read', 'patient/MedicationRequest.read'],
+    optionalScopes: ['patient/RiskAssessment.write', 'user/Practitioner.read'],
+    needPatientBanner: true,
+    needEncounterContext: false,
+    smartStyleUrl: '',
+    parameters: { cds: 'cardiovascular-risk', alerts: 'high-priority' },
+    fhirServerName: 'SMART Health IT',
+    supportedServers: ['SMART Health IT', 'HAPI FHIR Server'],
+    serverScope: 'server-specific',
+    createdBy: 'Clinical Informatics Team',
+    createdAt: '2024-02-05T14:30:00Z',
+    lastModified: '2024-03-05T12:00:00Z',
+    isActive: false
+  }
 ];
 
 export function LaunchContextManager() {
@@ -141,7 +285,7 @@ export function LaunchContextManager() {
     serverScope: 'global' as 'global' | 'server-specific'
   });
 
-  // Load saved contexts from localStorage
+  // Load saved contexts from localStorage or initialize with samples
   useEffect(() => {
     const savedContexts = localStorage.getItem('smart-launch-contexts');
     if (savedContexts) {
@@ -149,7 +293,14 @@ export function LaunchContextManager() {
         setContexts(JSON.parse(savedContexts));
       } catch (error) {
         console.error('Failed to parse saved contexts:', error);
+        // If parsing fails, initialize with sample data
+        setContexts(sampleLaunchContexts);
+        localStorage.setItem('smart-launch-contexts', JSON.stringify(sampleLaunchContexts));
       }
+    } else {
+      // Initialize with sample data if no saved contexts exist
+      setContexts(sampleLaunchContexts);
+      localStorage.setItem('smart-launch-contexts', JSON.stringify(sampleLaunchContexts));
     }
   }, []);
 
