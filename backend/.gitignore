@@ -40,3 +40,8 @@ yarn-error.log*
 **/*.log
 package-lock.json
 **/*.bun
+
+# Generated JavaScript files (TypeScript compilation output)
+src/**/*.js
+test/**/*.js
+dist/
