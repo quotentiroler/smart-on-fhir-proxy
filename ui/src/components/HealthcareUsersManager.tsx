@@ -188,22 +188,7 @@ function transformApiUser(apiUser: GetAdminHealthcareUsers200ResponseInner): Hea
   const fhirUser = apiUser.fhirUser || '';
   const clientRoles = apiUser.clientRoles as Record<string, string[]> || {};
   
-  console.log('Transforming API user:', {
-    id: apiUser.id,
-    firstName: apiUser.firstName,
-    lastName: apiUser.lastName,
-    email: apiUser.email,
-    username: apiUser.username,
-    organization,
-    fhirUser,
-    enabled: apiUser.enabled,
-    lastLogin: apiUser.lastLogin,
-    createdTimestamp: apiUser.createdTimestamp,
-    realmRoles: apiUser.realmRoles,
-    clientRoles: clientRoles,
-    attributes: attributes,
-    fullApiUser: apiUser // Log the complete API response
-  });
+// Removed console.log statement to prevent logging sensitive user information.
 
   return {
     id: apiUser.id,
