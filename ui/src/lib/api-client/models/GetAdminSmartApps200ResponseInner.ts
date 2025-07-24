@@ -79,6 +79,54 @@ export interface GetAdminSmartApps200ResponseInner {
      * @memberof GetAdminSmartApps200ResponseInner
      */
     attributes?: object;
+    /**
+     * Client authentication method (client-jwt, client-secret, none)
+     * @type {string}
+     * @memberof GetAdminSmartApps200ResponseInner
+     */
+    clientAuthenticatorType?: string;
+    /**
+     * Whether service accounts (client_credentials) are enabled
+     * @type {boolean}
+     * @memberof GetAdminSmartApps200ResponseInner
+     */
+    serviceAccountsEnabled?: boolean;
+    /**
+     * Whether authorization code flow is enabled
+     * @type {boolean}
+     * @memberof GetAdminSmartApps200ResponseInner
+     */
+    standardFlowEnabled?: boolean;
+    /**
+     * Whether implicit flow is enabled
+     * @type {boolean}
+     * @memberof GetAdminSmartApps200ResponseInner
+     */
+    implicitFlowEnabled?: boolean;
+    /**
+     * Whether password grants are enabled
+     * @type {boolean}
+     * @memberof GetAdminSmartApps200ResponseInner
+     */
+    directAccessGrantsEnabled?: boolean;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof GetAdminSmartApps200ResponseInner
+     */
+    defaultClientScopes?: Array<string>;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof GetAdminSmartApps200ResponseInner
+     */
+    optionalClientScopes?: Array<string>;
+    /**
+     * Access permissions
+     * @type {object}
+     * @memberof GetAdminSmartApps200ResponseInner
+     */
+    access?: object;
 }
 
 /**
@@ -108,6 +156,14 @@ export function GetAdminSmartApps200ResponseInnerFromJSONTyped(json: any, ignore
         'redirectUris': json['redirectUris'] == null ? undefined : json['redirectUris'],
         'webOrigins': json['webOrigins'] == null ? undefined : json['webOrigins'],
         'attributes': json['attributes'] == null ? undefined : json['attributes'],
+        'clientAuthenticatorType': json['clientAuthenticatorType'] == null ? undefined : json['clientAuthenticatorType'],
+        'serviceAccountsEnabled': json['serviceAccountsEnabled'] == null ? undefined : json['serviceAccountsEnabled'],
+        'standardFlowEnabled': json['standardFlowEnabled'] == null ? undefined : json['standardFlowEnabled'],
+        'implicitFlowEnabled': json['implicitFlowEnabled'] == null ? undefined : json['implicitFlowEnabled'],
+        'directAccessGrantsEnabled': json['directAccessGrantsEnabled'] == null ? undefined : json['directAccessGrantsEnabled'],
+        'defaultClientScopes': json['defaultClientScopes'] == null ? undefined : json['defaultClientScopes'],
+        'optionalClientScopes': json['optionalClientScopes'] == null ? undefined : json['optionalClientScopes'],
+        'access': json['access'] == null ? undefined : json['access'],
     };
 }
 
@@ -132,6 +188,14 @@ export function GetAdminSmartApps200ResponseInnerToJSONTyped(value?: GetAdminSma
         'redirectUris': value['redirectUris'],
         'webOrigins': value['webOrigins'],
         'attributes': value['attributes'],
+        'clientAuthenticatorType': value['clientAuthenticatorType'],
+        'serviceAccountsEnabled': value['serviceAccountsEnabled'],
+        'standardFlowEnabled': value['standardFlowEnabled'],
+        'implicitFlowEnabled': value['implicitFlowEnabled'],
+        'directAccessGrantsEnabled': value['directAccessGrantsEnabled'],
+        'defaultClientScopes': value['defaultClientScopes'],
+        'optionalClientScopes': value['optionalClientScopes'],
+        'access': value['access'],
     };
 }
 

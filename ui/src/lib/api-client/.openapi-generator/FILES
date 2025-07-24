@@ -1,3 +1,4 @@
+.openapi-generator-ignore
 apis/AdminApi.ts
 apis/AuthenticationApi.ts
 apis/FhirApi.ts
@@ -13,9 +14,7 @@ index.ts
 models/DeleteAdminRolesByRoleName200Response.ts
 models/GetAdminHealthcareUsers200ResponseInner.ts
 models/GetAdminHealthcareUsersLimitParameter.ts
-models/GetAdminHealthcareUsersLimitParameterAnyOf.ts
 models/GetAdminHealthcareUsersOffsetParameter.ts
-models/GetAdminHealthcareUsersOffsetParameterAnyOf.ts
 models/GetAdminIdps200ResponseInner.ts
 models/GetAdminLaunchContexts200ResponseInner.ts
 models/GetAdminRoles200ResponseInner.ts
@@ -27,7 +26,6 @@ models/GetFhirServers200ResponseServersInner.ts
 models/GetFhirServers200ResponseServersInnerEndpoints.ts
 models/GetFhirServers500Response.ts
 models/GetFhirServersByServerName200Response.ts
-models/GetFhirServersByServerName404Response.ts
 models/GetFhirServersByServerName500Response.ts
 models/GetHealth200Response.ts
 models/GetHealth200ResponseFhirServers.ts
@@ -44,12 +42,17 @@ models/PostAdminIdpsRequest.ts
 models/PostAdminLaunchContextsByUserIdFhirContextRequest.ts
 models/PostAdminRolesRequest.ts
 models/PostAdminSmartAppsRequest.ts
+models/PostAdminSmartAppsRequestClientType.ts
 models/PostAuthIntrospect200Response.ts
 models/PostAuthIntrospectRequest.ts
 models/PostAuthToken200Response.ts
 models/PostAuthToken200ResponseAuthorizationDetailsInner.ts
 models/PostAuthToken200ResponseFhirContextInner.ts
 models/PostAuthTokenRequest.ts
+models/PostFhirServers200Response.ts
+models/PostFhirServers200ResponseServer.ts
+models/PostFhirServers401Response.ts
+models/PostFhirServersRequest.ts
 models/PostRestart200Response.ts
 models/PostShutdown200Response.ts
 models/PostShutdown500Response.ts
@@ -65,5 +68,9 @@ models/PutAdminRolesByRoleName200Response.ts
 models/PutAdminRolesByRoleNameRequest.ts
 models/PutAdminSmartAppsByClientId200Response.ts
 models/PutAdminSmartAppsByClientIdRequest.ts
+models/PutFhirServersByServerId200Response.ts
+models/PutFhirServersByServerId200ResponseServer.ts
+models/PutFhirServersByServerId400Response.ts
+models/PutFhirServersByServerIdRequest.ts
 models/index.ts
 runtime.ts
