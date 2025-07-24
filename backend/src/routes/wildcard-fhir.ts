@@ -31,6 +31,83 @@ async function getDefaultServerInfo() {
   return servers[0]
 }
 
+/**
+ * Handle FHIR resource requests with authentication and proxying
+ */
+async function handleFhirResourceRequest(request: Request, set: any) {
+  try {
+    // Check authentication for all resource requests
+    const auth = request.headers.get('authorization')?.replace(/^Bearer\s+/, '')
+    if (!auth) {
+      set.status = 401
+      return { 
+        error: 'Authentication required',
+        message: `FHIR resource requests require authorization. Example: Authorization: Bearer <token>`,
+        availableServers: `${config.baseUrl}/fhir-servers`
+      }
+    }
+    
+    // Validate the token
+    await validateToken(auth)
+    
+    // Get the default server info
+    const defaultServer = await getDefaultServerInfo()
+    
+    // Extract the path from the request URL
+    const url = new URL(request.url)
+    const resourcePath = `${url.pathname}${url.search}`
+    const target = `${defaultServer.url}${resourcePath}`
+    
+    // Set up headers for the proxied request
+    const headers = new Headers()
+    request.headers.forEach((v: string, k: string) => k !== 'host' && k !== 'connection' && headers.set(k, v!))
+    headers.set('accept', 'application/fhir+json')
+    
+    // Proxy the request to the default server
+    const resp = await fetch(target, {
+      method: request.method,
+      headers,
+      body: ['POST', 'PUT', 'PATCH'].includes(request.method) ? await request.text() : undefined
+    })
+    
+    // Copy response status and headers
+    set.status = resp.status
+    resp.headers.forEach((v: string, k: string) => {
+      if (k.match(/content-type|etag|location/)) {
+        set.headers = { ...set.headers, [k]: v }
+      }
+    })
+    
+    // Set CORS headers
+    set.headers['Access-Control-Allow-Origin'] = '*'
+    set.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,PATCH,DELETE,OPTIONS'
+    set.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    
+    // Rewrite URLs in response body to maintain consistency
+    const text = await resp.text()
+    const body = text.replaceAll(
+      defaultServer.url,
+      `${config.baseUrl}/${config.appName}/${defaultServer.identifier}/${defaultServer.metadata.fhirVersion}`
+    )
+    return body
+    
+  } catch (error) {
+    logger.fhir.error('Wildcard FHIR proxy error', {
+      method: request.method,
+      url: request.url,
+      error
+    })
+    
+    if (error instanceof Error && error.message.includes('Unauthorized')) {
+      set.status = 401
+      return { error: 'Invalid or expired token' }
+    }
+    
+    set.status = 500
+    return { error: 'Failed to proxy FHIR request', details: error }
+  }
+}
+
 export const wildcardFhirRoutes = new Elysia({ tags: ['fhir'] })
   // Handle /metadata - should return 200 with actual server metadata
   .get('/metadata', async ({ set }) => {
@@ -80,86 +157,13 @@ export const wildcardFhirRoutes = new Elysia({ tags: ['fhir'] })
     }
   })
   
-  // Handle FHIR resource paths - require authentication and proxy to default server
-  .all('/:resource*', async ({ params, request, set }) => {
-    try {
-      // Check authentication for all resource requests
-      const auth = request.headers.get('authorization')?.replace(/^Bearer\s+/, '')
-      if (!auth) {
-        set.status = 401
-        return { 
-          error: 'Authentication required',
-          message: `FHIR resource requests require authorization. Example: Authorization: Bearer <token>`,
-          availableServers: `${config.baseUrl}/fhir-servers`
-        }
-      }
-      
-      // Validate the token
-      await validateToken(auth)
-      
-      // Get the default server info
-      const defaultServer = await getDefaultServerInfo()
-      
-      // Extract the full path (resource and any additional path components)
-      const resourcePath = `/${params.resource}${new URL(request.url).search}`
-      const target = `${defaultServer.url}${resourcePath}`
-      
-      // Set up headers for the proxied request
-      const headers = new Headers()
-      request.headers.forEach((v: string, k: string) => k !== 'host' && k !== 'connection' && headers.set(k, v!))
-      headers.set('accept', 'application/fhir+json')
-      
-      // Proxy the request to the default server
-      const resp = await fetch(target, {
-        method: request.method,
-        headers,
-        body: ['POST', 'PUT', 'PATCH'].includes(request.method) ? await request.text() : undefined
-      })
-      
-      // Copy response status and headers
-      set.status = resp.status
-      resp.headers.forEach((v: string, k: string) => {
-        if (k.match(/content-type|etag|location/)) {
-          set.headers = { ...set.headers, [k]: v }
-        }
-      })
-      
-      // Set CORS headers
-      set.headers['Access-Control-Allow-Origin'] = '*'
-      set.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,PATCH,DELETE,OPTIONS'
-      set.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
-      
-      // Rewrite URLs in response body to maintain consistency
-      const text = await resp.text()
-      const body = text.replaceAll(
-        defaultServer.url,
-        `${config.baseUrl}/${config.appName}/${defaultServer.identifier}/${defaultServer.metadata.fhirVersion}`
-      )
-      return body
-      
-    } catch (error) {
-      logger.fhir.error('Wildcard FHIR proxy error', {
-        resource: params.resource,
-        method: request.method,
-        url: request.url,
-        error
-      })
-      
-      if (error instanceof Error && error.message.includes('Unauthorized')) {
-        set.status = 401
-        return { error: 'Invalid or expired token' }
-      }
-      
-      set.status = 500
-      return { error: 'Failed to proxy FHIR request', details: error }
-    }
+  // Handle common FHIR resource paths - require authentication and proxy to default server
+  .all('/Patient*', async ({ request, set }) => {
+    return await handleFhirResourceRequest(request, set)
   }, {
-    params: t.Object({
-      resource: t.String({ description: 'FHIR resource type (e.g., Patient, Observation)' })
-    }),
     detail: {
-      summary: 'FHIR Resource Wildcard Proxy',
-      description: 'Proxy authenticated FHIR resource requests to the default server',
+      summary: 'Patient Resource Wildcard Proxy',
+      description: 'Proxy authenticated Patient resource requests to the default server',
       tags: ['fhir'],
       security: [{ BearerAuth: [] }],
       response: { 
@@ -170,6 +174,39 @@ export const wildcardFhirRoutes = new Elysia({ tags: ['fhir'] })
         500: { description: 'Failed to proxy request' }
       }
     }
+  })
+  .all('/Patient', async ({ request, set }) => {
+    return await handleFhirResourceRequest(request, set)
+  })
+  .all('/Observation*', async ({ request, set }) => {
+    return await handleFhirResourceRequest(request, set)
+  })
+  .all('/Observation', async ({ request, set }) => {
+    return await handleFhirResourceRequest(request, set)
+  })
+  .all('/Encounter*', async ({ request, set }) => {
+    return await handleFhirResourceRequest(request, set)
+  })
+  .all('/Encounter', async ({ request, set }) => {
+    return await handleFhirResourceRequest(request, set)
+  })
+  .all('/Condition*', async ({ request, set }) => {
+    return await handleFhirResourceRequest(request, set)
+  })
+  .all('/Condition', async ({ request, set }) => {
+    return await handleFhirResourceRequest(request, set)
+  })
+  .all('/Medication*', async ({ request, set }) => {
+    return await handleFhirResourceRequest(request, set)
+  })
+  .all('/Medication', async ({ request, set }) => {
+    return await handleFhirResourceRequest(request, set)
+  })
+  .all('/DiagnosticReport*', async ({ request, set }) => {
+    return await handleFhirResourceRequest(request, set)
+  })
+  .all('/DiagnosticReport', async ({ request, set }) => {
+    return await handleFhirResourceRequest(request, set)
   })
   
   // CORS preflight for wildcard paths
