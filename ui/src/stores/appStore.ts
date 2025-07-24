@@ -22,6 +22,10 @@ interface AppState {
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
   
+  // Navigation state
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  
   // Notification preferences
   notificationsEnabled: boolean;
   setNotificationsEnabled: (enabled: boolean) => void;
@@ -68,6 +72,10 @@ export const useAppStore = create<AppState>()(
       sidebarCollapsed: false,
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
       
+      // Navigation state
+      activeTab: 'dashboard',
+      setActiveTab: (tab) => set({ activeTab: tab }),
+      
       // Notification preferences
       notificationsEnabled: true,
       setNotificationsEnabled: (enabled) => set({ notificationsEnabled: enabled }),
@@ -79,6 +87,7 @@ export const useAppStore = create<AppState>()(
         language: state.language,
         theme: state.theme,
         sidebarCollapsed: state.sidebarCollapsed,
+        activeTab: state.activeTab,
         notificationsEnabled: state.notificationsEnabled,
       }),
     }

@@ -12,7 +12,7 @@ import {
   Globe,
   CheckCircle
 } from 'lucide-react';
-import { useFhirServers } from '@/stores/fhirStore';
+import { useFhirServers } from '@/stores/smartStore';
 
 // Types
 type SmartAppType = 'backend-service' | 'standalone-app' | 'ehr-launch-app' | 'agent';

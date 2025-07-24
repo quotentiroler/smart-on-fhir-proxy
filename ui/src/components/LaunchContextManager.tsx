@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { LaunchContextSetBuilder } from './LaunchContextSetBuilder';
-import { useLaunchContextSets } from '../stores/fhirStore';
+import { useLaunchContextSets } from '../stores/smartStore';
 import { useAuth } from '@/stores/authStore';
 import { createLaunchContextsApi } from '@/lib/apiClient';
 import {

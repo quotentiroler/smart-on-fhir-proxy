@@ -8,7 +8,7 @@ import type {
   GetAdminHealthcareUsers200ResponseInner 
 } from '@/lib/api-client';
 
-interface FhirServerState {
+interface SmartState {
   // FHIR Servers
   servers: GetFhirServers200ResponseServersInner[];
   serversLoading: boolean;
@@ -61,7 +61,7 @@ interface ContextSet {
 // Cache duration: 5 minutes
 const CACHE_DURATION = 5 * 60 * 1000;
 
-export const useFhirStore = create<FhirServerState>()(
+export const useSmartStore = create<SmartState>()(
   persist(
     (set, get) => ({
       // Initial state
@@ -246,7 +246,7 @@ export const useFhirStore = create<FhirServerState>()(
 
 // Hook for easy access to FHIR servers with auto-fetch
 export const useFhirServers = () => {
-  const store = useFhirStore();
+  const store = useSmartStore();
   
   // Auto-fetch servers if not loaded and not currently loading
   React.useEffect(() => {
@@ -266,7 +266,7 @@ export const useFhirServers = () => {
 
 // Hook for easy access to healthcare users with auto-fetch
 export const useHealthcareUsers = () => {
-  const store = useFhirStore();
+  const store = useSmartStore();
   
   // Auto-fetch users if not loaded and not currently loading
   React.useEffect(() => {
@@ -287,7 +287,7 @@ export const useHealthcareUsers = () => {
 
 // Hook for launch context sets management
 export const useLaunchContextSets = () => {
-  const store = useFhirStore();
+  const store = useSmartStore();
 
   return {
     contextSets: store.launchContextSets,

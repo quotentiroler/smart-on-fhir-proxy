@@ -46,6 +46,8 @@ import {
   Globe
 } from 'lucide-react';
 import { SmartAppAddForm } from './SmartAppAddForm';
+import { createAuthenticatedApiClients, handleApiError } from '@/lib/apiClient';
+import type { GetAdminSmartApps200ResponseInner } from '@/lib/api-client';
 
 // SMART on FHIR App Types
 type SmartAppType = 'backend-service' | 'standalone-app' | 'ehr-launch-app' | 'agent';
@@ -191,7 +193,9 @@ const mockApps: SmartApp[] = [
 ];
 
 export function SmartAppsManager() {
-  const [apps, setApps] = useState<SmartApp[]>(mockApps);
+  const [apps, setApps] = useState<SmartApp[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [backendApps, setBackendApps] = useState<GetAdminSmartApps200ResponseInner[]>([]);
   const [scopeSets, setScopeSets] = useState<ScopeSet[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showScopeDialog, setShowScopeDialog] = useState(false);
@@ -239,6 +243,55 @@ export function SmartAppsManager() {
       }
     };
     loadScopeSets();
+  }, []);
+
+  // Fetch SMART apps from backend
+  useEffect(() => {
+    const fetchApps = async () => {
+      try {
+        setLoading(true);
+        
+        const apiClients = createAuthenticatedApiClients();
+        const fetchedApps = await apiClients.smartApps.getAdminSmartApps();
+        
+        setBackendApps(fetchedApps);
+        
+        // Convert backend apps to our SmartApp format or use mock apps if no real apps
+        if (fetchedApps.length === 0) {
+          // No apps from backend, show mock apps
+          setApps(mockApps);
+        } else {
+          // Convert backend apps to our format
+          const convertedApps: SmartApp[] = fetchedApps.map((backendApp, index) => ({
+            id: backendApp.id || `backend-${index}`,
+            name: backendApp.name || 'Unnamed App',
+            clientId: backendApp.clientId || '',
+            redirectUri: backendApp.redirectUris?.[0] || '',
+            scopes: [], // TODO: Extract scopes from backend app
+            scopeSetId: undefined,
+            customScopes: [],
+            status: backendApp.enabled ? 'active' : 'inactive',
+            lastUsed: new Date().toISOString().split('T')[0], // Default to today
+            description: backendApp.description || '',
+            appType: backendApp.serviceAccountsEnabled ? 'backend-service' : 'standalone-app',
+            authenticationType: backendApp.clientAuthenticatorType === 'client-jwt' ? 'asymmetric' : 'symmetric',
+            serverAccessType: 'all-servers', // Default for now
+            allowedServerIds: undefined,
+          }));
+          setApps(convertedApps);
+        }
+      } catch (error) {
+        console.error('Failed to fetch SMART apps:', error);
+        handleApiError(error);
+        // Fallback to mock apps on error
+        setApps(mockApps);
+        setBackendApps([]); // Ensure backend apps is empty so we show the warning
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApps();
   }, []);
 
   const getAppTypeBadge = (appType: SmartAppType, authenticationType: AuthenticationType) => {
@@ -293,9 +346,14 @@ export function SmartAppsManager() {
       status: 'active',
       lastUsed: new Date().toISOString().split('T')[0],
     };
+    // Note: When showing mock apps (no real apps from backend), this only updates the UI
+    // To persist new apps, they need to be created via the backend API
     setApps([...apps, app]);
     setShowAddForm(false);
   };
+
+  // Helper to determine if we're showing mock data
+  const isShowingMockData = backendApps.length === 0;
 
   const updateAppScopes = (appId: string, scopeSetId: string, customScopes: string[]) => {
     setApps(prevApps => prevApps.map(app => {
@@ -343,6 +401,13 @@ export function SmartAppsManager() {
 
   return (
     <div className="p-8 space-y-8">
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">Loading SMART applications...</span>
+        </div>
+      ) : (
+        <>
       {/* Enhanced Header Section */}
       <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-8 rounded-3xl border border-indigo-100/50 shadow-lg">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-6 lg:space-y-0">
@@ -356,6 +421,14 @@ export function SmartAppsManager() {
               </div>
               Manage registered healthcare applications and their SMART on FHIR permissions
             </div>
+            {isShowingMockData && (
+              <div className="mt-4 flex items-center space-x-2 text-sm">
+                <AlertCircle className="w-4 h-4 text-orange-600" />
+                <span className="text-orange-700 font-medium">
+                  Showing sample applications - no real apps found in backend
+                </span>
+              </div>
+            )}
             {scopeSets.length > 0 && (
               <div className="mt-4 flex items-center space-x-2 text-sm">
                 <CheckCircle className="w-4 h-4 text-green-600" />
@@ -773,6 +846,8 @@ export function SmartAppsManager() {
           )}
         </DialogContent>
       </Dialog>
+        </>
+      )}
     </div>
   );
 }
