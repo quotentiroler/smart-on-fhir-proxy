@@ -32,13 +32,61 @@ export interface GetAdminLaunchContexts200ResponseInner {
      */
     username: string;
     /**
-     * Patient context
+     * FHIR resource representing the current user (e.g., Practitioner/123)
+     * @type {string}
+     * @memberof GetAdminLaunchContexts200ResponseInner
+     */
+    fhirUser: string;
+    /**
+     * Patient context (e.g., Patient/456)
+     * @type {string}
+     * @memberof GetAdminLaunchContexts200ResponseInner
+     */
+    patient: string;
+    /**
+     * Encounter context (e.g., Encounter/789)
+     * @type {string}
+     * @memberof GetAdminLaunchContexts200ResponseInner
+     */
+    encounter: string;
+    /**
+     * Additional FHIR resources in context (JSON array)
+     * @type {string}
+     * @memberof GetAdminLaunchContexts200ResponseInner
+     */
+    fhirContext: string;
+    /**
+     * Intent string (e.g., reconcile-medications)
+     * @type {string}
+     * @memberof GetAdminLaunchContexts200ResponseInner
+     */
+    intent: string;
+    /**
+     * URL to CSS stylesheet for styling
+     * @type {string}
+     * @memberof GetAdminLaunchContexts200ResponseInner
+     */
+    smartStyleUrl: string;
+    /**
+     * Tenant identifier
+     * @type {string}
+     * @memberof GetAdminLaunchContexts200ResponseInner
+     */
+    tenant: string;
+    /**
+     * Whether patient banner is required
+     * @type {boolean}
+     * @memberof GetAdminLaunchContexts200ResponseInner
+     */
+    needPatientBanner: boolean;
+    /**
+     * Legacy patient context
      * @type {string}
      * @memberof GetAdminLaunchContexts200ResponseInner
      */
     launchPatient: string;
     /**
-     * Encounter context
+     * Legacy encounter context
      * @type {string}
      * @memberof GetAdminLaunchContexts200ResponseInner
      */
@@ -51,6 +99,14 @@ export interface GetAdminLaunchContexts200ResponseInner {
 export function instanceOfGetAdminLaunchContexts200ResponseInner(value: object): value is GetAdminLaunchContexts200ResponseInner {
     if (!('userId' in value) || value['userId'] === undefined) return false;
     if (!('username' in value) || value['username'] === undefined) return false;
+    if (!('fhirUser' in value) || value['fhirUser'] === undefined) return false;
+    if (!('patient' in value) || value['patient'] === undefined) return false;
+    if (!('encounter' in value) || value['encounter'] === undefined) return false;
+    if (!('fhirContext' in value) || value['fhirContext'] === undefined) return false;
+    if (!('intent' in value) || value['intent'] === undefined) return false;
+    if (!('smartStyleUrl' in value) || value['smartStyleUrl'] === undefined) return false;
+    if (!('tenant' in value) || value['tenant'] === undefined) return false;
+    if (!('needPatientBanner' in value) || value['needPatientBanner'] === undefined) return false;
     if (!('launchPatient' in value) || value['launchPatient'] === undefined) return false;
     if (!('launchEncounter' in value) || value['launchEncounter'] === undefined) return false;
     return true;
@@ -68,6 +124,14 @@ export function GetAdminLaunchContexts200ResponseInnerFromJSONTyped(json: any, i
         
         'userId': json['userId'],
         'username': json['username'],
+        'fhirUser': json['fhirUser'],
+        'patient': json['patient'],
+        'encounter': json['encounter'],
+        'fhirContext': json['fhirContext'],
+        'intent': json['intent'],
+        'smartStyleUrl': json['smartStyleUrl'],
+        'tenant': json['tenant'],
+        'needPatientBanner': json['needPatientBanner'],
         'launchPatient': json['launchPatient'],
         'launchEncounter': json['launchEncounter'],
     };
@@ -86,6 +150,14 @@ export function GetAdminLaunchContexts200ResponseInnerToJSONTyped(value?: GetAdm
         
         'userId': value['userId'],
         'username': value['username'],
+        'fhirUser': value['fhirUser'],
+        'patient': value['patient'],
+        'encounter': value['encounter'],
+        'fhirContext': value['fhirContext'],
+        'intent': value['intent'],
+        'smartStyleUrl': value['smartStyleUrl'],
+        'tenant': value['tenant'],
+        'needPatientBanner': value['needPatientBanner'],
         'launchPatient': value['launchPatient'],
         'launchEncounter': value['launchEncounter'],
     };

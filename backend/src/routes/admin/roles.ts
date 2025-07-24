@@ -1,60 +1,94 @@
 import { Elysia, t } from 'elysia'
 import { keycloakPlugin } from '../../lib/keycloak-plugin'
+import { ErrorResponse } from '../../schemas/common'
 
 /**
  * Healthcare Roles & Permissions Management
+ * 
+ * All routes now use the user's access token to perform operations,
+ * acting as a secure proxy for Keycloak admin operations.
  */
 export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
   .use(keycloakPlugin)
-  
-  .get('/', async ({ getAdmin }) => {
-    const realmRoles = await getAdmin().roles.find()
-    // Filter for healthcare-specific roles
-    return realmRoles.filter(role => 
-      role.name?.includes('healthcare') || 
-      role.name?.includes('patient') ||
-      role.name?.includes('practitioner') ||
-      role.attributes?.['smart_role']?.includes('true')
-    )
+
+  .get('/', async ({ getAdmin, headers, set }) => {
+    try {
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
+      }
+
+      const admin = await getAdmin(token)
+      const realmRoles = await admin.roles.find()
+
+      return realmRoles;
+    } catch (error) {
+      set.status = 500
+      return { error: 'Failed to fetch roles', details: error }
+    }
   }, {
-    response: t.Array(t.Object({
-      id: t.Optional(t.String({ description: 'Role ID' })),
-      name: t.Optional(t.String({ description: 'Role name' })),
-      description: t.Optional(t.String({ description: 'Role description' })),
-      attributes: t.Optional(t.Record(t.String(), t.Array(t.String()))),
-    })),
+    response: {
+      200: t.Array(t.Object({
+        id: t.Optional(t.String({ description: 'Role ID' })),
+        name: t.Optional(t.String({ description: 'Role name' })),
+        description: t.Optional(t.String({ description: 'Role description' })),
+        attributes: t.Optional(t.Record(t.String(), t.Array(t.String()))),
+      })),
+      401: ErrorResponse,
+      500: ErrorResponse
+    },
     detail: {
-      summary: 'List Healthcare Roles',
-      description: 'Get all healthcare-specific roles',
+      summary: 'List All Roles',
+      description: 'Get all roles',
       tags: ['roles']
     }
   })
-  
-  .post('/', async ({ getAdmin, body }) => {
-    const roleData = {
-      name: body.name,
-      description: body.description,
-      attributes: {
-        smart_role: ['true'],
-        fhir_scopes: body.fhirScopes || []
+
+  .post('/', async ({ getAdmin, body, headers, set }) => {
+    try {
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
       }
+
+      const admin = await getAdmin(token)
+      const roleData = {
+        name: body.name,
+        description: body.description,
+        attributes: {
+          smart_role: ['true'],
+          fhir_scopes: body.fhirScopes || []
+        }
+      }
+
+      await admin.roles.create(roleData)
+      // Return the created role object (fetch by name)
+      const created = await admin.roles.findOneByName({ name: body.name })
+      return created ?? {}
+    } catch (error) {
+      set.status = 400
+      return { error: 'Failed to create role', details: error }
     }
-    await getAdmin().roles.create(roleData)
-    // Return the created role object (fetch by name)
-    const created = await getAdmin().roles.findOneByName({ name: body.name })
-    return created ?? {}
   }, {
     body: t.Object({
-      name: t.String(),
-      description: t.Optional(t.String()),
-      fhirScopes: t.Optional(t.Array(t.String()))
-    }),
-    response: t.Object({
-      id: t.Optional(t.String({ description: 'Role ID' })),
-      name: t.Optional(t.String({ description: 'Role name' })),
+      name: t.String({ description: 'Role name' }),
       description: t.Optional(t.String({ description: 'Role description' })),
-      attributes: t.Optional(t.Record(t.String(), t.Array(t.String()))),
+      fhirScopes: t.Optional(t.Array(t.String({ description: 'FHIR scopes for this role' })))
     }),
+    response: {
+      200: t.Object({
+        id: t.Optional(t.String({ description: 'Role ID' })),
+        name: t.Optional(t.String({ description: 'Role name' })),
+        description: t.Optional(t.String({ description: 'Role description' })),
+        attributes: t.Optional(t.Record(t.String(), t.Array(t.String()))),
+      }),
+      400: ErrorResponse,
+      401: ErrorResponse
+    },
     detail: {
       summary: 'Create Healthcare Role',
       description: 'Create a new healthcare-specific role',
@@ -62,16 +96,40 @@ export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
     }
   })
 
-  .get('/:roleName', async ({ getAdmin, params }) => {
-    const role = await getAdmin().roles.findOneByName({ name: params.roleName })
-    return role ?? {}
+  .get('/:roleName', async ({ getAdmin, params, headers, set }) => {
+    try {
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
+      }
+
+      const admin = await getAdmin(token)
+      const role = await admin.roles.findOneByName({ name: params.roleName })
+
+      if (!role) {
+        set.status = 404
+        return { error: 'Role not found' }
+      }
+
+      return role
+    } catch (error) {
+      set.status = 500
+      return { error: 'Failed to fetch role', details: error }
+    }
   }, {
-    response: t.Object({
-      id: t.Optional(t.String({ description: 'Role ID' })),
-      name: t.Optional(t.String({ description: 'Role name' })),
-      description: t.Optional(t.String({ description: 'Role description' })),
-      attributes: t.Optional(t.Record(t.String(), t.Array(t.String()))),
-    }),
+    response: {
+      200: t.Object({
+        id: t.Optional(t.String({ description: 'Role ID' })),
+        name: t.Optional(t.String({ description: 'Role name' })),
+        description: t.Optional(t.String({ description: 'Role description' })),
+        attributes: t.Optional(t.Record(t.String(), t.Array(t.String()))),
+      }),
+      401: ErrorResponse,
+      404: ErrorResponse,
+      500: ErrorResponse
+    },
     detail: {
       summary: 'Get Healthcare Role',
       description: 'Get a healthcare-specific role by name',
@@ -79,28 +137,50 @@ export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
     }
   })
 
-  .put('/:roleName', async ({ getAdmin, params, body }) => {
-    const role = await getAdmin().roles.findOneByName({ name: params.roleName })
-    if (!role) throw new Error('Role not found')
-
-    const updateData = {
-      description: body.description,
-      attributes: {
-        ...role.attributes,
-        fhir_scopes: body.fhirScopes || role.attributes?.fhir_scopes || []
+  .put('/:roleName', async ({ getAdmin, params, body, headers, set }) => {
+    try {
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
       }
-    }
 
-    await getAdmin().roles.updateByName({ name: params.roleName }, updateData)
-    return { success: true }
+      const admin = await getAdmin(token)
+      const role = await admin.roles.findOneByName({ name: params.roleName })
+
+      if (!role) {
+        set.status = 404
+        return { error: 'Role not found' }
+      }
+
+      const updateData = {
+        description: body.description,
+        attributes: {
+          ...role.attributes,
+          fhir_scopes: body.fhirScopes || role.attributes?.fhir_scopes || []
+        }
+      }
+
+      await admin.roles.updateByName({ name: params.roleName }, updateData)
+      return { success: true }
+    } catch (error) {
+      set.status = 400
+      return { error: 'Failed to update role', details: error }
+    }
   }, {
     body: t.Object({
-      description: t.Optional(t.String()),
-      fhirScopes: t.Optional(t.Array(t.String()))
+      description: t.Optional(t.String({ description: 'Role description' })),
+      fhirScopes: t.Optional(t.Array(t.String({ description: 'FHIR scopes for this role' })))
     }),
-    response: t.Object({
-      success: t.Boolean({ description: 'Whether the update was successful' })
-    }),
+    response: {
+      200: t.Object({
+        success: t.Boolean({ description: 'Whether the update was successful' })
+      }),
+      400: ErrorResponse,
+      401: ErrorResponse,
+      404: ErrorResponse
+    },
     detail: {
       summary: 'Update Healthcare Role',
       description: 'Update a healthcare-specific role by name',
@@ -108,13 +188,39 @@ export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
     }
   })
 
-  .delete('/:roleName', async ({ getAdmin, params }) => {
-    await getAdmin().roles.delByName({ name: params.roleName })
-    return { success: true }
+  .delete('/:roleName', async ({ getAdmin, params, headers, set }) => {
+    try {
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
+      }
+
+      const admin = await getAdmin(token)
+
+      // Check if role exists before deletion
+      const role = await admin.roles.findOneByName({ name: params.roleName })
+      if (!role) {
+        set.status = 404
+        return { error: 'Role not found' }
+      }
+
+      await admin.roles.delByName({ name: params.roleName })
+      return { success: true }
+    } catch (error) {
+      set.status = 400
+      return { error: 'Failed to delete role', details: error }
+    }
   }, {
-    response: t.Object({
-      success: t.Boolean({ description: 'Whether the delete was successful' })
-    }),
+    response: {
+      200: t.Object({
+        success: t.Boolean({ description: 'Whether the delete was successful' })
+      }),
+      400: ErrorResponse,
+      401: ErrorResponse,
+      404: ErrorResponse
+    },
     detail: {
       summary: 'Delete Healthcare Role',
       description: 'Delete a healthcare-specific role by name',

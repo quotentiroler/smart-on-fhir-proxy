@@ -44,23 +44,29 @@ export interface PutAdminHealthcareUsersByUserIdRequest {
      */
     enabled?: boolean;
     /**
-     * Healthcare role
+     * Organization
      * @type {string}
      * @memberof PutAdminHealthcareUsersByUserIdRequest
      */
-    role?: string;
+    organization?: string;
     /**
-     * Department or unit
+     * FHIR User identifiers in format "server1:Person/123,server2:Person/456"
      * @type {string}
      * @memberof PutAdminHealthcareUsersByUserIdRequest
      */
-    department?: string;
+    fhirUser?: string;
     /**
-     * National Provider Identifier
-     * @type {string}
+     * 
+     * @type {Array<string>}
      * @memberof PutAdminHealthcareUsersByUserIdRequest
      */
-    npi?: string;
+    realmRoles?: Array<string>;
+    /**
+     * Client roles to assign
+     * @type {object}
+     * @memberof PutAdminHealthcareUsersByUserIdRequest
+     */
+    clientRoles?: object;
 }
 
 /**
@@ -84,9 +90,10 @@ export function PutAdminHealthcareUsersByUserIdRequestFromJSONTyped(json: any, i
         'lastName': json['lastName'] == null ? undefined : json['lastName'],
         'email': json['email'] == null ? undefined : json['email'],
         'enabled': json['enabled'] == null ? undefined : json['enabled'],
-        'role': json['role'] == null ? undefined : json['role'],
-        'department': json['department'] == null ? undefined : json['department'],
-        'npi': json['npi'] == null ? undefined : json['npi'],
+        'organization': json['organization'] == null ? undefined : json['organization'],
+        'fhirUser': json['fhirUser'] == null ? undefined : json['fhirUser'],
+        'realmRoles': json['realmRoles'] == null ? undefined : json['realmRoles'],
+        'clientRoles': json['clientRoles'] == null ? undefined : json['clientRoles'],
     };
 }
 
@@ -105,9 +112,10 @@ export function PutAdminHealthcareUsersByUserIdRequestToJSONTyped(value?: PutAdm
         'lastName': value['lastName'],
         'email': value['email'],
         'enabled': value['enabled'],
-        'role': value['role'],
-        'department': value['department'],
-        'npi': value['npi'],
+        'organization': value['organization'],
+        'fhirUser': value['fhirUser'],
+        'realmRoles': value['realmRoles'],
+        'clientRoles': value['clientRoles'],
     };
 }
 

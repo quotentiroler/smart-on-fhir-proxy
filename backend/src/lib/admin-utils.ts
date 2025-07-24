@@ -1,0 +1,130 @@
+import KeycloakAdminClient from '@keycloak/keycloak-admin-client'
+
+
+// Define a minimal user type based on Keycloak user structure
+interface KeycloakUser {
+  id?: string
+  username?: string
+  email?: string
+  firstName?: string
+  lastName?: string
+  enabled?: boolean
+  attributes?: Record<string, string[]>
+  createdTimestamp?: number
+  lastLogin?: number | null
+}
+
+/**
+ * Extract and validate Bearer token from request headers
+ * @param headers Request headers object
+ * @returns Token string or null if not found
+ */
+export function extractBearerToken(headers: Record<string, string | undefined>): string | null {
+  const authorization = headers.authorization
+  if (!authorization?.startsWith('Bearer ')) {
+    return null
+  }
+  return authorization.replace('Bearer ', '')
+}
+
+/**
+ * Standard error response for missing authentication
+ */
+export const UNAUTHORIZED_RESPONSE = {
+  error: 'Authorization header required'
+}
+
+/**
+ * Get admin client with proper error handling
+ * @param getAdmin Admin client factory function
+ * @param token Bearer token
+ * @returns Admin client instance
+ */
+export async function getValidatedAdmin(
+  getAdmin: (token: string) => Promise<KeycloakAdminClient>,
+  token: string
+): Promise<KeycloakAdminClient> {
+  try {
+    return await getAdmin(token)
+  } catch (error) {
+    throw new Error(`Failed to get admin client: ${error}`)
+  }
+}
+
+/**
+ * Common user mapping function for consistent user profile responses
+ * @param user Keycloak user object
+ * @returns Standardized user profile
+ */
+export function mapUserProfile(user: KeycloakUser) {
+  return {
+    id: user.id ?? '',
+    username: user.username ?? '',
+    email: user.email ?? '',
+    firstName: user.firstName ?? '',
+    lastName: user.lastName ?? '',
+    enabled: user.enabled ?? false,
+    attributes: user.attributes ?? {},
+    createdTimestamp: user.createdTimestamp ?? 0,
+    lastLogin: user.lastLogin ?? null
+  }
+}
+
+/**
+ * Set user attribute safely (handles array conversion)
+ * @param admin Keycloak admin client
+ * @param userId User ID
+ * @param attributeName Attribute name
+ * @param value Attribute value
+ * @param legacyAttributeName Optional legacy attribute name for backwards compatibility
+ */
+export async function setUserAttribute(
+  admin: KeycloakAdminClient,
+  userId: string,
+  attributeName: string,
+  value: string | boolean | null,
+  legacyAttributeName?: string
+): Promise<void> {
+  const user = await admin.users.findOne({ id: userId })
+  if (!user) {
+    throw new Error('User not found')
+  }
+
+  const attributes = user.attributes || {}
+  
+  if (value === null || value === undefined) {
+    // Remove attribute
+    delete attributes[attributeName]
+    if (legacyAttributeName) {
+      delete attributes[legacyAttributeName]
+    }
+  } else {
+    // Set attribute (convert to array format for Keycloak)
+    attributes[attributeName] = [String(value)]
+    if (legacyAttributeName) {
+      attributes[legacyAttributeName] = [String(value)]
+    }
+  }
+
+  await admin.users.update({ id: userId }, { attributes })
+}
+
+/**
+ * Get user attribute safely
+ * @param user Keycloak user object
+ * @param attributeName Attribute name
+ * @returns Attribute value or empty string
+ */
+export function getUserAttribute(user: KeycloakUser, attributeName: string): string {
+  return user.attributes?.[attributeName]?.[0] ?? ''
+}
+
+/**
+ * Get user attribute as boolean
+ * @param user Keycloak user object
+ * @param attributeName Attribute name
+ * @returns Boolean value
+ */
+export function getUserAttributeBoolean(user: KeycloakUser, attributeName: string): boolean {
+  return user.attributes?.[attributeName]?.[0] === 'true'
+}

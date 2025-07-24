@@ -67,6 +67,36 @@ export interface GetAdminHealthcareUsers200ResponseInner {
      * @memberof GetAdminHealthcareUsers200ResponseInner
      */
     createdTimestamp?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof GetAdminHealthcareUsers200ResponseInner
+     */
+    lastLogin?: number | null;
+    /**
+     * Keycloak realm roles
+     * @type {Array<string>}
+     * @memberof GetAdminHealthcareUsers200ResponseInner
+     */
+    realmRoles?: Array<string>;
+    /**
+     * Keycloak client roles
+     * @type {object}
+     * @memberof GetAdminHealthcareUsers200ResponseInner
+     */
+    clientRoles?: object;
+    /**
+     * Organization
+     * @type {string}
+     * @memberof GetAdminHealthcareUsers200ResponseInner
+     */
+    organization?: string;
+    /**
+     * FHIR User identifier
+     * @type {string}
+     * @memberof GetAdminHealthcareUsers200ResponseInner
+     */
+    fhirUser?: string;
 }
 
 /**
@@ -100,6 +130,11 @@ export function GetAdminHealthcareUsers200ResponseInnerFromJSONTyped(json: any, 
         'enabled': json['enabled'],
         'attributes': json['attributes'] == null ? undefined : json['attributes'],
         'createdTimestamp': json['createdTimestamp'] == null ? undefined : json['createdTimestamp'],
+        'lastLogin': json['lastLogin'] == null ? undefined : json['lastLogin'],
+        'realmRoles': json['realmRoles'] == null ? undefined : json['realmRoles'],
+        'clientRoles': json['clientRoles'] == null ? undefined : json['clientRoles'],
+        'organization': json['organization'] == null ? undefined : json['organization'],
+        'fhirUser': json['fhirUser'] == null ? undefined : json['fhirUser'],
     };
 }
 
@@ -122,6 +157,11 @@ export function GetAdminHealthcareUsers200ResponseInnerToJSONTyped(value?: GetAd
         'enabled': value['enabled'],
         'attributes': value['attributes'],
         'createdTimestamp': value['createdTimestamp'],
+        'lastLogin': value['lastLogin'],
+        'realmRoles': value['realmRoles'],
+        'clientRoles': value['clientRoles'],
+        'organization': value['organization'],
+        'fhirUser': value['fhirUser'],
     };
 }
 

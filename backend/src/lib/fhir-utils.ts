@@ -1,5 +1,6 @@
 import fetch from 'cross-fetch'
 import { config } from '../config'
+import { logger } from './logger'
 
 /**
  * FHIR server utilities for dynamic version detection and metadata
@@ -77,7 +78,7 @@ export function normalizeFHIRVersion(version: string): string {
  * Fetch and parse FHIR server metadata to determine version
  */
 export async function getFHIRServerInfo(baseUrl?: string): Promise<FHIRVersionInfo> {
-  const serverUrl = baseUrl || config.fhir.serverBase
+  const serverUrl = baseUrl || config.fhir.serverBases[0] // Use first server as default
   const cacheKey = serverUrl
 
   // Check cache first
@@ -122,7 +123,10 @@ export async function getFHIRServerInfo(baseUrl?: string): Promise<FHIRVersionIn
 
     return versionInfo
   } catch (error) {
-    console.warn('Failed to fetch FHIR server metadata:', error)
+    logger.fhir.warn('Failed to fetch FHIR server metadata', { 
+      serverUrl, 
+      error: error instanceof Error ? error.message : String(error) 
+    })
 
     // Return default/fallback version info
     const fallback: FHIRVersionInfo = {
@@ -169,6 +173,63 @@ export async function validateFHIRVersion(requestedVersion: string, baseUrl?: st
  */
 export function getSupportedFHIRVersions(): string[] {
   return config.fhir.supportedVersions
+}
+
+/**
+ * Generate a URL-safe server identifier from server metadata
+ */
+export function getServerIdentifier(serverInfo: FHIRVersionInfo, serverUrl: string, index: number): string {
+  // Try to use server name from metadata first
+  if (serverInfo.serverName && serverInfo.serverName !== 'Unknown FHIR Server') {
+    // Convert server name to URL-safe identifier
+    return serverInfo.serverName
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+  }
+
+  // Fallback to URL-based identifier
+  try {
+    const url = new URL(serverUrl)
+    const hostname = url.hostname.replace(/\./g, '-').replace(/[^a-zA-Z0-9-]/g, '')
+    return hostname || `server-${index}`
+  } catch {
+    return `server-${index}`
+  }
+}
+
+/**
+ * Get server configuration by name (async version)
+ */
+export async function getServerByName(serverName: string): Promise<string | null> {
+  // Try to find by generated server identifier from metadata
+  for (let i = 0; i < config.fhir.serverBases.length; i++) {
+    const serverBase = config.fhir.serverBases[i]
+
+    try {
+      const serverInfo = await getFHIRServerInfo(serverBase)
+
+      // Generate consistent server identifier
+      const serverIdentifier = getServerIdentifier(serverInfo, serverBase, i)
+      if (serverIdentifier === serverName) {
+        return serverBase
+      }
+    } catch {
+      // If metadata fetch fails, try fallback
+      const fallbackIdentifier = `server-${i}`
+      if (fallbackIdentifier === serverName) {
+        return serverBase
+      }
+    }
+  }
+
+  // Fallback: try to find by partial URL match (e.g., "hapi" matches "hapi.fhir.org")
+  const matchingServer = config.fhir.serverBases.find(server =>
+    server.toLowerCase().includes(serverName.toLowerCase())
+  )
+
+  return matchingServer || null
 }
 
 /**

@@ -34,11 +34,11 @@ export interface GetAuthUserinfo200Response {
      */
     id: string;
     /**
-     * FHIR resource type
+     * FHIR user resource reference (e.g., Practitioner/123)
      * @type {string}
      * @memberof GetAuthUserinfo200Response
      */
-    resourceType: string;
+    fhirUser?: string;
     /**
      * 
      * @type {Array<GetAuthUserinfo200ResponseNameInner>}
@@ -82,7 +82,6 @@ export interface GetAuthUserinfo200Response {
  */
 export function instanceOfGetAuthUserinfo200Response(value: object): value is GetAuthUserinfo200Response {
     if (!('id' in value) || value['id'] === undefined) return false;
-    if (!('resourceType' in value) || value['resourceType'] === undefined) return false;
     if (!('name' in value) || value['name'] === undefined) return false;
     if (!('username' in value) || value['username'] === undefined) return false;
     if (!('roles' in value) || value['roles'] === undefined) return false;
@@ -100,7 +99,7 @@ export function GetAuthUserinfo200ResponseFromJSONTyped(json: any, ignoreDiscrim
     return {
         
         'id': json['id'],
-        'resourceType': json['resourceType'],
+        'fhirUser': json['fhirUser'] == null ? undefined : json['fhirUser'],
         'name': ((json['name'] as Array<any>).map(GetAuthUserinfo200ResponseNameInnerFromJSON)),
         'username': json['username'],
         'email': json['email'] == null ? undefined : json['email'],
@@ -122,7 +121,7 @@ export function GetAuthUserinfo200ResponseToJSONTyped(value?: GetAuthUserinfo200
     return {
         
         'id': value['id'],
-        'resourceType': value['resourceType'],
+        'fhirUser': value['fhirUser'],
         'name': ((value['name'] as Array<any>).map(GetAuthUserinfo200ResponseNameInnerToJSON)),
         'username': value['username'],
         'email': value['email'],

@@ -13,13 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
-import type { GetHealth200ResponseFhirServer } from './GetHealth200ResponseFhirServer';
+import type { GetHealth200ResponseFhirServers } from './GetHealth200ResponseFhirServers';
 import {
-    GetHealth200ResponseFhirServerFromJSON,
-    GetHealth200ResponseFhirServerFromJSONTyped,
-    GetHealth200ResponseFhirServerToJSON,
-    GetHealth200ResponseFhirServerToJSONTyped,
-} from './GetHealth200ResponseFhirServer';
+    GetHealth200ResponseFhirServersFromJSON,
+    GetHealth200ResponseFhirServersFromJSONTyped,
+    GetHealth200ResponseFhirServersToJSON,
+    GetHealth200ResponseFhirServersToJSONTyped,
+} from './GetHealth200ResponseFhirServers';
 import type { GetHealth200ResponseMemory } from './GetHealth200ResponseMemory';
 import {
     GetHealth200ResponseMemoryFromJSON,
@@ -54,10 +54,10 @@ export interface GetHealth200Response {
     uptime: number;
     /**
      * 
-     * @type {GetHealth200ResponseFhirServer}
+     * @type {GetHealth200ResponseFhirServers}
      * @memberof GetHealth200Response
      */
-    fhirServer: GetHealth200ResponseFhirServer;
+    fhirServers: GetHealth200ResponseFhirServers;
     /**
      * 
      * @type {GetHealth200ResponseMemory}
@@ -73,7 +73,7 @@ export function instanceOfGetHealth200Response(value: object): value is GetHealt
     if (!('status' in value) || value['status'] === undefined) return false;
     if (!('timestamp' in value) || value['timestamp'] === undefined) return false;
     if (!('uptime' in value) || value['uptime'] === undefined) return false;
-    if (!('fhirServer' in value) || value['fhirServer'] === undefined) return false;
+    if (!('fhirServers' in value) || value['fhirServers'] === undefined) return false;
     if (!('memory' in value) || value['memory'] === undefined) return false;
     return true;
 }
@@ -91,7 +91,7 @@ export function GetHealth200ResponseFromJSONTyped(json: any, ignoreDiscriminator
         'status': json['status'],
         'timestamp': json['timestamp'],
         'uptime': json['uptime'],
-        'fhirServer': GetHealth200ResponseFhirServerFromJSON(json['fhirServer']),
+        'fhirServers': GetHealth200ResponseFhirServersFromJSON(json['fhirServers']),
         'memory': GetHealth200ResponseMemoryFromJSON(json['memory']),
     };
 }
@@ -110,7 +110,7 @@ export function GetHealth200ResponseToJSONTyped(value?: GetHealth200Response | n
         'status': value['status'],
         'timestamp': value['timestamp'],
         'uptime': value['uptime'],
-        'fhirServer': GetHealth200ResponseFhirServerToJSON(value['fhirServer']),
+        'fhirServers': GetHealth200ResponseFhirServersToJSON(value['fhirServers']),
         'memory': GetHealth200ResponseMemoryToJSON(value['memory']),
     };
 }

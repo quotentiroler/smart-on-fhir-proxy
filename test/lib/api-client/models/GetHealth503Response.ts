@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { GetHealth200ResponseFhirServers } from './GetHealth200ResponseFhirServers';
+import {
+    GetHealth200ResponseFhirServersFromJSON,
+    GetHealth200ResponseFhirServersFromJSONTyped,
+    GetHealth200ResponseFhirServersToJSON,
+    GetHealth200ResponseFhirServersToJSONTyped,
+} from './GetHealth200ResponseFhirServers';
+
 /**
  * 
  * @export
@@ -43,6 +51,12 @@ export interface GetHealth503Response {
      * @memberof GetHealth503Response
      */
     details?: any | null;
+    /**
+     * 
+     * @type {GetHealth200ResponseFhirServers}
+     * @memberof GetHealth503Response
+     */
+    fhirServers?: GetHealth200ResponseFhirServers;
 }
 
 /**
@@ -69,6 +83,7 @@ export function GetHealth503ResponseFromJSONTyped(json: any, ignoreDiscriminator
         'timestamp': json['timestamp'],
         'error': json['error'],
         'details': json['details'] == null ? undefined : json['details'],
+        'fhirServers': json['fhirServers'] == null ? undefined : GetHealth200ResponseFhirServersFromJSON(json['fhirServers']),
     };
 }
 
@@ -87,6 +102,7 @@ export function GetHealth503ResponseToJSONTyped(value?: GetHealth503Response | n
         'timestamp': value['timestamp'],
         'error': value['error'],
         'details': value['details'],
+        'fhirServers': GetHealth200ResponseFhirServersToJSON(value['fhirServers']),
     };
 }
 

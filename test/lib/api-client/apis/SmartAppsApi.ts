@@ -16,7 +16,6 @@
 import * as runtime from '../runtime';
 import type {
   GetAdminSmartApps200ResponseInner,
-  PostAdminSmartApps200Response,
   PostAdminSmartAppsRequest,
   PostShutdown500Response,
   PutAdminSmartAppsByClientId200Response,
@@ -25,8 +24,6 @@ import type {
 import {
     GetAdminSmartApps200ResponseInnerFromJSON,
     GetAdminSmartApps200ResponseInnerToJSON,
-    PostAdminSmartApps200ResponseFromJSON,
-    PostAdminSmartApps200ResponseToJSON,
     PostAdminSmartAppsRequestFromJSON,
     PostAdminSmartAppsRequestToJSON,
     PostShutdown500ResponseFromJSON,
@@ -149,7 +146,7 @@ export class SmartAppsApi extends runtime.BaseAPI {
      * Get a single SMART on FHIR application by clientId
      * Get SMART on FHIR Application
      */
-    async getAdminSmartAppsByClientIdRaw(requestParameters: GetAdminSmartAppsByClientIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostAdminSmartApps200Response>> {
+    async getAdminSmartAppsByClientIdRaw(requestParameters: GetAdminSmartAppsByClientIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminSmartApps200ResponseInner>> {
         if (requestParameters['clientId'] == null) {
             throw new runtime.RequiredError(
                 'clientId',
@@ -180,14 +177,14 @@ export class SmartAppsApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PostAdminSmartApps200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminSmartApps200ResponseInnerFromJSON(jsonValue));
     }
 
     /**
      * Get a single SMART on FHIR application by clientId
      * Get SMART on FHIR Application
      */
-    async getAdminSmartAppsByClientId(requestParameters: GetAdminSmartAppsByClientIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostAdminSmartApps200Response> {
+    async getAdminSmartAppsByClientId(requestParameters: GetAdminSmartAppsByClientIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminSmartApps200ResponseInner> {
         const response = await this.getAdminSmartAppsByClientIdRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -196,7 +193,7 @@ export class SmartAppsApi extends runtime.BaseAPI {
      * Create a new SMART on FHIR application
      * Create SMART on FHIR Application
      */
-    async postAdminSmartAppsRaw(requestParameters: PostAdminSmartAppsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostAdminSmartApps200Response>> {
+    async postAdminSmartAppsRaw(requestParameters: PostAdminSmartAppsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminSmartApps200ResponseInner>> {
         if (requestParameters['postAdminSmartAppsRequest'] == null) {
             throw new runtime.RequiredError(
                 'postAdminSmartAppsRequest',
@@ -229,16 +226,54 @@ export class SmartAppsApi extends runtime.BaseAPI {
             body: PostAdminSmartAppsRequestToJSON(requestParameters['postAdminSmartAppsRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PostAdminSmartApps200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminSmartApps200ResponseInnerFromJSON(jsonValue));
     }
 
     /**
      * Create a new SMART on FHIR application
      * Create SMART on FHIR Application
      */
-    async postAdminSmartApps(requestParameters: PostAdminSmartAppsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostAdminSmartApps200Response> {
+    async postAdminSmartApps(requestParameters: PostAdminSmartAppsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminSmartApps200ResponseInner> {
         const response = await this.postAdminSmartAppsRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Manually refresh the cached SMART configuration from Keycloak
+     * Refresh SMART Configuration Cache
+     */
+    async postAdminSmartConfigRefreshRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/smart-config/refresh`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Manually refresh the cached SMART configuration from Keycloak
+     * Refresh SMART Configuration Cache
+     */
+    async postAdminSmartConfigRefresh(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.postAdminSmartConfigRefreshRaw(initOverrides);
     }
 
     /**

@@ -8,6 +8,7 @@
  * - Integrates with Keycloak for OAuth2/OIDC authorization
  */
 
+import { logger } from './logger'
 import { config } from '../config'
 import type { SmartConfiguration } from '../types'
 
@@ -64,8 +65,6 @@ class SmartConfigService {
      */
     private async fetchAndBuildSmartConfig(): Promise<SmartConfiguration> {
         try {
-            console.log(`Fetching OpenID configuration from: ${this.keycloakDiscoveryUrl}`)
-
             const response = await fetch(this.keycloakDiscoveryUrl, {
                 headers: {
                     'Accept': 'application/json',
@@ -83,7 +82,7 @@ class SmartConfigService {
             return this.buildSmartConfigFromOpenID(openidConfig)
 
         } catch (error) {
-            console.error('Failed to fetch Keycloak OpenID configuration:', error)
+            logger.keycloak.error('Failed to fetch Keycloak OpenID configuration', { error })
             throw new Error(`SMART configuration unavailable: ${error instanceof Error ? error.message : 'Unknown error'}`)
         }
     }
@@ -173,20 +172,20 @@ class SmartConfigService {
             // Launch flows
             'launch-ehr',
             'launch-standalone',
-            
+
             // Client types
             'client-public',
             'client-confidential-symmetric',
             'client-confidential-asymmetric',
-            
+
             // Authentication & SSO
             'sso-openid-connect',
-            
+
             // Context capabilities
             'context-standalone-patient',
             'context-ehr-patient',
             'context-ehr-encounter',
-            
+
             // SMART 2.0 features
             'permission-offline',
             'permission-online',

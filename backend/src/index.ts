@@ -1,31 +1,23 @@
 import { Elysia } from 'elysia'
 import { swagger } from '@elysiajs/swagger'
+import { cors } from '@elysiajs/cors'
 import { keycloakPlugin } from './lib/keycloak-plugin'
-import { smartRoutes } from './routes/smart'
 import { fhirRoutes } from './routes/fhir'
-import { serverRoutes } from './routes/server'
+import { serverRoutes } from './routes/info'
+import { serverDiscoveryRoutes } from './routes/fhir-servers'
 import { config } from './config'
-import { getFHIRServerInfo, FHIRVersionInfo } from './lib/fhir-utils'
 import { adminRoutes } from './routes/admin'
 import { authRoutes } from './routes/auth'
-
-// Initialize FHIR server cache on startup
-async function initializeServer(): Promise<FHIRVersionInfo | null> {
-  console.log('🚀 Starting SMART on FHIR API server...')
-
-  try {
-    console.log('📡 Initializing FHIR server connection...')
-    const fhirServer = await getFHIRServerInfo()
-    console.log(`✅ FHIR server detected: ${fhirServer.serverName} (${fhirServer.fhirVersion})`)
-    return fhirServer;
-  } catch (error) {
-    console.warn('⚠️  Failed to initialize FHIR server connection:', error)
-    console.log('🔄 Proxy Server will continue with fallback configuration')
-    return null;
-  }
-}
+import { logger } from './lib/logger'
+import { initializeServer, displayServerEndpoints } from './init'
 
 const app = new Elysia()
+  .use(cors({
+    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+  }))
   .use(swagger({
     documentation: {
       info: {
@@ -35,11 +27,12 @@ const app = new Elysia()
       },
       tags: [
         { name: 'authentication', description: 'Authentication and authorization endpoints' },
-        { name: 'smart-apps', description: 'SMART on FHIR application management' },
         { name: 'users', description: 'Healthcare user management' },
         { name: 'admin', description: 'Administrative operations' },
         { name: 'fhir', description: 'FHIR resource proxy endpoints' },
-        { name: 'identity-providers', description: 'Identity provider management' }
+        { name: 'servers', description: 'FHIR server discovery endpoints' },
+        { name: 'identity-providers', description: 'Identity provider management' },
+        { name: 'smart-apps', description: 'SMART on FHIR configuration endpoints' }
       ],
       components: {
         securitySchemes: {
@@ -61,23 +54,19 @@ const app = new Elysia()
   }))
   .use(keycloakPlugin)
   .use(serverRoutes)// Server status and info endpoints, smart launcher, restart and shutdown too (will be moved to admin)
-  .use(smartRoutes)// smart-config
+  .use(serverDiscoveryRoutes)// Server discovery endpoints
   .use(authRoutes)
   .use(adminRoutes) //admin keycloak endpoints
   .use(fhirRoutes) // the actual FHIR proxy endpoints
 
 // Initialize and start server
 initializeServer()
-  .then((fhirServer) => {
-    app.listen(config.port, () => {
-      console.log(`🚀 SMART Launcher available at ${config.baseUrl}`)
-      console.log(`📚 API Documentation available at ${config.baseUrl}/swagger`)
-      if (fhirServer) {
-        console.log(`🔗 SMART Protected FHIR Server available at ${config.baseUrl}/v/${fhirServer.fhirVersion}/fhir`)
-      }
+  .then(async () => {
+    app.listen(config.port, async () => {
+      await displayServerEndpoints()
     })
   })
   .catch((error) => {
-    console.error('❌ Failed to start server:', error)
+    logger.server.error('Failed to start server', { error })
     process.exit(1)
   })

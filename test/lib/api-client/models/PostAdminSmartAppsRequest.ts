@@ -68,7 +68,7 @@ export interface PostAdminSmartAppsRequest {
      */
     smartVersion?: string;
     /**
-     * FHIR version (default: STU3)
+     * FHIR version (default: R4)
      * @type {string}
      * @memberof PostAdminSmartAppsRequest
      */

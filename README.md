@@ -17,6 +17,7 @@ This server intercepts requests to otherwise open FHIR servers and requires prop
 - **Multi-tenant Architecture** - Support for multiple healthcare organizations
 - **Launch Context Management** - Patient and encounter context handling
 - **Role-based Access Control** - Healthcare-specific role management
+- **Agent Support** - Autonomous agents with Device-based identity (see [AGENT_SUPPORT.md](AGENT_SUPPORT.md))
 - **FHIR Proxy** - Secure FHIR resource access
 
 ## Architecture
@@ -100,7 +101,7 @@ API clients are (semi-)auto-generated from OpenAPI specs:
 
 ```bash
 # Generate type-safe API clients
-bun run generate-api
+bun run generate
 ```
 
 Clients available at:
