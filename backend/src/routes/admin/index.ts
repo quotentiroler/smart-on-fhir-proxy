@@ -5,6 +5,7 @@ import { rolesRoutes } from './roles'
 import { launchContextRoutes } from './launch-contexts'
 import { identityProvidersRoutes } from './identity-providers'
 import { smartConfigAdminRoutes } from './smart-config'
+import { clientRegistrationSettingsRoutes } from './client-registration-settings'
 
 /**
  * Admin routes aggregator - combines all admin functionality
@@ -21,3 +22,4 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
   .use(launchContextRoutes)
   .use(identityProvidersRoutes)
   .use(smartConfigAdminRoutes)
+  .use(clientRegistrationSettingsRoutes)

@@ -14,11 +14,106 @@
 
 
 import * as runtime from '../runtime';
+import type {
+  GetAdminClientRegistrationSettings200Response,
+  PostShutdown500Response,
+  PutAdminSmartAppsByClientId200Response,
+} from '../models/index';
+import {
+    GetAdminClientRegistrationSettings200ResponseFromJSON,
+    GetAdminClientRegistrationSettings200ResponseToJSON,
+    PostShutdown500ResponseFromJSON,
+    PostShutdown500ResponseToJSON,
+    PutAdminSmartAppsByClientId200ResponseFromJSON,
+    PutAdminSmartAppsByClientId200ResponseToJSON,
+} from '../models/index';
+
+export interface PutAdminClientRegistrationSettingsRequest {
+    getAdminClientRegistrationSettings200Response: GetAdminClientRegistrationSettings200Response;
+}
 
 /**
  * 
  */
 export class AdminApi extends runtime.BaseAPI {
+
+    /**
+     * Get current settings for dynamic client registration
+     * Get Dynamic Client Registration Settings
+     */
+    async getAdminClientRegistrationSettingsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminClientRegistrationSettings200Response>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/client-registration/settings`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminClientRegistrationSettings200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Get current settings for dynamic client registration
+     * Get Dynamic Client Registration Settings
+     */
+    async getAdminClientRegistrationSettings(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminClientRegistrationSettings200Response> {
+        const response = await this.getAdminClientRegistrationSettingsRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Reset all client registration settings to their default values
+     * Reset Client Registration Settings to Defaults
+     */
+    async postAdminClientRegistrationResetDefaultsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminSmartAppsByClientId200Response>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/client-registration/reset-defaults`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminSmartAppsByClientId200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Reset all client registration settings to their default values
+     * Reset Client Registration Settings to Defaults
+     */
+    async postAdminClientRegistrationResetDefaults(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminSmartAppsByClientId200Response> {
+        const response = await this.postAdminClientRegistrationResetDefaultsRaw(initOverrides);
+        return await response.value();
+    }
 
     /**
      * Manually refresh the cached SMART configuration from Keycloak
@@ -56,6 +151,55 @@ export class AdminApi extends runtime.BaseAPI {
      */
     async postAdminSmartConfigRefresh(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.postAdminSmartConfigRefreshRaw(initOverrides);
+    }
+
+    /**
+     * Update settings for dynamic client registration
+     * Update Dynamic Client Registration Settings
+     */
+    async putAdminClientRegistrationSettingsRaw(requestParameters: PutAdminClientRegistrationSettingsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminSmartAppsByClientId200Response>> {
+        if (requestParameters['getAdminClientRegistrationSettings200Response'] == null) {
+            throw new runtime.RequiredError(
+                'getAdminClientRegistrationSettings200Response',
+                'Required parameter "getAdminClientRegistrationSettings200Response" was null or undefined when calling putAdminClientRegistrationSettings().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/client-registration/settings`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: GetAdminClientRegistrationSettings200ResponseToJSON(requestParameters['getAdminClientRegistrationSettings200Response']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminSmartAppsByClientId200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Update settings for dynamic client registration
+     * Update Dynamic Client Registration Settings
+     */
+    async putAdminClientRegistrationSettings(requestParameters: PutAdminClientRegistrationSettingsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminSmartAppsByClientId200Response> {
+        const response = await this.putAdminClientRegistrationSettingsRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
 }

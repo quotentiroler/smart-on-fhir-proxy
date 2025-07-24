@@ -102,6 +102,7 @@ class SmartConfigService {
             authorization_endpoint: `${config.baseUrl}/auth/authorize`,
             token_endpoint: `${config.baseUrl}/auth/token`,
             introspection_endpoint: `${config.baseUrl}/auth/introspect`,
+            registration_endpoint: `${config.baseUrl}/auth/register`, // RFC 7591 Dynamic Client Registration
 
             // Use Keycloak's reported capabilities
             code_challenge_methods_supported: openidConfig.code_challenge_methods_supported,

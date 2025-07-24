@@ -1,0 +1,360 @@
+import { Elysia, t } from 'elysia'
+import { logger } from '../../lib/logger'
+import KcAdminClient from '@keycloak/keycloak-admin-client'
+import * as crypto from 'crypto'
+import { getClientRegistrationSettings } from '../admin/client-registration-settings'
+
+/**
+ * OAuth 2.0 Dynamic Client Registration Protocol (RFC 7591)
+ * https://tools.ietf.org/html/rfc7591
+ * 
+ * SMART App Launch Framework requires support for dynamic client registration
+ * to enable automated app onboarding.
+ * 
+ * This is a public endpoint that uses service account credentials to register clients,
+ * since RFC 7591 requires unauthenticated registration.
+ * 
+ * Note: This provides the same functionality as smart-apps.ts but via a public endpoint
+ * that conforms to RFC 7591 Dynamic Client Registration standard.
+ */
+
+interface ClientRegistrationResponse {
+  client_id: string
+  client_secret?: string
+  client_id_issued_at: number
+  client_secret_expires_at?: number
+  redirect_uris: string[]
+  grant_types: string[]
+  response_types: string[]
+  client_name?: string
+  client_uri?: string
+  logo_uri?: string
+  scope?: string
+  contacts?: string[]
+  tos_uri?: string
+  policy_uri?: string
+  jwks_uri?: string
+  jwks?: object
+  token_endpoint_auth_method: string
+  // SMART-specific
+  fhir_versions?: string[]
+  launch_uris?: string[]
+}
+
+/**
+ * Get admin client using service account credentials for public registration
+ */
+async function getServiceAccountAdmin(): Promise<KcAdminClient> {
+  const admin = new KcAdminClient({
+    baseUrl: process.env.KEYCLOAK_BASE_URL!,
+    realmName: process.env.KEYCLOAK_REALM!,
+  })
+
+  // For public registration, we need to authenticate with service account
+  // This should use a dedicated service account for client registration
+  await admin.auth({
+    grantType: 'client_credentials',
+    clientId: process.env.KEYCLOAK_ADMIN_CLIENT_ID || 'admin-cli',
+    clientSecret: process.env.KEYCLOAK_ADMIN_CLIENT_SECRET,
+  })
+
+  return admin
+}
+
+export const clientRegistrationRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'] })
+  
+  // Dynamic Client Registration - Public endpoint as required by RFC 7591
+  .post('/register', async ({ body, set }) => {
+    try {
+      // Use service account for public registration
+      const admin = await getServiceAccountAdmin()
+      
+      // Load admin settings for validation
+      const settings = await getClientRegistrationSettings(admin)
+      
+      // Check if dynamic client registration is enabled
+      if (!settings.enabled) {
+        set.status = 403
+        return {
+          error: 'access_denied',
+          error_description: 'Dynamic client registration is currently disabled'
+        }
+      }
+      
+      // Validate redirect URIs
+      if (!body.redirect_uris || body.redirect_uris.length === 0) {
+        set.status = 400
+        return {
+          error: 'invalid_redirect_uri',
+          error_description: 'At least one redirect_uri is required'
+        }
+      }
+
+      // Check redirect URI limit
+      if (body.redirect_uris.length > settings.maxRedirectUris) {
+        set.status = 400
+        return {
+          error: 'invalid_redirect_uri',
+          error_description: `Maximum ${settings.maxRedirectUris} redirect URIs allowed`
+        }
+      }
+
+      // Validate HTTPS requirement
+      if (settings.requireHttps) {
+        const invalidUris = body.redirect_uris.filter(uri => 
+          !uri.startsWith('https://') && 
+          !uri.startsWith('http://localhost:') && 
+          !uri.startsWith('http://127.0.0.1:')
+        )
+        if (invalidUris.length > 0) {
+          set.status = 400
+          return {
+            error: 'invalid_redirect_uri',
+            error_description: 'redirect_uris must use HTTPS (localhost exempted for development)'
+          }
+        }
+      }
+
+      // Validate redirect URIs against allowed patterns
+      const invalidPatterns = body.redirect_uris.filter(uri => {
+        return !settings.allowedRedirectUriPatterns.some(pattern => {
+          try {
+            return new RegExp(pattern).test(uri)
+          } catch {
+            return false // Invalid regex patterns are ignored
+          }
+        })
+      })
+      
+      if (invalidPatterns.length > 0) {
+        set.status = 400
+        return {
+          error: 'invalid_redirect_uri',
+          error_description: 'One or more redirect URIs do not match allowed patterns'
+        }
+      }
+
+      // Validate required fields based on settings
+      if (settings.requireTermsOfService && !body.tos_uri) {
+        set.status = 400
+        return {
+          error: 'invalid_client_metadata',
+          error_description: 'Terms of service URI is required'
+        }
+      }
+
+      if (settings.requirePrivacyPolicy && !body.policy_uri) {
+        set.status = 400
+        return {
+          error: 'invalid_client_metadata',
+          error_description: 'Privacy policy URI is required'
+        }
+      }
+
+      // Determine client type based on authentication method
+      const isConfidential = !!(body.jwks_uri || body.jwks)
+      const isBackendService = isConfidential && !body.redirect_uris.some(uri => 
+        uri.includes('localhost') || uri.includes('127.0.0.1')
+      )
+      
+      // Check if client type is allowed
+      if (!isConfidential && !settings.allowPublicClients) {
+        set.status = 400
+        return {
+          error: 'invalid_client_metadata',
+          error_description: 'Public clients are not allowed'
+        }
+      }
+      
+      if (isConfidential && !isBackendService && !settings.allowConfidentialClients) {
+        set.status = 400
+        return {
+          error: 'invalid_client_metadata',
+          error_description: 'Confidential clients are not allowed'
+        }
+      }
+      
+      if (isBackendService && !settings.allowBackendServices) {
+        set.status = 400
+        return {
+          error: 'invalid_client_metadata',
+          error_description: 'Backend service clients are not allowed'
+        }
+      }
+
+      // Validate requested scopes against allowed scopes
+      if (body.scope) {
+        const requestedScopes = body.scope.split(' ')
+        const disallowedScopes = requestedScopes.filter(scope => 
+          !settings.allowedScopes.includes(scope)
+        )
+        if (disallowedScopes.length > 0) {
+          set.status = 400
+          return {
+            error: 'invalid_scope',
+            error_description: `The following scopes are not allowed: ${disallowedScopes.join(', ')}`
+          }
+        }
+      }
+
+      const clientId = `smart_app_${crypto.randomUUID()}`
+      
+      // Build Keycloak client configuration (reusing logic from smart-apps.ts)
+      const keycloakClient = {
+        clientId,
+        name: body.client_name || clientId,
+        description: `SMART App: ${body.client_name || 'Dynamic Client'}`,
+        enabled: !settings.adminApprovalRequired, // Disable if approval required
+        protocol: 'openid-connect',
+        publicClient: !isConfidential,
+        standardFlowEnabled: true, // Authorization code flow
+        serviceAccountsEnabled: isBackendService, // Backend services
+        redirectUris: body.redirect_uris,
+        webOrigins: body.redirect_uris.map(uri => {
+          try {
+            return new URL(uri).origin
+          } catch {
+            return uri // fallback for invalid URIs
+          }
+        }),
+        clientAuthenticatorType: isConfidential 
+          ? (body.jwks_uri || body.jwks ? 'client-jwt' : 'client-secret')
+          : 'none',
+        attributes: {
+          'pkce.code.challenge.method': 'S256',
+          'client.secret.creation.time': Date.now().toString(),
+          'smart_app': 'true', // Mark as SMART app to work with existing filtering
+          'smart.fhir_versions': body.fhir_versions?.join(',') || 'R4',
+          'smart.launch_uris': body.launch_uris?.join(',') || '',
+          'smart.client_uri': body.client_uri || '',
+          'smart.logo_uri': body.logo_uri || '',
+          // Dynamic registration metadata
+          'dynamic_registration': 'true',
+          'registration_date': Date.now().toString(),
+          'approval_required': settings.adminApprovalRequired.toString(),
+          'approved': (!settings.adminApprovalRequired).toString(),
+          // Client lifetime
+          ...(settings.maxClientLifetime > 0 && {
+            'expires_at': (Date.now() + (settings.maxClientLifetime * 24 * 60 * 60 * 1000)).toString()
+          }),
+          ...(body.jwks_uri && {
+            'use.jwks.url': 'true',
+            'jwks.url': body.jwks_uri
+          }),
+          ...(body.jwks && {
+            'use.jwks.string': 'true',
+            'jwks.string': JSON.stringify(body.jwks)
+          })
+        }
+      }
+
+      // Create the client
+      const createdClient = await admin.clients.create(keycloakClient)
+
+      // Get client secret for confidential clients that use client-secret auth
+      let clientSecret: string | undefined
+      if (isConfidential && !body.jwks_uri && !body.jwks && createdClient.id) {
+        try {
+          const secret = await admin.clients.getClientSecret({ id: createdClient.id })
+          clientSecret = secret.value
+        } catch (error) {
+          logger.admin.warn('Could not retrieve client secret', { error })
+        }
+      }
+
+      // Configure scopes if provided
+      if (body.scope) {
+        logger.admin.debug('Configuring client scopes', { clientId, scope: body.scope })
+        // TODO: Map SMART scopes to Keycloak client scopes
+      }
+
+      // Send notification if configured
+      if (settings.notificationEmail) {
+        logger.admin.info('New client registration requires notification', {
+          clientId,
+          clientName: body.client_name,
+          notificationEmail: settings.notificationEmail,
+          requiresApproval: settings.adminApprovalRequired
+        })
+        // TODO: Implement email notification
+      }
+
+      // Build RFC 7591 compliant response
+      const response: ClientRegistrationResponse = {
+        client_id: clientId,
+        client_secret: clientSecret,
+        client_id_issued_at: Math.floor(Date.now() / 1000),
+        client_secret_expires_at: clientSecret ? 0 : undefined, // 0 means never expires
+        redirect_uris: body.redirect_uris,
+        grant_types: isBackendService 
+          ? ['authorization_code', 'client_credentials', 'refresh_token']
+          : ['authorization_code', 'refresh_token'],
+        response_types: ['code'],
+        client_name: body.client_name,
+        client_uri: body.client_uri,
+        logo_uri: body.logo_uri,
+        scope: body.scope || settings.allowedScopes.filter(scope => 
+          ['openid', 'profile', 'fhirUser', 'launch', 'patient/*.read', 'user/*.read'].includes(scope)
+        ).join(' '), // Default to safe scopes
+        contacts: body.contacts,
+        tos_uri: body.tos_uri,
+        policy_uri: body.policy_uri,
+        jwks_uri: body.jwks_uri,
+        jwks: body.jwks,
+        token_endpoint_auth_method: isConfidential
+          ? (body.jwks_uri || body.jwks ? 'private_key_jwt' : 'client_secret_basic')
+          : 'none',
+        fhir_versions: body.fhir_versions,
+        launch_uris: body.launch_uris
+      }
+
+      const logMessage = settings.adminApprovalRequired 
+        ? 'Client registered but requires admin approval' 
+        : 'Client registered and activated'
+        
+      logger.admin.info(logMessage, { 
+        clientId, 
+        isConfidential: isConfidential,
+        isBackendService,
+        requiresApproval: settings.adminApprovalRequired 
+      })
+      
+      return response
+
+    } catch (error) {
+      logger.admin.error('Client registration failed', { error })
+      set.status = 500
+      return {
+        error: 'server_error',
+        error_description: 'Failed to register client'
+      }
+    }
+  }, {
+    body: t.Object({
+      redirect_uris: t.Array(t.String({ format: 'uri' })),
+      client_name: t.Optional(t.String()),
+      client_uri: t.Optional(t.String({ format: 'uri' })),
+      logo_uri: t.Optional(t.String({ format: 'uri' })),
+      scope: t.Optional(t.String()),
+      contacts: t.Optional(t.Array(t.String())),
+      tos_uri: t.Optional(t.String({ format: 'uri' })),
+      policy_uri: t.Optional(t.String({ format: 'uri' })),
+      jwks_uri: t.Optional(t.String({ format: 'uri' })),
+      jwks: t.Optional(t.Object({})),
+      software_id: t.Optional(t.String()),
+      software_version: t.Optional(t.String()),
+      // SMART extensions
+      fhir_versions: t.Optional(t.Array(t.String())),
+      launch_uris: t.Optional(t.Array(t.String({ format: 'uri' })))
+    }),
+    detail: {
+      summary: 'Dynamic Client Registration',
+      description: 'Register a new OAuth2 client dynamically according to RFC 7591. This is a public endpoint that does not require authentication.',
+      tags: ['authentication'],
+      response: {
+        200: { description: 'Client registered successfully' },
+        400: { description: 'Invalid request' },
+        500: { description: 'Server error' }
+      }
+    }
+  })
