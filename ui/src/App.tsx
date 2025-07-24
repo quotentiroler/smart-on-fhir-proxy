@@ -2,6 +2,7 @@ import { AdminApp } from './components/AdminApp'
 import { MedplumProvider } from '@medplum/react'
 import { MedplumClient } from '@medplum/core'
 import { MantineProvider } from '@mantine/core'
+import { ThemeProvider } from './components/theme-provider'
 // Import Mantine styles first, then Tailwind can override
 import '@mantine/core/styles.css'
 import './App.css'
@@ -12,11 +13,13 @@ const medplum = new MedplumClient({
 
 function App() {
   return (
-    <MantineProvider>
-      <MedplumProvider medplum={medplum}>
-        <AdminApp />
-      </MedplumProvider>
-    </MantineProvider>
+    <ThemeProvider defaultTheme="system" storageKey="smart-on-fhir-theme">
+      <MantineProvider>
+        <MedplumProvider medplum={medplum}>
+          <AdminApp />
+        </MedplumProvider>
+      </MantineProvider>
+    </ThemeProvider>
   )
 }
 

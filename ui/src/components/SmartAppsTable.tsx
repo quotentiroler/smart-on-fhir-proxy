@@ -50,25 +50,25 @@ export function SmartAppsTable({
       case 'all-servers':
         return {
           label: 'All Servers',
-          className: 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300',
+          className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
           icon: Globe,
         };
       case 'specific-servers':
         return {
           label: `${app.allowedServerIds?.length || 0} Servers`,
-          className: 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300',
+          className: 'bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800',
           icon: Server,
         };
       case 'user-person-servers':
         return {
           label: 'User Person Servers',
-          className: 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border-purple-300',
+          className: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800',
           icon: Users,
         };
       default:
         return {
           label: 'Unknown',
-          className: 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-300',
+          className: 'bg-muted/50 text-muted-foreground border-border',
           icon: AlertCircle,
         };
     }
@@ -79,27 +79,27 @@ export function SmartAppsTable({
       case 'backend-service':
         return {
           label: 'Backend Service',
-          className: 'bg-gradient-to-r from-orange-100 to-orange-200 text-orange-800 border-orange-300',
+          className: 'bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800',
         };
       case 'standalone-app':
         return {
           label: `Standalone (${authenticationType === 'asymmetric' ? 'Asymmetric' : 'Symmetric'})`,
-          className: 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300',
+          className: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
         };
       case 'ehr-launch-app':
         return {
           label: `EHR Launch (${authenticationType === 'asymmetric' ? 'Asymmetric' : 'Symmetric'})`,
-          className: 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300',
+          className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
         };
       case 'agent':
         return {
           label: `AI Agent (${authenticationType === 'asymmetric' ? 'Asymmetric' : 'Symmetric'})`,
-          className: 'bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border-purple-300',
+          className: 'bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800',
         };
       default:
         return {
           label: 'Unknown',
-          className: 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-300',
+          className: 'bg-muted/50 text-muted-foreground border-border',
         };
     }
   };
@@ -126,29 +126,29 @@ export function SmartAppsTable({
   };
 
   return (
-    <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
+    <div className="bg-card/70 backdrop-blur-sm rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden">
       <div className="p-8 pb-6">
         <div className="flex items-center space-x-3 mb-6">
-          <div className="w-12 h-12 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl flex items-center justify-center shadow-sm">
-            <Settings className="w-6 h-6 text-indigo-600" />
+          <div className="w-12 h-12 bg-primary/10 dark:bg-primary/20 rounded-xl flex items-center justify-center shadow-sm">
+            <Settings className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h3 className="text-xl font-bold text-gray-900 tracking-tight">Registered Applications</h3>
-            <p className="text-gray-600 font-medium">View and manage all SMART on FHIR applications</p>
+            <h3 className="text-xl font-bold text-foreground tracking-tight">Registered Applications</h3>
+            <p className="text-muted-foreground font-medium">View and manage all SMART on FHIR applications</p>
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="border-gray-200/50">
-                <TableHead className="font-semibold text-gray-700">Application</TableHead>
-                <TableHead className="font-semibold text-gray-700">Type & Auth</TableHead>
-                <TableHead className="font-semibold text-gray-700">Server Access</TableHead>
-                <TableHead className="font-semibold text-gray-700">Client ID</TableHead>
-                <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                <TableHead className="font-semibold text-gray-700">Scopes</TableHead>
-                <TableHead className="font-semibold text-gray-700">Last Used</TableHead>
+              <TableRow className="border-border/50">
+                <TableHead className="font-semibold text-muted-foreground">Application</TableHead>
+                <TableHead className="font-semibold text-muted-foreground">Type & Auth</TableHead>
+                <TableHead className="font-semibold text-muted-foreground">Server Access</TableHead>
+                <TableHead className="font-semibold text-muted-foreground">Client ID</TableHead>
+                <TableHead className="font-semibold text-muted-foreground">Status</TableHead>
+                <TableHead className="font-semibold text-muted-foreground">Scopes</TableHead>
+                <TableHead className="font-semibold text-muted-foreground">Last Used</TableHead>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
@@ -156,14 +156,14 @@ export function SmartAppsTable({
               {apps.map((app) => {
                 const appTypeBadge = getAppTypeBadge(app.appType, app.authenticationType);
                 return (
-                  <TableRow key={app.id} className="border-gray-200/50 hover:bg-gray-50/50 transition-colors duration-200">
+                  <TableRow key={app.id} className="border-border/50 hover:bg-muted/50 transition-colors duration-200">
                     <TableCell>
                       <div className="py-2">
                         <div className="flex items-center space-x-3">
                           <span className="text-lg">{getAppTypeIcon(app.appType)}</span>
                           <div>
-                            <div className="font-semibold text-gray-900">{app.name}</div>
-                            <div className="text-sm text-gray-600 mt-1">{app.description}</div>
+                            <div className="font-semibold text-foreground">{app.name}</div>
+                            <div className="text-sm text-muted-foreground mt-1">{app.description}</div>
                           </div>
                         </div>
                       </div>
@@ -184,7 +184,7 @@ export function SmartAppsTable({
                               {accessBadge.label}
                             </Badge>
                             {app.serverAccessType === 'specific-servers' && app.allowedServerIds && (
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-muted-foreground">
                                 {app.allowedServerIds.join(', ')}
                               </div>
                             )}
@@ -193,7 +193,7 @@ export function SmartAppsTable({
                       })()}
                     </TableCell>
                     <TableCell>
-                      <code className="bg-gradient-to-r from-gray-100 to-gray-200 px-3 py-2 rounded-lg text-sm font-medium text-gray-800 shadow-sm">
+                      <code className="bg-muted/50 px-3 py-2 rounded-lg text-sm font-medium text-foreground shadow-sm border border-border">
                         {app.clientId}
                       </code>
                     </TableCell>
@@ -201,8 +201,8 @@ export function SmartAppsTable({
                       <Badge
                         variant={app.status === 'active' ? 'default' : 'secondary'}
                         className={app.status === 'active'
-                          ? 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300 shadow-sm'
-                          : 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-300 shadow-sm'
+                          ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
+                          : 'bg-muted/50 text-muted-foreground border-border'
                         }
                       >
                         {app.status}
@@ -211,45 +211,45 @@ export function SmartAppsTable({
                     <TableCell>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-gray-700">
+                          <span className="text-sm font-medium text-foreground">
                             {getScopeSetName(app.scopeSetId)}
                           </span>
-                          <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                          <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
                             {app.scopes.length} scopes
                           </Badge>
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {app.scopes.slice(0, 2).map((scope, index) => (
-                            <Badge key={index} variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200 font-mono">
+                            <Badge key={index} variant="outline" className="text-xs bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 font-mono">
                               {scope.split('/')[1]?.split('.')[0] || scope}
                             </Badge>
                           ))}
                           {app.scopes.length > 2 && (
-                            <Badge variant="outline" className="text-xs bg-purple-50 text-purple-700 border-purple-200">
+                            <Badge variant="outline" className="text-xs bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800">
                               +{app.scopes.length - 2}
                             </Badge>
                           )}
                         </div>
                         {app.customScopes.length > 0 && (
                           <div className="flex items-center space-x-1">
-                            <Badge variant="outline" className="text-xs bg-orange-50 text-orange-700 border-orange-200">
+                            <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800">
                               +{app.customScopes.length} custom
                             </Badge>
                           </div>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600 font-medium">
+                    <TableCell className="text-sm text-muted-foreground font-medium">
                       {app.lastUsed}
                     </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-10 w-10 p-0 rounded-xl hover:bg-gray-100 transition-colors duration-200">
+                          <Button variant="ghost" className="h-10 w-10 p-0 rounded-xl hover:bg-muted transition-colors duration-200">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="rounded-xl border-gray-200/50 shadow-lg">
+                        <DropdownMenuContent align="end" className="rounded-xl border-border/50 shadow-lg">
                           <DropdownMenuItem onClick={() => onToggleAppStatus(app.id)} className="rounded-lg">
                             <div className="flex items-center">
                               {app.status === 'active' ? (
@@ -261,19 +261,19 @@ export function SmartAppsTable({
                             </div>
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => onOpenScopeEditor(app)} className="rounded-lg">
-                            <Shield className="w-4 h-4 mr-2 text-blue-600" />
+                            <Shield className="w-4 h-4 mr-2 text-primary" />
                             Manage Scopes
                           </DropdownMenuItem>
                           <DropdownMenuItem className="rounded-lg">
-                            <Edit className="w-4 h-4 mr-2 text-gray-600" />
+                            <Edit className="w-4 h-4 mr-2 text-muted-foreground" />
                             Edit Details
                           </DropdownMenuItem>
                           <DropdownMenuItem className="rounded-lg">
-                            <Eye className="w-4 h-4 mr-2 text-gray-600" />
+                            <Eye className="w-4 h-4 mr-2 text-muted-foreground" />
                             View Configuration
                           </DropdownMenuItem>
                           <DropdownMenuItem className="rounded-lg">
-                            <Settings className="w-4 h-4 mr-2 text-gray-600" />
+                            <Settings className="w-4 h-4 mr-2 text-muted-foreground" />
                             Authentication Settings
                           </DropdownMenuItem>
                           <DropdownMenuItem

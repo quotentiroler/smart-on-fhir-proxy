@@ -34,6 +34,7 @@ import { SmartAppsTable } from './SmartAppsTable';
 import { SmartAppsStatistics } from './SmartAppsStatistics';
 import { DynamicClientRegistrationSettings } from './DynamicClientRegistrationSettings';
 import { createAuthenticatedApiClients, handleApiError } from '@/lib/apiClient';
+import { useAppStore } from '@/stores/appStore';
 import type { GetAdminSmartApps200ResponseInner } from '@/lib/api-client';
 import type { SmartApp, ScopeSet } from '@/types/smartApp';
 
@@ -144,6 +145,7 @@ const mockApps: SmartApp[] = [
 ];
 
 export function SmartAppsManager() {
+  const { smartAppsManagerTab, setSmartAppsManagerTab } = useAppStore();
   const [apps, setApps] = useState<SmartApp[]>([]);
   const [loading, setLoading] = useState(true);
   const [backendApps, setBackendApps] = useState<GetAdminSmartApps200ResponseInner[]>([]);
@@ -275,39 +277,39 @@ export function SmartAppsManager() {
   };
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-8 space-y-8 bg-background">
       {loading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-3 text-gray-600">Loading SMART applications...</span>
+          <span className="ml-3 text-muted-foreground">Loading SMART applications...</span>
         </div>
       ) : (
         <>
           {/* Enhanced Header Section */}
-          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-8 rounded-3xl border border-indigo-100/50 shadow-lg">
+          <div className="bg-card/80 backdrop-blur-sm p-8 rounded-3xl border border-border/50 shadow-lg">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-6 lg:space-y-0">
               <div className="flex-1">
-                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
+                <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
                   SMART on FHIR Applications
                 </h1>
-                <div className="text-gray-600 text-lg flex items-center">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-3 shadow-sm">
-                    <Shield className="w-5 h-5 text-blue-600" />
+                <div className="text-muted-foreground text-lg flex items-center">
+                  <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center mr-3 shadow-sm">
+                    <Shield className="w-5 h-5 text-primary" />
                   </div>
                   Manage registered healthcare applications and their SMART on FHIR permissions
                 </div>
                 {isShowingMockData && (
                   <div className="mt-4 flex items-center space-x-2 text-sm">
-                    <AlertCircle className="w-4 h-4 text-orange-600" />
-                    <span className="text-orange-700 font-medium">
+                    <AlertCircle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                    <span className="text-orange-700 dark:text-orange-300 font-medium">
                       Showing sample applications - no real apps found in backend
                     </span>
                   </div>
                 )}
                 {scopeSets.length > 0 && (
                   <div className="mt-4 flex items-center space-x-2 text-sm">
-                    <CheckCircle className="w-4 h-4 text-green-600" />
-                    <span className="text-green-700 font-medium">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span className="text-emerald-700 dark:text-emerald-300 font-medium">
                       {scopeSets.length} scope templates available for quick configuration
                     </span>
                   </div>
@@ -315,7 +317,7 @@ export function SmartAppsManager() {
               </div>
               <Button
                 onClick={() => setShowAddForm(true)}
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/20"
+                className="px-8 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-blue-500/20"
               >
                 <Plus className="h-5 h-5 mr-2" />
                 Register New App
@@ -324,31 +326,32 @@ export function SmartAppsManager() {
           </div>
 
           {/* Tabs for different sections */}
-          <Tabs defaultValue="apps" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="apps" className="flex items-center space-x-2">
-                <Shield className="w-4 h-4" />
-                <span>Registered Apps</span>
-              </TabsTrigger>
-              <TabsTrigger value="registration" className="flex items-center space-x-2">
-                <UserPlus className="w-4 h-4" />
-                <span>Dynamic Registration</span>
-              </TabsTrigger>
-            </TabsList>
+          <div className="bg-card/70 backdrop-blur-sm rounded-2xl border border-border/50 shadow-lg">
+            <Tabs value={smartAppsManagerTab} onValueChange={setSmartAppsManagerTab} className="w-full">
+              <TabsList className="grid w-full grid-cols-2 bg-muted/50 rounded-t-2xl">
+                <TabsTrigger value="apps" className="flex items-center space-x-2 rounded-xl data-[state=active]:bg-background data-[state=active]:text-foreground">
+                  <Shield className="w-4 h-4" />
+                  <span>Registered Apps</span>
+                </TabsTrigger>
+                <TabsTrigger value="registration" className="flex items-center space-x-2 rounded-xl data-[state=active]:bg-background data-[state=active]:text-foreground">
+                  <UserPlus className="w-4 h-4" />
+                  <span>Dynamic Registration</span>
+                </TabsTrigger>
+              </TabsList>
 
-            <TabsContent value="apps" className="space-y-6">
+              <TabsContent value="apps" className="p-6 space-y-6">
 
       {/* Add App Form - Inline when shown */}
       {showAddForm && (
-        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-gray-200/50 shadow-lg p-8 mb-8">
+        <div className="bg-card/70 backdrop-blur-sm rounded-2xl border border-border/50 shadow-lg p-8 mb-8">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm">
-                <Plus className="w-6 h-6 text-green-600" />
+              <div className="w-12 h-12 bg-emerald-500/10 dark:bg-emerald-400/20 rounded-xl flex items-center justify-center shadow-sm">
+                <Plus className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Register New Application</h3>
-                <p className="text-gray-600 font-medium">Configure a new SMART on FHIR application</p>
+                <h3 className="text-xl font-bold text-foreground tracking-tight">Register New Application</h3>
+                <p className="text-muted-foreground font-medium">Configure a new SMART on FHIR application</p>
               </div>
             </div>
             <Button
@@ -386,14 +389,14 @@ export function SmartAppsManager() {
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
           <DialogHeader className="pb-6">
             <div className="flex items-center space-x-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                <Shield className="w-6 h-6 text-blue-600" />
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm">
+                <Shield className="w-6 h-6 text-primary" />
               </div>
               <div>
-                <DialogTitle className="text-2xl font-bold text-gray-900 tracking-tight">
+                <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">
                   Manage Scopes: {editingApp?.name}
                 </DialogTitle>
-                <DialogDescription className="text-gray-600 font-medium mt-1">
+                <DialogDescription className="text-muted-foreground font-medium mt-1">
                   Configure SMART on FHIR scopes for this application
                 </DialogDescription>
               </div>
@@ -403,43 +406,43 @@ export function SmartAppsManager() {
           {editingApp && (
             <div className="space-y-6">
               {/* Current Configuration */}
-              <Card className="bg-blue-50/50 border-blue-200/50">
+              <Card className="bg-primary/5 border-primary/20">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center">
-                    <Database className="w-5 h-5 mr-2 text-blue-600" />
+                  <CardTitle className="text-lg font-bold text-foreground flex items-center">
+                    <Database className="w-5 h-5 mr-2 text-primary" />
                     Current Configuration
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <div className="text-sm font-semibold text-gray-700 mb-2">Current Scope Set</div>
-                      <div className="p-3 bg-white rounded-lg border">
-                        <span className="font-medium text-gray-900">
+                      <div className="text-sm font-semibold text-muted-foreground mb-2">Current Scope Set</div>
+                      <div className="p-3 bg-background rounded-lg border border-border">
+                        <span className="font-medium text-foreground">
                           {getScopeSetName(editingApp.scopeSetId)}
                         </span>
                         {editingApp.scopeSetId && (
-                          <p className="text-xs text-gray-600 mt-1">
+                          <p className="text-xs text-muted-foreground mt-1">
                             {scopeSets.find(set => set.id === editingApp.scopeSetId)?.description}
                           </p>
                         )}
                       </div>
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-gray-700 mb-2">Total Scopes</div>
-                      <div className="p-3 bg-white rounded-lg border">
-                        <span className="font-bold text-2xl text-blue-600">{editingApp.scopes.length}</span>
-                        <span className="text-sm text-gray-600 ml-2">active scopes</span>
+                      <div className="text-sm font-semibold text-muted-foreground mb-2">Total Scopes</div>
+                      <div className="p-3 bg-background rounded-lg border border-border">
+                        <span className="font-bold text-2xl text-primary">{editingApp.scopes.length}</span>
+                        <span className="text-sm text-muted-foreground ml-2">active scopes</span>
                       </div>
                     </div>
                   </div>
 
                   <div>
-                    <div className="text-sm font-semibold text-gray-700 mb-2">Active Scopes</div>
-                    <div className="bg-white p-4 rounded-lg border max-h-32 overflow-y-auto">
+                    <div className="text-sm font-semibold text-muted-foreground mb-2">Active Scopes</div>
+                    <div className="bg-background p-4 rounded-lg border border-border max-h-32 overflow-y-auto">
                       <div className="flex flex-wrap gap-2">
                         {editingApp.scopes.map((scope, index) => (
-                          <Badge key={index} variant="outline" className="text-xs font-mono bg-green-50 text-green-800 border-green-200">
+                          <Badge key={index} variant="outline" className="text-xs font-mono bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20">
                             {scope}
                           </Badge>
                         ))}
@@ -450,17 +453,17 @@ export function SmartAppsManager() {
               </Card>
 
               {/* Scope Set Selection */}
-              <Card className="bg-white/70 border-gray-200/50">
+              <Card className="bg-card border-border">
                 <CardHeader className="pb-4">
-                  <CardTitle className="text-lg font-bold text-gray-900 flex items-center">
-                    <Shield className="w-5 h-5 mr-2 text-purple-600" />
+                  <CardTitle className="text-lg font-bold text-foreground flex items-center">
+                    <Shield className="w-5 h-5 mr-2 text-violet-600 dark:text-violet-400" />
                     Update Scope Configuration
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-3">
-                      <div className="text-sm font-semibold text-gray-700">Select Scope Set</div>
+                      <div className="text-sm font-semibold text-muted-foreground">Select Scope Set</div>
                       <select
                         value={editingApp.scopeSetId || ''}
                         onChange={(e) => {
@@ -474,7 +477,7 @@ export function SmartAppsManager() {
                               : editingApp.customScopes
                           });
                         }}
-                        className="flex h-10 w-full rounded-xl border border-gray-300 bg-background px-3 py-2 text-sm shadow-sm"
+                        className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm text-foreground"
                       >
                         <option value="">Custom Scopes Only</option>
                         {scopeSets.map((scopeSet) => (
@@ -485,7 +488,7 @@ export function SmartAppsManager() {
                       </select>
                     </div>
                     <div className="space-y-3">
-                      <div className="text-sm font-semibold text-gray-700">Additional Custom Scopes</div>
+                      <div className="text-sm font-semibold text-muted-foreground">Additional Custom Scopes</div>
                       <textarea
                         value={editingApp.customScopes.join('\n')}
                         onChange={(e) => {
@@ -500,7 +503,7 @@ export function SmartAppsManager() {
                           });
                         }}
                         rows={5}
-                        className="w-full rounded-xl border border-gray-300 px-3 py-2 text-sm shadow-sm font-mono focus:border-blue-500 focus:ring-blue-500"
+                        className="w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm font-mono text-foreground placeholder:text-muted-foreground focus:border-ring focus:ring-ring"
                         placeholder="patient/Patient.read&#10;patient/Observation.read&#10;openid profile"
                       />
                     </div>
@@ -517,12 +520,13 @@ export function SmartAppsManager() {
           )}
         </DialogContent>
       </Dialog>
-            </TabsContent>
+              </TabsContent>
 
-            <TabsContent value="registration">
-              <DynamicClientRegistrationSettings />
-            </TabsContent>
-          </Tabs>
+              <TabsContent value="registration" className="p-6 space-y-6">
+                <DynamicClientRegistrationSettings />
+              </TabsContent>
+            </Tabs>
+          </div>
         </>
       )}
     </div>

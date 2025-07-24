@@ -68,7 +68,9 @@ async function getClientRegistrationSettings(admin: KcAdminClient): Promise<Clie
     
     // Parse settings from realm attributes with fallbacks to defaults
     return {
-      enabled: attributes['client_registration.enabled'] === 'true' || DEFAULT_SETTINGS.enabled,
+      enabled: attributes['client_registration.enabled'] !== undefined 
+        ? attributes['client_registration.enabled'] === 'true' 
+        : DEFAULT_SETTINGS.enabled,
       requireHttps: attributes['client_registration.require_https'] !== 'false', // Default true
       allowedScopes: attributes['client_registration.allowed_scopes']?.split(',') || DEFAULT_SETTINGS.allowedScopes,
       maxClientLifetime: parseInt(attributes['client_registration.max_client_lifetime'] || '365'),

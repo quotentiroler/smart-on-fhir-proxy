@@ -44,11 +44,11 @@ const FHIR_RESOURCES = [
 
 // FHIR permissions
 const FHIR_PERMISSIONS = {
-  c: { label: 'Create', description: 'Type level create', color: 'bg-green-100 text-green-800' },
-  r: { label: 'Read', description: 'Instance level read, vread, history', color: 'bg-blue-100 text-blue-800' },
-  u: { label: 'Update', description: 'Instance level update, patch', color: 'bg-yellow-100 text-yellow-800' },
-  d: { label: 'Delete', description: 'Instance level delete', color: 'bg-red-100 text-red-800' },
-  s: { label: 'Search', description: 'Type level search, history, system level', color: 'bg-purple-100 text-purple-800' }
+  c: { label: 'Create', description: 'Type level create', color: 'bg-green-500/10 dark:bg-green-400/20 text-green-800 dark:text-green-300' },
+  r: { label: 'Read', description: 'Instance level read, vread, history', color: 'bg-blue-500/10 dark:bg-blue-400/20 text-blue-800 dark:text-blue-300' },
+  u: { label: 'Update', description: 'Instance level update, patch', color: 'bg-yellow-500/10 dark:bg-yellow-400/20 text-yellow-800 dark:text-yellow-300' },
+  d: { label: 'Delete', description: 'Instance level delete', color: 'bg-red-500/10 dark:bg-red-400/20 text-red-800 dark:text-red-300' },
+  s: { label: 'Search', description: 'Type level search, history, system level', color: 'bg-purple-500/10 dark:bg-purple-400/20 text-purple-800 dark:text-purple-300' }
 };
 
 // Scope contexts - defines the data access pattern for SMART scopes:
@@ -70,7 +70,7 @@ const SCOPE_TEMPLATES = [
     name: 'Physician - Full Clinical Access',
     description: 'Complete clinical data access for attending physicians with full CRUD permissions',
     role: 'physician',
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    color: 'bg-blue-500/10 dark:bg-blue-400/20 text-blue-800 dark:text-blue-300 border-blue-500/20 dark:border-blue-400/20',
     scopes: [
       'patient/Patient.cruds',
       'patient/Observation.cruds',
@@ -101,7 +101,7 @@ const SCOPE_TEMPLATES = [
     name: 'Physician - Read-Only Access',
     description: 'Read-only clinical data access for consulting physicians',
     role: 'physician',
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
+    color: 'bg-blue-500/10 dark:bg-blue-400/20 text-blue-800 dark:text-blue-300 border-blue-500/20 dark:border-blue-400/20',
     scopes: [
       'patient/Patient.rs',
       'patient/Observation.rs',
@@ -125,7 +125,7 @@ const SCOPE_TEMPLATES = [
     name: 'Nurse - Care Delivery',
     description: 'Clinical data access for direct patient care with medication and observation updates',
     role: 'nurse',
-    color: 'bg-green-100 text-green-800 border-green-200',
+    color: 'bg-green-500/10 dark:bg-green-400/20 text-green-800 dark:text-green-300 border-green-500/20 dark:border-green-400/20',
     scopes: [
       'patient/Patient.rs',
       'patient/Observation.cruds',
@@ -150,7 +150,7 @@ const SCOPE_TEMPLATES = [
     name: 'Nurse - Basic Access',
     description: 'Essential read-only clinical data for nursing staff',
     role: 'nurse',
-    color: 'bg-green-100 text-green-800 border-green-200',
+    color: 'bg-green-500/10 dark:bg-green-400/20 text-green-800 dark:text-green-300 border-green-500/20 dark:border-green-400/20',
     scopes: [
       'patient/Patient.r',
       'patient/Observation.rs',
@@ -170,7 +170,7 @@ const SCOPE_TEMPLATES = [
     name: 'Researcher - Population Health',
     description: 'De-identified population-level data access for research and analytics',
     role: 'researcher',
-    color: 'bg-purple-100 text-purple-800 border-purple-200',
+    color: 'bg-purple-500/10 dark:bg-purple-400/20 text-purple-800 dark:text-purple-300 border-purple-500/20 dark:border-purple-400/20',
     scopes: [
       'user/Patient.rs',
       'user/Observation.rs',
@@ -191,7 +191,7 @@ const SCOPE_TEMPLATES = [
     name: 'Researcher - Clinical Trial',
     description: 'Patient-specific research data access with consent for clinical trials',
     role: 'researcher',
-    color: 'bg-purple-100 text-purple-800 border-purple-200',
+    color: 'bg-purple-500/10 dark:bg-purple-400/20 text-purple-800 dark:text-purple-300 border-purple-500/20 dark:border-purple-400/20',
     scopes: [
       'patient/Patient.r',
       'patient/Observation.rs',
@@ -656,22 +656,22 @@ export function ScopeManager() {
   return (
     <div className="p-8 space-y-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-8 rounded-3xl border border-indigo-100/50 shadow-lg">
+      <div className="bg-gradient-to-r from-background to-muted/50 p-8 rounded-3xl border border-border shadow-lg">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-6 lg:space-y-0">
           <div className="flex-1">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
               {t('SMART Scope Management')}
             </h1>
-            <div className="text-gray-600 text-lg flex items-center">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center mr-3 shadow-sm">
-                <Shield className="w-5 h-5 text-blue-600" />
+            <div className="text-muted-foreground text-lg flex items-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-primary/20 to-primary/30 rounded-xl flex items-center justify-center mr-3 shadow-sm">
+                <Shield className="w-5 h-5 text-primary" />
               </div>
               {t('Build and manage FHIR resource access scopes')}
             </div>
           </div>
           <Button
             onClick={() => setShowBuilder(true)}
-            className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/20"
+            className="px-8 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-blue-500/20"
           >
             <Plus className="h-5 w-5 mr-2" />
             {t('Create Scope Set')}
@@ -681,7 +681,7 @@ export function ScopeManager() {
 
       {/* Scope Builder Modal/Panel */}
       {showBuilder && (
-        <div className="bg-white/70 backdrop-blur-sm p-8 rounded-2xl border border-gray-200/50 shadow-lg">
+        <div className="bg-card/70 backdrop-blur-sm p-8 rounded-2xl border border-border shadow-lg">
           <div className="mb-6">
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">

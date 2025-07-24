@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +12,7 @@ import { NavigationMenu, NavigationMenuItem, NavigationMenuList } from '@/compon
 import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '../stores/authStore';
 import { useAppStore } from '../stores/appStore';
+import { useTheme } from '../hooks/use-theme';
 import type { GetAuthUserinfo200Response } from '../lib/api-client';
 import { 
   LayoutDashboard, 
@@ -28,7 +29,10 @@ import {
   Check,
   Target,
   Play,
-  BarChart3
+  BarChart3,
+  Moon,
+  Sun,
+  Monitor
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -42,7 +46,9 @@ interface NavigationProps {
 export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: NavigationProps) {
   const logout = useAuthStore((state) => state.logout);
   const { language: currentLanguage, setLanguage } = useAppStore();
+  const { theme: currentTheme, setTheme } = useTheme();
   const { t } = useTranslation();
+  const [showPreferences, setShowPreferences] = useState(false);
 
   const handleSignOut = () => {
     logout();
@@ -63,6 +69,16 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
     { code: 'en', name: 'English', flag: '🇺🇸' },
     { code: 'de', name: 'Deutsch', flag: '🇩🇪' }
   ];
+
+  const availableThemes = [
+    { id: 'light', name: t('Light'), icon: Sun },
+    { id: 'dark', name: t('Dark'), icon: Moon },
+    { id: 'system', name: t('System'), icon: Monitor }
+  ] as const;
+
+  const handleThemeChange = (theme: 'light' | 'dark' | 'system') => {
+    setTheme(theme);
+  };
 
   const getDisplayName = (profile: GetAuthUserinfo200Response) => {
     // Try firstName + lastName first (most reliable)
@@ -143,7 +159,7 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
   ];
 
   return (
-    <nav className="bg-white/80 backdrop-blur-2xl border-b border-gray-200/40 shadow-2xl sticky top-0 z-50 transition-all duration-300">
+    <nav className="bg-background/80 backdrop-blur-2xl border-b border-border/40 shadow-2xl sticky top-0 z-50 transition-all duration-300">
       <div className="container mx-auto px-3 sm:px-4 lg:px-6">
         <div className="flex items-center justify-between h-14 sm:h-16 lg:h-20">
           {/* Logo and Dashboard Button */}
@@ -158,7 +174,7 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
                 className={`group flex items-center space-x-2 h-9 px-3 rounded-lg transition-all duration-300 ${
                   activeTab === 'dashboard' 
                     ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-lg shadow-blue-500/25' 
-                    : 'hover:bg-gray-100/80 text-gray-700 hover:shadow-md'
+                    : 'hover:bg-muted/80 text-foreground hover:shadow-md'
                 }`}
               >
                 <LayoutDashboard className={`w-4 h-4 flex-shrink-0 ${
@@ -184,7 +200,7 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
                         className={`group flex items-center space-x-1 h-9 px-2 lg:px-3 rounded-lg transition-all duration-300 ${
                           activeTab === tab.id 
                             ? 'bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white shadow-lg shadow-blue-500/25' 
-                            : 'hover:bg-gray-100/80 text-gray-700 hover:shadow-md'
+                            : 'hover:bg-muted/80 text-foreground hover:shadow-md'
                         }`}
                       >
                         <IconComponent className={`w-4 h-4 flex-shrink-0 ${
@@ -204,7 +220,7 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant="ghost" 
-                    className="w-full flex items-center justify-center space-x-2 h-9 px-3 rounded-lg hover:bg-gray-100/80 transition-all duration-300"
+                    className="w-full flex items-center justify-center space-x-2 h-9 px-3 rounded-lg hover:bg-muted/80 transition-all duration-300"
                   >
                     <div className="flex items-center space-x-2">
                       {activeTab === 'dashboard' ? (
@@ -221,10 +237,10 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
                         )
                       )}
                       <div className="hidden sm:block text-left">
-                        <span className="text-sm font-semibold text-gray-900 block leading-tight">
+                        <span className="text-sm font-semibold text-foreground block leading-tight">
                           {activeTab === 'dashboard' ? t('Dashboard') : tabs.find(tab => tab.id === activeTab)?.label}
                         </span>
-                        <p className="text-xs text-gray-500 leading-tight">
+                        <p className="text-xs text-muted-foreground leading-tight">
                           {activeTab === 'dashboard' ? t('Overview') : tabs.find(tab => tab.id === activeTab)?.description}
                         </p>
                       </div>
@@ -232,7 +248,7 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent 
-                  className="w-64 rounded-2xl shadow-2xl border border-gray-200/60 bg-white/95 backdrop-blur-xl" 
+                  className="w-64 rounded-2xl shadow-2xl border border-border/60 bg-popover/95 backdrop-blur-xl" 
                   align="center"
                 >
                   <div className="p-2 space-y-1">
@@ -242,20 +258,20 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
                       className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-300 ${
                         activeTab === 'dashboard'
                           ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
-                          : 'hover:bg-gray-100/80 text-gray-700'
+                          : 'hover:bg-muted/80 text-foreground'
                       }`}
                     >
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-300 ${
                         activeTab === 'dashboard'
                           ? 'bg-white/20'
-                          : 'bg-gray-100'
+                          : 'bg-muted'
                       }`}>
                         <LayoutDashboard className="w-4 h-4" />
                       </div>
                       <div className="flex-1">
                         <div className="font-semibold text-sm">{t('Dashboard')}</div>
                         <div className={`text-xs ${
-                          activeTab === 'dashboard' ? 'text-blue-100' : 'text-gray-500'
+                          activeTab === 'dashboard' ? 'text-blue-100' : 'text-muted-foreground'
                         }`}>
                           {t('Overview')}
                         </div>
@@ -270,20 +286,20 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
                           className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-300 ${
                             activeTab === tab.id
                               ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-lg'
-                              : 'hover:bg-gray-100/80 text-gray-700'
+                              : 'hover:bg-muted/80 text-foreground'
                           }`}
                         >
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-300 ${
                             activeTab === tab.id
                               ? 'bg-white/20'
-                              : 'bg-gray-100'
+                              : 'bg-muted'
                           }`}>
                             <IconComponent className="w-4 h-4" />
                           </div>
                           <div className="flex-1">
                             <div className="font-semibold text-sm">{tab.label}</div>
                             <div className={`text-xs ${
-                              activeTab === tab.id ? 'text-blue-100' : 'text-gray-500'
+                              activeTab === tab.id ? 'text-blue-100' : 'text-muted-foreground'
                             }`}>
                               {tab.description}
                             </div>
@@ -320,15 +336,19 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
               <Button
                 variant="ghost"
                 onClick={onChatToggle}
-                className="h-9 w-9 sm:h-10 sm:w-10 rounded-full p-0 hover:bg-green-50 transition-all duration-300 hover:shadow-md flex-shrink-0"
+                className="h-9 w-9 sm:h-10 sm:w-10 rounded-full p-0 hover:bg-muted transition-all duration-300 hover:shadow-md flex-shrink-0"
               >
                 <Sparkles className="w-4 h-4 text-green-600 animate-pulse" />
               </Button>
             </div>
             
-            <DropdownMenu>
+            <DropdownMenu onOpenChange={(open) => {
+              if (!open) {
+                setShowPreferences(false);
+              }
+            }}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-full ring-2 ring-gray-200/60 hover:ring-blue-400/60 transition-all duration-300 hover:shadow-lg flex-shrink-0">
+                <Button variant="ghost" className="relative h-9 w-9 sm:h-10 sm:w-10 rounded-full ring-2 ring-border/60 hover:ring-primary/60 transition-all duration-300 hover:shadow-lg flex-shrink-0">
                   <Avatar className="h-7 w-7 sm:h-8 sm:w-8">
                     <AvatarImage src={undefined} alt={getDisplayName(profile)} />
                     <AvatarFallback className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white font-bold text-xs">
@@ -337,19 +357,19 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-72 rounded-2xl shadow-2xl border border-gray-200/60 bg-white/95 backdrop-blur-xl" align="end">
-                <div className="flex items-center justify-start gap-3 p-4 bg-gradient-to-r from-gray-50/80 to-blue-50/80 rounded-t-2xl backdrop-blur-sm">
-                  <Avatar className="h-12 w-12 ring-2 ring-blue-200/60 shadow-lg">
+              <DropdownMenuContent className="w-72 rounded-2xl shadow-2xl border border-border/60 bg-popover/95 backdrop-blur-xl" align="end">
+                <div className="flex items-center justify-start gap-3 p-4 bg-muted/80 rounded-t-2xl backdrop-blur-sm">
+                  <Avatar className="h-12 w-12 ring-2 ring-border/60 shadow-lg">
                     <AvatarImage src={undefined} alt={getDisplayName(profile)} />
                     <AvatarFallback className="bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-600 text-white font-bold">
                       {getInitials(profile)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col space-y-1">
-                    <p className="font-bold text-gray-900 text-base">
+                    <p className="font-bold text-foreground text-base">
                       {getDisplayName(profile)}
                     </p>
-                    <p className="text-sm text-gray-600 truncate max-w-[200px] font-medium">
+                    <p className="text-sm text-muted-foreground truncate max-w-[200px] font-medium">
                       {profile.email || t('Profile')}
                     </p>
                     <div className="flex items-center space-x-1">
@@ -358,57 +378,117 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
                     </div>
                   </div>
                 </div>
-                <DropdownMenuSeparator className="bg-gray-200/60" />
-                <DropdownMenuItem className="flex items-center space-x-3 p-3 hover:bg-blue-50/80 cursor-pointer rounded-xl mx-2 my-1 transition-all duration-300 transform hover:scale-105">
-                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <User className="w-4 h-4 text-gray-600" />
-                  </div>
-                  <span className="font-semibold text-gray-800">{t('Profile Settings')}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-center space-x-3 p-3 hover:bg-blue-50/80 cursor-pointer rounded-xl mx-2 my-1 transition-all duration-300 transform hover:scale-105">
-                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                    <Settings className="w-4 h-4 text-gray-600" />
-                  </div>
-                  <span className="font-semibold text-gray-800">{t('Preferences')}</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-gray-200/60" />
-                <div className="px-2 py-1">
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-wider px-2 py-2">
-                    {t('Language')}
-                  </p>
-                  {availableLanguages.map((language) => (
-                    <DropdownMenuItem
-                      key={language.code}
-                      onClick={() => handleLanguageChange(language.code)}
-                      className="flex items-center justify-between space-x-3 p-3 hover:bg-blue-50/80 cursor-pointer rounded-xl mx-1 my-1 transition-all duration-300 transform hover:scale-105"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-                          <Languages className="w-4 h-4 text-gray-600" />
-                        </div>
-                        <span className="flex items-center space-x-2 font-medium text-gray-800">
-                          <span className="text-lg">{language.flag}</span>
-                          <span>{language.name}</span>
-                        </span>
+                <DropdownMenuSeparator className="bg-border/60" />
+
+                {!showPreferences ? (
+                  // Main Menu
+                  <>
+                    <DropdownMenuItem className="flex items-center space-x-3 p-3 hover:bg-muted/80 cursor-pointer rounded-xl mx-2 my-1 transition-all duration-300 transform hover:scale-105">
+                      <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
+                        <User className="w-4 h-4 text-muted-foreground" />
                       </div>
-                      {currentLanguage === language.code && (
-                        <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
-                          <Check className="w-4 h-4 text-blue-600" />
-                        </div>
-                      )}
+                      <span className="font-semibold text-foreground">{t('Profile Settings')}</span>
                     </DropdownMenuItem>
-                  ))}
-                </div>
-                <DropdownMenuSeparator className="bg-gray-200/60" />
-                <DropdownMenuItem 
-                  onClick={handleSignOut}
-                  className="flex items-center space-x-3 p-3 hover:bg-red-50/80 text-red-600 cursor-pointer rounded-xl mx-2 my-1 transition-all duration-300 transform hover:scale-105"
-                >
-                  <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                    <LogOut className="w-4 h-4 text-red-600" />
-                  </div>
-                  <span className="font-semibold">{t('Sign out')}</span>
-                </DropdownMenuItem>
+                    
+                    <DropdownMenuItem 
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        setShowPreferences(true);
+                      }}
+                      className="flex items-center space-x-3 p-3 hover:bg-muted/80 cursor-pointer rounded-xl mx-2 my-1 transition-all duration-300 transform hover:scale-105"
+                    >
+                      <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
+                        <Settings className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="font-semibold text-foreground">{t('Preferences')}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-border/60" />
+                    <DropdownMenuItem 
+                      onClick={handleSignOut}
+                      className="flex items-center space-x-3 p-3 hover:bg-red-50/80 text-red-600 cursor-pointer rounded-xl mx-2 my-1 transition-all duration-300 transform hover:scale-105"
+                    >
+                      <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                        <LogOut className="w-4 h-4 text-red-600" />
+                      </div>
+                      <span className="font-semibold">{t('Sign out')}</span>
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  // Preferences Menu
+                  <>
+                    <div className="flex items-center justify-between p-3 mx-2">
+                      <h3 className="font-semibold text-foreground">{t('Preferences')}</h3>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setShowPreferences(false);
+                        }}
+                        className="h-8 w-8 p-0 hover:bg-muted/80 rounded-lg"
+                      >
+                        ←
+                      </Button>
+                    </div>
+                    <DropdownMenuSeparator className="bg-border/60" />
+                    
+                    <div className="px-2 py-1">
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-2 py-2">
+                        {t('Language')}
+                      </p>
+                      {availableLanguages.map((language) => (
+                        <DropdownMenuItem
+                          key={language.code}
+                          onClick={() => handleLanguageChange(language.code)}
+                          className="flex items-center justify-between space-x-3 p-3 hover:bg-muted/80 cursor-pointer rounded-xl mx-1 my-1 transition-all duration-300 transform hover:scale-105"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
+                              <Languages className="w-4 h-4 text-muted-foreground" />
+                            </div>
+                            <span className="flex items-center space-x-2 font-medium text-foreground">
+                              <span className="text-lg">{language.flag}</span>
+                              <span>{language.name}</span>
+                            </span>
+                          </div>
+                          {currentLanguage === language.code && (
+                            <div className="w-6 h-6 bg-primary/20 rounded-full flex items-center justify-center">
+                              <Check className="w-4 h-4 text-primary" />
+                            </div>
+                          )}
+                        </DropdownMenuItem>
+                      ))}
+                    </div>
+                    <DropdownMenuSeparator className="bg-border/60" />
+                    <div className="px-2 py-1">
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-2 py-2">
+                        {t('Theme')}
+                      </p>
+                      {availableThemes.map((theme) => {
+                        const IconComponent = theme.icon;
+                        return (
+                          <DropdownMenuItem
+                            key={theme.id}
+                            onClick={() => handleThemeChange(theme.id)}
+                            className="flex items-center justify-between space-x-3 p-3 hover:bg-muted/80 cursor-pointer rounded-xl mx-1 my-1 transition-all duration-300 transform hover:scale-105"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
+                                <IconComponent className="w-4 h-4 text-muted-foreground" />
+                              </div>
+                              <span className="font-medium text-foreground">{theme.name}</span>
+                            </div>
+                            {currentTheme === theme.id && (
+                              <div className="w-6 h-6 bg-primary/20 rounded-full flex items-center justify-center">
+                                <Check className="w-4 h-4 text-primary" />
+                              </div>
+                            )}
+                          </DropdownMenuItem>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

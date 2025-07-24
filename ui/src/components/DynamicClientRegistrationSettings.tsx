@@ -224,7 +224,7 @@ export function DynamicClientRegistrationSettings() {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <span className="ml-3 text-gray-600">Loading registration settings...</span>
+        <span className="ml-3 text-muted-foreground">Loading registration settings...</span>
       </div>
     );
   }
@@ -232,32 +232,32 @@ export function DynamicClientRegistrationSettings() {
   return (
     <div className="space-y-8">
       {/* Header matching the app style */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-8 rounded-3xl border border-blue-100/50 shadow-lg">
+      <div className="bg-card/80 backdrop-blur-sm p-8 rounded-3xl border border-border/50 shadow-lg">
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between space-y-6 lg:space-y-0">
           <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                <Settings className="w-6 h-6 text-blue-600" />
+            <div className="flex items-center space-x-4 mb-4">
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm">
+                <Settings className="w-6 h-6 text-primary" />
               </div>
-              <div>
-                <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
+              <div className="flex-1">
+                <h2 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2 tracking-tight">
                   Dynamic Client Registration
                 </h2>
-                <div className="text-gray-600 text-lg flex items-center">
-                  <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center mr-3 shadow-sm">
-                    <Shield className="w-5 h-5 text-green-600" />
+                <div className="flex items-center text-muted-foreground text-lg">
+                  <div className="w-6 h-6 bg-primary/10 rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                    <Shield className="w-4 h-4 text-primary" />
                   </div>
-                  Configure RFC 7591 automated app registration settings
+                  <span>Configure RFC 7591 automated app registration settings</span>
                 </div>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6 ml-16">
               <Badge variant={settings.enabled ? "default" : "secondary"} className="px-3 py-1">
                 {settings.enabled ? 'Enabled' : 'Disabled'}
               </Badge>
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <ExternalLink className="w-4 h-4" />
-                <span>Public endpoint: <code className="bg-gray-100 px-2 py-1 rounded">/auth/register</code></span>
+                <span>Public endpoint: <code className="bg-muted px-2 py-1 rounded">/auth/register</code></span>
               </div>
             </div>
           </div>
@@ -274,7 +274,7 @@ export function DynamicClientRegistrationSettings() {
             <Button 
               onClick={saveSettings}
               disabled={saving}
-              className="px-8 py-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-2xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-white/20"
+              className="px-8 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-blue-500/20"
             >
               {saving ? (
                 <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
@@ -289,13 +289,13 @@ export function DynamicClientRegistrationSettings() {
 
       {/* Status Message */}
       {message && (
-        <Alert className={message.type === 'success' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}>
+        <Alert className={message.type === 'success' ? 'border-emerald-500/20 bg-emerald-500/10 dark:bg-emerald-400/10' : 'border-destructive/20 bg-destructive/10'}>
           {message.type === 'success' ? (
-            <CheckCircle className="w-4 h-4 text-green-600" />
+            <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           ) : (
-            <AlertCircle className="w-4 h-4 text-red-600" />
+            <AlertCircle className="w-4 h-4 text-destructive" />
           )}
-          <AlertDescription className={message.type === 'success' ? 'text-green-800' : 'text-red-800'}>
+          <AlertDescription className={message.type === 'success' ? 'text-emerald-700 dark:text-emerald-300' : 'text-destructive'}>
             {message.text}
           </AlertDescription>
         </Alert>
@@ -303,59 +303,59 @@ export function DynamicClientRegistrationSettings() {
 
       {/* Statistics Cards matching app style */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+        <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Settings className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm">
+                  <Settings className="w-6 h-6 text-primary" />
                 </div>
-                <div className="text-sm font-semibold text-blue-800 tracking-wide">Registration</div>
+                <div className="text-sm font-semibold text-primary tracking-wide">Registration</div>
               </div>
-              <div className="text-3xl font-bold text-blue-900 mb-2">{settings.enabled ? 'Active' : 'Inactive'}</div>
+              <div className="text-3xl font-bold text-foreground mb-2">{settings.enabled ? 'Active' : 'Inactive'}</div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+        <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Shield className="w-6 h-6 text-green-600" />
+                <div className="w-12 h-12 bg-emerald-500/10 dark:bg-emerald-400/20 rounded-xl flex items-center justify-center shadow-sm">
+                  <Shield className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                <div className="text-sm font-semibold text-green-800 tracking-wide">Allowed Scopes</div>
+                <div className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 tracking-wide">Allowed Scopes</div>
               </div>
-              <div className="text-3xl font-bold text-green-900 mb-2">{settings.allowedScopes.length}</div>
+              <div className="text-3xl font-bold text-foreground mb-2">{settings.allowedScopes.length}</div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+        <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Clock className="w-6 h-6 text-purple-600" />
+                <div className="w-12 h-12 bg-violet-500/10 dark:bg-violet-400/20 rounded-xl flex items-center justify-center shadow-sm">
+                  <Clock className="w-6 h-6 text-violet-600 dark:text-violet-400" />
                 </div>
-                <div className="text-sm font-semibold text-purple-800 tracking-wide">Client Lifetime</div>
+                <div className="text-sm font-semibold text-violet-700 dark:text-violet-300 tracking-wide">Client Lifetime</div>
               </div>
-              <div className="text-3xl font-bold text-purple-900 mb-2">{settings.maxClientLifetime || '∞'}</div>
-              <div className="text-sm text-purple-600">{settings.maxClientLifetime ? 'days' : 'unlimited'}</div>
+              <div className="text-3xl font-bold text-foreground mb-2">{settings.maxClientLifetime || '∞'}</div>
+              <div className="text-sm text-violet-600 dark:text-violet-400">{settings.maxClientLifetime ? 'days' : 'unlimited'}</div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl border border-gray-200/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+        <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
           <div className="flex items-center justify-between">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-orange-100 to-orange-200 rounded-xl flex items-center justify-center shadow-sm">
-                  <Globe className="w-6 h-6 text-orange-600" />
+                <div className="w-12 h-12 bg-orange-500/10 dark:bg-orange-400/20 rounded-xl flex items-center justify-center shadow-sm">
+                  <Globe className="w-6 h-6 text-orange-600 dark:text-orange-400" />
                 </div>
-                <div className="text-sm font-semibold text-orange-800 tracking-wide">URI Patterns</div>
+                <div className="text-sm font-semibold text-orange-700 dark:text-orange-300 tracking-wide">URI Patterns</div>
               </div>
-              <div className="text-3xl font-bold text-orange-900 mb-2">{settings.allowedRedirectUriPatterns.length}</div>
+              <div className="text-3xl font-bold text-foreground mb-2">{settings.allowedRedirectUriPatterns.length}</div>
             </div>
           </div>
         </div>
@@ -363,15 +363,15 @@ export function DynamicClientRegistrationSettings() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Basic Settings */}
-        <Card className="bg-white/70 backdrop-blur-sm border border-gray-200/50 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm border border-border/50 shadow-lg">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-                <Shield className="w-5 h-5 text-blue-600" />
+              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm">
+                <Shield className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Basic Settings</h3>
-                <p className="text-gray-600 font-medium">Core configuration for dynamic client registration</p>
+                <h3 className="text-xl font-bold text-foreground tracking-tight">Basic Settings</h3>
+                <p className="text-muted-foreground font-medium">Core configuration for dynamic client registration</p>
               </div>
             </CardTitle>
           </CardHeader>
@@ -379,7 +379,7 @@ export function DynamicClientRegistrationSettings() {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label htmlFor="enabled">Enable Dynamic Registration</Label>
-                <p className="text-sm text-gray-500">Allow apps to register automatically via public endpoint</p>
+                <p className="text-sm text-muted-foreground">Allow apps to register automatically via public endpoint</p>
               </div>
               <Switch
                 id="enabled"
@@ -388,31 +388,29 @@ export function DynamicClientRegistrationSettings() {
               />
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Label htmlFor="requireHttps">Require HTTPS</Label>
-                <p className="text-sm text-gray-500">Enforce HTTPS for redirect URIs (localhost exempted)</p>
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="requireHttps">Require HTTPS</Label>
+                  <p className="text-sm text-muted-foreground">Enforce HTTPS for redirect URIs (localhost exempted)</p>
+                </div>
+                <Switch
+                  id="requireHttps"
+                  checked={settings.requireHttps}
+                  onCheckedChange={(checked) => setSettings(prev => ({ ...prev, requireHttps: checked }))}
+                />
               </div>
-              <Switch
-                id="requireHttps"
-                checked={settings.requireHttps}
-                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, requireHttps: checked }))}
-              />
-            </div>
 
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <Label htmlFor="adminApproval">Admin Approval Required</Label>
-                <p className="text-sm text-gray-500">New clients need manual approval before activation</p>
-              </div>
-              <Switch
-                id="adminApproval"
-                checked={settings.adminApprovalRequired}
-                onCheckedChange={(checked) => setSettings(prev => ({ ...prev, adminApprovalRequired: checked }))}
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="adminApproval">Admin Approval Required</Label>
+                  <p className="text-sm text-muted-foreground">New clients need manual approval before activation</p>
+                </div>
+                <Switch
+                  id="adminApproval"
+                  checked={settings.adminApprovalRequired}
+                  onCheckedChange={(checked) => setSettings(prev => ({ ...prev, adminApprovalRequired: checked }))}
+                />
+              </div>            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="rateLimit">Rate Limit (per minute)</Label>
                 <Input
@@ -440,15 +438,15 @@ export function DynamicClientRegistrationSettings() {
         </Card>
 
         {/* Client Types */}
-        <Card className="bg-white/70 backdrop-blur-sm border border-gray-200/50 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm border border-border/50 shadow-lg">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-100 to-green-200 rounded-xl flex items-center justify-center shadow-sm">
-                <Globe className="w-5 h-5 text-green-600" />
+              <div className="w-10 h-10 bg-emerald-500/10 dark:bg-emerald-400/20 rounded-xl flex items-center justify-center shadow-sm">
+                <Globe className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Allowed Client Types</h3>
-                <p className="text-gray-600 font-medium">Which types of OAuth2 clients can register</p>
+                <h3 className="text-xl font-bold text-foreground tracking-tight">Allowed Client Types</h3>
+                <p className="text-muted-foreground font-medium">Which types of OAuth2 clients can register</p>
               </div>
             </CardTitle>
           </CardHeader>
@@ -456,7 +454,7 @@ export function DynamicClientRegistrationSettings() {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label htmlFor="allowPublic">Public Clients</Label>
-                <p className="text-sm text-gray-500">Web apps, mobile apps (no client secret)</p>
+                <p className="text-sm text-muted-foreground">Web apps, mobile apps (no client secret)</p>
               </div>
               <Switch
                 id="allowPublic"
@@ -468,7 +466,7 @@ export function DynamicClientRegistrationSettings() {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label htmlFor="allowConfidential">Confidential Clients</Label>
-                <p className="text-sm text-gray-500">Server-side apps with client secret</p>
+                <p className="text-sm text-muted-foreground">Server-side apps with client secret</p>
               </div>
               <Switch
                 id="allowConfidential"
@@ -480,7 +478,7 @@ export function DynamicClientRegistrationSettings() {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label htmlFor="allowBackend">Backend Services</Label>
-                <p className="text-sm text-gray-500">System-to-system integrations (client_credentials)</p>
+                <p className="text-sm text-muted-foreground">System-to-system integrations (client_credentials)</p>
               </div>
               <Switch
                 id="allowBackend"
@@ -492,7 +490,7 @@ export function DynamicClientRegistrationSettings() {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label htmlFor="requireTos">Require Terms of Service</Label>
-                <p className="text-sm text-gray-500">Apps must provide TOS URI</p>
+                <p className="text-sm text-muted-foreground">Apps must provide TOS URI</p>
               </div>
               <Switch
                 id="requireTos"
@@ -504,7 +502,7 @@ export function DynamicClientRegistrationSettings() {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <Label htmlFor="requirePrivacy">Require Privacy Policy</Label>
-                <p className="text-sm text-gray-500">Apps must provide privacy policy URI</p>
+                <p className="text-sm text-muted-foreground">Apps must provide privacy policy URI</p>
               </div>
               <Switch
                 id="requirePrivacy"
@@ -516,15 +514,15 @@ export function DynamicClientRegistrationSettings() {
         </Card>
 
         {/* Lifetime & Notifications */}
-        <Card className="bg-white/70 backdrop-blur-sm border border-gray-200/50 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm border border-border/50 shadow-lg">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-purple-200 rounded-xl flex items-center justify-center shadow-sm">
-                <Clock className="w-5 h-5 text-purple-600" />
+              <div className="w-10 h-10 bg-violet-500/10 dark:bg-violet-400/20 rounded-xl flex items-center justify-center shadow-sm">
+                <Clock className="w-5 h-5 text-violet-600 dark:text-violet-400" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Lifetime & Notifications</h3>
-                <p className="text-gray-600 font-medium">Client expiration and notification settings</p>
+                <h3 className="text-xl font-bold text-foreground tracking-tight">Lifetime & Notifications</h3>
+                <p className="text-muted-foreground font-medium">Client expiration and notification settings</p>
               </div>
             </CardTitle>
           </CardHeader>
@@ -540,7 +538,7 @@ export function DynamicClientRegistrationSettings() {
                 onChange={(e) => setSettings(prev => ({ ...prev, maxClientLifetime: parseInt(e.target.value) || 0 }))}
                 placeholder="0 = no expiration"
               />
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 {settings.maxClientLifetime === 0 ? 'Clients never expire' : `Clients expire after ${settings.maxClientLifetime} days`}
               </p>
             </div>
@@ -554,7 +552,7 @@ export function DynamicClientRegistrationSettings() {
                 onChange={(e) => setSettings(prev => ({ ...prev, notificationEmail: e.target.value }))}
                 placeholder="admin@example.com"
               />
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 Get notified when new clients register
               </p>
             </div>
@@ -562,15 +560,15 @@ export function DynamicClientRegistrationSettings() {
         </Card>
 
         {/* Allowed Scopes */}
-        <Card className="bg-white/70 backdrop-blur-sm border border-gray-200/50 shadow-lg">
+        <Card className="bg-card/70 backdrop-blur-sm border border-border/50 shadow-lg">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-100 to-indigo-200 rounded-xl flex items-center justify-center shadow-sm">
-                <Shield className="w-5 h-5 text-indigo-600" />
+              <div className="w-10 h-10 bg-blue-500/10 dark:bg-blue-400/20 rounded-xl flex items-center justify-center shadow-sm">
+                <Shield className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 tracking-tight">Allowed Scopes</h3>
-                <p className="text-gray-600 font-medium">SMART scopes that can be requested during registration</p>
+                <h3 className="text-xl font-bold text-foreground tracking-tight">Allowed Scopes</h3>
+                <p className="text-muted-foreground font-medium">SMART scopes that can be requested during registration</p>
               </div>
             </CardTitle>
           </CardHeader>
@@ -586,13 +584,13 @@ export function DynamicClientRegistrationSettings() {
             </div>
             <div className="max-h-48 overflow-y-auto space-y-2">
               {settings.allowedScopes.map((scope) => (
-                <div key={scope} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+                <div key={scope} className="flex items-center justify-between bg-muted/30 p-2 rounded-lg">
                   <code className="text-sm">{scope}</code>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => removeScope(scope)}
-                    className="text-red-600 hover:text-red-700"
+                    className="text-destructive hover:text-destructive"
                   >
                     Remove
                   </Button>
@@ -604,15 +602,15 @@ export function DynamicClientRegistrationSettings() {
       </div>
 
       {/* Redirect URI Patterns */}
-      <Card className="bg-white/70 backdrop-blur-sm border border-gray-200/50 shadow-lg">
+      <Card className="bg-card/70 backdrop-blur-sm border border-border/50 shadow-lg">
         <CardHeader className="pb-4">
           <CardTitle className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-              <Globe className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 bg-orange-500/10 dark:bg-orange-400/20 rounded-xl flex items-center justify-center shadow-sm">
+              <Globe className="w-5 h-5 text-orange-600 dark:text-orange-400" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-900 tracking-tight">Allowed Redirect URI Patterns</h3>
-              <p className="text-gray-600 font-medium">Regular expression patterns for validating redirect URIs</p>
+              <h3 className="text-xl font-bold text-foreground tracking-tight">Allowed Redirect URI Patterns</h3>
+              <p className="text-muted-foreground font-medium">Regular expression patterns for validating redirect URIs</p>
             </div>
           </CardTitle>
         </CardHeader>
@@ -628,13 +626,13 @@ export function DynamicClientRegistrationSettings() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {settings.allowedRedirectUriPatterns.map((pattern, index) => (
-              <div key={index} className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+              <div key={index} className="flex items-center justify-between bg-muted/30 p-3 rounded-lg">
                 <code className="text-sm flex-1 mr-2">{pattern}</code>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => removePattern(pattern)}
-                  className="text-red-600 hover:text-red-700"
+                  className="text-destructive hover:text-destructive"
                 >
                   Remove
                 </Button>
