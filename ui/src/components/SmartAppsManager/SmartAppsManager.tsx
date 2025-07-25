@@ -32,11 +32,10 @@ import {
 import { SmartAppAddForm } from './SmartAppAddForm';
 import { SmartAppsTable } from './SmartAppsTable';
 import { SmartAppsStatistics } from './SmartAppsStatistics';
-import { DynamicClientRegistrationSettings } from './DynamicClientRegistrationSettings';
-import { createAuthenticatedApiClients, handleApiError } from '@/lib/apiClient';
+import { DynamicClientRegistrationSettings } from '../DynamicClientRegistrationSettings';
+import { useAuth } from '@/stores/authStore';
 import { useAppStore } from '@/stores/appStore';
-import type { GetAdminSmartApps200ResponseInner } from '@/lib/api-client';
-import type { SmartApp, ScopeSet } from '@/types/smartApp';
+import type { SmartApp, ScopeSet, GetAdminSmartApps200ResponseInner } from '@/lib/types/api';
 
 // Mock data for SMART on FHIR applications
 const mockApps: SmartApp[] = [
@@ -51,7 +50,7 @@ const mockApps: SmartApp[] = [
     status: 'active',
     lastUsed: '2024-12-28',
     description: 'AI-powered clinical decision support tool',
-    appType: 'ehr-launch-app',
+    appType: 'ehr-launch',
     authenticationType: 'asymmetric',
     serverAccessType: 'user-person-servers',
   },
@@ -82,7 +81,7 @@ const mockApps: SmartApp[] = [
     description: 'Clinical research data analytics platform',
     appType: 'backend-service',
     authenticationType: 'asymmetric',
-    serverAccessType: 'specific-servers',
+    serverAccessType: 'selected-servers',
     allowedServerIds: ['hapi-fhir-org', 'test-server-1'],
   },
   {
@@ -109,9 +108,9 @@ const mockApps: SmartApp[] = [
     status: 'active',
     lastUsed: '2024-12-25',
     description: 'Laboratory results visualization tool',
-    appType: 'ehr-launch-app',
+    appType: 'ehr-launch',
     authenticationType: 'symmetric',
-    serverAccessType: 'specific-servers',
+    serverAccessType: 'selected-servers',
     allowedServerIds: ['lab-server-main'],
   },
   {
@@ -146,6 +145,7 @@ const mockApps: SmartApp[] = [
 
 export function SmartAppsManager() {
   const { smartAppsManagerTab, setSmartAppsManagerTab } = useAppStore();
+  const { apiClients, withAuthErrorHandling } = useAuth();
   const [apps, setApps] = useState<SmartApp[]>([]);
   const [loading, setLoading] = useState(true);
   const [backendApps, setBackendApps] = useState<GetAdminSmartApps200ResponseInner[]>([]);
@@ -174,8 +174,9 @@ export function SmartAppsManager() {
     const fetchApps = async () => {
       try {
         setLoading(true);
-        const apiClients = createAuthenticatedApiClients();
-        const fetchedApps = await apiClients.smartApps.getAdminSmartApps();
+        const fetchedApps = await withAuthErrorHandling(() =>
+          apiClients.smartApps.getAdminSmartApps()
+        );
         
         setBackendApps(fetchedApps);
         
@@ -185,7 +186,7 @@ export function SmartAppsManager() {
           setApps(mockApps);
         } else {
           // Convert backend apps to our format
-          const convertedApps: SmartApp[] = fetchedApps.map((backendApp, index) => ({
+          const convertedApps: SmartApp[] = fetchedApps.map((backendApp: GetAdminSmartApps200ResponseInner, index: number) => ({
             id: backendApp.id || `backend-${index}`,
             name: backendApp.name || 'Unnamed App',
             clientId: backendApp.clientId || '',
@@ -205,7 +206,7 @@ export function SmartAppsManager() {
         }
       } catch (error) {
         console.error('Failed to fetch SMART apps:', error);
-        handleApiError(error);
+        // Error is already handled by withAuthErrorHandling (auth errors)
         // Fallback to mock apps on error
         setApps(mockApps);
       } finally {
@@ -214,7 +215,7 @@ export function SmartAppsManager() {
     };
 
     fetchApps();
-  }, []);
+  }, [apiClients.smartApps, withAuthErrorHandling]);
 
   const handleAddApp = (appData: Omit<SmartApp, 'id' | 'status' | 'lastUsed'>) => {
     const app: SmartApp = {

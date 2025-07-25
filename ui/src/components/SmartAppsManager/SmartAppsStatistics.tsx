@@ -1,5 +1,5 @@
 import { Activity, Shield, Settings } from 'lucide-react';
-import type { SmartApp } from '@/types/smartApp';
+import type { SmartApp } from '@/lib/types/api';
 
 interface SmartAppsStatisticsProps {
   apps: SmartApp[];
@@ -32,7 +32,7 @@ export function SmartAppsStatistics({ apps }: SmartAppsStatisticsProps) {
               <div className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 tracking-wide">EHR Launch</div>
             </div>
             <div className="text-3xl font-bold text-foreground mb-2">
-              {apps.filter(app => app.appType === 'ehr-launch-app').length}
+              {apps.filter(app => app.appType === 'ehr-launch').length}
             </div>
           </div>
         </div>

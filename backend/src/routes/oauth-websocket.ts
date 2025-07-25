@@ -46,7 +46,7 @@ export const oauthWebSocket = new Elysia({ prefix: '/oauth/monitoring' })
       };
       
       clients.set(clientId, client);
-      logger.auth.info('OAuth monitoring WebSocket connection opened', { clientId });
+      logger.ws.info('OAuth monitoring WebSocket connection opened', { clientId });
       
       // Send welcome message with client ID
       ws.send(JSON.stringify({
@@ -66,7 +66,7 @@ export const oauthWebSocket = new Elysia({ prefix: '/oauth/monitoring' })
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         const errorName = error instanceof Error ? error.name : 'Error';
-        logger.auth.error('Failed to parse WebSocket message - invalid JSON format', { 
+        logger.ws.error('Failed to parse WebSocket message - invalid JSON format', { 
           error: errorMessage,
           errorType: errorName,
           messageSnippet: typeof message === 'string' ? message.substring(0, 100) : 'non-string message',
@@ -86,7 +86,7 @@ export const oauthWebSocket = new Elysia({ prefix: '/oauth/monitoring' })
       }
       
       if (!client) {
-        logger.auth.warn('Message from unknown WebSocket client', { 
+        logger.ws.warn('Message from unknown WebSocket client', { 
           messageType: parsedMessage.type,
           clientId: parsedMessage.clientId 
         });
@@ -104,7 +104,7 @@ export const oauthWebSocket = new Elysia({ prefix: '/oauth/monitoring' })
     close(ws) {
       const client = findClientByWs(ws);
       if (client) {
-        logger.auth.info('OAuth monitoring WebSocket connection closed', { clientId: client.id });
+        logger.ws.info('OAuth monitoring WebSocket connection closed', { clientId: client.id });
         clients.delete(client.id);
       }
     }
@@ -180,7 +180,7 @@ async function handleWebSocketMessage(client: WebSocketClient, message: WebSocke
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorName = error instanceof Error ? error.name : 'Error';
-    logger.auth.error('Failed to handle WebSocket message - internal processing error', { 
+    logger.ws.error('Failed to handle WebSocket message - internal processing error', { 
       error: errorMessage,
       errorType: errorName,
       clientId: client.id, 
@@ -208,7 +208,7 @@ async function handleAuth(client: WebSocketClient, message: WebSocketMessage) {
     await validateToken(message.token);
     client.authenticated = true;
     
-    logger.auth.info('OAuth monitoring WebSocket client authenticated', { 
+    logger.ws.info('OAuth monitoring WebSocket client authenticated', { 
       clientId: client.id 
     });
     
@@ -220,7 +220,7 @@ async function handleAuth(client: WebSocketClient, message: WebSocketMessage) {
       }
     }));
   } catch (error) {
-    logger.auth.warn('OAuth monitoring WebSocket authentication failed', { 
+    logger.ws.warn('OAuth monitoring WebSocket authentication failed', { 
       clientId: client.id, 
       error 
     });
@@ -273,7 +273,7 @@ function handleSubscribe(client: WebSocketClient, message: WebSocketMessage) {
     }
   }));
 
-  logger.auth.info('OAuth monitoring WebSocket subscription added', { 
+  logger.ws.info('OAuth monitoring WebSocket subscription added', { 
     clientId: client.id, 
     subscriptionType 
   });
@@ -315,7 +315,7 @@ function handleFilter(client: WebSocketClient, message: WebSocketMessage) {
       }
     }));
     
-    logger.auth.info('OAuth monitoring WebSocket filters updated', { 
+    logger.ws.info('OAuth monitoring WebSocket filters updated', { 
       clientId: client.id, 
       filters: client.filters 
     });
@@ -352,13 +352,13 @@ async function handleControl(client: WebSocketClient, message: WebSocketMessage)
       }
     }));
     
-    logger.auth.info('OAuth monitoring control action executed', { 
+    logger.ws.info('OAuth monitoring control action executed', { 
       clientId: client.id, 
       action: control.action,
       result
     });
   } catch (error) {
-    logger.auth.error('OAuth monitoring control action failed', { 
+    logger.ws.error('OAuth monitoring control action failed', { 
       clientId: client.id, 
       action: control.action,
       error 
@@ -462,7 +462,7 @@ async function executeControlAction(control: ControlMessage): Promise<Record<str
     case 'clear_logs': {
       // Clear events from memory (we don't have a clearData method)
       // Instead, we could reload just recent events
-      logger.auth.info('Log clear requested via WebSocket control');
+      logger.ws.info('Log clear requested via WebSocket control');
       return { cleared: true, timestamp: new Date().toISOString() };
     }
     
@@ -481,7 +481,7 @@ async function executeControlAction(control: ControlMessage): Promise<Record<str
       // This would integrate with your logger configuration
       const level = control.parameters?.level;
       if (level) {
-        logger.auth.info('Log level changed via WebSocket control', { newLevel: level });
+        logger.ws.info('Log level changed via WebSocket control', { newLevel: level });
         return { level, changed: true };
       }
       throw new Error('Log level parameter required');
@@ -512,7 +512,7 @@ export function broadcastToOAuthClients(type: string, data: Record<string, unkno
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         const errorName = error instanceof Error ? error.name : 'Error';
-        logger.auth.error('Failed to broadcast message to WebSocket client - connection broken', { 
+        logger.ws.error('Failed to broadcast message to WebSocket client - connection broken', { 
           error: errorMessage,
           errorType: errorName,
           clientId: client.id,

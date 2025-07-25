@@ -8,12 +8,6 @@
   "errorsByType": {},
   "hourlyStats": [
     {
-      "hour": "2025-07-24T11:00:00.000Z",
-      "success": 0,
-      "error": 0,
-      "total": 0
-    },
-    {
       "hour": "2025-07-24T12:00:00.000Z",
       "success": 0,
       "error": 0,
@@ -147,6 +141,12 @@
     },
     {
       "hour": "2025-07-25T10:00:00.000Z",
+      "success": 0,
+      "error": 0,
+      "total": 0
+    },
+    {
+      "hour": "2025-07-25T11:00:00.000Z",
       "success": 0,
       "error": 0,
       "total": 0

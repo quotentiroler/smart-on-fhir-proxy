@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -18,10 +18,11 @@ import {
   Search,
   Server,
   Database,
-  Network
+  Network,
+  ChevronDown
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { oauthWebSocketService, type OAuthEvent, type OAuthAnalytics } from '../lib/oauth-websocket-service';
+import { oauthWebSocketService, type OAuthEvent, type OAuthAnalytics } from '../service/oauth-websocket-service';
 
 interface SystemHealth {
   oauthServer: {
@@ -53,6 +54,17 @@ export function OAuthMonitoringDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
+
+  // Track whether this is the initial data load
+  const isInitialLoadRef = useRef(true);
+  // Track the current real-time state so handlers can access the latest value
+  const isRealTimeActiveRef = useRef(isRealTimeActive);
+
+  // Update ref whenever the state changes
+  useEffect(() => {
+    isRealTimeActiveRef.current = isRealTimeActive;
+  }, [isRealTimeActive]);
 
   // Load initial data
   const loadInitialData = useCallback(async (forceMode?: 'websocket' | 'sse') => {
@@ -80,11 +92,19 @@ export function OAuthMonitoringDashboard() {
         
         // Set up event handlers BEFORE subscribing
         oauthWebSocketService.onEventsData((eventList) => {
-          setEvents(eventList);
+          console.log('Received events_data:', eventList.length, 'events', '- Initial load:', isInitialLoadRef.current, '- Real-time active:', isRealTimeActiveRef.current);
+          // Only update state if this is the initial load OR if real-time is active
+          if (isInitialLoadRef.current || isRealTimeActiveRef.current) {
+            setEvents(eventList);
+          }
         });
 
         oauthWebSocketService.onAnalyticsData((analyticsData) => {
-          setAnalytics(analyticsData);
+          console.log('Received analytics_data:', analyticsData, '- Initial load:', isInitialLoadRef.current, '- Real-time active:', isRealTimeActiveRef.current);
+          // Only update state if this is the initial load OR if real-time is active
+          if (isInitialLoadRef.current || isRealTimeActiveRef.current) {
+            setAnalytics(analyticsData);
+          }
         });
 
         oauthWebSocketService.onError((errorMsg) => {
@@ -94,6 +114,9 @@ export function OAuthMonitoringDashboard() {
         // Subscribe to real-time data
         await oauthWebSocketService.subscribe('events');
         await oauthWebSocketService.subscribe('analytics');
+
+        // Mark that initial load is complete
+        isInitialLoadRef.current = false;
 
       } catch {
         setError('Connected but not authenticated. Please log in to view OAuth monitoring data.');
@@ -108,24 +131,33 @@ export function OAuthMonitoringDashboard() {
 
   // Setup real-time subscriptions
   useEffect(() => {
-    const setupSubscriptions = () => {
-      if (isRealTimeActive) {
-        // Subscribe to real-time events via WebSocket
-        oauthWebSocketService.onEventsUpdate((event: OAuthEvent) => {
-          setEvents(prev => [event, ...prev.slice(0, 999)]); // Keep last 1000 events
-        });
+    let eventsUnsubscribe: (() => void) | undefined;
+    let analyticsUnsubscribe: (() => void) | undefined;
 
-        // Subscribe to analytics updates via WebSocket
-        oauthWebSocketService.onAnalyticsUpdate((newAnalytics: OAuthAnalytics) => {
-          setAnalytics(newAnalytics);
-        });
-      }
-    };
+    if (isRealTimeActive) {
+      // Subscribe to real-time events via WebSocket
+      eventsUnsubscribe = oauthWebSocketService.onEventsUpdate((event: OAuthEvent) => {
+        console.log('Received events_update:', event);
+        setEvents(prev => [event, ...prev.slice(0, 999)]); // Keep last 1000 events
+      });
 
-    setupSubscriptions();
+      // Subscribe to analytics updates via WebSocket
+      analyticsUnsubscribe = oauthWebSocketService.onAnalyticsUpdate((newAnalytics: OAuthAnalytics) => {
+        console.log('Received analytics_update:', newAnalytics);
+        setAnalytics(newAnalytics);
+      });
+    } else {
+      console.log('Real-time updates are PAUSED');
+    }
 
+    // Cleanup function
     return () => {
-      // Cleanup is handled by the service disconnect method
+      if (eventsUnsubscribe) {
+        eventsUnsubscribe();
+      }
+      if (analyticsUnsubscribe) {
+        analyticsUnsubscribe();
+      }
     };
   }, [isRealTimeActive]);
 
@@ -155,7 +187,24 @@ export function OAuthMonitoringDashboard() {
     };
   }, []);
 
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (showExportMenu && !target.closest('.export-menu-container')) {
+        setShowExportMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showExportMenu]);
+
   const refreshData = async () => {
+    // Reset the initial load flag when manually refreshing
+    isInitialLoadRef.current = true;
     await loadInitialData();
   };
 
@@ -167,8 +216,118 @@ export function OAuthMonitoringDashboard() {
     if (newMode === connectionMode) return;
     
     setConnectionMode(newMode);
+    // Reset the initial load flag when switching connection modes
+    isInitialLoadRef.current = true;
     // Reconnect with the new mode
     await loadInitialData(newMode);
+  };
+
+  const exportAnalytics = async () => {
+    try {
+      // Get the current analytics data
+      const currentAnalytics = analytics;
+      
+      if (!currentAnalytics) {
+        setError('No analytics data available to export');
+        return;
+      }
+
+      // Create export data with timestamp
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        exportType: 'oauth-analytics',
+        source: 'dashboard-current-state',
+        data: currentAnalytics,
+        metadata: {
+          totalEvents: events.length,
+          connectionMode: oauthWebSocketService.connectionMode,
+          realTimeActive: isRealTimeActive
+        }
+      };
+
+      // Create and download the file
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      
+      // Create download link
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `oauth-analytics-dashboard-${new Date().toISOString().split('T')[0]}.json`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Cleanup
+      URL.revokeObjectURL(url);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to export analytics data');
+    }
+  };
+
+  const exportServerEvents = async () => {
+    try {
+      // Get token from localStorage - we'll improve this once events export is added to API client
+      const token = localStorage.getItem('openid_tokens');
+      let accessToken = '';
+      
+      if (token) {
+        try {
+          const tokenData = JSON.parse(token);
+          accessToken = tokenData.access_token;
+        } catch {
+          // Fall back to direct access_token if parsing fails
+        }
+      }
+      
+      if (!accessToken) {
+        setError('No authentication token available for server export. Please log in.');
+        return;
+      }
+
+      // NOTE: Using fetch for now - will switch to API client once events export endpoint is regenerated
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8445'}/monitoring/oauth/events/export`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/x-jsonlines'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Events export failed: ${response.statusText}`);
+      }
+
+      // Get the filename from response headers or create one
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `oauth-events-${new Date().toISOString().split('T')[0]}.jsonl`;
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Download the file
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(url);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to export server events data');
+    }
   };
 
   const filteredEvents = events.filter(event => {
@@ -230,25 +389,6 @@ export function OAuthMonitoringDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 bg-card rounded-2xl border border-border shadow-sm">
-              <span className="text-sm font-medium text-muted-foreground">Connection:</span>
-              <Button
-                variant={connectionMode === 'websocket' ? "default" : "ghost"}
-                onClick={() => switchConnectionMode('websocket')}
-                size="sm"
-                className="text-xs px-3 py-1 h-8"
-              >
-                WebSocket
-              </Button>
-              <Button
-                variant={connectionMode === 'sse' ? "default" : "ghost"}
-                onClick={() => switchConnectionMode('sse')}
-                size="sm"
-                className="text-xs px-3 py-1 h-8"
-              >
-                SSE
-              </Button>
-            </div>
             <Button
               variant={isRealTimeActive ? "default" : "outline"}
               onClick={toggleRealTime}
@@ -269,19 +409,50 @@ export function OAuthMonitoringDashboard() {
               <RefreshCw className="w-4 h-4 mr-2" />
               {t('Refresh')}
             </Button>
-            <Button
-              variant="outline"
-              className="px-6 py-3 bg-background text-foreground font-semibold rounded-2xl hover:bg-muted transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-border"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              {t('Export')}
-            </Button>
+            <div className="relative export-menu-container">
+              <Button
+                variant="outline"
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                className="px-6 py-3 bg-background text-foreground font-semibold rounded-2xl hover:bg-muted transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-border"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                {t('Export')}
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+              
+              {showExportMenu && (
+                <div className="absolute right-0 mt-2 w-72 bg-background border border-border rounded-2xl shadow-xl z-50">
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        exportAnalytics();
+                        setShowExportMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-3 hover:bg-muted rounded-xl transition-colors"
+                    >
+                      <div className="font-semibold text-foreground">{t('Export Current Data')}</div>
+                      <div className="text-sm text-muted-foreground">{t('Download current dashboard analytics')}</div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        exportServerEvents();
+                        setShowExportMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-3 hover:bg-muted rounded-xl transition-colors"
+                    >
+                      <div className="font-semibold text-foreground">{t('Export Server Events')}</div>
+                      <div className="text-sm text-muted-foreground">{t('Download events log from server')}</div>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Real-time Status */}
-      {isRealTimeActive && (
+      {isRealTimeActive ? (
         <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 p-6 rounded-2xl border border-green-500/20 shadow-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
@@ -297,13 +468,81 @@ export function OAuthMonitoringDashboard() {
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-sm text-green-700 dark:text-green-400 mb-1">Connection Mode</div>
-              <Badge className="bg-green-500/20 text-green-800 dark:text-green-300 border-green-500/30 font-semibold">
-                {oauthWebSocketService.connectionMode === 'websocket' ? 'WebSocket' : 
-                 oauthWebSocketService.connectionMode === 'sse' ? 'Server-Sent Events' : 
-                 'Disconnected'}
-              </Badge>
+            <div className="text-right space-y-3">
+              <div>
+                <div className="text-sm text-green-700 dark:text-green-400 mb-2">Connection Mode</div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={connectionMode === 'websocket' ? "default" : "ghost"}
+                    onClick={() => switchConnectionMode('websocket')}
+                    size="sm"
+                    className="text-xs px-3 py-1 h-8 bg-green-500/20 hover:bg-green-500/30 text-green-800 dark:text-green-300 border-green-500/30"
+                  >
+                    WebSocket
+                  </Button>
+                  <Button
+                    variant={connectionMode === 'sse' ? "default" : "ghost"}
+                    onClick={() => switchConnectionMode('sse')}
+                    size="sm"
+                    className="text-xs px-3 py-1 h-8 bg-green-500/20 hover:bg-green-500/30 text-green-800 dark:text-green-300 border-green-500/30"
+                  >
+                    SSE
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Badge className="bg-green-500/20 text-green-800 dark:text-green-300 border-green-500/30 font-semibold">
+                  {oauthWebSocketService.connectionMode === 'websocket' ? 'WebSocket Connected' : 
+                   oauthWebSocketService.connectionMode === 'sse' ? 'SSE Connected' : 
+                   'Disconnected'}
+                </Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gradient-to-r from-orange-500/10 to-amber-500/10 p-6 rounded-2xl border border-orange-500/20 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500/20 to-orange-600/30 rounded-xl flex items-center justify-center mr-4 shadow-sm">
+                <Pause className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-orange-900 dark:text-orange-300 mb-1">
+                  {t('Real-time Monitoring Paused')}
+                </h3>
+                <p className="text-orange-800 dark:text-orange-400 font-medium">
+                  {t('Real-time updates are paused. Click Resume to continue monitoring.')}
+                </p>
+              </div>
+            </div>
+            <div className="text-right space-y-3">
+              <div>
+                <div className="text-sm text-orange-700 dark:text-orange-400 mb-2">Connection Mode</div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={connectionMode === 'websocket' ? "default" : "ghost"}
+                    onClick={() => switchConnectionMode('websocket')}
+                    size="sm"
+                    className="text-xs px-3 py-1 h-8 bg-orange-500/20 hover:bg-orange-500/30 text-orange-800 dark:text-orange-300 border-orange-500/30"
+                  >
+                    WebSocket
+                  </Button>
+                  <Button
+                    variant={connectionMode === 'sse' ? "default" : "ghost"}
+                    onClick={() => switchConnectionMode('sse')}
+                    size="sm"
+                    className="text-xs px-3 py-1 h-8 bg-orange-500/20 hover:bg-orange-500/30 text-orange-800 dark:text-orange-300 border-orange-500/30"
+                  >
+                    SSE
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Badge className="bg-orange-500/20 text-orange-800 dark:text-orange-300 border-orange-500/30 font-semibold">
+                  Paused
+                </Badge>
+              </div>
             </div>
           </div>
         </div>

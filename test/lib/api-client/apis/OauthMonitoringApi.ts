@@ -47,10 +47,6 @@ export interface GetMonitoringOauthEventsRequest {
     since?: string;
 }
 
-export interface GetMonitoringOauthEventsExportRequest {
-    authorization: string;
-}
-
 export interface GetMonitoringOauthEventsStreamRequest {
     authorization?: string;
     token?: string;
@@ -264,55 +260,6 @@ export class OauthMonitoringApi extends runtime.BaseAPI {
     async getMonitoringOauthEvents(requestParameters: GetMonitoringOauthEventsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetMonitoringOauthEvents200Response> {
         const response = await this.getMonitoringOauthEventsRaw(requestParameters, initOverrides);
         return await response.value();
-    }
-
-    /**
-     * Download OAuth events log as JSONL file
-     * Export Events Data
-     */
-    async getMonitoringOauthEventsExportRaw(requestParameters: GetMonitoringOauthEventsExportRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
-        if (requestParameters['authorization'] == null) {
-            throw new runtime.RequiredError(
-                'authorization',
-                'Required parameter "authorization" was null or undefined when calling getMonitoringOauthEventsExport().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (requestParameters['authorization'] != null) {
-            headerParameters['authorization'] = String(requestParameters['authorization']);
-        }
-
-        if (this.configuration && this.configuration.accessToken) {
-            const token = this.configuration.accessToken;
-            const tokenString = await token("BearerAuth", []);
-
-            if (tokenString) {
-                headerParameters["Authorization"] = `Bearer ${tokenString}`;
-            }
-        }
-
-        let urlPath = `/monitoring/oauth/events/export`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.VoidApiResponse(response);
-    }
-
-    /**
-     * Download OAuth events log as JSONL file
-     * Export Events Data
-     */
-    async getMonitoringOauthEventsExport(requestParameters: GetMonitoringOauthEventsExportRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.getMonitoringOauthEventsExportRaw(requestParameters, initOverrides);
     }
 
     /**

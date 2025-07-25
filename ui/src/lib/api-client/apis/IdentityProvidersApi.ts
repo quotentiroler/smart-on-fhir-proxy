@@ -17,6 +17,7 @@ import * as runtime from '../runtime';
 import type {
   DeleteAdminRolesByRoleName200Response,
   GetAdminIdps200ResponseInner,
+  GetAdminIdpsCount200Response,
   PostAdminIdpsRequest,
   PostShutdown500Response,
   PutAdminIdpsByAliasRequest,
@@ -27,6 +28,8 @@ import {
     DeleteAdminRolesByRoleName200ResponseToJSON,
     GetAdminIdps200ResponseInnerFromJSON,
     GetAdminIdps200ResponseInnerToJSON,
+    GetAdminIdpsCount200ResponseFromJSON,
+    GetAdminIdpsCount200ResponseToJSON,
     PostAdminIdpsRequestFromJSON,
     PostAdminIdpsRequestToJSON,
     PostShutdown500ResponseFromJSON,
@@ -189,6 +192,45 @@ export class IdentityProvidersApi extends runtime.BaseAPI {
      */
     async getAdminIdpsByAlias(requestParameters: GetAdminIdpsByAliasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminIdps200ResponseInner> {
         const response = await this.getAdminIdpsByAliasRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get the count of enabled and total identity providers
+     * Get Identity Providers Count
+     */
+    async getAdminIdpsCountRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminIdpsCount200Response>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/idps/count`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminIdpsCount200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Get the count of enabled and total identity providers
+     * Get Identity Providers Count
+     */
+    async getAdminIdpsCount(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminIdpsCount200Response> {
+        const response = await this.getAdminIdpsCountRaw(initOverrides);
         return await response.value();
     }
 

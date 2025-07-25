@@ -55,8 +55,8 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
           
           // Check if controller is still open before trying to enqueue
           try {
-            if (controller.desiredSize === null) {
-              logger.sse.info('OAuth events stream controller closed during event send, stopping stream');
+            if (controller.desiredSize === null || controller.desiredSize === undefined) {
+              logger.sse.debug('OAuth events stream controller closed during event send, stopping stream');
               isStreamActive = false;
               return;
             }
@@ -85,8 +85,9 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
           }
           
           try {
-            if (controller.desiredSize === null) {
-              logger.sse.info('OAuth events stream controller already closed, stopping keepalive');
+            // Check multiple conditions for stream closure
+            if (controller.desiredSize === null || controller.desiredSize === undefined) {
+              logger.sse.info('OAuth events stream controller closed, stopping keepalive');
               isStreamActive = false;
               clearInterval(keepAliveInterval);
               unsubscribe();
@@ -101,11 +102,10 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             const errorName = error instanceof Error ? error.name : 'Error';
-            logger.sse.error('SSE events stream keepalive failed - client likely disconnected', { 
+            logger.sse.debug('SSE events stream keepalive failed - client disconnected, cleaning up', { 
               error: errorMessage,
               errorType: errorName,
-              streamActive: isStreamActive,
-              action: 'Cleaning up stream and stopping keepalive'
+              streamActive: isStreamActive
             });
             isStreamActive = false;
             clearInterval(keepAliveInterval);
@@ -189,8 +189,8 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
           if (!isStreamActive) return;
           
           try {
-            if (controller.desiredSize === null) {
-              logger.sse.info('OAuth analytics stream controller closed during analytics send, stopping stream');
+            if (controller.desiredSize === null || controller.desiredSize === undefined) {
+              logger.sse.debug('OAuth analytics stream controller closed during analytics send, stopping stream');
               isStreamActive = false;
               return;
             }
@@ -219,8 +219,9 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
           }
           
           try {
-            if (controller.desiredSize === null) {
-              logger.sse.info('OAuth analytics stream controller already closed, stopping keepalive');
+            // Check multiple conditions for stream closure
+            if (controller.desiredSize === null || controller.desiredSize === undefined) {
+              logger.sse.info('OAuth analytics stream controller closed, stopping keepalive');
               isStreamActive = false;
               clearInterval(keepAliveInterval);
               unsubscribe();
@@ -235,11 +236,10 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             const errorName = error instanceof Error ? error.name : 'Error';
-            logger.sse.error('SSE analytics stream keepalive failed - client likely disconnected', { 
+            logger.sse.debug('SSE analytics stream keepalive failed - client disconnected, cleaning up', { 
               error: errorMessage,
               errorType: errorName,
-              streamActive: isStreamActive,
-              action: 'Cleaning up stream and stopping keepalive'
+              streamActive: isStreamActive
             });
             isStreamActive = false;
             clearInterval(keepAliveInterval);
@@ -480,6 +480,116 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
     detail: {
       summary: 'Get System Health',
       description: 'Get OAuth system health metrics and alerts',
+      tags: ['oauth-monitoring'],
+      security: [{ BearerAuth: [] }]
+    }
+  })
+
+  // Export analytics data as downloadable file
+  .get('/analytics/export', async ({ set, headers }) => {
+    // Validate authentication
+    if (!headers.authorization) {
+      set.status = 401;
+      throw new Error('Unauthorized');
+    }
+
+    try {
+      const token = headers.authorization.replace('Bearer ', '');
+      await validateToken(token);
+    } catch {
+      set.status = 401;
+      throw new Error('Unauthorized');
+    }
+
+    try {
+      // Get current analytics from the metrics logger
+      const analytics = oauthMetricsLogger.getAnalytics();
+      
+      if (!analytics) {
+        set.status = 404;
+        throw new Error('No analytics data available');
+      }
+
+      // Set headers for file download
+      set.headers['Content-Type'] = 'application/json';
+      set.headers['Content-Disposition'] = `attachment; filename="oauth-analytics-${new Date().toISOString().split('T')[0]}.json"`;
+
+      // Return the analytics data
+      return {
+        exportedAt: new Date().toISOString(),
+        exportType: 'oauth-analytics',
+        data: analytics
+      };
+    } catch (error) {
+      logger.auth.error('Failed to export OAuth analytics', { error });
+      set.status = 500;
+      throw new Error('Failed to export analytics data');
+    }
+  }, {
+    headers: t.Object({
+      authorization: t.String({ description: 'Bearer token' })
+    }),
+    detail: {
+      summary: 'Export Analytics Data',
+      description: 'Download current OAuth analytics data as JSON file',
+      tags: ['oauth-monitoring'],
+      security: [{ BearerAuth: [] }]
+    }
+  })
+
+  // Export events data as downloadable file
+  .get('/events/export', async ({ set, headers }) => {
+    // Validate authentication
+    if (!headers.authorization) {
+      set.status = 401;
+      throw new Error('Unauthorized');
+    }
+
+    try {
+      const token = headers.authorization.replace('Bearer ', '');
+      await validateToken(token);
+    } catch {
+      set.status = 401;
+      throw new Error('Unauthorized');
+    }
+
+    try {
+      const fs = await import('fs/promises');
+      const path = await import('path');
+      
+      // Path to the events log file
+      const eventsLogPath = path.join(process.cwd(), 'logs', 'oauth-metrics', 'oauth-events.jsonl');
+      
+      try {
+        // Check if file exists and read it
+        await fs.access(eventsLogPath);
+        const eventsData = await fs.readFile(eventsLogPath, 'utf-8');
+        
+        // Set headers for file download
+        set.headers['Content-Type'] = 'application/x-jsonlines';
+        set.headers['Content-Disposition'] = `attachment; filename="oauth-events-${new Date().toISOString().split('T')[0]}.jsonl"`;
+
+        // Return the raw JSONL data
+        return eventsData;
+      } catch {
+        // If file doesn't exist, return empty response
+        set.headers['Content-Type'] = 'application/x-jsonlines';
+        set.headers['Content-Disposition'] = `attachment; filename="oauth-events-${new Date().toISOString().split('T')[0]}.jsonl"`;
+        
+        return '';
+      }
+    } catch (error) {
+      logger.auth.error('Failed to export OAuth events', { error });
+      set.status = 500;
+      throw new Error('Failed to export events data');
+    }
+  }, {
+    headers: t.Object({
+      authorization: t.String({ description: 'Bearer token' })
+    }),
+    detail: {
+      summary: 'Export Events Data',
+      description: 'Download OAuth events log as JSONL file',
       tags: ['oauth-monitoring'],
       security: [{ BearerAuth: [] }]
     }

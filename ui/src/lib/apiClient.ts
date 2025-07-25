@@ -8,6 +8,7 @@ import {
   RolesApi,
   SmartAppsApi,
   ServersApi,
+  ServerApi,
   Configuration,
   ResponseError
 } from './api-client';
@@ -95,6 +96,7 @@ export const createOauthMonitoringApi = (token?: string) => new OauthMonitoringA
 export const createRolesApi = (token?: string) => new RolesApi(createConfig(token));
 export const createSmartAppsApi = (token?: string) => new SmartAppsApi(createConfig(token));
 export const createServersApi = (token?: string) => new ServersApi(createConfig(token));
+export const createServerApi = (token?: string) => new ServerApi(createConfig(token));
 
 // Create all API clients at once
 export const createApiClients = (token?: string) => ({
@@ -107,6 +109,7 @@ export const createApiClients = (token?: string) => ({
   roles: createRolesApi(token),
   smartApps: createSmartAppsApi(token),
   servers: createServersApi(token),
+  server: createServerApi(token),
 });
 
 // Helper to get token from localStorage

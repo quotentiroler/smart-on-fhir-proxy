@@ -28,7 +28,7 @@ import {
   Globe,
   AlertCircle,
 } from 'lucide-react';
-import type { SmartApp, ScopeSet, SmartAppType, AuthenticationType } from '@/types/smartApp';
+import type { SmartApp, ScopeSet, SmartAppType, AuthenticationType } from '@/lib/types/api';
 
 interface SmartAppsTableProps {
   apps: SmartApp[];
@@ -53,7 +53,7 @@ export function SmartAppsTable({
           className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
           icon: Globe,
         };
-      case 'specific-servers':
+      case 'selected-servers':
         return {
           label: `${app.allowedServerIds?.length || 0} Servers`,
           className: 'bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800',
@@ -86,7 +86,7 @@ export function SmartAppsTable({
           label: `Standalone (${authenticationType === 'asymmetric' ? 'Asymmetric' : 'Symmetric'})`,
           className: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800',
         };
-      case 'ehr-launch-app':
+      case 'ehr-launch':
         return {
           label: `EHR Launch (${authenticationType === 'asymmetric' ? 'Asymmetric' : 'Symmetric'})`,
           className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
@@ -110,7 +110,7 @@ export function SmartAppsTable({
         return '🔧';
       case 'standalone-app':
         return '📱';
-      case 'ehr-launch-app':
+      case 'ehr-launch':
         return '🏥';
       case 'agent':
         return '🤖';
@@ -183,7 +183,7 @@ export function SmartAppsTable({
                               <IconComponent className="w-3 h-3 mr-1" />
                               {accessBadge.label}
                             </Badge>
-                            {app.serverAccessType === 'specific-servers' && app.allowedServerIds && (
+                            {app.serverAccessType === 'selected-servers' && app.allowedServerIds && (
                               <div className="text-xs text-muted-foreground">
                                 {app.allowedServerIds.join(', ')}
                               </div>
