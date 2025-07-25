@@ -186,7 +186,7 @@ export function LaunchContextManager() {
   const { contextSets, addContextSet, updateContextSet, deleteContextSet } = useLaunchContextSets();
 
   // Use auth store to get authenticated API clients and auth state
-  const { isAuthenticated, profile, apiClients, withAuthErrorHandling } = useAuth();
+  const { isAuthenticated, profile, apiClients } = useAuth();
 
   // Track if templates have been initialized to prevent infinite loops
   const templatesInitialized = useRef(false);
@@ -292,14 +292,11 @@ export function LaunchContextManager() {
         setError(null);
         try {
           // Use auth store's API clients with automatic error handling
-          const response = await withAuthErrorHandling(() => 
-            apiClients.launchContexts.getAdminLaunchContexts()
-          );
+          const response = await apiClients.launchContexts.getAdminLaunchContexts();
           setLaunchContextUsers(response);
           console.log('Successfully loaded launch contexts:', response.length);
         } catch (err) {
           console.error('Failed to load launch contexts:', err);
-          // Error is already handled by withAuthErrorHandling (auth errors)
           // Set generic error for non-auth errors
           setError('Failed to load launch contexts. Please try again.');
         } finally {
@@ -310,7 +307,7 @@ export function LaunchContextManager() {
 
       loadLaunchContextsImmediate();
     }
-  }, [activeTab, isAuthenticated, profile, apiClients.launchContexts, withAuthErrorHandling]);
+  }, [activeTab, isAuthenticated, profile, apiClients.launchContexts]);
 
   // Handle saving a context set from the builder
   const handleSaveContextSet = (contextSetData: Omit<ContextSet, 'id' | 'createdAt' | 'updatedAt'>) => {

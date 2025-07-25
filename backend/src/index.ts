@@ -15,7 +15,7 @@ import { initializeServer, displayServerEndpoints } from './init'
 import { oauthMetricsLogger } from './lib/oauth-metrics-logger'
 
 const app = new Elysia({
-  name: config.appName,
+  name: config.name,
   serve: {
     idleTimeout: 120 // 2 minutes - more secure, still sufficient for SSE with 30s keepalive
   },
@@ -32,9 +32,9 @@ const app = new Elysia({
   .use(swagger({
     documentation: {
       info: {
-        title: 'SMART on FHIR API',
+        title:  config.displayName,
         version: config.version,
-        description: 'Healthcare administration API for SMART on FHIR applications'
+        description: 'SMART on FHIR Proxy + Healthcare Administration API using Keycloak and Elysia',
       },
       tags: [
         { name: 'authentication', description: 'Authentication and authorization endpoints' },

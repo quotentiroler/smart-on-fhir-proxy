@@ -56,7 +56,7 @@ async function generateAuthorizationDetailsFromToken(
     for (const serverInfo of serverInfos) {
       const serverDetail: AuthorizationDetail = {
         type: 'smart_on_fhir',
-        locations: [`${config.baseUrl}/${config.appName}/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}`],
+        locations: [`${config.baseUrl}/${config.name}/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}`],
         fhirVersions: [serverInfo.metadata.fhirVersion]
       }
 

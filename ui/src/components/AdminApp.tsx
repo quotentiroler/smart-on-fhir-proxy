@@ -48,6 +48,7 @@ import {
 import type { 
     OAuthEvent
 } from '../lib/types/api';
+import { config } from '../config';
 
 export function AdminApp() {
     const { activeTab, setActiveTab } = useAppStore();
@@ -310,7 +311,7 @@ export function AdminApp() {
 }
 
 function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
-    const { profile, fetchProfile, apiClients, withAuthErrorHandling } = useAuth();
+    const { profile, fetchProfile, apiClients } = useAuth();
     const { t } = useTranslation();
     
     // State for real data with proper typing
@@ -379,15 +380,15 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                 
                 // Fetch data in parallel with correct API methods
                 const [smartApps, users, servers, identityProvidersCount, recentEvents, analytics, systemStatus] = await Promise.allSettled([
-                    withAuthErrorHandling(() => apiClients.smartApps.getAdminSmartApps()),
-                    withAuthErrorHandling(() => apiClients.healthcareUsers.getAdminHealthcareUsers()),
-                    withAuthErrorHandling(() => apiClients.servers.getFhirServers()),
-                    withAuthErrorHandling(() => apiClients.identityProviders.getAdminIdpsCount()),
-                    withAuthErrorHandling(() => apiClients.oauthMonitoring.getMonitoringOauthEvents({
+                    apiClients.smartApps.getAdminSmartApps(),
+                    apiClients.healthcareUsers.getAdminHealthcareUsers(),
+                    apiClients.servers.getFhirServers(),
+                    apiClients.identityProviders.getAdminIdpsCount(),
+                    apiClients.oauthMonitoring.getMonitoringOauthEvents({
                         limit: '5'
-                    })),
-                    withAuthErrorHandling(() => apiClients.oauthMonitoring.getMonitoringOauthAnalytics()),
-                    withAuthErrorHandling(() => apiClients.server.getStatus())
+                    }),
+                    apiClients.oauthMonitoring.getMonitoringOauthAnalytics(),
+                    apiClients.server.getStatus()
                 ]);
                 
                 // Update dashboard data with proper type checking
@@ -471,7 +472,7 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                 // Measure API response time with a simple call
                 const startTime = performance.now();
                 try {
-                    await withAuthErrorHandling(() => apiClients.smartApps.getAdminSmartApps());
+                    await apiClients.smartApps.getAdminSmartApps();
                     const endTime = performance.now();
                     
                     setSystemHealth(prev => ({
@@ -501,7 +502,7 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
         };
         
         fetchDashboardData();
-    }, [apiClients, withAuthErrorHandling]);
+    }, [apiClients]);
 
     const handleRefresh = () => {
         fetchProfile();
@@ -856,36 +857,18 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                                 </div>
                             ))
                         ) : (
-                            <>
-                                <div className="flex items-center justify-between py-4 px-5 bg-blue-500/5 dark:bg-blue-400/10 rounded-xl hover:bg-blue-500/10 dark:hover:bg-blue-400/20 transition-all duration-200 border border-blue-500/20 dark:border-blue-400/30">
-                                    <div className="flex items-center">
-                                        <div className="w-4 h-4 bg-blue-500 dark:bg-blue-400 rounded-full mr-4 shadow-sm"></div>
-                                        <span className="text-foreground font-medium">{t('Authorization flow completed')}</span>
-                                    </div>
-                                    <span className="text-sm text-muted-foreground bg-muted/80 px-3 py-1 rounded-full font-medium">{t('2min ago')}</span>
+                            <div className="text-center py-8">
+                                <div className="w-16 h-16 bg-muted/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <BarChart3 className="w-8 h-8 text-muted-foreground" />
                                 </div>
-                                <div className="flex items-center justify-between py-4 px-5 bg-emerald-500/5 dark:bg-emerald-400/10 rounded-xl hover:bg-emerald-500/10 dark:hover:bg-emerald-400/20 transition-all duration-200 border border-emerald-500/20 dark:border-emerald-400/30">
-                                    <div className="flex items-center">
-                                        <div className="w-4 h-4 bg-emerald-500 dark:bg-emerald-400 rounded-full mr-4 shadow-sm"></div>
-                                        <span className="text-foreground font-medium">{t('Token exchange successful')}</span>
-                                    </div>
-                                    <span className="text-sm text-muted-foreground bg-muted/80 px-3 py-1 rounded-full font-medium">{t('5min ago')}</span>
-                                </div>
-                                <div className="flex items-center justify-between py-4 px-5 bg-violet-500/5 dark:bg-violet-400/10 rounded-xl hover:bg-violet-500/10 dark:hover:bg-violet-400/20 transition-all duration-200 border border-violet-500/20 dark:border-violet-400/30">
-                                    <div className="flex items-center">
-                                        <div className="w-4 h-4 bg-violet-500 dark:bg-violet-400 rounded-full mr-4 shadow-sm"></div>
-                                        <span className="text-foreground font-medium">{t('SMART app launched')}</span>
-                                    </div>
-                                    <span className="text-sm text-muted-foreground bg-muted/80 px-3 py-1 rounded-full font-medium">{t('1h ago')}</span>
-                                </div>
-                                <div className="flex items-center justify-between py-4 px-5 bg-orange-500/5 dark:bg-orange-400/10 rounded-xl hover:bg-orange-500/10 dark:hover:bg-orange-400/20 transition-all duration-200 border border-orange-500/20 dark:border-orange-400/30">
-                                    <div className="flex items-center">
-                                        <div className="w-4 h-4 bg-orange-500 dark:bg-orange-400 rounded-full mr-4 shadow-sm"></div>
-                                        <span className="text-foreground font-medium">{t('Client credentials grant')}</span>
-                                    </div>
-                                    <span className="text-sm text-muted-foreground bg-muted/80 px-3 py-1 rounded-full font-medium">{t('3h ago')}</span>
-                                </div>
-                            </>
+                                <h4 className="text-lg font-semibold text-foreground mb-2">{t('No Recent OAuth Activity')}</h4>
+                                <p className="text-muted-foreground text-sm">
+                                    {t('OAuth events will appear here once authentication flows begin.')}
+                                </p>
+                                <p className="text-muted-foreground text-xs mt-2">
+                                    {t('Try accessing a SMART application to generate OAuth events.')}
+                                </p>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -900,7 +883,7 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                         </div>
                         <div>
                             <div className="text-sm font-semibold text-muted-foreground">{t('Platform Version')}</div>
-                            <div className="text-lg font-bold text-foreground">v0.0.1-alpha</div>
+                            <div className="text-lg font-bold text-foreground">v{config.version}</div>
                         </div>
                     </div>
                     <div className="flex items-center space-x-3 p-4 bg-muted/30 rounded-xl">
@@ -909,7 +892,7 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                         </div>
                         <div>
                             <div className="text-sm font-semibold text-muted-foreground">{t('Environment')}</div>
-                            <div className="text-lg font-bold text-foreground">{t('Development')}</div>
+                            <div className="text-lg font-bold text-foreground">{config.app.environment.charAt(0).toUpperCase() + config.app.environment.slice(1)}</div>
                         </div>
                     </div>
                 </div>

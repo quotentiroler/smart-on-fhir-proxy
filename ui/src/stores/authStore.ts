@@ -2,8 +2,7 @@ import React from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { openidService } from '../service/openid-service';
-import { createApiClients } from '../lib/apiClient';
-import { ResponseError } from '../lib/api-client';
+import { createApiClients, setAuthErrorHandler } from '../lib/apiClient';
 import type { GetAuthUserinfo200Response } from '../lib/api-client';
 
 interface TokenData {
@@ -64,8 +63,6 @@ interface AuthState {
   logout: () => void;
   clearError: () => void;
   updateApiClients: () => void;
-  // Wrapper for API calls that automatically handles auth errors
-  withAuthErrorHandling: <T>(apiCall: () => Promise<T>) => Promise<T>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -83,9 +80,13 @@ export const useAuthStore = create<AuthState>()(
         const tokens = getStoredTokens();
         const token = tokens?.access_token || undefined;
         set({ apiClients: createApiClients(token) });
-      },
-
-      // Actions
+        
+        // Set up auth error handler each time we update clients
+        setAuthErrorHandler(() => {
+          console.log('Auth error handler triggered, logging out...');
+          get().logout();
+        });
+      },      // Actions
       initiateLogin: async () => {
         set({ loading: true, error: null });
         
@@ -252,54 +253,6 @@ export const useAuthStore = create<AuthState>()(
 
       clearError: () => {
         set({ error: null });
-      },
-
-      // Wrapper for API calls that automatically handles auth errors
-      withAuthErrorHandling: async <T>(apiCall: () => Promise<T>): Promise<T> => {
-        try {
-          return await apiCall();
-        } catch (error) {
-          // Check for ResponseError first
-          if (error instanceof ResponseError) {
-            if (error.response.status === 401 || error.response.status === 403) {
-              console.warn('Authentication error detected, triggering logout');
-              get().logout();
-              throw new Error('Authentication expired. Please log in again.');
-            }
-          }
-          
-          // Check for other error formats that might contain status
-          if (error && typeof error === 'object') {
-            const err = error as Record<string, unknown>;
-            // Check various possible error formats
-            const status = (err.status as number) || 
-                          ((err.response as Record<string, unknown>)?.status as number) || 
-                          ((err.responseData as Record<string, unknown>)?.status as number);
-            if (status === 401 || status === 403) {
-              console.warn('Authentication error detected (status check), triggering logout');
-              get().logout();
-              throw new Error('Authentication expired. Please log in again.');
-            }
-            
-            // Check for HTTP 401 in error message
-            if (typeof err.message === 'string' && err.message.includes('401')) {
-              console.warn('Authentication error detected (message check), triggering logout');
-              get().logout();
-              throw new Error('Authentication expired. Please log in again.');
-            }
-            
-            // Check for nested error data
-            const responseData = err.responseData as Record<string, unknown>;
-            if (responseData && typeof responseData.error === 'string' && responseData.error.includes('401')) {
-              console.warn('Authentication error detected (responseData check), triggering logout');
-              get().logout();
-              throw new Error('Authentication expired. Please log in again.');
-            }
-          }
-          
-          // If not an auth error, re-throw the original error
-          throw error;
-        }
       },
     }),
     {

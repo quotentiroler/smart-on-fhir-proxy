@@ -16,7 +16,8 @@ export const config = {
   port: process.env.PORT || 8445,
   
   // Application name and version from package.json
-  appName: packageJson.name,
+  name: packageJson.name,
+  displayName: packageJson.displayName || packageJson.name,
   version: packageJson.version,
   
   keycloak: {

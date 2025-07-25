@@ -472,7 +472,11 @@ export function OAuthMonitoringDashboard() {
                     variant={connectionMode === 'websocket' ? "default" : "ghost"}
                     onClick={() => switchConnectionMode('websocket')}
                     size="sm"
-                    className="text-xs px-3 py-1 h-8 bg-green-500/20 hover:bg-green-500/30 text-green-800 dark:text-green-300 border-green-500/30"
+                    className={`text-xs px-3 py-1 h-8 border transition-all ${
+                      connectionMode === 'websocket' 
+                        ? 'bg-green-500/30 hover:bg-green-500/40 text-green-900 dark:text-green-100 border-green-500/50 font-semibold shadow-sm' 
+                        : 'bg-green-500/10 hover:bg-green-500/15 text-green-700/70 dark:text-green-400/70 border-green-500/20 font-medium'
+                    }`}
                   >
                     WebSocket
                   </Button>
@@ -480,18 +484,33 @@ export function OAuthMonitoringDashboard() {
                     variant={connectionMode === 'sse' ? "default" : "ghost"}
                     onClick={() => switchConnectionMode('sse')}
                     size="sm"
-                    className="text-xs px-3 py-1 h-8 bg-green-500/20 hover:bg-green-500/30 text-green-800 dark:text-green-300 border-green-500/30"
+                    className={`text-xs px-3 py-1 h-8 border transition-all ${
+                      connectionMode === 'sse' 
+                        ? 'bg-green-500/30 hover:bg-green-500/40 text-green-900 dark:text-green-100 border-green-500/50 font-semibold shadow-sm' 
+                        : 'bg-green-500/10 hover:bg-green-500/15 text-green-700/70 dark:text-green-400/70 border-green-500/20 font-medium'
+                    }`}
                   >
                     SSE
                   </Button>
                 </div>
+                {oauthWebSocketService.isUsingSSE && connectionMode === 'websocket' && (
+                  <div className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    Fallback to SSE (WebSocket failed)
+                  </div>
+                )}
               </div>
               <div>
                 <Badge className="bg-green-500/20 text-green-800 dark:text-green-300 border-green-500/30 font-semibold">
-                  {oauthWebSocketService.connectionMode === 'websocket' ? 'WebSocket Connected' : 
-                   oauthWebSocketService.connectionMode === 'sse' ? 'SSE Connected' : 
+                  {oauthWebSocketService.connectionMode === 'websocket' ? 'WebSocket Active' : 
+                   oauthWebSocketService.connectionMode === 'sse' ? 'SSE Active' : 
                    'Disconnected'}
                 </Badge>
+                {oauthWebSocketService.isUsingSSE && connectionMode === 'websocket' && (
+                  <Badge className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/30 font-semibold mt-1">
+                    Auto-fallback
+                  </Badge>
+                )}
               </div>
             </div>
           </div>
@@ -520,7 +539,11 @@ export function OAuthMonitoringDashboard() {
                     variant={connectionMode === 'websocket' ? "default" : "ghost"}
                     onClick={() => switchConnectionMode('websocket')}
                     size="sm"
-                    className="text-xs px-3 py-1 h-8 bg-orange-500/20 hover:bg-orange-500/30 text-orange-800 dark:text-orange-300 border-orange-500/30"
+                    className={`text-xs px-3 py-1 h-8 border transition-all ${
+                      connectionMode === 'websocket' 
+                        ? 'bg-orange-500/30 hover:bg-orange-500/40 text-orange-900 dark:text-orange-100 border-orange-500/50 font-semibold shadow-sm' 
+                        : 'bg-orange-500/10 hover:bg-orange-500/15 text-orange-700/70 dark:text-orange-400/70 border-orange-500/20 font-medium'
+                    }`}
                   >
                     WebSocket
                   </Button>
@@ -528,16 +551,32 @@ export function OAuthMonitoringDashboard() {
                     variant={connectionMode === 'sse' ? "default" : "ghost"}
                     onClick={() => switchConnectionMode('sse')}
                     size="sm"
-                    className="text-xs px-3 py-1 h-8 bg-orange-500/20 hover:bg-orange-500/30 text-orange-800 dark:text-orange-300 border-orange-500/30"
+                    className={`text-xs px-3 py-1 h-8 border transition-all ${
+                      connectionMode === 'sse' 
+                        ? 'bg-orange-500/30 hover:bg-orange-500/40 text-orange-900 dark:text-orange-100 border-orange-500/50 font-semibold shadow-sm' 
+                        : 'bg-orange-500/10 hover:bg-orange-500/15 text-orange-700/70 dark:text-orange-400/70 border-orange-500/20 font-medium'
+                    }`}
                   >
                     SSE
                   </Button>
                 </div>
+                {oauthWebSocketService.isUsingSSE && connectionMode === 'websocket' && (
+                  <div className="text-xs text-amber-600 dark:text-amber-400 mt-1 flex items-center">
+                    <AlertTriangle className="w-3 h-3 mr-1" />
+                    Fallback to SSE (WebSocket failed)
+                  </div>
+                )}
               </div>
               <div>
                 <Badge className="bg-orange-500/20 text-orange-800 dark:text-orange-300 border-orange-500/30 font-semibold">
-                  Paused
+                  Paused ({oauthWebSocketService.connectionMode === 'websocket' ? 'WebSocket' : 
+                          oauthWebSocketService.connectionMode === 'sse' ? 'SSE' : 'Disconnected'})
                 </Badge>
+                {oauthWebSocketService.isUsingSSE && connectionMode === 'websocket' && (
+                  <Badge className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/30 font-semibold mt-1">
+                    Auto-fallback
+                  </Badge>
+                )}
               </div>
             </div>
           </div>

@@ -76,7 +76,7 @@ export class OAuthWebSocketService {
       await this.connectWebSocket();
       this.useSSE = false;
     } catch {
-      console.log('WebSocket connection failed, falling back to SSE');
+      console.warn('WebSocket connection failed, falling back to SSE');
       this.connectSSE();
       this.useSSE = true;
     } finally {
@@ -192,7 +192,7 @@ export class OAuthWebSocketService {
           await this.connectWebSocket();
           this.useSSE = false;
         } catch {
-          console.log('WebSocket connection failed, falling back to SSE');
+          console.warn('WebSocket connection failed, falling back to SSE');
           this.connectSSE();
           this.useSSE = true;
         }
@@ -227,7 +227,6 @@ export class OAuthWebSocketService {
             if (stored) {
               const tokens = JSON.parse(stored);
               if (tokens.access_token) {
-                console.log('Found access token from auth store localStorage');
                 return tokens.access_token;
               }
             }
@@ -247,8 +246,6 @@ export class OAuthWebSocketService {
         return;
       }
 
-      console.log('Attempting WebSocket authentication with token from auth store, length:', token.length);
-
       // Set up timeout for authentication
       const authTimeout = setTimeout(() => {
         this.removeEventHandler('auth_success', authHandler);
@@ -260,15 +257,12 @@ export class OAuthWebSocketService {
       // Listen for auth response
       const authHandler = (data: unknown) => {
         const message = data as { type: string; data?: { message?: string } };
-        console.log('Received WebSocket message during auth:', message);
-        
         if (message.type === 'auth_success') {
           clearTimeout(authTimeout);
           this.authenticated = true;
           this.removeEventHandler('auth_success', authHandler);
           this.removeEventHandler('auth_error', authHandler);
           this.removeEventHandler('error', errorHandler);
-          console.log('WebSocket authentication successful');
           resolve();
         } else if (message.type === 'auth_error') {
           clearTimeout(authTimeout);
@@ -301,7 +295,6 @@ export class OAuthWebSocketService {
 
       // Send auth message
       const authMessage = { type: 'auth', token };
-      console.log('Sending auth message:', { type: 'auth', tokenLength: token.length });
       this.sendMessage(authMessage);
     });
   }

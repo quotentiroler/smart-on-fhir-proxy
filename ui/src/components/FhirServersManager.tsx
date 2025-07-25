@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Server,
   Database,
@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { createAuthenticatedApiClients } from '../lib/apiClient';
+import { useAuth } from '../stores/authStore';
 import type { 
   GetFhirServersByServerName200Response,
   GetFhirServers200ResponseServersInner
@@ -41,6 +41,7 @@ type FhirServerWithStatus = GetFhirServers200ResponseServersInner & {
 };
 
 export function FhirServersManager() {
+  const { apiClients } = useAuth();
   const [servers, setServers] = useState<FhirServerWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -62,8 +63,6 @@ export function FhirServersManager() {
 
   // Security check state
   const [securityChecks, setSecurityChecks] = useState<Record<string, 'checking' | 'secure' | 'insecure'>>({});
-
-  const apiClient = useMemo(() => createAuthenticatedApiClients(), []);
 
   const checkServerSecurity = useCallback(async (server: FhirServerWithStatus) => {
     // Use functional state update to check current state
@@ -120,10 +119,10 @@ export function FhirServersManager() {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClient.servers.getFhirServers();
+      const response = await apiClients.servers.getFhirServers();
       
       // Map servers and detect connection errors
-      const mappedServers = response.servers.map(server => ({
+      const mappedServers = response.servers.map((server: GetFhirServers200ResponseServersInner) => ({
         ...server,
         hasConnectionError: server.serverName === 'Unknown FHIR Server' || 
                            server.displayName === 'Unknown FHIR Server' ||
@@ -137,7 +136,7 @@ export function FhirServersManager() {
       setSecurityChecks(prevChecks => {
         const updatedChecks = { ...prevChecks };
         
-        mappedServers.forEach(server => {
+        mappedServers.forEach((server: FhirServerWithStatus) => {
           if (server.hasConnectionError) {
             // Clear any existing security check for servers with connection errors
             delete updatedChecks[server.id];
@@ -155,7 +154,7 @@ export function FhirServersManager() {
     } finally {
       setLoading(false);
     }
-  }, [apiClient, checkServerSecurity]);
+  }, [apiClients, checkServerSecurity]);
 
   const isValidUrl = (url: string) => {
     try {
@@ -191,7 +190,7 @@ export function FhirServersManager() {
       setError(null);
       setUrlError(null);
       
-      await apiClient.servers.postFhirServers({
+      await apiClients.servers.postFhirServers({
         postFhirServersRequest: {
           url: trimmedUrl
         }
@@ -266,7 +265,7 @@ export function FhirServersManager() {
       setUrlError(null);
       
       // Use the PUT endpoint to update the server
-      await apiClient.servers.putFhirServersByServerId({
+      await apiClients.servers.putFhirServersByServerId({
         serverId: editingServer.id,
         putFhirServersByServerIdRequest: {
           url: trimmedUrl
@@ -301,7 +300,7 @@ export function FhirServersManager() {
   const fetchServerDetail = useCallback(async (serverName: string) => {
     try {
       setLoadingServerDetail(true);
-      const response = await apiClient.servers.getFhirServersByServerName({ serverName });
+      const response = await apiClients.servers.getFhirServersByServerName({ serverName });
       setSelectedServer(response);
       setActiveTab('details'); // Switch to details tab
     } catch (err) {
@@ -310,7 +309,7 @@ export function FhirServersManager() {
     } finally {
       setLoadingServerDetail(false);
     }
-  }, [apiClient]);
+  }, [apiClients]);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);

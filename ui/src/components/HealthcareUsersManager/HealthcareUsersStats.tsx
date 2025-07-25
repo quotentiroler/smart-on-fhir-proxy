@@ -95,9 +95,18 @@ function PieChart({ data, className = "" }: { data: RoleData[]; className?: stri
       'Z'
     ].join(' ');
     
+    // Calculate mid-angle for hover lift effect
+    const midAngle = (startAngle + endAngle) / 2;
+    const midAngleRad = (midAngle * Math.PI) / 180;
+    const liftDistance = hoveredSegment === item.role ? 3 : 0;
+    const liftX = Math.cos(midAngleRad) * liftDistance;
+    const liftY = Math.sin(midAngleRad) * liftDistance;
+    
     return {
       ...item,
       pathData,
+      liftX,
+      liftY,
       isHovered: hoveredSegment === item.role
     };
   });
@@ -106,7 +115,7 @@ function PieChart({ data, className = "" }: { data: RoleData[]; className?: stri
     <div className={`relative group aspect-square ${className}`}>
       <svg 
         viewBox={`0 0 ${size} ${size}`} 
-        className="w-full h-full transform -rotate-90 transition-transform duration-200 hover:scale-105"
+        className="w-full h-full transform -rotate-90 transition-transform duration-200"
       >
         {segments.map((segment) => (
           <path
@@ -114,8 +123,12 @@ function PieChart({ data, className = "" }: { data: RoleData[]; className?: stri
             d={segment.pathData}
             fill={segment.color}
             className={`transition-all duration-200 cursor-pointer ${
-              segment.isHovered ? 'opacity-80' : 'opacity-100'
+              segment.isHovered ? 'opacity-90' : 'opacity-100'
             }`}
+            style={{
+              transform: `translate(${segment.liftX}px, ${segment.liftY}px)`,
+              filter: segment.isHovered ? 'brightness(1.1)' : 'none'
+            }}
             onMouseEnter={() => setHoveredSegment(segment.role)}
             onMouseLeave={() => setHoveredSegment(null)}
           />
