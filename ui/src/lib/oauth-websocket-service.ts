@@ -1,5 +1,6 @@
-// OAuth WebSocket Service - Simplified version for real-time monitoring
+// OAuth WebSocket Service - Simplified version for real-time monitoring with SSE fallback
 import { useAuthStore } from '../stores/authStore';
+import { oauthMonitoringService, type OAuthFlowEvent } from './oauth-monitoring-service';
 
 export interface OAuthEvent {
   id: string;
@@ -43,51 +44,61 @@ export class OAuthWebSocketService {
   private isConnecting = false;
   private clientId: string | null = null;
   
+  // SSE fallback properties
+  private useSSE = false;
+  private sseEventsUnsub?: () => void;
+  private sseAnalyticsUnsub?: () => void;
+  private eventsUpdateHandlers: ((event: OAuthEvent) => void)[] = [];
+  private analyticsUpdateHandlers: ((analytics: OAuthAnalytics) => void)[] = [];
+  
   constructor(baseUrl: string = 'ws://localhost:8445') {
     this.baseUrl = baseUrl;
   }
 
   async connect(): Promise<void> {
     // Prevent multiple simultaneous connections
-    if (this.isConnecting) {
-      console.log('Connection already in progress, waiting...');
-      // Wait for the current connection attempt to complete
-      while (this.isConnecting) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-      }
+    if (this.isConnecting || (this.ws && this.ws.readyState === WebSocket.OPEN) || this.useSSE) {
       return;
     }
 
+    this.isConnecting = true;
+    
+    try {
+      await this.connectWebSocket();
+      this.useSSE = false;
+    } catch {
+      console.log('WebSocket connection failed, falling back to SSE');
+      this.connectSSE();
+      this.useSSE = true;
+    } finally {
+      this.isConnecting = false;
+    }
+  }
+
+  private async connectWebSocket(): Promise<void> {
     // If already connected, disconnect first
     if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
-      console.log('WebSocket already connected/connecting, disconnecting first');
       this.disconnect();
       // Wait a bit for cleanup
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    this.isConnecting = true;
-
     return new Promise((resolve, reject) => {
       const wsUrl = `${this.baseUrl}/oauth/monitoring/websocket`;
-      console.log('Connecting to WebSocket URL:', wsUrl);
       this.ws = new WebSocket(wsUrl);
 
       // Set up welcome message handler to know when we can authenticate
       const welcomeHandler = (data: unknown) => {
         const message = data as { type: string; data?: { clientId?: string } };
         if (message.type === 'welcome') {
-          console.log('Received welcome message from WebSocket server:', message.data);
           // Store the client ID from the welcome message
           this.clientId = message.data?.clientId || null;
           this.removeEventHandler('welcome', welcomeHandler);
-          this.isConnecting = false;
           resolve();
         }
       };
 
       this.ws.onopen = () => {
-        console.log('OAuth WebSocket connected, waiting for welcome message...');
         this.addEventListener('welcome', welcomeHandler);
       };
 
@@ -95,21 +106,99 @@ export class OAuthWebSocketService {
         this.handleMessage(event);
       };
 
-      this.ws.onclose = (event) => {
-        console.log('OAuth WebSocket disconnected', { code: event.code, reason: event.reason });
+      this.ws.onclose = () => {
         this.authenticated = false;
-        this.isConnecting = false;
+        this.clientId = null;
       };
 
       this.ws.onerror = (error) => {
-        console.error('OAuth WebSocket error:', error);
-        this.isConnecting = false;
         reject(error);
       };
     });
   }
 
+  private connectSSE(): void {
+    // Subscribe to SSE events and forward them through our interface
+    this.sseEventsUnsub = oauthMonitoringService.subscribeToEvents((event: OAuthFlowEvent) => {
+      // Convert SSE event to our WebSocket event format
+      const oauthEvent: OAuthEvent = {
+        id: event.id || '',
+        timestamp: event.timestamp || new Date().toISOString(),
+        type: (event.type as OAuthEvent['type']) || 'authorization',
+        status: (event.status as OAuthEvent['status']) || 'success',
+        clientId: event.clientId || '',
+        clientName: event.clientName,
+        scopes: event.scopes || [],
+        grantType: event.grantType || '',
+        responseTime: event.responseTime || 0,
+        errorMessage: event.errorMessage
+      };
+      
+      // Trigger event handlers
+      this.eventsUpdateHandlers.forEach(handler => handler(oauthEvent));
+      this.triggerEventHandlers('events', oauthEvent);
+    });
+
+    this.sseAnalyticsUnsub = oauthMonitoringService.subscribeToAnalytics((analytics) => {
+      // Forward analytics through our interface  
+      const convertedAnalytics: OAuthAnalytics = {
+        totalFlows: analytics.totalFlows || 0,
+        successRate: analytics.successRate || 0,
+        averageResponseTime: analytics.averageResponseTime || 0,
+        activeTokens: analytics.activeTokens || 0,
+        topClients: analytics.topClients || [],
+        flowsByType: (analytics.flowsByType as Record<string, number>) || {},
+        errorsByType: (analytics.errorsByType as Record<string, number>) || {},
+        hourlyStats: analytics.hourlyStats || []
+      };
+      
+      this.analyticsUpdateHandlers.forEach(handler => handler(convertedAnalytics));
+      this.triggerEventHandlers('analytics', convertedAnalytics);
+    });
+
+    // Mark as authenticated for SSE
+    this.authenticated = true;
+    this.clientId = 'sse-client';
+  }
+
+  async connectWithMode(mode: 'websocket' | 'sse' | 'auto' = 'auto'): Promise<void> {
+    if (this.isConnecting || (this.ws && this.ws.readyState === WebSocket.OPEN) || this.useSSE) {
+      return;
+    }
+
+    this.isConnecting = true;
+    
+    try {
+      if (mode === 'sse') {
+        // Force SSE mode
+        this.connectSSE();
+        this.useSSE = true;
+      } else if (mode === 'websocket') {
+        // Force WebSocket mode (will throw if fails)
+        await this.connectWebSocket();
+        this.useSSE = false;
+      } else {
+        // Auto mode - try WebSocket first, fallback to SSE
+        try {
+          await this.connectWebSocket();
+          this.useSSE = false;
+        } catch {
+          console.log('WebSocket connection failed, falling back to SSE');
+          this.connectSSE();
+          this.useSSE = true;
+        }
+      }
+    } finally {
+      this.isConnecting = false;
+    }
+  }
+
   async authenticate(): Promise<void> {
+    // If using SSE, authentication was handled in connectSSE
+    if (this.useSSE) {
+      return Promise.resolve();
+    }
+    
     return new Promise((resolve, reject) => {
       // Ensure WebSocket is connected and client ID is received
       if (!this.isFullyReady) {
@@ -209,6 +298,11 @@ export class OAuthWebSocketService {
   }
 
   async subscribe(type: 'events' | 'analytics'): Promise<void> {
+    // In SSE mode, subscriptions are automatically active
+    if (this.useSSE) {
+      return Promise.resolve();
+    }
+    
     return new Promise((resolve, reject) => {
       if (!this.authenticated) {
         reject(new Error('Not authenticated'));
@@ -285,14 +379,31 @@ export class OAuthWebSocketService {
     }
   }
 
+  private triggerEventHandlers(type: string, data: unknown) {
+    const handlers = this.eventHandlers[type];
+    if (handlers) {
+      handlers.forEach(handler => {
+        try {
+          handler(data);
+        } catch (error) {
+          console.error('Error in event handler:', error);
+        }
+      });
+    }
+  }
+
   private sendMessage(message: Record<string, unknown>) {
+    if (this.useSSE) {
+      console.warn('Cannot send messages in SSE mode - SSE is read-only');
+      return;
+    }
+    
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       // Include client ID in the message if available
       const messageWithClientId = this.clientId 
         ? { ...message, clientId: this.clientId }
         : message;
       const messageStr = JSON.stringify(messageWithClientId);
-      console.log('Sending WebSocket message:', messageWithClientId);
       this.ws.send(messageStr);
     } else {
       console.error('Cannot send message - WebSocket not connected. State:', 
@@ -328,8 +439,8 @@ export class OAuthWebSocketService {
   }
 
   disconnect() {
+    // Clean up WebSocket
     if (this.ws) {
-      console.log('Disconnecting WebSocket...');
       // Remove all event listeners before closing
       this.eventHandlers = {};
       
@@ -340,13 +451,29 @@ export class OAuthWebSocketService {
       
       this.ws = null;
     }
+    
+    // Clean up SSE
+    if (this.useSSE) {
+      if (this.sseEventsUnsub) {
+        this.sseEventsUnsub();
+        this.sseEventsUnsub = undefined;
+      }
+      if (this.sseAnalyticsUnsub) {
+        this.sseAnalyticsUnsub();
+        this.sseAnalyticsUnsub = undefined;
+      }
+      this.eventsUpdateHandlers = [];
+      this.analyticsUpdateHandlers = [];
+      this.useSSE = false;
+    }
+    
     this.authenticated = false;
     this.isConnecting = false;
-    this.clientId = null; // Reset client ID
+    this.clientId = null;
   }
 
   get isConnected(): boolean {
-    return this.ws !== null && this.ws.readyState === WebSocket.OPEN;
+    return (this.ws !== null && this.ws.readyState === WebSocket.OPEN) || this.useSSE;
   }
 
   get isFullyReady(): boolean {
@@ -355,6 +482,15 @@ export class OAuthWebSocketService {
 
   get isAuthenticated(): boolean {
     return this.authenticated;
+  }
+
+  get connectionMode(): 'websocket' | 'sse' | 'disconnected' {
+    if (!this.isConnected) return 'disconnected';
+    return this.useSSE ? 'sse' : 'websocket';
+  }
+
+  get isUsingSSE(): boolean {
+    return this.useSSE;
   }
 }
 

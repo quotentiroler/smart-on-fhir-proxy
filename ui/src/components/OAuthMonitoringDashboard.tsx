@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -21,7 +21,7 @@ import {
   Network
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { oauthWebSocketService, type OAuthEvent, type OAuthAnalytics } from '../lib/oauth-websocket-service-simple';
+import { oauthWebSocketService, type OAuthEvent, type OAuthAnalytics } from '../lib/oauth-websocket-service';
 
 interface SystemHealth {
   oauthServer: {
@@ -47,6 +47,7 @@ export function OAuthMonitoringDashboard() {
   const [analytics, setAnalytics] = useState<OAuthAnalytics | null>(null);
   const [systemHealth] = useState<SystemHealth | null>(null);
   const [isRealTimeActive, setIsRealTimeActive] = useState(true);
+  const [connectionMode, setConnectionMode] = useState<'websocket' | 'sse'>('websocket');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,7 +55,7 @@ export function OAuthMonitoringDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   // Load initial data
-  const loadInitialData = async () => {
+  const loadInitialData = useCallback(async (forceMode?: 'websocket' | 'sse') => {
     setIsLoading(true);
     setError(null);
     
@@ -66,8 +67,9 @@ export function OAuthMonitoringDashboard() {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
 
-      // Connect to WebSocket service
-      await oauthWebSocketService.connect();
+      // Connect using the specified or preferred mode
+      const targetMode = forceMode || connectionMode;
+      await oauthWebSocketService.connectWithMode(targetMode === 'websocket' ? 'websocket' : 'sse');
       
       // Wait a bit to ensure connection is fully stable
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -102,7 +104,7 @@ export function OAuthMonitoringDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [connectionMode]);
 
   // Setup real-time subscriptions
   useEffect(() => {
@@ -142,7 +144,7 @@ export function OAuthMonitoringDashboard() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [loadInitialData]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -159,6 +161,14 @@ export function OAuthMonitoringDashboard() {
 
   const toggleRealTime = () => {
     setIsRealTimeActive(!isRealTimeActive);
+  };
+
+  const switchConnectionMode = async (newMode: 'websocket' | 'sse') => {
+    if (newMode === connectionMode) return;
+    
+    setConnectionMode(newMode);
+    // Reconnect with the new mode
+    await loadInitialData(newMode);
   };
 
   const filteredEvents = events.filter(event => {
@@ -220,6 +230,25 @@ export function OAuthMonitoringDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-4 py-2 bg-card rounded-2xl border border-border shadow-sm">
+              <span className="text-sm font-medium text-muted-foreground">Connection:</span>
+              <Button
+                variant={connectionMode === 'websocket' ? "default" : "ghost"}
+                onClick={() => switchConnectionMode('websocket')}
+                size="sm"
+                className="text-xs px-3 py-1 h-8"
+              >
+                WebSocket
+              </Button>
+              <Button
+                variant={connectionMode === 'sse' ? "default" : "ghost"}
+                onClick={() => switchConnectionMode('sse')}
+                size="sm"
+                className="text-xs px-3 py-1 h-8"
+              >
+                SSE
+              </Button>
+            </div>
             <Button
               variant={isRealTimeActive ? "default" : "outline"}
               onClick={toggleRealTime}
@@ -254,13 +283,27 @@ export function OAuthMonitoringDashboard() {
       {/* Real-time Status */}
       {isRealTimeActive && (
         <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 p-6 rounded-2xl border border-green-500/20 shadow-lg">
-          <div className="flex items-center">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-green-600/30 rounded-xl flex items-center justify-center mr-4 shadow-sm">
-              <Activity className="h-5 w-5 text-green-600 animate-pulse" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-green-600/30 rounded-xl flex items-center justify-center mr-4 shadow-sm">
+                <Activity className="h-5 w-5 text-green-600 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-green-900 dark:text-green-300 mb-1">
+                  {t('Real-time Monitoring Active')}
+                </h3>
+                <p className="text-green-800 dark:text-green-400 font-medium">
+                  {t('OAuth events are pushed in real time as they occur.')}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-green-900 dark:text-green-300 mb-1">{t('Real-time Monitoring Active')}</h3>
-              <p className="text-green-800 dark:text-green-400 font-medium">{t('Data refreshes every 30 seconds. OAuth events are being tracked live.')}</p>
+            <div className="text-right">
+              <div className="text-sm text-green-700 dark:text-green-400 mb-1">Connection Mode</div>
+              <Badge className="bg-green-500/20 text-green-800 dark:text-green-300 border-green-500/30 font-semibold">
+                {oauthWebSocketService.connectionMode === 'websocket' ? 'WebSocket' : 
+                 oauthWebSocketService.connectionMode === 'sse' ? 'Server-Sent Events' : 
+                 'Disconnected'}
+              </Badge>
             </div>
           </div>
         </div>
@@ -279,11 +322,11 @@ export function OAuthMonitoringDashboard() {
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 bg-muted/50 rounded-2xl p-2">
-              <TabsTrigger value="overview" className="rounded-xl font-medium">{t('Overview')}</TabsTrigger>
-              <TabsTrigger value="flows" className="rounded-xl font-medium">{t('OAuth Flows')}</TabsTrigger>
-              <TabsTrigger value="analytics" className="rounded-xl font-medium">{t('Analytics')}</TabsTrigger>
-              <TabsTrigger value="monitoring" className="rounded-xl font-medium">{t('System Health')}</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 bg-muted/50 rounded-t-2xl">
+              <TabsTrigger value="overview" className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-foreground">{t('Overview')}</TabsTrigger>
+              <TabsTrigger value="flows" className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-foreground">{t('OAuth Flows')}</TabsTrigger>
+              <TabsTrigger value="analytics" className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-foreground">{t('Analytics')}</TabsTrigger>
+              <TabsTrigger value="monitoring" className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-foreground">{t('System Health')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">

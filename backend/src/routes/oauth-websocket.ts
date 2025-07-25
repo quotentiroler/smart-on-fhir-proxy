@@ -64,7 +64,14 @@ export const oauthWebSocket = new Elysia({ prefix: '/oauth/monitoring' })
           ? JSON.parse(message) 
           : message;
       } catch (error) {
-        logger.auth.error('Error parsing WebSocket message', { error });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorName = error instanceof Error ? error.name : 'Error';
+        logger.auth.error('Failed to parse WebSocket message - invalid JSON format', { 
+          error: errorMessage,
+          errorType: errorName,
+          messageSnippet: typeof message === 'string' ? message.substring(0, 100) : 'non-string message',
+          action: 'Sending error response to client'
+        });
         ws.send(JSON.stringify({
           type: 'error',
           data: { message: 'Invalid message format' }
@@ -171,10 +178,14 @@ async function handleWebSocketMessage(client: WebSocketClient, message: WebSocke
         }));
     }
   } catch (error) {
-    logger.auth.error('Error handling WebSocket message', { 
-      error, 
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorName = error instanceof Error ? error.name : 'Error';
+    logger.auth.error('Failed to handle WebSocket message - internal processing error', { 
+      error: errorMessage,
+      errorType: errorName,
       clientId: client.id, 
-      messageType: message.type 
+      messageType: message.type,
+      action: 'Sending error response to client'
     });
     
     client.ws.send(JSON.stringify({
@@ -499,9 +510,15 @@ export function broadcastToOAuthClients(type: string, data: Record<string, unkno
       try {
         client.ws.send(message);
       } catch (error) {
-        logger.auth.error('Error broadcasting to OAuth WebSocket client', { 
-          error, 
-          clientId: client.id 
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const errorName = error instanceof Error ? error.name : 'Error';
+        logger.auth.error('Failed to broadcast message to WebSocket client - connection broken', { 
+          error: errorMessage,
+          errorType: errorName,
+          clientId: client.id,
+          messageType: type,
+          readyState: client.ws.readyState,
+          action: 'Client will be automatically cleaned up on next heartbeat'
         });
       }
     }

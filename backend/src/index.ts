@@ -14,7 +14,14 @@ import { logger } from './lib/logger'
 import { initializeServer, displayServerEndpoints } from './init'
 import { oauthMetricsLogger } from './lib/oauth-metrics-logger'
 
-const app = new Elysia()
+const app = new Elysia({
+  serve: {
+    idleTimeout: 120 // 2 minutes - more secure, still sufficient for SSE with 30s keepalive
+  },
+  websocket: {
+    idleTimeout: 120 // 2 minutes for WebSocket connections
+  }
+})
   .use(cors({
     origin: ['http://localhost:5173', 'http://localhost:3000'],
     credentials: true,

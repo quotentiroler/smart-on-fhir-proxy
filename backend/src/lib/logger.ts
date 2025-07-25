@@ -47,7 +47,9 @@ const defaultConfig: LoggerConfig = {
     'routes': LogLevel.DEBUG,
     'database': LogLevel.WARN,
     'security': LogLevel.WARN,
-    'performance': LogLevel.INFO
+    'performance': LogLevel.INFO,
+    'sse': LogLevel.INFO,
+    'ws': LogLevel.INFO
   }
 };
 
@@ -190,6 +192,20 @@ class Logger {
     warn: (message: string, data?: Record<string, unknown>) => this.warn('performance', message, data),
     info: (message: string, data?: Record<string, unknown>) => this.info('performance', message, data),
     debug: (message: string, data?: Record<string, unknown>) => this.debug('performance', message, data)
+  };
+
+  sse = {
+    error: (message: string, data?: Record<string, unknown>, error?: Error) => this.error('sse', message, data, error),
+    warn: (message: string, data?: Record<string, unknown>) => this.warn('sse', message, data),
+    info: (message: string, data?: Record<string, unknown>) => this.info('sse', message, data),
+    debug: (message: string, data?: Record<string, unknown>) => this.debug('sse', message, data)
+  };
+
+  ws = {
+    error: (message: string, data?: Record<string, unknown>, error?: Error) => this.error('ws', message, data, error),
+    warn: (message: string, data?: Record<string, unknown>) => this.warn('ws', message, data),
+    info: (message: string, data?: Record<string, unknown>) => this.info('ws', message, data),
+    debug: (message: string, data?: Record<string, unknown>) => this.debug('ws', message, data)
   };
 }
 

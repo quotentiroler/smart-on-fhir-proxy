@@ -35,12 +35,11 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
     set.headers['Content-Type'] = 'text/event-stream';
     set.headers['Cache-Control'] = 'no-cache';
     set.headers['Connection'] = 'keep-alive';
-    set.headers['Access-Control-Allow-Origin'] = '*';
-    set.headers['Access-Control-Allow-Headers'] = 'Cache-Control';
 
     const stream = new ReadableStream({
       start(controller) {
-        logger.auth.info('OAuth events SSE stream started');
+        logger.sse.info('OAuth events SSE stream started');
+        let isStreamActive = true;
 
         // Send initial connection event
         const initialData = `data: ${JSON.stringify({ 
@@ -52,33 +51,77 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
 
         // Subscribe to OAuth events
         const unsubscribe = oauthMetricsLogger.subscribeToEvents((event) => {
+          if (!isStreamActive) return;
+          
+          // Check if controller is still open before trying to enqueue
           try {
+            if (controller.desiredSize === null) {
+              logger.sse.info('OAuth events stream controller closed during event send, stopping stream');
+              isStreamActive = false;
+              return;
+            }
+            
             const data = `data: ${JSON.stringify(event)}\n\n`;
             controller.enqueue(new TextEncoder().encode(data));
           } catch (error) {
-            logger.auth.error('Error sending OAuth event to SSE stream', { error });
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorName = error instanceof Error ? error.name : 'Error';
+            logger.sse.error('Failed to send OAuth event to SSE events stream - client disconnected', { 
+              error: errorMessage,
+              errorType: errorName,
+              eventType: event.type,
+              streamActive: isStreamActive,
+              action: 'Marking stream as inactive'
+            });
+            isStreamActive = false;
           }
         });
 
         // Send keepalive every 30 seconds
         const keepAliveInterval = setInterval(() => {
+          if (!isStreamActive) {
+            clearInterval(keepAliveInterval);
+            return;
+          }
+          
           try {
+            if (controller.desiredSize === null) {
+              logger.sse.info('OAuth events stream controller already closed, stopping keepalive');
+              isStreamActive = false;
+              clearInterval(keepAliveInterval);
+              unsubscribe();
+              return;
+            }
+            
             const keepAlive = `data: ${JSON.stringify({ 
               type: 'keepalive', 
               timestamp: new Date().toISOString() 
             })}\n\n`;
             controller.enqueue(new TextEncoder().encode(keepAlive));
           } catch (error) {
-            logger.auth.error('Error sending keepalive to SSE stream', { error });
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorName = error instanceof Error ? error.name : 'Error';
+            logger.sse.error('SSE events stream keepalive failed - client likely disconnected', { 
+              error: errorMessage,
+              errorType: errorName,
+              streamActive: isStreamActive,
+              action: 'Cleaning up stream and stopping keepalive'
+            });
+            isStreamActive = false;
             clearInterval(keepAliveInterval);
             unsubscribe();
-            controller.close();
+            try {
+              controller.close();
+            } catch {
+              // Controller might already be closed, ignore
+            }
           }
         }, 30000);
 
         // Handle stream closure
         return () => {
-          logger.auth.info('OAuth events SSE stream closed');
+          logger.sse.info('OAuth events SSE stream closed');
+          isStreamActive = false;
           clearInterval(keepAliveInterval);
           unsubscribe();
         };
@@ -128,12 +171,11 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
     set.headers['Content-Type'] = 'text/event-stream';
     set.headers['Cache-Control'] = 'no-cache';
     set.headers['Connection'] = 'keep-alive';
-    set.headers['Access-Control-Allow-Origin'] = '*';
-    set.headers['Access-Control-Allow-Headers'] = 'Cache-Control';
 
     const stream = new ReadableStream({
       start(controller) {
-        logger.auth.info('OAuth analytics SSE stream started');
+        logger.sse.info('OAuth analytics SSE stream started');
+        let isStreamActive = true;
 
         // Send initial analytics
         const currentAnalytics = oauthMetricsLogger.getAnalytics();
@@ -144,33 +186,76 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
 
         // Subscribe to analytics updates
         const unsubscribe = oauthMetricsLogger.subscribeToAnalytics((analytics) => {
+          if (!isStreamActive) return;
+          
           try {
+            if (controller.desiredSize === null) {
+              logger.sse.info('OAuth analytics stream controller closed during analytics send, stopping stream');
+              isStreamActive = false;
+              return;
+            }
+            
             const data = `data: ${JSON.stringify(analytics)}\n\n`;
             controller.enqueue(new TextEncoder().encode(data));
           } catch (error) {
-            logger.auth.error('Error sending OAuth analytics to SSE stream', { error });
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorName = error instanceof Error ? error.name : 'Error';
+            logger.sse.error('Failed to send OAuth analytics to SSE analytics stream - client disconnected', { 
+              error: errorMessage,
+              errorType: errorName,
+              analyticsData: analytics ? 'present' : 'null',
+              streamActive: isStreamActive,
+              action: 'Marking stream as inactive'
+            });
+            isStreamActive = false;
           }
         });
 
         // Send keepalive every 30 seconds
         const keepAliveInterval = setInterval(() => {
+          if (!isStreamActive) {
+            clearInterval(keepAliveInterval);
+            return;
+          }
+          
           try {
+            if (controller.desiredSize === null) {
+              logger.sse.info('OAuth analytics stream controller already closed, stopping keepalive');
+              isStreamActive = false;
+              clearInterval(keepAliveInterval);
+              unsubscribe();
+              return;
+            }
+            
             const keepAlive = `data: ${JSON.stringify({ 
               type: 'keepalive', 
               timestamp: new Date().toISOString() 
             })}\n\n`;
             controller.enqueue(new TextEncoder().encode(keepAlive));
           } catch (error) {
-            logger.auth.error('Error sending keepalive to analytics SSE stream', { error });
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            const errorName = error instanceof Error ? error.name : 'Error';
+            logger.sse.error('SSE analytics stream keepalive failed - client likely disconnected', { 
+              error: errorMessage,
+              errorType: errorName,
+              streamActive: isStreamActive,
+              action: 'Cleaning up stream and stopping keepalive'
+            });
+            isStreamActive = false;
             clearInterval(keepAliveInterval);
             unsubscribe();
-            controller.close();
+            try {
+              controller.close();
+            } catch {
+              // Controller might already be closed, ignore
+            }
           }
         }, 30000);
 
         // Handle stream closure
         return () => {
-          logger.auth.info('OAuth analytics SSE stream closed');
+          logger.sse.info('OAuth analytics SSE stream closed');
+          isStreamActive = false;
           clearInterval(keepAliveInterval);
           unsubscribe();
         };
