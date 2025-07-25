@@ -13,7 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { useAuthStore } from '../stores/authStore';
 import { useAppStore } from '../stores/appStore';
 import { useTheme } from '../hooks/use-theme';
-import type { GetAuthUserinfo200Response } from '../lib/api-client';
+import type { UserProfile } from '@/lib/types/api';
 import { 
   LayoutDashboard, 
   Zap, 
@@ -39,7 +39,7 @@ import { useTranslation } from 'react-i18next';
 interface NavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
-  profile: GetAuthUserinfo200Response;
+  profile: UserProfile;
   onChatToggle: () => void;
 }
 
@@ -80,7 +80,7 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
     setTheme(theme);
   };
 
-  const getDisplayName = (profile: GetAuthUserinfo200Response) => {
+  const getDisplayName = (profile: UserProfile) => {
     // Try firstName + lastName first (most reliable)
     if (profile.firstName && profile.lastName) {
       return `${profile.firstName} ${profile.lastName}`;
@@ -103,7 +103,7 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
     return t('User');
   };
 
-  const getInitials = (profile: GetAuthUserinfo200Response) => {
+  const getInitials = (profile: UserProfile) => {
     const name = getDisplayName(profile);
     return name
       .split(' ')

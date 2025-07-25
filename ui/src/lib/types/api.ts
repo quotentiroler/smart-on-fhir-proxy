@@ -28,6 +28,19 @@ import type {
     PutAdminRolesByRoleNameRequest,
     GetAuthUserinfo200Response,
     PostAuthToken200Response,
+    // Additional interfaces for enhanced functionality
+    GetAdminClientRegistrationSettings200Response,
+    PostAuthToken200ResponseAuthorizationDetailsInner,
+    PostAuthToken200ResponseFhirContextInner,
+    GetFhirServers200ResponseServersInnerEndpoints,
+    GetMonitoringOauthEvents200ResponseEventsInnerFhirContext,
+    GetHealth200ResponseFhirServers,
+    GetHealth200ResponseFhirServersServersInner,
+    GetHealth200ResponseMemory,
+    PostAuthIntrospect200Response,
+    PostAuthRegisterRequest,
+    PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response,
+    PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseServerInfo,
 } from '../api-client';
 
 export type {
@@ -45,6 +58,7 @@ export type {
     GetFhirServers200ResponseServersInner as FhirServer,
     PostFhirServersRequest as CreateFhirServerRequest,
     PutFhirServersByServerIdRequest as UpdateFhirServerRequest,
+    GetFhirServers200ResponseServersInnerEndpoints as FhirServerEndpoints,
     
     // Identity Providers
     GetAdminIdps200ResponseInner as IdentityProvider,
@@ -56,6 +70,7 @@ export type {
     GetMonitoringOauthAnalytics200Response as OAuthAnalytics,
     GetMonitoringOauthAnalytics200ResponseTopClientsInner as TopClient,
     GetMonitoringOauthAnalytics200ResponseHourlyStatsInner as HourlyStats,
+    GetMonitoringOauthEvents200ResponseEventsInnerFhirContext as OAuthEventFhirContext,
     
     // System Health
     GetStatus200Response as SystemStatus,
@@ -63,6 +78,9 @@ export type {
     GetStatus200ResponseServer as ServerStatus,
     GetStatus200ResponseFhir as FhirStatus,
     GetStatus200ResponseKeycloak as KeycloakStatus,
+    GetHealth200ResponseFhirServers as FhirServersHealth,
+    GetHealth200ResponseFhirServersServersInner as FhirServerHealth,
+    GetHealth200ResponseMemory as MemoryHealth,
     
     // Launch Contexts
     GetAdminLaunchContexts200ResponseInner as LaunchContext,
@@ -73,9 +91,20 @@ export type {
     PostAdminRolesRequest as CreateRoleRequest,
     PutAdminRolesByRoleNameRequest as UpdateRoleRequest,
     
-    // Auth
+    // Auth & Registration
     GetAuthUserinfo200Response as UserProfile,
     PostAuthToken200Response as TokenResponse,
+    PostAuthToken200ResponseAuthorizationDetailsInner as TokenAuthorizationDetails,
+    PostAuthToken200ResponseFhirContextInner as TokenFhirContext,
+    PostAuthIntrospect200Response as TokenIntrospectionResponse,
+    PostAuthRegisterRequest as UserRegistrationRequest,
+    
+    // Client Registration
+    GetAdminClientRegistrationSettings200Response as ClientRegistrationSettings,
+    
+    // FHIR Proxy & Cache
+    PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response as CacheRefreshResponse,
+    PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseServerInfo as CacheServerInfo,
 };
 
 // UI Models - these extend the API models with UI-specific properties
