@@ -15,6 +15,7 @@ import { initializeServer, displayServerEndpoints } from './init'
 import { oauthMetricsLogger } from './lib/oauth-metrics-logger'
 
 const app = new Elysia({
+  name: config.appName,
   serve: {
     idleTimeout: 120 // 2 minutes - more secure, still sufficient for SSE with 30s keepalive
   },
@@ -32,7 +33,7 @@ const app = new Elysia({
     documentation: {
       info: {
         title: 'SMART on FHIR API',
-        version: '1.0.0',
+        version: config.version,
         description: 'Healthcare administration API for SMART on FHIR applications'
       },
       tags: [
@@ -42,7 +43,9 @@ const app = new Elysia({
         { name: 'fhir', description: 'FHIR resource proxy endpoints' },
         { name: 'servers', description: 'FHIR server discovery endpoints' },
         { name: 'identity-providers', description: 'Identity provider management' },
-        { name: 'smart-apps', description: 'SMART on FHIR configuration endpoints' }
+        { name: 'smart-apps', description: 'SMART on FHIR configuration endpoints' },
+        { name: 'oauth-ws-monitoring', description: 'OAuth monitoring via WebSocket' },
+        { name: 'oauth-sse-monitoring', description: 'OAuth monitoring via Server-Sent Events' },
       ],
       components: {
         securitySchemes: {
@@ -76,7 +79,7 @@ initializeServer()
   .then(async () => {
     // Initialize OAuth metrics logger
     await oauthMetricsLogger.initialize();
-    
+
     app.listen(config.port, async () => {
       await displayServerEndpoints()
     })

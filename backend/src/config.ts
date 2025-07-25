@@ -15,16 +15,15 @@ export const config = {
   baseUrl: process.env.BASE_URL!,
   port: process.env.PORT || 8445,
   
-  // Application name from package.json
+  // Application name and version from package.json
   appName: packageJson.name,
+  version: packageJson.version,
   
   keycloak: {
     baseUrl: process.env.KEYCLOAK_BASE_URL!,
     realm: process.env.KEYCLOAK_REALM!,
     // Note: clientId and clientSecret no longer needed for admin API
     // We use the user's token directly
-    clientId: process.env.KEYCLOAK_CLIENT_ID!,
-    clientSecret: process.env.KEYCLOAK_CLIENT_SECRET!,
     // Dynamically construct JWKS URI from base URL and realm
     get jwksUri() {
       return `${this.baseUrl}/realms/${this.realm}/protocol/openid-connect/certs`

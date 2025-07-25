@@ -265,7 +265,7 @@ export function HealthcareUsersManager() {
   };
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
       {/* Show loading state */}
       {loading && (
         <div className="flex justify-center items-center p-8">

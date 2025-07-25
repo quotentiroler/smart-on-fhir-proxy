@@ -66,7 +66,6 @@ export class OAuthWebSocketService {
     // Throttle connection attempts to prevent rapid reconnections
     const now = Date.now();
     if (now - this.lastConnectionAttempt < this.connectionThrottleMs) {
-      console.log('Connection throttled, waiting before retry');
       await new Promise(resolve => setTimeout(resolve, this.connectionThrottleMs - (now - this.lastConnectionAttempt)));
     }
     
@@ -438,8 +437,6 @@ export class OAuthWebSocketService {
   private handleMessage(event: MessageEvent) {
     try {
       const data = JSON.parse(event.data);
-      console.log('Received WebSocket message:', data);
-      
       // Log error messages for debugging
       if (data.type === 'error') {
         console.error('WebSocket server error:', data.data);

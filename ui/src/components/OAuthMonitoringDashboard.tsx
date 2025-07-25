@@ -92,7 +92,6 @@ export function OAuthMonitoringDashboard() {
         
         // Set up event handlers BEFORE subscribing
         oauthWebSocketService.onEventsData((eventList) => {
-          console.log('Received events_data:', eventList.length, 'events', '- Initial load:', isInitialLoadRef.current, '- Real-time active:', isRealTimeActiveRef.current);
           // Only update state if this is the initial load OR if real-time is active
           if (isInitialLoadRef.current || isRealTimeActiveRef.current) {
             setEvents(eventList);
@@ -100,7 +99,6 @@ export function OAuthMonitoringDashboard() {
         });
 
         oauthWebSocketService.onAnalyticsData((analyticsData) => {
-          console.log('Received analytics_data:', analyticsData, '- Initial load:', isInitialLoadRef.current, '- Real-time active:', isRealTimeActiveRef.current);
           // Only update state if this is the initial load OR if real-time is active
           if (isInitialLoadRef.current || isRealTimeActiveRef.current) {
             setAnalytics(analyticsData);
@@ -137,13 +135,11 @@ export function OAuthMonitoringDashboard() {
     if (isRealTimeActive) {
       // Subscribe to real-time events via WebSocket
       eventsUnsubscribe = oauthWebSocketService.onEventsUpdate((event: OAuthEvent) => {
-        console.log('Received events_update:', event);
         setEvents(prev => [event, ...prev.slice(0, 999)]); // Keep last 1000 events
       });
 
       // Subscribe to analytics updates via WebSocket
       analyticsUnsubscribe = oauthWebSocketService.onAnalyticsUpdate((newAnalytics: OAuthAnalytics) => {
-        console.log('Received analytics_update:', newAnalytics);
         setAnalytics(newAnalytics);
       });
     } else {
