@@ -22,6 +22,9 @@ import type {
   PostFhirServers200Response,
   PostFhirServers401Response,
   PostFhirServersRequest,
+  PutFhirServersByServerId200Response,
+  PutFhirServersByServerId400Response,
+  PutFhirServersByServerIdRequest,
 } from '../models/index';
 import {
     GetFhirServers200ResponseFromJSON,
@@ -38,6 +41,12 @@ import {
     PostFhirServers401ResponseToJSON,
     PostFhirServersRequestFromJSON,
     PostFhirServersRequestToJSON,
+    PutFhirServersByServerId200ResponseFromJSON,
+    PutFhirServersByServerId200ResponseToJSON,
+    PutFhirServersByServerId400ResponseFromJSON,
+    PutFhirServersByServerId400ResponseToJSON,
+    PutFhirServersByServerIdRequestFromJSON,
+    PutFhirServersByServerIdRequestToJSON,
 } from '../models/index';
 
 export interface GetFhirServersByServerNameRequest {
@@ -46,6 +55,11 @@ export interface GetFhirServersByServerNameRequest {
 
 export interface PostFhirServersOperationRequest {
     postFhirServersRequest: PostFhirServersRequest;
+}
+
+export interface PutFhirServersByServerIdOperationRequest {
+    serverId: string;
+    putFhirServersByServerIdRequest: PutFhirServersByServerIdRequest;
 }
 
 /**
@@ -169,6 +183,63 @@ export class ServersApi extends runtime.BaseAPI {
      */
     async postFhirServers(requestParameters: PostFhirServersOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostFhirServers200Response> {
         const response = await this.postFhirServersRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Update an existing FHIR server by providing its new base URL
+     * Update FHIR Server
+     */
+    async putFhirServersByServerIdRaw(requestParameters: PutFhirServersByServerIdOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutFhirServersByServerId200Response>> {
+        if (requestParameters['serverId'] == null) {
+            throw new runtime.RequiredError(
+                'serverId',
+                'Required parameter "serverId" was null or undefined when calling putFhirServersByServerId().'
+            );
+        }
+
+        if (requestParameters['putFhirServersByServerIdRequest'] == null) {
+            throw new runtime.RequiredError(
+                'putFhirServersByServerIdRequest',
+                'Required parameter "putFhirServersByServerIdRequest" was null or undefined when calling putFhirServersByServerId().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("BearerAuth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/fhir-servers/{serverId}`;
+        urlPath = urlPath.replace(`{${"serverId"}}`, encodeURIComponent(String(requestParameters['serverId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PUT',
+            headers: headerParameters,
+            query: queryParameters,
+            body: PutFhirServersByServerIdRequestToJSON(requestParameters['putFhirServersByServerIdRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PutFhirServersByServerId200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Update an existing FHIR server by providing its new base URL
+     * Update FHIR Server
+     */
+    async putFhirServersByServerId(requestParameters: PutFhirServersByServerIdOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutFhirServersByServerId200Response> {
+        const response = await this.putFhirServersByServerIdRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

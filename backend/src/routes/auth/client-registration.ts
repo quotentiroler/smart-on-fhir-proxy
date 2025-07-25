@@ -61,7 +61,7 @@ async function getServiceAccountAdmin(): Promise<KcAdminClient> {
   return admin
 }
 
-export const clientRegistrationRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'] })
+export const clientRegistrationRoutes = new Elysia({ tags: ['authentication'] })
   
   // Dynamic Client Registration - Public endpoint as required by RFC 7591
   .post('/register', async ({ body, set }) => {

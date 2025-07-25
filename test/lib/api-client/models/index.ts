@@ -1,6 +1,7 @@
 /* tslint:disable */
 /* eslint-disable */
 export * from './DeleteAdminRolesByRoleName200Response';
+export * from './GetAdminClientRegistrationSettings200Response';
 export * from './GetAdminHealthcareUsers200ResponseInner';
 export * from './GetAdminHealthcareUsersLimitParameter';
 export * from './GetAdminHealthcareUsersOffsetParameter';
@@ -21,6 +22,12 @@ export * from './GetHealth200ResponseFhirServers';
 export * from './GetHealth200ResponseFhirServersServersInner';
 export * from './GetHealth200ResponseMemory';
 export * from './GetHealth503Response';
+export * from './GetMonitoringOauthAnalytics200Response';
+export * from './GetMonitoringOauthAnalytics200ResponseHourlyStatsInner';
+export * from './GetMonitoringOauthAnalytics200ResponseTopClientsInner';
+export * from './GetMonitoringOauthEvents200Response';
+export * from './GetMonitoringOauthEvents200ResponseEventsInner';
+export * from './GetMonitoringOauthEvents200ResponseEventsInnerFhirContext';
 export * from './GetStatus200Response';
 export * from './GetStatus200ResponseFhir';
 export * from './GetStatus200ResponseFhirServersInner';
@@ -34,6 +41,7 @@ export * from './PostAdminSmartAppsRequest';
 export * from './PostAdminSmartAppsRequestClientType';
 export * from './PostAuthIntrospect200Response';
 export * from './PostAuthIntrospectRequest';
+export * from './PostAuthRegisterRequest';
 export * from './PostAuthToken200Response';
 export * from './PostAuthToken200ResponseAuthorizationDetailsInner';
 export * from './PostAuthToken200ResponseFhirContextInner';
@@ -57,3 +65,7 @@ export * from './PutAdminRolesByRoleName200Response';
 export * from './PutAdminRolesByRoleNameRequest';
 export * from './PutAdminSmartAppsByClientId200Response';
 export * from './PutAdminSmartAppsByClientIdRequest';
+export * from './PutFhirServersByServerId200Response';
+export * from './PutFhirServersByServerId200ResponseServer';
+export * from './PutFhirServersByServerId400Response';
+export * from './PutFhirServersByServerIdRequest';

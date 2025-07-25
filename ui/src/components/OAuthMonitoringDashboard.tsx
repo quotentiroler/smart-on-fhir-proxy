@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
@@ -18,223 +18,325 @@ import {
   Search,
   Server,
   Database,
-  Network
+  Network,
+  ChevronDown
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { oauthWebSocketService, type OAuthEvent, type OAuthAnalytics } from '../service/oauth-websocket-service';
 
-interface OAuthFlowEvent {
-  id: string;
-  timestamp: string;
-  type: 'authorization' | 'token' | 'refresh' | 'error' | 'revoke';
-  status: 'success' | 'error' | 'pending' | 'warning';
-  clientId: string;
-  clientName: string;
-  userId?: string;
-  userName?: string;
-  scopes: string[];
-  grantType: string;
-  responseTime: number;
-  ipAddress: string;
-  userAgent: string;
-  errorMessage?: string;
-  errorCode?: string;
-  tokenType?: string;
-  expiresIn?: number;
-  refreshToken?: boolean;
-  fhirContext?: {
-    patient?: string;
-    encounter?: string;
-    location?: string;
+interface SystemHealth {
+  oauthServer: {
+    status: 'healthy' | 'degraded' | 'down';
+    uptime: number;
+    responseTime: number;
   };
-}
-
-interface OAuthAnalytics {
-  totalFlows: number;
-  successRate: number;
-  averageResponseTime: number;
-  activeTokens: number;
-  topClients: Array<{
-    clientId: string;
-    clientName: string;
-    count: number;
-    successRate: number;
-  }>;
-  flowsByType: Record<string, number>;
-  errorsByType: Record<string, number>;
-  hourlyStats: Array<{
-    hour: string;
-    success: number;
-    error: number;
-    total: number;
-  }>;
+  tokenStore: {
+    status: 'healthy' | 'degraded' | 'down';
+    storageUsed: number;
+    activeTokens: number;
+  };
+  network: {
+    status: 'healthy' | 'degraded' | 'down';
+    throughput: string;
+    errorRate: number;
+  };
 }
 
 export function OAuthMonitoringDashboard() {
   const { t } = useTranslation();
-  const [events, setEvents] = useState<OAuthFlowEvent[]>([]);
+  const [events, setEvents] = useState<OAuthEvent[]>([]);
   const [analytics, setAnalytics] = useState<OAuthAnalytics | null>(null);
+  const [systemHealth] = useState<SystemHealth | null>(null);
   const [isRealTimeActive, setIsRealTimeActive] = useState(true);
+  const [connectionMode, setConnectionMode] = useState<'websocket' | 'sse'>('websocket');
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
-  // Mock data generation for demonstration
-  const generateMockData = () => {
-    const mockEvents: OAuthFlowEvent[] = [];
-    const clientApps = [
-      { id: 'epic-app-1', name: 'Epic MyChart' },
-      { id: 'cerner-app-2', name: 'Cerner PowerChart' },
-      { id: 'smart-app-3', name: 'Clinical Decision Support' },
-      { id: 'research-app-4', name: 'Population Health Analytics' },
-      { id: 'mobile-app-5', name: 'Provider Mobile App' }
-    ];
+  // Track whether this is the initial data load
+  const isInitialLoadRef = useRef(true);
+  // Track the current real-time state so handlers can access the latest value
+  const isRealTimeActiveRef = useRef(isRealTimeActive);
 
-    const flowTypes = ['authorization_code', 'client_credentials', 'refresh_token'];
-    const eventTypes: Array<'authorization' | 'token' | 'refresh' | 'error' | 'revoke'> = 
-      ['authorization', 'token', 'refresh', 'error', 'revoke'];
+  // Update ref whenever the state changes
+  useEffect(() => {
+    isRealTimeActiveRef.current = isRealTimeActive;
+  }, [isRealTimeActive]);
 
-    // Generate events for the last 24 hours
-    for (let i = 0; i < 150; i++) {
-      const timestamp = new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000);
-      const client = clientApps[Math.floor(Math.random() * clientApps.length)];
-      const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-      const status = eventType === 'error' ? 'error' : 
-                    Math.random() > 0.85 ? 'error' : 
-                    Math.random() > 0.95 ? 'warning' : 'success';
+  // Load initial data
+  const loadInitialData = useCallback(async (forceMode?: 'websocket' | 'sse') => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Always disconnect first to ensure clean state
+      if (oauthWebSocketService.isConnected) {
+        oauthWebSocketService.disconnect();
+        // Add a small delay to ensure cleanup is complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
 
-      const event: OAuthFlowEvent = {
-        id: `event-${i}`,
-        timestamp: timestamp.toISOString(),
-        type: eventType,
-        status,
-        clientId: client.id,
-        clientName: client.name,
-        userId: status !== 'error' ? `user-${Math.floor(Math.random() * 100)}` : undefined,
-        userName: status !== 'error' ? `Dr. ${['Smith', 'Johnson', 'Williams', 'Brown', 'Jones'][Math.floor(Math.random() * 5)]}` : undefined,
-        scopes: [
-          'patient/*.read',
-          'user/*.read',
-          'launch/patient',
-          'fhirUser',
-          'openid',
-          'profile'
-        ].slice(0, Math.floor(Math.random() * 6) + 1),
-        grantType: flowTypes[Math.floor(Math.random() * flowTypes.length)],
-        responseTime: Math.floor(Math.random() * 2000) + 100,
-        ipAddress: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        errorMessage: status === 'error' ? 'Invalid client credentials' : undefined,
-        errorCode: status === 'error' ? 'invalid_client' : undefined,
-        tokenType: status === 'success' ? 'Bearer' : undefined,
-        expiresIn: status === 'success' ? 3600 : undefined,
-        refreshToken: status === 'success' && Math.random() > 0.5,
-        fhirContext: status === 'success' ? {
-          patient: `Patient/${Math.floor(Math.random() * 1000)}`,
-          encounter: Math.random() > 0.7 ? `Encounter/${Math.floor(Math.random() * 500)}` : undefined,
-          location: Math.random() > 0.8 ? `Location/${Math.floor(Math.random() * 50)}` : undefined
-        } : undefined
-      };
+      // Connect using the specified or preferred mode
+      const targetMode = forceMode || connectionMode;
+      await oauthWebSocketService.connectWithMode(targetMode === 'websocket' ? 'websocket' : 'sse');
+      
+      // Wait a bit to ensure connection is fully stable
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Try to authenticate using token from localStorage  
+      try {
+        await oauthWebSocketService.authenticate();
+        
+        // Set up event handlers BEFORE subscribing
+        oauthWebSocketService.onEventsData((eventList) => {
+          console.log('Received events_data:', eventList.length, 'events', '- Initial load:', isInitialLoadRef.current, '- Real-time active:', isRealTimeActiveRef.current);
+          // Only update state if this is the initial load OR if real-time is active
+          if (isInitialLoadRef.current || isRealTimeActiveRef.current) {
+            setEvents(eventList);
+          }
+        });
 
-      mockEvents.push(event);
+        oauthWebSocketService.onAnalyticsData((analyticsData) => {
+          console.log('Received analytics_data:', analyticsData, '- Initial load:', isInitialLoadRef.current, '- Real-time active:', isRealTimeActiveRef.current);
+          // Only update state if this is the initial load OR if real-time is active
+          if (isInitialLoadRef.current || isRealTimeActiveRef.current) {
+            setAnalytics(analyticsData);
+          }
+        });
+
+        oauthWebSocketService.onError((errorMsg) => {
+          setError(errorMsg);
+        });
+
+        // Subscribe to real-time data
+        await oauthWebSocketService.subscribe('events');
+        await oauthWebSocketService.subscribe('analytics');
+
+        // Mark that initial load is complete
+        isInitialLoadRef.current = false;
+
+      } catch {
+        setError('Connected but not authenticated. Please log in to view OAuth monitoring data.');
+      }
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect to monitoring service');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [connectionMode]);
+
+  // Setup real-time subscriptions
+  useEffect(() => {
+    let eventsUnsubscribe: (() => void) | undefined;
+    let analyticsUnsubscribe: (() => void) | undefined;
+
+    if (isRealTimeActive) {
+      // Subscribe to real-time events via WebSocket
+      eventsUnsubscribe = oauthWebSocketService.onEventsUpdate((event: OAuthEvent) => {
+        console.log('Received events_update:', event);
+        setEvents(prev => [event, ...prev.slice(0, 999)]); // Keep last 1000 events
+      });
+
+      // Subscribe to analytics updates via WebSocket
+      analyticsUnsubscribe = oauthWebSocketService.onAnalyticsUpdate((newAnalytics: OAuthAnalytics) => {
+        console.log('Received analytics_update:', newAnalytics);
+        setAnalytics(newAnalytics);
+      });
+    } else {
+      console.log('Real-time updates are PAUSED');
     }
 
-    // Sort by timestamp (newest first)
-    mockEvents.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-    // Generate analytics
-    const totalFlows = mockEvents.length;
-    const successfulFlows = mockEvents.filter(e => e.status === 'success').length;
-    const successRate = (successfulFlows / totalFlows) * 100;
-    const averageResponseTime = mockEvents.reduce((sum, e) => sum + e.responseTime, 0) / totalFlows;
-    const activeTokens = mockEvents.filter(e => e.status === 'success' && e.tokenType).length;
-
-    const clientStats = new Map<string, { name: string; count: number; successful: number }>();
-    mockEvents.forEach(event => {
-      if (!clientStats.has(event.clientId)) {
-        clientStats.set(event.clientId, { name: event.clientName, count: 0, successful: 0 });
+    // Cleanup function
+    return () => {
+      if (eventsUnsubscribe) {
+        eventsUnsubscribe();
       }
-      const stat = clientStats.get(event.clientId)!;
-      stat.count++;
-      if (event.status === 'success') stat.successful++;
-    });
+      if (analyticsUnsubscribe) {
+        analyticsUnsubscribe();
+      }
+    };
+  }, [isRealTimeActive]);
 
-    const topClients = Array.from(clientStats.entries())
-      .map(([clientId, stat]) => ({
-        clientId,
-        clientName: stat.name,
-        count: stat.count,
-        successRate: (stat.successful / stat.count) * 100
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+  // Load initial data on component mount
+  useEffect(() => {
+    let isMounted = true;
+    
+    const initializeConnection = async () => {
+      if (isMounted) {
+        await loadInitialData();
+      }
+    };
+    
+    initializeConnection();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [loadInitialData]);
 
-    const flowsByType = mockEvents.reduce((acc, event) => {
-      acc[event.grantType] = (acc[event.grantType] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (oauthWebSocketService.isConnected) {
+        oauthWebSocketService.disconnect();
+      }
+    };
+  }, []);
 
-    const errorsByType = mockEvents
-      .filter(e => e.status === 'error')
-      .reduce((acc, event) => {
-        const errorType = event.errorCode || 'unknown';
-        acc[errorType] = (acc[errorType] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-    // Generate hourly stats for the last 24 hours
-    const hourlyStats = Array.from({ length: 24 }, (_, i) => {
-      const hour = new Date();
-      hour.setHours(hour.getHours() - (23 - i), 0, 0, 0);
-      const hourEvents = mockEvents.filter(e => {
-        const eventTime = new Date(e.timestamp);
-        return eventTime.getHours() === hour.getHours() && 
-               eventTime.getDate() === hour.getDate();
-      });
-      
-      return {
-        hour: hour.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        success: hourEvents.filter(e => e.status === 'success').length,
-        error: hourEvents.filter(e => e.status === 'error').length,
-        total: hourEvents.length
-      };
-    });
-
-    const mockAnalytics: OAuthAnalytics = {
-      totalFlows,
-      successRate,
-      averageResponseTime,
-      activeTokens,
-      topClients,
-      flowsByType,
-      errorsByType,
-      hourlyStats
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (showExportMenu && !target.closest('.export-menu-container')) {
+        setShowExportMenu(false);
+      }
     };
 
-    setEvents(mockEvents);
-    setAnalytics(mockAnalytics);
-    setIsLoading(false);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showExportMenu]);
+
+  const refreshData = async () => {
+    // Reset the initial load flag when manually refreshing
+    isInitialLoadRef.current = true;
+    await loadInitialData();
   };
 
-  useEffect(() => {
-    generateMockData();
+  const toggleRealTime = () => {
+    setIsRealTimeActive(!isRealTimeActive);
+  };
+
+  const switchConnectionMode = async (newMode: 'websocket' | 'sse') => {
+    if (newMode === connectionMode) return;
     
-    if (isRealTimeActive) {
-      const interval = setInterval(() => {
-        generateMockData();
-      }, 30000); // Refresh every 30 seconds
+    setConnectionMode(newMode);
+    // Reset the initial load flag when switching connection modes
+    isInitialLoadRef.current = true;
+    // Reconnect with the new mode
+    await loadInitialData(newMode);
+  };
+
+  const exportAnalytics = async () => {
+    try {
+      // Get the current analytics data
+      const currentAnalytics = analytics;
       
-      return () => clearInterval(interval);
+      if (!currentAnalytics) {
+        setError('No analytics data available to export');
+        return;
+      }
+
+      // Create export data with timestamp
+      const exportData = {
+        exportedAt: new Date().toISOString(),
+        exportType: 'oauth-analytics',
+        source: 'dashboard-current-state',
+        data: currentAnalytics,
+        metadata: {
+          totalEvents: events.length,
+          connectionMode: oauthWebSocketService.connectionMode,
+          realTimeActive: isRealTimeActive
+        }
+      };
+
+      // Create and download the file
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      
+      // Create download link
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `oauth-analytics-dashboard-${new Date().toISOString().split('T')[0]}.json`;
+      
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Cleanup
+      URL.revokeObjectURL(url);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to export analytics data');
     }
-  }, [isRealTimeActive]);
+  };
+
+  const exportServerEvents = async () => {
+    try {
+      // Get token from localStorage - we'll improve this once events export is added to API client
+      const token = localStorage.getItem('openid_tokens');
+      let accessToken = '';
+      
+      if (token) {
+        try {
+          const tokenData = JSON.parse(token);
+          accessToken = tokenData.access_token;
+        } catch {
+          // Fall back to direct access_token if parsing fails
+        }
+      }
+      
+      if (!accessToken) {
+        setError('No authentication token available for server export. Please log in.');
+        return;
+      }
+
+      // NOTE: Using fetch for now - will switch to API client once events export endpoint is regenerated
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8445'}/monitoring/oauth/events/export`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Accept': 'application/x-jsonlines'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Events export failed: ${response.statusText}`);
+      }
+
+      // Get the filename from response headers or create one
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `oauth-events-${new Date().toISOString().split('T')[0]}.jsonl`;
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Download the file
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      URL.revokeObjectURL(url);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to export server events data');
+    }
+  };
 
   const filteredEvents = events.filter(event => {
     const matchesType = filterType === 'all' || event.type === filterType;
     const matchesStatus = filterStatus === 'all' || event.status === filterStatus;
     const matchesSearch = searchTerm === '' || 
-                         event.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.userId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.userName?.toLowerCase().includes(searchTerm.toLowerCase());
+                         event.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         event.clientId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         event.errorMessage?.toLowerCase().includes(searchTerm.toLowerCase());
     
     return matchesType && matchesStatus && matchesSearch;
   });
@@ -246,6 +348,24 @@ export function OAuthMonitoringDashboard() {
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
             <p className="mt-4 text-muted-foreground">{t('Loading OAuth monitoring data...')}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">{t('Failed to Load OAuth Monitoring Data')}</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={refreshData} variant="outline">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              {t('Try Again')}
+            </Button>
           </div>
         </div>
       </div>
@@ -271,7 +391,7 @@ export function OAuthMonitoringDashboard() {
           <div className="flex items-center gap-3">
             <Button
               variant={isRealTimeActive ? "default" : "outline"}
-              onClick={() => setIsRealTimeActive(!isRealTimeActive)}
+              onClick={toggleRealTime}
               className={`px-6 py-3 font-semibold rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-border ${
                 isRealTimeActive 
                   ? 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800' 
@@ -283,33 +403,146 @@ export function OAuthMonitoringDashboard() {
             </Button>
             <Button
               variant="outline"
-              onClick={generateMockData}
+              onClick={refreshData}
               className="px-6 py-3 bg-background text-foreground font-semibold rounded-2xl hover:bg-muted transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-border"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
               {t('Refresh')}
             </Button>
-            <Button
-              variant="outline"
-              className="px-6 py-3 bg-background text-foreground font-semibold rounded-2xl hover:bg-muted transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-border"
-            >
-              <Download className="w-4 h-4 mr-2" />
-              {t('Export')}
-            </Button>
+            <div className="relative export-menu-container">
+              <Button
+                variant="outline"
+                onClick={() => setShowExportMenu(!showExportMenu)}
+                className="px-6 py-3 bg-background text-foreground font-semibold rounded-2xl hover:bg-muted transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-border"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                {t('Export')}
+                <ChevronDown className="w-4 h-4 ml-2" />
+              </Button>
+              
+              {showExportMenu && (
+                <div className="absolute right-0 mt-2 w-72 bg-background border border-border rounded-2xl shadow-xl z-50">
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        exportAnalytics();
+                        setShowExportMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-3 hover:bg-muted rounded-xl transition-colors"
+                    >
+                      <div className="font-semibold text-foreground">{t('Export Current Data')}</div>
+                      <div className="text-sm text-muted-foreground">{t('Download current dashboard analytics')}</div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        exportServerEvents();
+                        setShowExportMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-3 hover:bg-muted rounded-xl transition-colors"
+                    >
+                      <div className="font-semibold text-foreground">{t('Export Server Events')}</div>
+                      <div className="text-sm text-muted-foreground">{t('Download events log from server')}</div>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
       {/* Real-time Status */}
-      {isRealTimeActive && (
+      {isRealTimeActive ? (
         <div className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 p-6 rounded-2xl border border-green-500/20 shadow-lg">
-          <div className="flex items-center">
-            <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-green-600/30 rounded-xl flex items-center justify-center mr-4 shadow-sm">
-              <Activity className="h-5 w-5 text-green-600 animate-pulse" />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-green-600/30 rounded-xl flex items-center justify-center mr-4 shadow-sm">
+                <Activity className="h-5 w-5 text-green-600 animate-pulse" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-green-900 dark:text-green-300 mb-1">
+                  {t('Real-time Monitoring Active')}
+                </h3>
+                <p className="text-green-800 dark:text-green-400 font-medium">
+                  {t('OAuth events are pushed in real time as they occur.')}
+                </p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-green-900 dark:text-green-300 mb-1">{t('Real-time Monitoring Active')}</h3>
-              <p className="text-green-800 dark:text-green-400 font-medium">{t('Data refreshes every 30 seconds. OAuth events are being tracked live.')}</p>
+            <div className="text-right space-y-3">
+              <div>
+                <div className="text-sm text-green-700 dark:text-green-400 mb-2">Connection Mode</div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={connectionMode === 'websocket' ? "default" : "ghost"}
+                    onClick={() => switchConnectionMode('websocket')}
+                    size="sm"
+                    className="text-xs px-3 py-1 h-8 bg-green-500/20 hover:bg-green-500/30 text-green-800 dark:text-green-300 border-green-500/30"
+                  >
+                    WebSocket
+                  </Button>
+                  <Button
+                    variant={connectionMode === 'sse' ? "default" : "ghost"}
+                    onClick={() => switchConnectionMode('sse')}
+                    size="sm"
+                    className="text-xs px-3 py-1 h-8 bg-green-500/20 hover:bg-green-500/30 text-green-800 dark:text-green-300 border-green-500/30"
+                  >
+                    SSE
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Badge className="bg-green-500/20 text-green-800 dark:text-green-300 border-green-500/30 font-semibold">
+                  {oauthWebSocketService.connectionMode === 'websocket' ? 'WebSocket Connected' : 
+                   oauthWebSocketService.connectionMode === 'sse' ? 'SSE Connected' : 
+                   'Disconnected'}
+                </Badge>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-gradient-to-r from-orange-500/10 to-amber-500/10 p-6 rounded-2xl border border-orange-500/20 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500/20 to-orange-600/30 rounded-xl flex items-center justify-center mr-4 shadow-sm">
+                <Pause className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-orange-900 dark:text-orange-300 mb-1">
+                  {t('Real-time Monitoring Paused')}
+                </h3>
+                <p className="text-orange-800 dark:text-orange-400 font-medium">
+                  {t('Real-time updates are paused. Click Resume to continue monitoring.')}
+                </p>
+              </div>
+            </div>
+            <div className="text-right space-y-3">
+              <div>
+                <div className="text-sm text-orange-700 dark:text-orange-400 mb-2">Connection Mode</div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={connectionMode === 'websocket' ? "default" : "ghost"}
+                    onClick={() => switchConnectionMode('websocket')}
+                    size="sm"
+                    className="text-xs px-3 py-1 h-8 bg-orange-500/20 hover:bg-orange-500/30 text-orange-800 dark:text-orange-300 border-orange-500/30"
+                  >
+                    WebSocket
+                  </Button>
+                  <Button
+                    variant={connectionMode === 'sse' ? "default" : "ghost"}
+                    onClick={() => switchConnectionMode('sse')}
+                    size="sm"
+                    className="text-xs px-3 py-1 h-8 bg-orange-500/20 hover:bg-orange-500/30 text-orange-800 dark:text-orange-300 border-orange-500/30"
+                  >
+                    SSE
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Badge className="bg-orange-500/20 text-orange-800 dark:text-orange-300 border-orange-500/30 font-semibold">
+                  Paused
+                </Badge>
+              </div>
             </div>
           </div>
         </div>
@@ -328,11 +561,11 @@ export function OAuthMonitoringDashboard() {
           </div>
 
           <Tabs defaultValue="overview" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4 bg-muted/50 rounded-2xl p-2">
-              <TabsTrigger value="overview" className="rounded-xl font-medium">{t('Overview')}</TabsTrigger>
-              <TabsTrigger value="flows" className="rounded-xl font-medium">{t('OAuth Flows')}</TabsTrigger>
-              <TabsTrigger value="analytics" className="rounded-xl font-medium">{t('Analytics')}</TabsTrigger>
-              <TabsTrigger value="monitoring" className="rounded-xl font-medium">{t('System Health')}</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-4 bg-muted/50 rounded-t-2xl">
+              <TabsTrigger value="overview" className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-foreground">{t('Overview')}</TabsTrigger>
+              <TabsTrigger value="flows" className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-foreground">{t('OAuth Flows')}</TabsTrigger>
+              <TabsTrigger value="analytics" className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-foreground">{t('Analytics')}</TabsTrigger>
+              <TabsTrigger value="monitoring" className="rounded-xl data-[state=active]:bg-background data-[state=active]:text-foreground">{t('System Health')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-6">
@@ -347,7 +580,7 @@ export function OAuthMonitoringDashboard() {
                         </div>
                         <h3 className="text-sm font-semibold text-primary tracking-wide">{t('Total Flows')}</h3>
                       </div>
-                      <div className="text-3xl font-bold text-foreground mb-2">{analytics?.totalFlows.toLocaleString()}</div>
+                      <div className="text-3xl font-bold text-foreground mb-2">{analytics?.totalFlows ? analytics.totalFlows.toLocaleString() : '0'}</div>
                       <p className="text-sm text-muted-foreground font-medium">{t('Last 24 hours')}</p>
                     </div>
                   </div>
@@ -363,10 +596,10 @@ export function OAuthMonitoringDashboard() {
                         <h3 className="text-sm font-semibold text-green-800 dark:text-green-300 tracking-wide">{t('Success Rate')}</h3>
                       </div>
                       <div className="text-3xl font-bold text-green-900 dark:text-green-300 mb-2">
-                        {analytics?.successRate.toFixed(1)}%
+                        {analytics?.successRate ? analytics.successRate.toFixed(1) : '0.0'}%
                       </div>
                       <p className="text-sm text-green-700 dark:text-green-400 font-medium">
-                        <span className="text-green-600">↗ 2.1%</span> {t('from yesterday')}
+                        {t('Current success rate')}
                       </p>
                     </div>
                   </div>
@@ -382,10 +615,10 @@ export function OAuthMonitoringDashboard() {
                         <h3 className="text-sm font-semibold text-orange-800 dark:text-orange-300 tracking-wide">{t('Avg Response Time')}</h3>
                       </div>
                       <div className="text-3xl font-bold text-orange-900 dark:text-orange-300 mb-2">
-                        {analytics?.averageResponseTime.toFixed(0)}ms
+                        {analytics?.averageResponseTime ? analytics.averageResponseTime.toFixed(0) : '0'}ms
                       </div>
                       <p className="text-sm text-orange-700 dark:text-orange-400 font-medium">
-                        <span className="text-green-600">↘ 15ms</span> {t('improvement')}
+                        {t('Average response time')}
                       </p>
                     </div>
                   </div>
@@ -400,7 +633,7 @@ export function OAuthMonitoringDashboard() {
                         </div>
                         <h3 className="text-sm font-semibold text-purple-800 dark:text-purple-300 tracking-wide">{t('Active Tokens')}</h3>
                       </div>
-                      <div className="text-3xl font-bold text-purple-900 dark:text-purple-300 mb-2">{analytics?.activeTokens}</div>
+                      <div className="text-3xl font-bold text-purple-900 dark:text-purple-300 mb-2">{analytics?.activeTokens ?? 0}</div>
                       <p className="text-sm text-purple-700 dark:text-purple-400 font-medium">{t('Currently valid')}</p>
                     </div>
                   </div>
@@ -439,24 +672,32 @@ export function OAuthMonitoringDashboard() {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    {analytics?.topClients.map((client, index) => (
-                      <div key={client.clientId} className="flex items-center justify-between p-4 bg-muted/50 rounded-xl hover:bg-muted transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                            {index + 1}
+                    {analytics?.topClients && analytics.topClients.length > 0 ? (
+                      analytics.topClients.map((client, index) => (
+                        <div key={client.clientId} className="flex items-center justify-between p-4 bg-muted/50 rounded-xl hover:bg-muted transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <p className="font-bold text-foreground">{client.clientName}</p>
+                              <p className="text-sm text-muted-foreground font-medium">{client.count} {t('flows')}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-bold text-foreground">{client.clientName}</p>
-                            <p className="text-sm text-muted-foreground font-medium">{client.count} {t('flows')}</p>
+                          <div className="text-right">
+                            <Badge className={client.successRate > 95 ? "bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20" : "bg-yellow-500/10 text-yellow-800 dark:text-yellow-300 border-yellow-500/20"}>
+                              {client.successRate.toFixed(1)}%
+                            </Badge>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <Badge className={client.successRate > 95 ? "bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20" : "bg-yellow-500/10 text-yellow-800 dark:text-yellow-300 border-yellow-500/20"}>
-                            {client.successRate.toFixed(1)}%
-                          </Badge>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center text-muted-foreground py-8">
+                        <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <p>{t('No client activity data available')}</p>
+                        <p className="text-sm mt-2">{t('OAuth client statistics will appear here once data is collected')}</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
@@ -559,18 +800,38 @@ export function OAuthMonitoringDashboard() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Status')}</span>
-                      <Badge className="bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        {t('Healthy')}
+                      <Badge className={systemHealth?.oauthServer?.status === 'healthy' 
+                        ? "bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20"
+                        : systemHealth?.oauthServer?.status === 'degraded'
+                        ? "bg-yellow-500/10 text-yellow-800 dark:text-yellow-300 border-yellow-500/20"
+                        : systemHealth?.oauthServer?.status === 'down'
+                        ? "bg-red-500/10 text-red-800 dark:text-red-300 border-red-500/20"
+                        : "bg-gray-500/10 text-gray-800 dark:text-gray-300 border-gray-500/20"
+                      }>
+                        {systemHealth?.oauthServer?.status === 'healthy' && <CheckCircle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.oauthServer?.status === 'degraded' && <AlertTriangle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.oauthServer?.status === 'down' && <AlertCircle className="w-3 h-3 mr-1" />}
+                        {!systemHealth?.oauthServer?.status && <AlertCircle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.oauthServer?.status ? t(systemHealth.oauthServer.status.charAt(0).toUpperCase() + systemHealth.oauthServer.status.slice(1)) : t('Unknown')}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Uptime')}</span>
-                      <span className="font-bold text-foreground">99.9%</span>
+                      <span className="font-bold text-foreground">
+                        {systemHealth?.oauthServer.uptime ? 
+                          `${Math.floor(systemHealth.oauthServer.uptime / 3600)}h ${Math.floor((systemHealth.oauthServer.uptime % 3600) / 60)}m` : 
+                          'N/A'
+                        }
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Response Time')}</span>
-                      <span className="font-bold text-foreground">142ms</span>
+                      <span className="font-bold text-foreground">
+                        {systemHealth?.oauthServer.responseTime ? 
+                          `${systemHealth.oauthServer.responseTime.toFixed(0)}ms` : 
+                          'N/A'
+                        }
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -585,18 +846,35 @@ export function OAuthMonitoringDashboard() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Status')}</span>
-                      <Badge className="bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        {t('Healthy')}
+                      <Badge className={systemHealth?.tokenStore?.status === 'healthy' 
+                        ? "bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20"
+                        : systemHealth?.tokenStore?.status === 'degraded'
+                        ? "bg-yellow-500/10 text-yellow-800 dark:text-yellow-300 border-yellow-500/20"
+                        : systemHealth?.tokenStore?.status === 'down'
+                        ? "bg-red-500/10 text-red-800 dark:text-red-300 border-red-500/20"
+                        : "bg-gray-500/10 text-gray-800 dark:text-gray-300 border-gray-500/20"
+                      }>
+                        {systemHealth?.tokenStore?.status === 'healthy' && <CheckCircle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.tokenStore?.status === 'degraded' && <AlertTriangle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.tokenStore?.status === 'down' && <AlertCircle className="w-3 h-3 mr-1" />}
+                        {!systemHealth?.tokenStore?.status && <AlertCircle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.tokenStore?.status ? t(systemHealth.tokenStore.status.charAt(0).toUpperCase() + systemHealth.tokenStore.status.slice(1)) : t('Unknown')}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Storage Used')}</span>
-                      <span className="font-bold text-foreground">68%</span>
+                      <span className="font-bold text-foreground">
+                        {systemHealth?.tokenStore.storageUsed ? 
+                          `${systemHealth.tokenStore.storageUsed}%` : 
+                          'N/A'
+                        }
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Active Tokens')}</span>
-                      <span className="font-bold text-foreground">{analytics?.activeTokens}</span>
+                      <span className="font-bold text-foreground">
+                        {systemHealth?.tokenStore.activeTokens ?? analytics?.activeTokens ?? 0}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -611,18 +889,35 @@ export function OAuthMonitoringDashboard() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Status')}</span>
-                      <Badge className="bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        {t('Healthy')}
+                      <Badge className={systemHealth?.network?.status === 'healthy' 
+                        ? "bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20"
+                        : systemHealth?.network?.status === 'degraded'
+                        ? "bg-yellow-500/10 text-yellow-800 dark:text-yellow-300 border-yellow-500/20"
+                        : systemHealth?.network?.status === 'down'
+                        ? "bg-red-500/10 text-red-800 dark:text-red-300 border-red-500/20"
+                        : "bg-gray-500/10 text-gray-800 dark:text-gray-300 border-gray-500/20"
+                      }>
+                        {systemHealth?.network?.status === 'healthy' && <CheckCircle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.network?.status === 'degraded' && <AlertTriangle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.network?.status === 'down' && <AlertCircle className="w-3 h-3 mr-1" />}
+                        {!systemHealth?.network?.status && <AlertCircle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.network?.status ? t(systemHealth.network.status.charAt(0).toUpperCase() + systemHealth.network.status.slice(1)) : t('Unknown')}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Throughput')}</span>
-                      <span className="font-bold text-foreground">1.2k req/min</span>
+                      <span className="font-bold text-foreground">
+                        {systemHealth?.network.throughput ?? 'N/A'}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Error Rate')}</span>
-                      <span className="font-bold text-foreground">0.3%</span>
+                      <span className="font-bold text-foreground">
+                        {systemHealth?.network.errorRate ? 
+                          `${systemHealth.network.errorRate.toFixed(1)}%` : 
+                          'N/A'
+                        }
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -635,23 +930,10 @@ export function OAuthMonitoringDashboard() {
                   </div>
                   <h4 className="text-lg font-bold text-foreground tracking-tight">{t('System Alerts')}</h4>
                 </div>
-                <div className="space-y-3">
-                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-                    <div className="flex items-center">
-                      <AlertCircle className="h-5 w-5 text-yellow-600 mr-3" />
-                      <p className="text-yellow-800 dark:text-yellow-300 font-medium">
-                        {t('High response time detected on authorization endpoint (avg 850ms)')}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
-                    <div className="flex items-center">
-                      <AlertTriangle className="h-5 w-5 text-orange-600 mr-3" />
-                      <p className="text-orange-800 dark:text-orange-300 font-medium">
-                        {t('Token storage is at 68% capacity. Consider cleanup or expansion.')}
-                      </p>
-                    </div>
-                  </div>
+                <div className="text-center text-muted-foreground py-8">
+                  <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p>{t('No system alerts at this time')}</p>
+                  <p className="text-sm mt-2">{t('System monitoring will display real-time alerts here')}</p>
                 </div>
               </div>
             </TabsContent>

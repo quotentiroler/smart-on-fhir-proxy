@@ -26,7 +26,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { createAuthenticatedApiClients } from '@/lib/apiClient';
-import type { GetAdminClientRegistrationSettings200Response } from '@/lib/api-client/models';
+import type { ClientRegistrationSettings } from '@/lib/types/api';
 
 // Simple Switch component since we don't have one
 const Switch = ({ 
@@ -55,23 +55,6 @@ const Switch = ({
     </div>
   </label>
 );
-
-interface ClientRegistrationSettings {
-  enabled: boolean;
-  requireHttps: boolean;
-  allowedScopes: string[];
-  maxClientLifetime: number;
-  requireTermsOfService: boolean;
-  requirePrivacyPolicy: boolean;
-  allowPublicClients: boolean;
-  allowConfidentialClients: boolean;
-  allowBackendServices: boolean;
-  adminApprovalRequired: boolean;
-  rateLimitPerMinute: number;
-  maxRedirectUris: number;
-  allowedRedirectUriPatterns: string[];
-  notificationEmail?: string;
-}
 
 const DEFAULT_SCOPES = [
   'openid',
@@ -149,7 +132,7 @@ export function DynamicClientRegistrationSettings() {
       
       const apiClients = createAuthenticatedApiClients();
       await apiClients.admin.putAdminClientRegistrationSettings({
-        getAdminClientRegistrationSettings200Response: settings as GetAdminClientRegistrationSettings200Response
+        getAdminClientRegistrationSettings200Response: settings as ClientRegistrationSettings
       });
       
       setMessage({ type: 'success', text: 'Settings saved successfully' });

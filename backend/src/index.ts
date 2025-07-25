@@ -5,13 +5,23 @@ import { keycloakPlugin } from './lib/keycloak-plugin'
 import { fhirRoutes } from './routes/fhir'
 import { serverRoutes } from './routes/info'
 import { serverDiscoveryRoutes } from './routes/fhir-servers'
+import { oauthMonitoringRoutes } from './routes/oauth-monitoring'
+import { oauthWebSocket } from './routes/oauth-websocket'
 import { config } from './config'
 import { adminRoutes } from './routes/admin'
 import { authRoutes } from './routes/auth'
 import { logger } from './lib/logger'
 import { initializeServer, displayServerEndpoints } from './init'
+import { oauthMetricsLogger } from './lib/oauth-metrics-logger'
 
-const app = new Elysia()
+const app = new Elysia({
+  serve: {
+    idleTimeout: 120 // 2 minutes - more secure, still sufficient for SSE with 30s keepalive
+  },
+  websocket: {
+    idleTimeout: 120 // 2 minutes for WebSocket connections
+  }
+})
   .use(cors({
     origin: ['http://localhost:5173', 'http://localhost:3000'],
     credentials: true,
@@ -57,11 +67,16 @@ const app = new Elysia()
   .use(serverDiscoveryRoutes)// Server discovery endpoints
   .use(authRoutes)
   .use(adminRoutes) //admin keycloak endpoints
+  .use(oauthMonitoringRoutes) // OAuth monitoring and analytics endpoints
+  .use(oauthWebSocket) // OAuth WebSocket for real-time monitoring
   .use(fhirRoutes) // the actual FHIR proxy endpoints
 
 // Initialize and start server
 initializeServer()
   .then(async () => {
+    // Initialize OAuth metrics logger
+    await oauthMetricsLogger.initialize();
+    
     app.listen(config.port, async () => {
       await displayServerEndpoints()
     })

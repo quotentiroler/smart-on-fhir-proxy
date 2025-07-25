@@ -4,6 +4,7 @@ apis/FhirApi.ts
 apis/HealthcareUsersApi.ts
 apis/IdentityProvidersApi.ts
 apis/LaunchContextsApi.ts
+apis/OauthMonitoringApi.ts
 apis/RolesApi.ts
 apis/ServerApi.ts
 apis/ServersApi.ts
@@ -14,8 +15,11 @@ models/DeleteAdminRolesByRoleName200Response.ts
 models/GetAdminClientRegistrationSettings200Response.ts
 models/GetAdminHealthcareUsers200ResponseInner.ts
 models/GetAdminHealthcareUsersLimitParameter.ts
+models/GetAdminHealthcareUsersLimitParameterAnyOf.ts
 models/GetAdminHealthcareUsersOffsetParameter.ts
+models/GetAdminHealthcareUsersOffsetParameterAnyOf.ts
 models/GetAdminIdps200ResponseInner.ts
+models/GetAdminIdpsCount200Response.ts
 models/GetAdminLaunchContexts200ResponseInner.ts
 models/GetAdminRoles200ResponseInner.ts
 models/GetAdminSmartApps200ResponseInner.ts
@@ -32,6 +36,12 @@ models/GetHealth200ResponseFhirServers.ts
 models/GetHealth200ResponseFhirServersServersInner.ts
 models/GetHealth200ResponseMemory.ts
 models/GetHealth503Response.ts
+models/GetMonitoringOauthAnalytics200Response.ts
+models/GetMonitoringOauthAnalytics200ResponseHourlyStatsInner.ts
+models/GetMonitoringOauthAnalytics200ResponseTopClientsInner.ts
+models/GetMonitoringOauthEvents200Response.ts
+models/GetMonitoringOauthEvents200ResponseEventsInner.ts
+models/GetMonitoringOauthEvents200ResponseEventsInnerFhirContext.ts
 models/GetStatus200Response.ts
 models/GetStatus200ResponseFhir.ts
 models/GetStatus200ResponseFhirServersInner.ts

@@ -32,6 +32,12 @@ export interface PostFhirServers200ResponseServer {
      * @type {string}
      * @memberof PostFhirServers200ResponseServer
      */
+    id: string;
+    /**
+     * Human-readable server name
+     * @type {string}
+     * @memberof PostFhirServers200ResponseServer
+     */
     name: string;
     /**
      * Human-readable server name
@@ -81,6 +87,7 @@ export interface PostFhirServers200ResponseServer {
  * Check if a given object implements the PostFhirServers200ResponseServer interface.
  */
 export function instanceOfPostFhirServers200ResponseServer(value: object): value is PostFhirServers200ResponseServer {
+    if (!('id' in value) || value['id'] === undefined) return false;
     if (!('name' in value) || value['name'] === undefined) return false;
     if (!('displayName' in value) || value['displayName'] === undefined) return false;
     if (!('url' in value) || value['url'] === undefined) return false;
@@ -100,6 +107,7 @@ export function PostFhirServers200ResponseServerFromJSONTyped(json: any, ignoreD
     }
     return {
         
+        'id': json['id'],
         'name': json['name'],
         'displayName': json['displayName'],
         'url': json['url'],
@@ -122,6 +130,7 @@ export function PostFhirServers200ResponseServerToJSONTyped(value?: PostFhirServ
 
     return {
         
+        'id': value['id'],
         'name': value['name'],
         'displayName': value['displayName'],
         'url': value['url'],

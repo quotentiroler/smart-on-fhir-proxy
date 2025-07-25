@@ -4,9 +4,11 @@ import {
   HealthcareUsersApi,
   IdentityProvidersApi,
   LaunchContextsApi,
+  OauthMonitoringApi,
   RolesApi,
   SmartAppsApi,
   ServersApi,
+  ServerApi,
   Configuration,
   ResponseError
 } from './api-client';
@@ -90,9 +92,11 @@ export const createAuthApi = (token?: string) => new AuthenticationApi(createCon
 export const createHealthcareUsersApi = (token?: string) => new HealthcareUsersApi(createConfig(token));
 export const createIdentityProvidersApi = (token?: string) => new IdentityProvidersApi(createConfig(token));
 export const createLaunchContextsApi = (token?: string) => new LaunchContextsApi(createConfig(token));
+export const createOauthMonitoringApi = (token?: string) => new OauthMonitoringApi(createConfig(token));
 export const createRolesApi = (token?: string) => new RolesApi(createConfig(token));
 export const createSmartAppsApi = (token?: string) => new SmartAppsApi(createConfig(token));
 export const createServersApi = (token?: string) => new ServersApi(createConfig(token));
+export const createServerApi = (token?: string) => new ServerApi(createConfig(token));
 
 // Create all API clients at once
 export const createApiClients = (token?: string) => ({
@@ -101,9 +105,11 @@ export const createApiClients = (token?: string) => ({
   healthcareUsers: createHealthcareUsersApi(token),
   identityProviders: createIdentityProvidersApi(token),
   launchContexts: createLaunchContextsApi(token),
+  oauthMonitoring: createOauthMonitoringApi(token),
   roles: createRolesApi(token),
   smartApps: createSmartAppsApi(token),
   servers: createServersApi(token),
+  server: createServerApi(token),
 });
 
 // Helper to get token from localStorage

@@ -1,5 +1,5 @@
-import { AuthenticationApi, Configuration } from './api-client';
-import type { PostAuthTokenRequest } from './api-client';
+import { AuthenticationApi, Configuration } from '../lib/api-client';
+import type { PostAuthTokenRequest } from '../lib/api-client';
 
 interface OpenIDConfig {
   baseUrl: string;
