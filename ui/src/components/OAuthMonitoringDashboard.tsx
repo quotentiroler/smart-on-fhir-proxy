@@ -21,220 +21,153 @@ import {
   Network
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { oauthWebSocketService, type OAuthEvent, type OAuthAnalytics } from '../lib/oauth-websocket-service-simple';
 
-interface OAuthFlowEvent {
-  id: string;
-  timestamp: string;
-  type: 'authorization' | 'token' | 'refresh' | 'error' | 'revoke';
-  status: 'success' | 'error' | 'pending' | 'warning';
-  clientId: string;
-  clientName: string;
-  userId?: string;
-  userName?: string;
-  scopes: string[];
-  grantType: string;
-  responseTime: number;
-  ipAddress: string;
-  userAgent: string;
-  errorMessage?: string;
-  errorCode?: string;
-  tokenType?: string;
-  expiresIn?: number;
-  refreshToken?: boolean;
-  fhirContext?: {
-    patient?: string;
-    encounter?: string;
-    location?: string;
+interface SystemHealth {
+  oauthServer: {
+    status: 'healthy' | 'degraded' | 'down';
+    uptime: number;
+    responseTime: number;
   };
-}
-
-interface OAuthAnalytics {
-  totalFlows: number;
-  successRate: number;
-  averageResponseTime: number;
-  activeTokens: number;
-  topClients: Array<{
-    clientId: string;
-    clientName: string;
-    count: number;
-    successRate: number;
-  }>;
-  flowsByType: Record<string, number>;
-  errorsByType: Record<string, number>;
-  hourlyStats: Array<{
-    hour: string;
-    success: number;
-    error: number;
-    total: number;
-  }>;
+  tokenStore: {
+    status: 'healthy' | 'degraded' | 'down';
+    storageUsed: number;
+    activeTokens: number;
+  };
+  network: {
+    status: 'healthy' | 'degraded' | 'down';
+    throughput: string;
+    errorRate: number;
+  };
 }
 
 export function OAuthMonitoringDashboard() {
   const { t } = useTranslation();
-  const [events, setEvents] = useState<OAuthFlowEvent[]>([]);
+  const [events, setEvents] = useState<OAuthEvent[]>([]);
   const [analytics, setAnalytics] = useState<OAuthAnalytics | null>(null);
+  const [systemHealth] = useState<SystemHealth | null>(null);
   const [isRealTimeActive, setIsRealTimeActive] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data generation for demonstration
-  const generateMockData = () => {
-    const mockEvents: OAuthFlowEvent[] = [];
-    const clientApps = [
-      { id: 'epic-app-1', name: 'Epic MyChart' },
-      { id: 'cerner-app-2', name: 'Cerner PowerChart' },
-      { id: 'smart-app-3', name: 'Clinical Decision Support' },
-      { id: 'research-app-4', name: 'Population Health Analytics' },
-      { id: 'mobile-app-5', name: 'Provider Mobile App' }
-    ];
-
-    const flowTypes = ['authorization_code', 'client_credentials', 'refresh_token'];
-    const eventTypes: Array<'authorization' | 'token' | 'refresh' | 'error' | 'revoke'> = 
-      ['authorization', 'token', 'refresh', 'error', 'revoke'];
-
-    // Generate events for the last 24 hours
-    for (let i = 0; i < 150; i++) {
-      const timestamp = new Date(Date.now() - Math.random() * 24 * 60 * 60 * 1000);
-      const client = clientApps[Math.floor(Math.random() * clientApps.length)];
-      const eventType = eventTypes[Math.floor(Math.random() * eventTypes.length)];
-      const status = eventType === 'error' ? 'error' : 
-                    Math.random() > 0.85 ? 'error' : 
-                    Math.random() > 0.95 ? 'warning' : 'success';
-
-      const event: OAuthFlowEvent = {
-        id: `event-${i}`,
-        timestamp: timestamp.toISOString(),
-        type: eventType,
-        status,
-        clientId: client.id,
-        clientName: client.name,
-        userId: status !== 'error' ? `user-${Math.floor(Math.random() * 100)}` : undefined,
-        userName: status !== 'error' ? `Dr. ${['Smith', 'Johnson', 'Williams', 'Brown', 'Jones'][Math.floor(Math.random() * 5)]}` : undefined,
-        scopes: [
-          'patient/*.read',
-          'user/*.read',
-          'launch/patient',
-          'fhirUser',
-          'openid',
-          'profile'
-        ].slice(0, Math.floor(Math.random() * 6) + 1),
-        grantType: flowTypes[Math.floor(Math.random() * flowTypes.length)],
-        responseTime: Math.floor(Math.random() * 2000) + 100,
-        ipAddress: `192.168.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}`,
-        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-        errorMessage: status === 'error' ? 'Invalid client credentials' : undefined,
-        errorCode: status === 'error' ? 'invalid_client' : undefined,
-        tokenType: status === 'success' ? 'Bearer' : undefined,
-        expiresIn: status === 'success' ? 3600 : undefined,
-        refreshToken: status === 'success' && Math.random() > 0.5,
-        fhirContext: status === 'success' ? {
-          patient: `Patient/${Math.floor(Math.random() * 1000)}`,
-          encounter: Math.random() > 0.7 ? `Encounter/${Math.floor(Math.random() * 500)}` : undefined,
-          location: Math.random() > 0.8 ? `Location/${Math.floor(Math.random() * 50)}` : undefined
-        } : undefined
-      };
-
-      mockEvents.push(event);
-    }
-
-    // Sort by timestamp (newest first)
-    mockEvents.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-    // Generate analytics
-    const totalFlows = mockEvents.length;
-    const successfulFlows = mockEvents.filter(e => e.status === 'success').length;
-    const successRate = (successfulFlows / totalFlows) * 100;
-    const averageResponseTime = mockEvents.reduce((sum, e) => sum + e.responseTime, 0) / totalFlows;
-    const activeTokens = mockEvents.filter(e => e.status === 'success' && e.tokenType).length;
-
-    const clientStats = new Map<string, { name: string; count: number; successful: number }>();
-    mockEvents.forEach(event => {
-      if (!clientStats.has(event.clientId)) {
-        clientStats.set(event.clientId, { name: event.clientName, count: 0, successful: 0 });
+  // Load initial data
+  const loadInitialData = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Always disconnect first to ensure clean state
+      if (oauthWebSocketService.isConnected) {
+        oauthWebSocketService.disconnect();
+        // Add a small delay to ensure cleanup is complete
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
-      const stat = clientStats.get(event.clientId)!;
-      stat.count++;
-      if (event.status === 'success') stat.successful++;
-    });
 
-    const topClients = Array.from(clientStats.entries())
-      .map(([clientId, stat]) => ({
-        clientId,
-        clientName: stat.name,
-        count: stat.count,
-        successRate: (stat.successful / stat.count) * 100
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-
-    const flowsByType = mockEvents.reduce((acc, event) => {
-      acc[event.grantType] = (acc[event.grantType] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const errorsByType = mockEvents
-      .filter(e => e.status === 'error')
-      .reduce((acc, event) => {
-        const errorType = event.errorCode || 'unknown';
-        acc[errorType] = (acc[errorType] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-    // Generate hourly stats for the last 24 hours
-    const hourlyStats = Array.from({ length: 24 }, (_, i) => {
-      const hour = new Date();
-      hour.setHours(hour.getHours() - (23 - i), 0, 0, 0);
-      const hourEvents = mockEvents.filter(e => {
-        const eventTime = new Date(e.timestamp);
-        return eventTime.getHours() === hour.getHours() && 
-               eventTime.getDate() === hour.getDate();
-      });
+      // Connect to WebSocket service
+      await oauthWebSocketService.connect();
       
-      return {
-        hour: hour.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        success: hourEvents.filter(e => e.status === 'success').length,
-        error: hourEvents.filter(e => e.status === 'error').length,
-        total: hourEvents.length
-      };
-    });
+      // Wait a bit to ensure connection is fully stable
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Try to authenticate using token from localStorage  
+      try {
+        await oauthWebSocketService.authenticate();
+        
+        // Set up event handlers BEFORE subscribing
+        oauthWebSocketService.onEventsData((eventList) => {
+          setEvents(eventList);
+        });
 
-    const mockAnalytics: OAuthAnalytics = {
-      totalFlows,
-      successRate,
-      averageResponseTime,
-      activeTokens,
-      topClients,
-      flowsByType,
-      errorsByType,
-      hourlyStats
-    };
+        oauthWebSocketService.onAnalyticsData((analyticsData) => {
+          setAnalytics(analyticsData);
+        });
 
-    setEvents(mockEvents);
-    setAnalytics(mockAnalytics);
-    setIsLoading(false);
+        oauthWebSocketService.onError((errorMsg) => {
+          setError(errorMsg);
+        });
+
+        // Subscribe to real-time data
+        await oauthWebSocketService.subscribe('events');
+        await oauthWebSocketService.subscribe('analytics');
+
+      } catch {
+        setError('Connected but not authenticated. Please log in to view OAuth monitoring data.');
+      }
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect to monitoring service');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  // Setup real-time subscriptions
   useEffect(() => {
-    generateMockData();
-    
-    if (isRealTimeActive) {
-      const interval = setInterval(() => {
-        generateMockData();
-      }, 30000); // Refresh every 30 seconds
-      
-      return () => clearInterval(interval);
-    }
+    const setupSubscriptions = () => {
+      if (isRealTimeActive) {
+        // Subscribe to real-time events via WebSocket
+        oauthWebSocketService.onEventsUpdate((event: OAuthEvent) => {
+          setEvents(prev => [event, ...prev.slice(0, 999)]); // Keep last 1000 events
+        });
+
+        // Subscribe to analytics updates via WebSocket
+        oauthWebSocketService.onAnalyticsUpdate((newAnalytics: OAuthAnalytics) => {
+          setAnalytics(newAnalytics);
+        });
+      }
+    };
+
+    setupSubscriptions();
+
+    return () => {
+      // Cleanup is handled by the service disconnect method
+    };
   }, [isRealTimeActive]);
+
+  // Load initial data on component mount
+  useEffect(() => {
+    let isMounted = true;
+    
+    const initializeConnection = async () => {
+      if (isMounted) {
+        await loadInitialData();
+      }
+    };
+    
+    initializeConnection();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (oauthWebSocketService.isConnected) {
+        oauthWebSocketService.disconnect();
+      }
+    };
+  }, []);
+
+  const refreshData = async () => {
+    await loadInitialData();
+  };
+
+  const toggleRealTime = () => {
+    setIsRealTimeActive(!isRealTimeActive);
+  };
 
   const filteredEvents = events.filter(event => {
     const matchesType = filterType === 'all' || event.type === filterType;
     const matchesStatus = filterStatus === 'all' || event.status === filterStatus;
     const matchesSearch = searchTerm === '' || 
-                         event.clientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.userId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.userName?.toLowerCase().includes(searchTerm.toLowerCase());
+                         event.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         event.clientId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         event.errorMessage?.toLowerCase().includes(searchTerm.toLowerCase());
     
     return matchesType && matchesStatus && matchesSearch;
   });
@@ -246,6 +179,24 @@ export function OAuthMonitoringDashboard() {
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
             <p className="mt-4 text-muted-foreground">{t('Loading OAuth monitoring data...')}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 space-y-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-foreground mb-2">{t('Failed to Load OAuth Monitoring Data')}</h3>
+            <p className="text-muted-foreground mb-4">{error}</p>
+            <Button onClick={refreshData} variant="outline">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              {t('Try Again')}
+            </Button>
           </div>
         </div>
       </div>
@@ -271,7 +222,7 @@ export function OAuthMonitoringDashboard() {
           <div className="flex items-center gap-3">
             <Button
               variant={isRealTimeActive ? "default" : "outline"}
-              onClick={() => setIsRealTimeActive(!isRealTimeActive)}
+              onClick={toggleRealTime}
               className={`px-6 py-3 font-semibold rounded-2xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-border ${
                 isRealTimeActive 
                   ? 'bg-gradient-to-r from-green-600 to-green-700 text-white hover:from-green-700 hover:to-green-800' 
@@ -283,7 +234,7 @@ export function OAuthMonitoringDashboard() {
             </Button>
             <Button
               variant="outline"
-              onClick={generateMockData}
+              onClick={refreshData}
               className="px-6 py-3 bg-background text-foreground font-semibold rounded-2xl hover:bg-muted transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-border"
             >
               <RefreshCw className="w-4 h-4 mr-2" />
@@ -347,7 +298,7 @@ export function OAuthMonitoringDashboard() {
                         </div>
                         <h3 className="text-sm font-semibold text-primary tracking-wide">{t('Total Flows')}</h3>
                       </div>
-                      <div className="text-3xl font-bold text-foreground mb-2">{analytics?.totalFlows.toLocaleString()}</div>
+                      <div className="text-3xl font-bold text-foreground mb-2">{analytics?.totalFlows ? analytics.totalFlows.toLocaleString() : '0'}</div>
                       <p className="text-sm text-muted-foreground font-medium">{t('Last 24 hours')}</p>
                     </div>
                   </div>
@@ -363,10 +314,10 @@ export function OAuthMonitoringDashboard() {
                         <h3 className="text-sm font-semibold text-green-800 dark:text-green-300 tracking-wide">{t('Success Rate')}</h3>
                       </div>
                       <div className="text-3xl font-bold text-green-900 dark:text-green-300 mb-2">
-                        {analytics?.successRate.toFixed(1)}%
+                        {analytics?.successRate ? analytics.successRate.toFixed(1) : '0.0'}%
                       </div>
                       <p className="text-sm text-green-700 dark:text-green-400 font-medium">
-                        <span className="text-green-600">↗ 2.1%</span> {t('from yesterday')}
+                        {t('Current success rate')}
                       </p>
                     </div>
                   </div>
@@ -382,10 +333,10 @@ export function OAuthMonitoringDashboard() {
                         <h3 className="text-sm font-semibold text-orange-800 dark:text-orange-300 tracking-wide">{t('Avg Response Time')}</h3>
                       </div>
                       <div className="text-3xl font-bold text-orange-900 dark:text-orange-300 mb-2">
-                        {analytics?.averageResponseTime.toFixed(0)}ms
+                        {analytics?.averageResponseTime ? analytics.averageResponseTime.toFixed(0) : '0'}ms
                       </div>
                       <p className="text-sm text-orange-700 dark:text-orange-400 font-medium">
-                        <span className="text-green-600">↘ 15ms</span> {t('improvement')}
+                        {t('Average response time')}
                       </p>
                     </div>
                   </div>
@@ -400,7 +351,7 @@ export function OAuthMonitoringDashboard() {
                         </div>
                         <h3 className="text-sm font-semibold text-purple-800 dark:text-purple-300 tracking-wide">{t('Active Tokens')}</h3>
                       </div>
-                      <div className="text-3xl font-bold text-purple-900 dark:text-purple-300 mb-2">{analytics?.activeTokens}</div>
+                      <div className="text-3xl font-bold text-purple-900 dark:text-purple-300 mb-2">{analytics?.activeTokens ?? 0}</div>
                       <p className="text-sm text-purple-700 dark:text-purple-400 font-medium">{t('Currently valid')}</p>
                     </div>
                   </div>
@@ -439,24 +390,32 @@ export function OAuthMonitoringDashboard() {
                     </div>
                   </div>
                   <div className="space-y-4">
-                    {analytics?.topClients.map((client, index) => (
-                      <div key={client.clientId} className="flex items-center justify-between p-4 bg-muted/50 rounded-xl hover:bg-muted transition-colors">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm">
-                            {index + 1}
+                    {analytics?.topClients && analytics.topClients.length > 0 ? (
+                      analytics.topClients.map((client, index) => (
+                        <div key={client.clientId} className="flex items-center justify-between p-4 bg-muted/50 rounded-xl hover:bg-muted transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm">
+                              {index + 1}
+                            </div>
+                            <div>
+                              <p className="font-bold text-foreground">{client.clientName}</p>
+                              <p className="text-sm text-muted-foreground font-medium">{client.count} {t('flows')}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-bold text-foreground">{client.clientName}</p>
-                            <p className="text-sm text-muted-foreground font-medium">{client.count} {t('flows')}</p>
+                          <div className="text-right">
+                            <Badge className={client.successRate > 95 ? "bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20" : "bg-yellow-500/10 text-yellow-800 dark:text-yellow-300 border-yellow-500/20"}>
+                              {client.successRate.toFixed(1)}%
+                            </Badge>
                           </div>
                         </div>
-                        <div className="text-right">
-                          <Badge className={client.successRate > 95 ? "bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20" : "bg-yellow-500/10 text-yellow-800 dark:text-yellow-300 border-yellow-500/20"}>
-                            {client.successRate.toFixed(1)}%
-                          </Badge>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center text-muted-foreground py-8">
+                        <Shield className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                        <p>{t('No client activity data available')}</p>
+                        <p className="text-sm mt-2">{t('OAuth client statistics will appear here once data is collected')}</p>
                       </div>
-                    ))}
+                    )}
                   </div>
                 </div>
               </div>
@@ -559,18 +518,38 @@ export function OAuthMonitoringDashboard() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Status')}</span>
-                      <Badge className="bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        {t('Healthy')}
+                      <Badge className={systemHealth?.oauthServer?.status === 'healthy' 
+                        ? "bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20"
+                        : systemHealth?.oauthServer?.status === 'degraded'
+                        ? "bg-yellow-500/10 text-yellow-800 dark:text-yellow-300 border-yellow-500/20"
+                        : systemHealth?.oauthServer?.status === 'down'
+                        ? "bg-red-500/10 text-red-800 dark:text-red-300 border-red-500/20"
+                        : "bg-gray-500/10 text-gray-800 dark:text-gray-300 border-gray-500/20"
+                      }>
+                        {systemHealth?.oauthServer?.status === 'healthy' && <CheckCircle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.oauthServer?.status === 'degraded' && <AlertTriangle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.oauthServer?.status === 'down' && <AlertCircle className="w-3 h-3 mr-1" />}
+                        {!systemHealth?.oauthServer?.status && <AlertCircle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.oauthServer?.status ? t(systemHealth.oauthServer.status.charAt(0).toUpperCase() + systemHealth.oauthServer.status.slice(1)) : t('Unknown')}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Uptime')}</span>
-                      <span className="font-bold text-foreground">99.9%</span>
+                      <span className="font-bold text-foreground">
+                        {systemHealth?.oauthServer.uptime ? 
+                          `${Math.floor(systemHealth.oauthServer.uptime / 3600)}h ${Math.floor((systemHealth.oauthServer.uptime % 3600) / 60)}m` : 
+                          'N/A'
+                        }
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Response Time')}</span>
-                      <span className="font-bold text-foreground">142ms</span>
+                      <span className="font-bold text-foreground">
+                        {systemHealth?.oauthServer.responseTime ? 
+                          `${systemHealth.oauthServer.responseTime.toFixed(0)}ms` : 
+                          'N/A'
+                        }
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -585,18 +564,35 @@ export function OAuthMonitoringDashboard() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Status')}</span>
-                      <Badge className="bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        {t('Healthy')}
+                      <Badge className={systemHealth?.tokenStore?.status === 'healthy' 
+                        ? "bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20"
+                        : systemHealth?.tokenStore?.status === 'degraded'
+                        ? "bg-yellow-500/10 text-yellow-800 dark:text-yellow-300 border-yellow-500/20"
+                        : systemHealth?.tokenStore?.status === 'down'
+                        ? "bg-red-500/10 text-red-800 dark:text-red-300 border-red-500/20"
+                        : "bg-gray-500/10 text-gray-800 dark:text-gray-300 border-gray-500/20"
+                      }>
+                        {systemHealth?.tokenStore?.status === 'healthy' && <CheckCircle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.tokenStore?.status === 'degraded' && <AlertTriangle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.tokenStore?.status === 'down' && <AlertCircle className="w-3 h-3 mr-1" />}
+                        {!systemHealth?.tokenStore?.status && <AlertCircle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.tokenStore?.status ? t(systemHealth.tokenStore.status.charAt(0).toUpperCase() + systemHealth.tokenStore.status.slice(1)) : t('Unknown')}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Storage Used')}</span>
-                      <span className="font-bold text-foreground">68%</span>
+                      <span className="font-bold text-foreground">
+                        {systemHealth?.tokenStore.storageUsed ? 
+                          `${systemHealth.tokenStore.storageUsed}%` : 
+                          'N/A'
+                        }
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Active Tokens')}</span>
-                      <span className="font-bold text-foreground">{analytics?.activeTokens}</span>
+                      <span className="font-bold text-foreground">
+                        {systemHealth?.tokenStore.activeTokens ?? analytics?.activeTokens ?? 0}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -611,18 +607,35 @@ export function OAuthMonitoringDashboard() {
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Status')}</span>
-                      <Badge className="bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        {t('Healthy')}
+                      <Badge className={systemHealth?.network?.status === 'healthy' 
+                        ? "bg-green-500/10 text-green-800 dark:text-green-300 border-green-500/20"
+                        : systemHealth?.network?.status === 'degraded'
+                        ? "bg-yellow-500/10 text-yellow-800 dark:text-yellow-300 border-yellow-500/20"
+                        : systemHealth?.network?.status === 'down'
+                        ? "bg-red-500/10 text-red-800 dark:text-red-300 border-red-500/20"
+                        : "bg-gray-500/10 text-gray-800 dark:text-gray-300 border-gray-500/20"
+                      }>
+                        {systemHealth?.network?.status === 'healthy' && <CheckCircle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.network?.status === 'degraded' && <AlertTriangle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.network?.status === 'down' && <AlertCircle className="w-3 h-3 mr-1" />}
+                        {!systemHealth?.network?.status && <AlertCircle className="w-3 h-3 mr-1" />}
+                        {systemHealth?.network?.status ? t(systemHealth.network.status.charAt(0).toUpperCase() + systemHealth.network.status.slice(1)) : t('Unknown')}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Throughput')}</span>
-                      <span className="font-bold text-foreground">1.2k req/min</span>
+                      <span className="font-bold text-foreground">
+                        {systemHealth?.network.throughput ?? 'N/A'}
+                      </span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-muted-foreground font-medium">{t('Error Rate')}</span>
-                      <span className="font-bold text-foreground">0.3%</span>
+                      <span className="font-bold text-foreground">
+                        {systemHealth?.network.errorRate ? 
+                          `${systemHealth.network.errorRate.toFixed(1)}%` : 
+                          'N/A'
+                        }
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -635,23 +648,10 @@ export function OAuthMonitoringDashboard() {
                   </div>
                   <h4 className="text-lg font-bold text-foreground tracking-tight">{t('System Alerts')}</h4>
                 </div>
-                <div className="space-y-3">
-                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4">
-                    <div className="flex items-center">
-                      <AlertCircle className="h-5 w-5 text-yellow-600 mr-3" />
-                      <p className="text-yellow-800 dark:text-yellow-300 font-medium">
-                        {t('High response time detected on authorization endpoint (avg 850ms)')}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-orange-500/10 border border-orange-500/20 rounded-xl p-4">
-                    <div className="flex items-center">
-                      <AlertTriangle className="h-5 w-5 text-orange-600 mr-3" />
-                      <p className="text-orange-800 dark:text-orange-300 font-medium">
-                        {t('Token storage is at 68% capacity. Consider cleanup or expansion.')}
-                      </p>
-                    </div>
-                  </div>
+                <div className="text-center text-muted-foreground py-8">
+                  <AlertTriangle className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                  <p>{t('No system alerts at this time')}</p>
+                  <p className="text-sm mt-2">{t('System monitoring will display real-time alerts here')}</p>
                 </div>
               </div>
             </TabsContent>

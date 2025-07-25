@@ -1,9 +1,11 @@
+.openapi-generator-ignore
 apis/AdminApi.ts
 apis/AuthenticationApi.ts
 apis/FhirApi.ts
 apis/HealthcareUsersApi.ts
 apis/IdentityProvidersApi.ts
 apis/LaunchContextsApi.ts
+apis/OauthMonitoringApi.ts
 apis/RolesApi.ts
 apis/ServerApi.ts
 apis/ServersApi.ts
@@ -32,6 +34,12 @@ models/GetHealth200ResponseFhirServers.ts
 models/GetHealth200ResponseFhirServersServersInner.ts
 models/GetHealth200ResponseMemory.ts
 models/GetHealth503Response.ts
+models/GetMonitoringOauthAnalytics200Response.ts
+models/GetMonitoringOauthAnalytics200ResponseHourlyStatsInner.ts
+models/GetMonitoringOauthAnalytics200ResponseTopClientsInner.ts
+models/GetMonitoringOauthEvents200Response.ts
+models/GetMonitoringOauthEvents200ResponseEventsInner.ts
+models/GetMonitoringOauthEvents200ResponseEventsInnerFhirContext.ts
 models/GetStatus200Response.ts
 models/GetStatus200ResponseFhir.ts
 models/GetStatus200ResponseFhirServersInner.ts

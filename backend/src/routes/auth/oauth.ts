@@ -1,9 +1,10 @@
 import { Elysia, t } from 'elysia'
 import fetch from 'cross-fetch'
-import { config } from '../config'
-import { validateToken } from '../lib/auth'
-import { getAllServers, ensureServersInitialized } from '../lib/fhir-server-store'
-import { logger } from '../lib/logger'
+import { config } from '../../config'
+import { validateToken } from '../../lib/auth'
+import { getAllServers, ensureServersInitialized } from '../../lib/fhir-server-store'
+import { logger } from '../../lib/logger'
+import { oauthMetricsLogger } from '../../lib/oauth-metrics-logger'
 
 interface TokenPayload {
   sub?: string
@@ -83,7 +84,7 @@ async function generateAuthorizationDetailsFromToken(
 /**
  * OAuth2/OIDC proxy routes - handles token exchange and introspection
  */
-export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'] })
+export const oauthRoutes = new Elysia({ tags: ['authentication'] })
   // redirect into Keycloak's /auth endpoint
   .get('/authorize', ({ query, redirect }) => {
     const url = new URL(
@@ -209,7 +210,8 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
   })
 
   // proxy token request
-  .post('/token', async ({ body, set }) => {
+  .post('/token', async ({ body, set, headers }) => {
+    const startTime = Date.now();
     const kcUrl = `${config.keycloak.baseUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/token`
     logger.auth.debug('Token endpoint request received', { 
       keycloakUrl: kcUrl,
@@ -251,12 +253,47 @@ export const oauthRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'
         body: rawBody
       })
       
+      const responseTime = Date.now() - startTime;
       const data = await resp.json()
       logger.auth.debug('Keycloak response received', { 
         status: resp.status,
         hasAccessToken: !!data.access_token,
         error: data.error
       })
+      
+      // Log OAuth event
+      const clientId = bodyObj.client_id || bodyObj.clientId || 'unknown';
+      const grantType = bodyObj.grant_type || bodyObj.grantType || 'unknown';
+      const scopes = bodyObj.scope ? bodyObj.scope.split(' ') : [];
+      
+      try {
+        await oauthMetricsLogger.logEvent({
+          type: 'token',
+          status: resp.status === 200 ? 'success' : 'error',
+          clientId,
+          clientName: clientId,
+          scopes,
+          grantType,
+          responseTime,
+          ipAddress: headers['x-forwarded-for'] || headers['x-real-ip'] || 'unknown',
+          userAgent: headers['user-agent'] || 'unknown',
+          errorMessage: data.error_description,
+          errorCode: data.error,
+          tokenType: data.token_type,
+          expiresIn: data.expires_in,
+          refreshToken: !!data.refresh_token,
+          requestDetails: {
+            path: '/auth/token',
+            method: 'POST',
+            headers: {
+              'content-type': headers['content-type'] || '',
+              'user-agent': headers['user-agent'] || ''
+            }
+          }
+        });
+      } catch (logError) {
+        logger.auth.error('Failed to log OAuth event', { logError });
+      }
       
       // Set the proper HTTP status code from Keycloak response
       set.status = resp.status

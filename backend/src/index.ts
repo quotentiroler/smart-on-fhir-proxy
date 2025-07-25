@@ -5,11 +5,14 @@ import { keycloakPlugin } from './lib/keycloak-plugin'
 import { fhirRoutes } from './routes/fhir'
 import { serverRoutes } from './routes/info'
 import { serverDiscoveryRoutes } from './routes/fhir-servers'
+import { oauthMonitoringRoutes } from './routes/oauth-monitoring'
+import { oauthWebSocket } from './routes/oauth-websocket'
 import { config } from './config'
 import { adminRoutes } from './routes/admin'
 import { authRoutes } from './routes/auth'
 import { logger } from './lib/logger'
 import { initializeServer, displayServerEndpoints } from './init'
+import { oauthMetricsLogger } from './lib/oauth-metrics-logger'
 
 const app = new Elysia()
   .use(cors({
@@ -57,11 +60,16 @@ const app = new Elysia()
   .use(serverDiscoveryRoutes)// Server discovery endpoints
   .use(authRoutes)
   .use(adminRoutes) //admin keycloak endpoints
+  .use(oauthMonitoringRoutes) // OAuth monitoring and analytics endpoints
+  .use(oauthWebSocket) // OAuth WebSocket for real-time monitoring
   .use(fhirRoutes) // the actual FHIR proxy endpoints
 
 // Initialize and start server
 initializeServer()
   .then(async () => {
+    // Initialize OAuth metrics logger
+    await oauthMetricsLogger.initialize();
+    
     app.listen(config.port, async () => {
       await displayServerEndpoints()
     })
