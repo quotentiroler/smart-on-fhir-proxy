@@ -115,12 +115,6 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           const tokens = await openidService.exchangeCodeForTokens(code, codeVerifier);
-          console.log('Token exchange successful:', {
-            hasAccessToken: !!tokens.access_token,
-            hasIdToken: !!tokens.id_token,
-            hasRefreshToken: !!tokens.refresh_token,
-            expiresIn: tokens.expires_in
-          });
           
           const tokenData: TokenData = {
             access_token: tokens.access_token,
@@ -269,7 +263,6 @@ export const useAuthStore = create<AuthState>()(
       }),
       // On rehydration, check if tokens still exist and are valid
       onRehydrateStorage: () => (state) => {
-        console.log('🔄 Auth store rehydrating...');
         if (state) {
           const tokens = getStoredTokens();
           if (!tokens || !isTokenValid(tokens)) {
