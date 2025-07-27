@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { keycloakPlugin } from '../../lib/keycloak-plugin'
 import { ErrorResponse } from '../../schemas/common'
+import { handleAdminError } from '../../lib/admin-error-handler'
 
 /**
  * Healthcare Roles & Permissions Management
@@ -25,8 +26,7 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
 
       return realmRoles;
     } catch (error) {
-      set.status = 500
-      return { error: 'Failed to fetch roles', details: error }
+      return handleAdminError(error, set)
     }
   }, {
     response: {
@@ -115,8 +115,7 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
 
       return role
     } catch (error) {
-      set.status = 500
-      return { error: 'Failed to fetch role', details: error }
+      return handleAdminError(error, set)
     }
   }, {
     response: {

@@ -69,11 +69,9 @@ export function FhirServersManager() {
     setSecurityChecks(prev => {
       // Don't check if already checking or checked
       if (prev[server.id]) {
-        console.log(`Security check for ${server.displayName} skipped - already ${prev[server.id]}`);
+        console.info(`Security check for ${server.displayName} skipped - already ${prev[server.id]}`);
         return prev;
       }
-      
-      console.log(`Starting security check for ${server.displayName}`);
       
       // Set to checking and start the async check
       setTimeout(async () => {
@@ -90,9 +88,6 @@ export function FhirServersManager() {
           });
 
           clearTimeout(timeoutId);
-
-          console.log(`Security check for ${server.displayName}: response type=${response.type}`);
-
           // For no-cors mode, if we get 'opaque' response, it means the server responded
           // If the server is publicly accessible (like HAPI FHIR), this is a security concern
           // because users can bypass the proxy
@@ -104,9 +99,7 @@ export function FhirServersManager() {
             setSecurityChecks(prevChecks => ({ ...prevChecks, [server.id]: 'secure' }));
           }
         } catch (error) {
-          // Network error - server might be down or unreachable
-          console.log(`Security check for ${server.displayName} failed (network error):`, error);
-          console.log(`Marking ${server.displayName} as SECURE (server unreachable from browser)`);
+          console.error(`Security check failed for ${server.displayName}:`, error);
           setSecurityChecks(prevChecks => ({ ...prevChecks, [server.id]: 'secure' }));
         }
       }, 0);

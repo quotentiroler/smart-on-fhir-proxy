@@ -143,7 +143,7 @@ export function OAuthMonitoringDashboard() {
         setAnalytics(newAnalytics);
       });
     } else {
-      console.log('Real-time updates are PAUSED');
+      console.info('Real-time updates are PAUSED');
     }
 
     // Cleanup function

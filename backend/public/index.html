@@ -141,22 +141,59 @@
           </div>
           
           <div class="group">
-            <label for="aud" class="block text-sm font-medium text-gray-700 mb-2">
+            <label for="fhir_server_choice" class="block text-sm font-medium text-gray-700 mb-2">
               <span class="flex items-center space-x-2">
                 <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"/>
                 </svg>
-                <span>FHIR Base URL</span>
+                <span>FHIR Server</span>
               </span>
             </label>
-            <input 
-              id="aud" 
-              name="aud" 
-              type="url"
-              placeholder="e.g. https://fhir.example.com" 
-              required
-              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-smart-blue focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white group-hover:border-gray-400"
-            >
+            
+            <!-- Toggle between manual input and server selection -->
+            <div class="mb-3">
+              <div class="flex items-center space-x-4">
+                <label class="flex items-center">
+                  <input type="radio" name="fhir_input_type" value="manual" checked class="text-smart-blue focus:ring-smart-blue mr-2">
+                  <span class="text-sm text-gray-700">Manual URL</span>
+                </label>
+                <label class="flex items-center">
+                  <input type="radio" name="fhir_input_type" value="select" class="text-smart-blue focus:ring-smart-blue mr-2">
+                  <span class="text-sm text-gray-700">Choose from available servers</span>
+                </label>
+              </div>
+            </div>
+            
+            <!-- Manual input -->
+            <div id="manual_fhir_input" class="mb-0">
+              <input 
+                id="aud" 
+                name="aud" 
+                type="url"
+                placeholder="e.g. https://fhir.example.com" 
+                required
+                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-smart-blue focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white group-hover:border-gray-400"
+              >
+            </div>
+            
+            <!-- Server selection -->
+            <div id="server_selection" class="hidden">
+              <div class="flex items-center space-x-2 mb-2">
+                <select 
+                  id="fhir_server_select" 
+                  name="fhir_server_select"
+                  class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-smart-blue focus:border-transparent transition-all duration-200 bg-gray-50 focus:bg-white"
+                >
+                  <option value="">Loading available servers...</option>
+                </select>
+                <button type="button" id="refresh_servers" class="px-3 py-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors" title="Refresh server list">
+                  <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                  </svg>
+                </button>
+              </div>
+              <div id="server_status" class="text-xs text-gray-500"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -429,6 +466,97 @@
     const scopesSummary = document.getElementById('scopesSummary');
     const selectedScopes = document.getElementById('selectedScopes');
     
+    // FHIR server selection elements
+    const manualInput = document.getElementById('manual_fhir_input');
+    const serverSelection = document.getElementById('server_selection');
+    const fhirServerSelect = document.getElementById('fhir_server_select');
+    const refreshServersBtn = document.getElementById('refresh_servers');
+    const serverStatus = document.getElementById('server_status');
+    const audInput = document.getElementById('aud');
+    
+    // State for available servers
+    let availableServers = [];
+    
+    // Toggle between manual input and server selection
+    document.addEventListener('change', (e) => {
+      if (e.target.name === 'fhir_input_type') {
+        if (e.target.value === 'manual') {
+          manualInput.classList.remove('hidden');
+          serverSelection.classList.add('hidden');
+          audInput.required = true;
+          fhirServerSelect.required = false;
+        } else {
+          manualInput.classList.add('hidden');
+          serverSelection.classList.remove('hidden');
+          audInput.required = false;
+          fhirServerSelect.required = true;
+          loadAvailableServers();
+        }
+      }
+      
+      if (e.target.name === 'scopes') {
+        updateScopesSummary();
+      }
+    });
+    
+    // Load available FHIR servers from /health endpoint
+    async function loadAvailableServers() {
+      try {
+        serverStatus.textContent = 'Loading servers...';
+        fhirServerSelect.innerHTML = '<option value="">Loading available servers...</option>';
+        
+        const response = await fetch('/health');
+        const healthData = await response.json();
+        
+        availableServers = healthData.fhirServers?.servers || [];
+        
+        // Clear and populate the select dropdown
+        fhirServerSelect.innerHTML = '<option value="">Select a FHIR server...</option>';
+        
+        if (availableServers.length === 0) {
+          fhirServerSelect.innerHTML = '<option value="">No servers available</option>';
+          serverStatus.textContent = 'No FHIR servers found';
+          return;
+        }
+        
+        availableServers.forEach(server => {
+          const option = document.createElement('option');
+          option.value = server.url;
+          
+          // Create a descriptive label
+          let label = server.displayName || server.name;
+          if (server.version && server.version !== 'unknown') {
+            label += ` (FHIR ${server.version})`;
+          }
+          
+          // Add status indicator
+          const statusIcon = server.status === 'healthy' ? '🟢' : 
+                           server.status === 'degraded' ? '🟡' : '🔴';
+          option.textContent = `${statusIcon} ${label}`;
+          
+          // Disable unhealthy servers
+          if (server.status === 'unhealthy') {
+            option.disabled = true;
+            option.textContent += ' (Unavailable)';
+          }
+          
+          fhirServerSelect.appendChild(option);
+        });
+        
+        const healthyCount = availableServers.filter(s => s.status === 'healthy').length;
+        const totalCount = availableServers.length;
+        serverStatus.textContent = `${healthyCount}/${totalCount} servers available`;
+        
+      } catch (error) {
+        console.error('Failed to load FHIR servers:', error);
+        fhirServerSelect.innerHTML = '<option value="">Failed to load servers</option>';
+        serverStatus.textContent = 'Error loading servers. Please try manual input.';
+      }
+    }
+    
+    // Refresh servers button
+    refreshServersBtn.addEventListener('click', loadAvailableServers);
+    
     // Select/Clear all functionality
     selectAllBtn.addEventListener('click', () => {
       document.querySelectorAll('input[name="scopes"]').forEach(checkbox => {
@@ -442,13 +570,6 @@
         checkbox.checked = false;
       });
       updateScopesSummary();
-    });
-    
-    // Update scopes summary when checkboxes change
-    document.addEventListener('change', (e) => {
-      if (e.target.name === 'scopes') {
-        updateScopesSummary();
-      }
     });
     
     // Update scopes summary display
@@ -483,13 +604,33 @@
       // Validate required fields
       const clientId = formData.get('client_id');
       const redirectUri = formData.get('redirect_uri');
-      const aud = formData.get('aud');
       
-      if (!clientId || !redirectUri || !aud) {
+      if (!clientId || !redirectUri) {
         alert('Please fill in all required fields');
         launchButton.disabled = false;
         loadingSpinner.classList.add('opacity-0');
         return;
+      }
+      
+      // Get FHIR server URL based on input type
+      let aud;
+      const inputType = formData.get('fhir_input_type');
+      if (inputType === 'manual') {
+        aud = formData.get('aud');
+        if (!aud) {
+          alert('Please enter a FHIR base URL');
+          launchButton.disabled = false;
+          loadingSpinner.classList.add('opacity-0');
+          return;
+        }
+      } else {
+        aud = formData.get('fhir_server_select');
+        if (!aud) {
+          alert('Please select a FHIR server');
+          launchButton.disabled = false;
+          loadingSpinner.classList.add('opacity-0');
+          return;
+        }
       }
       
       // Add basic params
@@ -525,6 +666,9 @@
     
     // Initialize
     updateScopesSummary();
+    
+    // Load servers on page load if needed (optional - could be done on radio button change instead)
+    // loadAvailableServers();
   </script>
 </body>
 </html>

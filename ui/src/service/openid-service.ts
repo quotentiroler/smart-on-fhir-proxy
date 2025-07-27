@@ -31,7 +31,7 @@ class OpenIDService {
     this.authApi = new AuthenticationApi(apiConfig);
   }
 
-  async getAuthorizationUrl(): Promise<{ url: string; codeVerifier: string; state: string }> {
+  async getAuthorizationUrl(idpHint?: string): Promise<{ url: string; codeVerifier: string; state: string }> {
     // Generate PKCE parameters
     const codeVerifier = this.generateCodeVerifier();
     const codeChallenge = await this.generateCodeChallenge(codeVerifier);
@@ -46,6 +46,12 @@ class OpenIDService {
     authUrl.searchParams.set('code_challenge', codeChallenge);
     authUrl.searchParams.set('code_challenge_method', 'S256');
     authUrl.searchParams.set('state', state);
+
+    // Add IdP hint if provided (Keycloak-specific parameter)
+    if (idpHint) {
+      authUrl.searchParams.set('kc_idp_hint', idpHint);
+      console.debug('Using Identity Provider hint:', idpHint);
+    }
 
     console.debug('Generated Authorization URL:', authUrl.href);
     console.debug('Redirect URI:', this.config.redirectUri);

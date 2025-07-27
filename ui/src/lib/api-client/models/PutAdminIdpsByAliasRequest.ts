@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { PostAdminIdpsRequestConfig } from './PostAdminIdpsRequestConfig';
+import {
+    PostAdminIdpsRequestConfigFromJSON,
+    PostAdminIdpsRequestConfigFromJSONTyped,
+    PostAdminIdpsRequestConfigToJSON,
+    PostAdminIdpsRequestConfigToJSONTyped,
+} from './PostAdminIdpsRequestConfig';
+
 /**
  * 
  * @export
@@ -33,10 +41,10 @@ export interface PutAdminIdpsByAliasRequest {
     enabled?: boolean;
     /**
      * 
-     * @type {object}
+     * @type {PostAdminIdpsRequestConfig}
      * @memberof PutAdminIdpsByAliasRequest
      */
-    config?: object;
+    config?: PostAdminIdpsRequestConfig;
 }
 
 /**
@@ -58,7 +66,7 @@ export function PutAdminIdpsByAliasRequestFromJSONTyped(json: any, ignoreDiscrim
         
         'displayName': json['displayName'] == null ? undefined : json['displayName'],
         'enabled': json['enabled'] == null ? undefined : json['enabled'],
-        'config': json['config'] == null ? undefined : json['config'],
+        'config': json['config'] == null ? undefined : PostAdminIdpsRequestConfigFromJSON(json['config']),
     };
 }
 
@@ -75,7 +83,7 @@ export function PutAdminIdpsByAliasRequestToJSONTyped(value?: PutAdminIdpsByAlia
         
         'displayName': value['displayName'],
         'enabled': value['enabled'],
-        'config': value['config'],
+        'config': PostAdminIdpsRequestConfigToJSON(value['config']),
     };
 }
 

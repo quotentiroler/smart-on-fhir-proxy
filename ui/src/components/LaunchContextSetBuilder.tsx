@@ -208,14 +208,14 @@ export function LaunchContextSetBuilder({
       <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-6">
           <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 rounded-xl flex items-center justify-center shadow-sm">
-              <Rocket className="w-6 h-6 text-blue-600" />
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-800 dark:to-blue-700 rounded-xl flex items-center justify-center shadow-sm">
+              <Rocket className="w-6 h-6 text-blue-600 dark:text-blue-300" />
             </div>
             <div>
-              <DialogTitle className="text-2xl font-bold text-gray-900 tracking-tight">
+              <DialogTitle className="text-2xl font-bold text-foreground tracking-tight">
                 {editingSet ? 'Edit Launch Context Set' : 'Create Launch Context Set'}
               </DialogTitle>
-              <DialogDescription className="text-gray-600 font-medium mt-1">
+              <DialogDescription className="text-muted-foreground font-medium mt-1">
                 Configure launch contexts for SMART on FHIR applications. These determine what contextual information is available during app launch.
               </DialogDescription>
             </div>
@@ -224,19 +224,19 @@ export function LaunchContextSetBuilder({
         
         <div className="space-y-6">
           {/* Basic Information */}
-          <div className="space-y-6 p-6 bg-blue-50/50 rounded-xl border border-blue-200/50">
+          <div className="space-y-6 p-6 bg-blue-50/50 dark:bg-blue-950/30 rounded-xl border border-blue-200/50 dark:border-blue-800/30">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center shadow-sm">
-                <Layers className="w-4 h-4 text-blue-600" />
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-100 to-blue-200 dark:from-blue-800 dark:to-blue-700 rounded-lg flex items-center justify-center shadow-sm">
+                <Layers className="w-4 h-4 text-blue-600 dark:text-blue-300" />
               </div>
               <div>
-                <h4 className="text-lg font-bold text-gray-900 tracking-tight">Basic Information</h4>
-                <p className="text-gray-600 text-sm font-medium">Define the context set name, description, and category</p>
+                <h4 className="text-lg font-bold text-foreground tracking-tight">Basic Information</h4>
+                <p className="text-muted-foreground text-sm font-medium">Define the context set name, description, and category</p>
               </div>
             </div>
             <div className="space-y-4">
               <div className="space-y-3">
-                <Label htmlFor="context-name" className="text-sm font-semibold text-gray-700">
+                <Label htmlFor="context-name" className="text-sm font-semibold text-foreground">
                   Context Set Name *
                 </Label>
                 <Input
@@ -244,11 +244,11 @@ export function LaunchContextSetBuilder({
                   value={contextSet.name}
                   onChange={e => setContextSet({ ...contextSet, name: e.target.value })}
                   placeholder="e.g., Emergency Department Launch, Radiology Workflow"
-                  className="rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm"
+                  className="rounded-xl border-border focus:border-blue-500 focus:ring-blue-500 shadow-sm"
                 />
               </div>
               <div className="space-y-3">
-                <Label htmlFor="context-description" className="text-sm font-semibold text-gray-700">
+                <Label htmlFor="context-description" className="text-sm font-semibold text-foreground">
                   Description
                 </Label>
                 <Textarea
@@ -257,18 +257,18 @@ export function LaunchContextSetBuilder({
                   onChange={e => setContextSet({ ...contextSet, description: e.target.value })}
                   placeholder="Describe when this context set should be used and what it enables..."
                   rows={3}
-                  className="rounded-xl border-gray-300 focus:border-blue-500 focus:ring-blue-500 shadow-sm"
+                  className="rounded-xl border-border focus:border-blue-500 focus:ring-blue-500 shadow-sm"
                 />
               </div>
               <div className="space-y-3">
-                <Label htmlFor="context-category" className="text-sm font-semibold text-gray-700">
+                <Label htmlFor="context-category" className="text-sm font-semibold text-foreground">
                   Category
                 </Label>
                 <select
                   id="context-category"
                   value={contextSet.category}
                   onChange={e => setContextSet({ ...contextSet, category: e.target.value })}
-                  className="flex h-10 w-full rounded-xl border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
+                  className="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
                 >
                   <option value="">Select Category</option>
                   <option value="ehr-launch">🏥 EHR Launch</option>
@@ -283,14 +283,14 @@ export function LaunchContextSetBuilder({
           </div>
 
           {/* Scope Builder */}
-          <div className="space-y-6 p-6 bg-green-50/50 rounded-xl border border-green-200/50">
+          <div className="space-y-6 p-6 bg-green-50/50 dark:bg-green-950/30 rounded-xl border border-green-200/50 dark:border-green-800/30">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-green-100 to-green-200 rounded-lg flex items-center justify-center shadow-sm">
-                <Wand2 className="w-4 h-4 text-green-600" />
+              <div className="w-8 h-8 bg-gradient-to-br from-green-100 to-green-200 dark:from-green-800 dark:to-green-700 rounded-lg flex items-center justify-center shadow-sm">
+                <Wand2 className="w-4 h-4 text-green-600 dark:text-green-300" />
               </div>
               <div>
-                <h4 className="text-lg font-bold text-gray-900 tracking-tight">Scope Builder</h4>
-                <p className="text-gray-600 text-sm font-medium">Add SMART scopes and launch contexts to this set</p>
+                <h4 className="text-lg font-bold text-foreground tracking-tight">Scope Builder</h4>
+                <p className="text-muted-foreground text-sm font-medium">Add SMART scopes and launch contexts to this set</p>
               </div>
             </div>
             
@@ -302,7 +302,7 @@ export function LaunchContextSetBuilder({
                 onClick={() => setActiveBuilder('quick')}
                 className={activeBuilder === 'quick' 
                   ? 'bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-xl hover:from-green-700 hover:to-green-800' 
-                  : 'rounded-xl border-gray-300 hover:bg-green-50'
+                  : 'rounded-xl border-green-300 dark:border-green-600 bg-white dark:bg-slate-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/50 hover:border-green-400 dark:hover:border-green-500'
                 }
               >
                 <Zap className="w-4 h-4 mr-2" />
@@ -314,7 +314,7 @@ export function LaunchContextSetBuilder({
                 onClick={() => setActiveBuilder('custom')}
                 className={activeBuilder === 'custom' 
                   ? 'bg-gradient-to-r from-green-600 to-green-700 text-white font-semibold rounded-xl hover:from-green-700 hover:to-green-800' 
-                  : 'rounded-xl border-gray-300 hover:bg-green-50'
+                  : 'rounded-xl border-green-300 dark:border-green-600 bg-white dark:bg-slate-800 text-green-700 dark:text-green-300 hover:bg-green-50 dark:hover:bg-green-950/50 hover:border-green-400 dark:hover:border-green-500'
                 }
               >
                 <Code2 className="w-4 h-4 mr-2" />
@@ -325,7 +325,7 @@ export function LaunchContextSetBuilder({
             {activeBuilder === 'quick' && (
               <div className="space-y-4">
                 <div className="space-y-3">
-                  <Label className="text-sm font-semibold text-gray-700 flex items-center">
+                  <Label className="text-sm font-semibold text-foreground flex items-center">
                     <Sparkles className="w-4 h-4 mr-2" />
                     Common SMART Scopes
                   </Label>
@@ -337,7 +337,7 @@ export function LaunchContextSetBuilder({
                         variant="outline"
                         onClick={() => addCommonScope(scope)}
                         disabled={contextSet.contexts.includes(scope)}
-                        className="text-xs rounded-xl border-gray-300 hover:bg-green-50 hover:border-green-300 disabled:opacity-50 shadow-sm font-mono"
+                        className="text-xs rounded-xl border-border text-foreground hover:bg-green-50 dark:hover:bg-green-950/30 hover:border-green-300 dark:hover:border-green-700 hover:text-green-700 dark:hover:text-green-300 disabled:opacity-50 disabled:text-muted-foreground shadow-sm font-mono"
                       >
                         <Plus className="w-3 h-3 mr-1" />
                         {scope}
@@ -351,7 +351,7 @@ export function LaunchContextSetBuilder({
             {activeBuilder === 'custom' && (
               <div className="space-y-4">
                 <div className="space-y-3">
-                  <Label className="text-sm font-semibold text-gray-700 flex items-center">
+                  <Label className="text-sm font-semibold text-foreground flex items-center">
                     <Target className="w-4 h-4 mr-2" />
                     Build Launch Context
                   </Label>
@@ -359,7 +359,7 @@ export function LaunchContextSetBuilder({
                     <select
                       value={builderState.resource}
                       onChange={e => setBuilderState({ ...builderState, resource: e.target.value })}
-                      className="flex h-10 w-full rounded-xl border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
+                      className="flex h-10 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm"
                     >
                       <option value="">Select Resource</option>
                       {LAUNCH_RESOURCES.map(r => (
@@ -370,7 +370,7 @@ export function LaunchContextSetBuilder({
                       placeholder="Role URI (optional)"
                       value={builderState.role}
                       onChange={e => setBuilderState({ ...builderState, role: e.target.value })}
-                      className="text-sm rounded-xl border-gray-300 focus:border-green-500 focus:ring-green-500 shadow-sm"
+                      className="text-sm rounded-xl border-border focus:border-green-500 focus:ring-green-500 shadow-sm"
                     />
                     <div className="md:col-span-2">
                       <Button 
@@ -386,7 +386,7 @@ export function LaunchContextSetBuilder({
                 </div>
                 
                 <div className="space-y-3">
-                  <Label className="text-sm font-semibold text-gray-700 flex items-center">
+                  <Label className="text-sm font-semibold text-foreground flex items-center">
                     <Lightbulb className="w-4 h-4 mr-2" />
                     Or Enter Custom Scope
                   </Label>
@@ -395,7 +395,7 @@ export function LaunchContextSetBuilder({
                       placeholder="e.g., patient/Observation.rs, user/*.cruds, launch/patient"
                       value={builderState.customScope}
                       onChange={e => setBuilderState({ ...builderState, customScope: e.target.value })}
-                      className="text-sm rounded-xl border-gray-300 focus:border-green-500 focus:ring-green-500 shadow-sm"
+                      className="text-sm rounded-xl border-border focus:border-green-500 focus:ring-green-500 shadow-sm"
                       onKeyPress={e => e.key === 'Enter' && addScope()}
                     />
                     <Button 
@@ -412,44 +412,44 @@ export function LaunchContextSetBuilder({
             
             {/* Error display */}
             {error && (
-              <div className="p-4 bg-red-50 border border-red-200 rounded-xl">
+              <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl">
                 <div className="flex items-center space-x-2">
-                  <AlertCircle className="w-4 h-4 text-red-600" />
-                  <p className="text-sm text-red-700 font-medium">{error}</p>
+                  <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                  <p className="text-sm text-red-700 dark:text-red-300 font-medium">{error}</p>
                 </div>
               </div>
             )}
           </div>
 
           {/* Current Scopes */}
-          <div className="space-y-6 p-6 bg-purple-50/50 rounded-xl border border-purple-200/50">
+          <div className="space-y-6 p-6 bg-purple-50/50 dark:bg-purple-950/30 rounded-xl border border-purple-200/50 dark:border-purple-800/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 rounded-lg flex items-center justify-center shadow-sm">
-                  <Target className="w-4 h-4 text-purple-600" />
+                <div className="w-8 h-8 bg-gradient-to-br from-purple-100 to-purple-200 dark:from-purple-800 dark:to-purple-700 rounded-lg flex items-center justify-center shadow-sm">
+                  <Target className="w-4 h-4 text-purple-600 dark:text-purple-300" />
                 </div>
                 <div>
-                  <h4 className="text-lg font-bold text-gray-900 tracking-tight">
+                  <h4 className="text-lg font-bold text-foreground tracking-tight">
                     Current Scopes ({contextSet.contexts.length})
                   </h4>
-                  <p className="text-gray-600 text-sm font-medium">Review and manage selected scopes</p>
+                  <p className="text-muted-foreground text-sm font-medium">Review and manage selected scopes</p>
                 </div>
               </div>
               {contextSet.contexts.length > 0 && (
-                <Badge className="bg-gradient-to-r from-purple-100 to-purple-200 text-purple-800 border-purple-300 shadow-sm">
+                <Badge className="bg-gradient-to-r from-purple-100 to-purple-200 dark:from-purple-800 dark:to-purple-700 text-purple-800 dark:text-purple-300 border-purple-300 dark:border-purple-600 shadow-sm">
                   {contextSet.contexts.length} configured
                 </Badge>
               )}
             </div>
             
-            <div className="max-h-40 overflow-y-auto border border-purple-200/50 rounded-xl p-4 bg-white/70 backdrop-blur-sm shadow-sm">
+            <div className="max-h-40 overflow-y-auto border border-purple-200/50 dark:border-purple-700/30 rounded-xl p-4 bg-white/70 dark:bg-card/70 backdrop-blur-sm shadow-sm">
               {contextSet.contexts.length === 0 ? (
                 <div className="text-center py-8">
-                  <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center shadow-sm">
-                    <Target className="w-6 h-6 text-gray-400" />
+                  <div className="w-12 h-12 mx-auto mb-3 bg-gradient-to-br from-muted/50 to-muted rounded-xl flex items-center justify-center shadow-sm">
+                    <Target className="w-6 h-6 text-muted-foreground" />
                   </div>
-                  <p className="text-sm text-gray-500 font-medium">No scopes added yet</p>
-                  <p className="text-xs text-gray-400 mt-1">Add scopes using the builder above</p>
+                  <p className="text-sm text-muted-foreground font-medium">No scopes added yet</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Add scopes using the builder above</p>
                 </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
@@ -457,7 +457,7 @@ export function LaunchContextSetBuilder({
                     <Badge 
                       key={ctx} 
                       variant="outline" 
-                      className="flex items-center bg-white shadow-sm hover:shadow-md transition-all duration-200 border-purple-200 text-purple-800 rounded-lg font-mono text-xs"
+                      className="flex items-center bg-background shadow-sm hover:shadow-md transition-all duration-200 border-purple-200 dark:border-purple-700/50 text-purple-800 dark:text-purple-300 rounded-lg font-mono text-xs"
                     >
                       <span>{ctx}</span>
                       <X 
@@ -477,7 +477,7 @@ export function LaunchContextSetBuilder({
             type="button"
             variant="outline"
             onClick={handleCancel}
-            className="px-8 py-3 border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-all duration-200 shadow-sm hover:shadow-md"
+            className="px-8 py-3 border-border text-foreground font-semibold rounded-xl hover:bg-muted transition-all duration-200 shadow-sm hover:shadow-md"
           >
             Cancel
           </Button>

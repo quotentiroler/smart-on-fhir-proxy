@@ -1,5 +1,4 @@
 import { SmartAppsManager } from './SmartAppsManager/SmartAppsManager';
-import { IdPManager } from './IdPManager';
 import { FhirServersManager } from './FhirServersManager';
 import { ScopeManager } from './ScopeManager';
 import { LaunchContextManager } from './LaunchContextManager';
@@ -33,7 +32,10 @@ import {
     X,
     Send,
     Mic,
-    MicOff
+    MicOff,
+    Power,
+    RotateCcw,
+    Heart
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { OAuthMonitoringDashboard } from './OAuthMonitoringDashboard';
@@ -45,16 +47,17 @@ import {
     CardHeader,
     CardTitle,
 } from './ui/card';
-import type { 
+import type {
     OAuthEvent
 } from '../lib/types/api';
 import { config } from '../config';
+import { IdPManager } from './IdPManager/IdPManager';
 
 export function AdminApp() {
     const { activeTab, setActiveTab } = useAppStore();
     const { profile, loading, error } = useAuth();
     const { t } = useTranslation();
-    
+
     // AI Chat Overlay State
     const [isChatOpen, setIsChatOpen] = useState(false);
     const [isMinimized, setIsMinimized] = useState(false);
@@ -120,7 +123,7 @@ export function AdminApp() {
 
     const getAgentResponse = (userMessage: string): string => {
         const message = userMessage.toLowerCase();
-        
+
         if (message.includes('user') || message.includes('healthcare')) {
             return t('I can help you manage healthcare users. You can view all users, add new ones, edit existing profiles, or manage their FHIR associations. Would you like me to navigate you to the Users section?');
         } else if (message.includes('app') || message.includes('smart')) {
@@ -185,7 +188,7 @@ export function AdminApp() {
 
     return (
         <div className="min-h-screen flex flex-col bg-background [&_.mantine-AppShell-main]:!pt-2 md:[&_.mantine-AppShell-main]:!pt-4">
-                           <Navigation activeTab={activeTab} onTabChange={setActiveTab} profile={profile} onChatToggle={handleChatToggle} />
+            <Navigation activeTab={activeTab} onTabChange={setActiveTab} profile={profile} onChatToggle={handleChatToggle} />
             <AppShell
                 logo={
                     <div className="flex items-center space-x-3 animate-fade-in">
@@ -254,24 +257,23 @@ export function AdminApp() {
                                 </div>
                             </div>
                         </CardHeader>
-                        
+
                         {!isMinimized && (
                             <CardContent className="p-0">
                                 {/* Chat Messages */}
                                 <div className="h-64 overflow-y-auto p-4 space-y-3">
                                     {chatMessages.map((message) => (
                                         <div key={message.id} className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                            <div className={`max-w-[80%] p-3 rounded-lg text-sm ${
-                                                message.type === 'user'
+                                            <div className={`max-w-[80%] p-3 rounded-lg text-sm ${message.type === 'user'
                                                     ? 'bg-primary text-primary-foreground rounded-br-sm'
                                                     : 'bg-muted text-foreground rounded-bl-sm'
-                                            }`}>
+                                                }`}>
                                                 {message.content}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-                                
+
                                 {/* Chat Input */}
                                 <div className="border-t border-border/50 p-4">
                                     <form onSubmit={handleSendMessage} className="flex space-x-2">
@@ -286,9 +288,8 @@ export function AdminApp() {
                                             size="sm"
                                             onClick={handleMicToggle}
                                             variant={isListening ? "destructive" : "secondary"}
-                                            className={`rounded-lg px-3 transition-all duration-300 ${
-                                                isListening ? 'animate-pulse' : ''
-                                            }`}
+                                            className={`rounded-lg px-3 transition-all duration-300 ${isListening ? 'animate-pulse' : ''
+                                                }`}
                                         >
                                             {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                                         </Button>
@@ -313,7 +314,20 @@ export function AdminApp() {
 function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
     const { profile, fetchProfile, apiClients } = useAuth();
     const { t } = useTranslation();
-    
+
+    // Notification state for server management operations
+    const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+    // Auto-hide notification after 5 seconds
+    useEffect(() => {
+        if (notification) {
+            const timer = setTimeout(() => {
+                setNotification(null);
+            }, 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [notification]);
+
     // State for real data with proper typing
     const [dashboardData, setDashboardData] = useState<{
         smartAppsCount: number;
@@ -330,7 +344,7 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
         loading: true,
         error: null
     });
-    
+
     // OAuth Analytics state with proper typing
     const [oauthAnalytics, setOauthAnalytics] = useState<{
         totalFlows: number;
@@ -347,9 +361,9 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
         loading: true,
         error: null
     });
-    
+
     // OAuth Events interface - using generated model
-    
+
     const [recentOAuthEvents, setRecentOAuthEvents] = useState<OAuthEvent[]>([]);
     const [systemHealth, setSystemHealth] = useState<{
         apiResponseTime: number;
@@ -377,7 +391,7 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
             try {
                 setDashboardData(prev => ({ ...prev, loading: true, error: null }));
                 setOauthAnalytics(prev => ({ ...prev, loading: true, error: null }));
-                
+
                 // Fetch data in parallel with correct API methods
                 const [smartApps, users, servers, identityProvidersCount, recentEvents, analytics, systemStatus] = await Promise.allSettled([
                     apiClients.smartApps.getAdminSmartApps(),
@@ -390,7 +404,7 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                     apiClients.oauthMonitoring.getMonitoringOauthAnalytics(),
                     apiClients.server.getStatus()
                 ]);
-                
+
                 // Update dashboard data with proper type checking
                 setDashboardData({
                     smartAppsCount: smartApps.status === 'fulfilled' ? Array.isArray(smartApps.value) ? smartApps.value.length : 0 : 0,
@@ -400,7 +414,7 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                     loading: false,
                     error: null
                 });
-                
+
                 // Update OAuth analytics
                 if (analytics.status === 'fulfilled') {
                     const analyticsData = analytics.value as {
@@ -424,14 +438,14 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                         error: 'Failed to load OAuth analytics'
                     }));
                 }
-                
+
                 // Update recent OAuth events
                 if (recentEvents.status === 'fulfilled') {
                     const eventsData = recentEvents.value as { events?: OAuthEvent[] };
                     const events = eventsData.events || [];
                     setRecentOAuthEvents(events.slice(0, 4));
                 }
-                
+
                 // Update system health with real data
                 if (systemStatus.status === 'fulfilled') {
                     const statusData = systemStatus.value as {
@@ -441,15 +455,15 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                         fhir?: { status?: string; totalServers?: number; healthyServers?: number };
                         keycloak?: { status?: string; accessible?: boolean };
                     };
-                    
+
                     // Calculate memory usage
                     const memoryUsage = statusData.server?.status === 'healthy' ? '~128MB' : 'unknown';
-                    
+
                     // Format uptime
                     const uptimeSeconds = statusData.uptime || 0;
                     const uptimeHours = Math.floor(uptimeSeconds / 3600);
                     const uptimeFormatted = uptimeHours > 0 ? `${uptimeHours}h` : `${Math.floor(uptimeSeconds / 60)}m`;
-                    
+
                     setSystemHealth(prev => ({
                         ...prev,
                         databaseStatus: 'healthy', // We know it's healthy if we got a response
@@ -468,13 +482,13 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                         keycloakStatus: 'error'
                     }));
                 }
-                
+
                 // Measure API response time with a simple call
                 const startTime = performance.now();
                 try {
                     await apiClients.smartApps.getAdminSmartApps();
                     const endTime = performance.now();
-                    
+
                     setSystemHealth(prev => ({
                         ...prev,
                         apiResponseTime: Math.round(endTime - startTime)
@@ -485,7 +499,7 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                         apiResponseTime: 0
                     }));
                 }
-                
+
             } catch (error) {
                 console.error('Failed to fetch dashboard data:', error);
                 setDashboardData(prev => ({
@@ -500,7 +514,7 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                 }));
             }
         };
-        
+
         fetchDashboardData();
     }, [apiClients]);
 
@@ -509,6 +523,67 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
         // Trigger dashboard data refresh
         setDashboardData(prev => ({ ...prev, loading: true }));
         // The useEffect will handle the refresh
+    };
+
+    const handleServerShutdown = async () => {
+        if (!confirm(t('Are you sure you want to shutdown the server? This will stop all services.'))) {
+            return;
+        }
+
+        try {
+            await apiClients.server.postShutdown();
+            setNotification({
+                type: 'success',
+                message: t('Server shutdown initiated successfully')
+            });
+        } catch (error) {
+            setNotification({
+                type: 'error',
+                message: t('Failed to shutdown server: {{error}}', {
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                })
+            });
+        }
+    };
+
+    const handleServerRestart = async () => {
+        if (!confirm(t('Are you sure you want to restart the server? This will temporarily interrupt all services.'))) {
+            return;
+        }
+
+        try {
+            await apiClients.server.postRestart();
+            setNotification({
+                type: 'success',
+                message: t('Server restart initiated successfully')
+            });
+        } catch (error) {
+            setNotification({
+                type: 'error',
+                message: t('Failed to restart server: {{error}}', {
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                })
+            });
+        }
+    };
+
+    const handleHealthCheck = async () => {
+        try {
+            const data = await apiClients.server.getHealth();
+            setNotification({
+                type: 'success',
+                message: t('Health check completed: Server is {{status}}', {
+                    status: data.status
+                })
+            });
+        } catch (error) {
+            setNotification({
+                type: 'error',
+                message: t('Failed to perform health check: {{error}}', {
+                    error: error instanceof Error ? error.message : 'Unknown error'
+                })
+            });
+        }
     };
 
     const formatEventType = (eventType: string) => {
@@ -531,6 +606,31 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
 
     return (
         <div className="p-4 sm:p-6 space-y-6 bg-background min-h-full">
+            {/* Notification Toast */}
+            {notification && (
+                <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border ${notification.type === 'success'
+                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800/50 text-green-800 dark:text-green-200'
+                        : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/50 text-red-800 dark:text-red-200'
+                    } animate-in slide-in-from-top-2 duration-300`}>
+                    <div className="flex items-center space-x-2">
+                        {notification.type === 'success' ? (
+                            <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        ) : (
+                            <AlertCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                        )}
+                        <span className="font-medium">{notification.message}</span>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setNotification(null)}
+                            className="ml-2 h-6 w-6 p-0 text-current hover:bg-current/10"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+            )}
+
             {/* Header Section */}
             <div className="bg-muted/50 p-4 sm:p-6 lg:p-8 rounded-3xl border border-border/50 shadow-lg">
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-6 lg:space-y-0">
@@ -549,13 +649,36 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                             })}
                         </div>
                     </div>
-                    <button
-                        onClick={handleRefresh}
-                        className="px-8 py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold rounded-2xl hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-blue-500/20"
-                    >
-                        <RefreshCw className="w-5 h-5 mr-2 inline" />
-                        {t('Refresh Data')}
-                    </button>
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            onClick={handleRefresh}
+                            className="px-6 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-blue-500/20"
+                        >
+                            <RefreshCw className="w-4 h-4 mr-2 inline" />
+                            {t('Refresh Data')}
+                        </button>
+                        <button
+                            onClick={handleHealthCheck}
+                            className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-green-600 text-white font-semibold rounded-xl hover:from-emerald-500 hover:to-green-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-emerald-500/20"
+                        >
+                            <Heart className="w-4 h-4 mr-2 inline" />
+                            {t('Health Check')}
+                        </button>
+                        <button
+                            onClick={handleServerRestart}
+                            className="px-6 py-3 bg-gradient-to-r from-orange-600 to-amber-600 text-white font-semibold rounded-xl hover:from-orange-500 hover:to-amber-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-orange-500/20"
+                        >
+                            <RotateCcw className="w-4 h-4 mr-2 inline" />
+                            {t('Restart Server')}
+                        </button>
+                        <button
+                            onClick={handleServerShutdown}
+                            className="px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white font-semibold rounded-xl hover:from-red-500 hover:to-rose-500 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 border border-red-500/20"
+                        >
+                            <Power className="w-4 h-4 mr-2 inline" />
+                            {t('Shutdown')}
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -659,10 +782,10 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                                 <h3 className="text-sm font-semibold text-green-700 dark:text-green-300 tracking-wide">{t('Success Rate')}</h3>
                             </div>
                             <div className="text-3xl font-bold text-foreground mb-2">
-                                {oauthAnalytics.loading 
-                                    ? '...' 
-                                    : oauthAnalytics.totalFlows === 0 
-                                        ? '--' 
+                                {oauthAnalytics.loading
+                                    ? '...'
+                                    : oauthAnalytics.totalFlows === 0
+                                        ? '--'
                                         : `${oauthAnalytics.successRate.toFixed(1)}%`
                                 }
                             </div>
@@ -681,10 +804,10 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                                 <h3 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 tracking-wide">{t('Avg Response Time')}</h3>
                             </div>
                             <div className="text-3xl font-bold text-foreground mb-2">
-                                {oauthAnalytics.loading 
-                                    ? '...' 
-                                    : oauthAnalytics.totalFlows === 0 
-                                        ? '--' 
+                                {oauthAnalytics.loading
+                                    ? '...'
+                                    : oauthAnalytics.totalFlows === 0
+                                        ? '--'
                                         : `${oauthAnalytics.averageResponseTime}ms`
                                 }
                             </div>
@@ -748,16 +871,15 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                                     ) : (
                                         <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400 mr-2" />
                                     )}
-                                    <span className={`font-semibold ${
-                                        systemHealth.fhirServersStatus === 'healthy' 
+                                    <span className={`font-semibold ${systemHealth.fhirServersStatus === 'healthy'
                                             ? 'text-emerald-600 dark:text-emerald-400'
                                             : systemHealth.fhirServersStatus === 'degraded'
-                                            ? 'text-yellow-600 dark:text-yellow-400'
-                                            : 'text-red-600 dark:text-red-400'
-                                    }`}>
-                                        {systemHealth.fhirServersStatus === 'healthy' ? t('Healthy') : 
-                                         systemHealth.fhirServersStatus === 'degraded' ? t('Degraded') :
-                                         systemHealth.fhirServersStatus === 'error' ? t('Error') : systemHealth.fhirServersStatus}
+                                                ? 'text-yellow-600 dark:text-yellow-400'
+                                                : 'text-red-600 dark:text-red-400'
+                                        }`}>
+                                        {systemHealth.fhirServersStatus === 'healthy' ? t('Healthy') :
+                                            systemHealth.fhirServersStatus === 'degraded' ? t('Degraded') :
+                                                systemHealth.fhirServersStatus === 'error' ? t('Error') : systemHealth.fhirServersStatus}
                                     </span>
                                 </div>
                             </div>
@@ -771,16 +893,15 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                                     ) : (
                                         <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400 mr-2" />
                                     )}
-                                    <span className={`font-semibold ${
-                                        systemHealth.keycloakStatus === 'healthy' 
+                                    <span className={`font-semibold ${systemHealth.keycloakStatus === 'healthy'
                                             ? 'text-emerald-600 dark:text-emerald-400'
                                             : systemHealth.keycloakStatus === 'degraded'
-                                            ? 'text-yellow-600 dark:text-yellow-400'
-                                            : 'text-red-600 dark:text-red-400'
-                                    }`}>
-                                        {systemHealth.keycloakStatus === 'healthy' ? t('Healthy') : 
-                                         systemHealth.keycloakStatus === 'degraded' ? t('Degraded') :
-                                         systemHealth.keycloakStatus === 'error' ? t('Error') : systemHealth.keycloakStatus}
+                                                ? 'text-yellow-600 dark:text-yellow-400'
+                                                : 'text-red-600 dark:text-red-400'
+                                        }`}>
+                                        {systemHealth.keycloakStatus === 'healthy' ? t('Healthy') :
+                                            systemHealth.keycloakStatus === 'degraded' ? t('Degraded') :
+                                                systemHealth.keycloakStatus === 'error' ? t('Error') : systemHealth.keycloakStatus}
                                     </span>
                                 </div>
                             </div>
@@ -827,21 +948,19 @@ function Dashboard({ onNavigate }: { onNavigate: (tab: string) => void }) {
                     <div className="space-y-4">
                         {recentOAuthEvents.length > 0 ? (
                             recentOAuthEvents.map((event: OAuthEvent, index: number) => (
-                                <div key={event.id || index} className={`flex items-center justify-between py-4 px-5 rounded-xl transition-all duration-200 border ${
-                                    event.status === 'success' 
+                                <div key={event.id || index} className={`flex items-center justify-between py-4 px-5 rounded-xl transition-all duration-200 border ${event.status === 'success'
                                         ? 'bg-emerald-500/5 dark:bg-emerald-400/10 hover:bg-emerald-500/10 dark:hover:bg-emerald-400/20 border-emerald-500/20 dark:border-emerald-400/30'
                                         : event.status === 'error'
-                                        ? 'bg-red-500/5 dark:bg-red-400/10 hover:bg-red-500/10 dark:hover:bg-red-400/20 border-red-500/20 dark:border-red-400/30'
-                                        : 'bg-blue-500/5 dark:bg-blue-400/10 hover:bg-blue-500/10 dark:hover:bg-blue-400/20 border-blue-500/20 dark:border-blue-400/30'
-                                }`}>
+                                            ? 'bg-red-500/5 dark:bg-red-400/10 hover:bg-red-500/10 dark:hover:bg-red-400/20 border-red-500/20 dark:border-red-400/30'
+                                            : 'bg-blue-500/5 dark:bg-blue-400/10 hover:bg-blue-500/10 dark:hover:bg-blue-400/20 border-blue-500/20 dark:border-blue-400/30'
+                                    }`}>
                                     <div className="flex items-center">
-                                        <div className={`w-4 h-4 rounded-full mr-4 shadow-sm ${
-                                            event.status === 'success' 
+                                        <div className={`w-4 h-4 rounded-full mr-4 shadow-sm ${event.status === 'success'
                                                 ? 'bg-emerald-500 dark:bg-emerald-400'
                                                 : event.status === 'error'
-                                                ? 'bg-red-500 dark:bg-red-400'
-                                                : 'bg-blue-500 dark:bg-blue-400'
-                                        }`}></div>
+                                                    ? 'bg-red-500 dark:bg-red-400'
+                                                    : 'bg-blue-500 dark:bg-blue-400'
+                                            }`}></div>
                                         <div>
                                             <span className="text-foreground font-medium">
                                                 {formatEventType(event.type || 'oauth_flow')}

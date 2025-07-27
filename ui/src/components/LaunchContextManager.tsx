@@ -30,7 +30,13 @@ const LAUNCH_CONTEXT_TEMPLATES = [
     id: 'ehr-patient-launch',
     name: 'EHR Patient Launch',
     description: 'Standard patient context launch from within an EHR with full patient access',
-    contexts: ['launch', 'launch/patient', 'openid', 'fhirUser', 'patient/*.rs'],
+    contexts: [
+      'launch',
+      'launch/patient',
+      'openid',
+      'fhirUser',
+      'patient/*.rs'
+    ],
     category: 'ehr-launch',
     isTemplate: true
   },
@@ -38,7 +44,14 @@ const LAUNCH_CONTEXT_TEMPLATES = [
     id: 'ehr-encounter-launch',
     name: 'EHR Encounter Launch',
     description: 'Patient and encounter context launch from within an EHR',
-    contexts: ['launch', 'launch/patient', 'launch/encounter', 'openid', 'fhirUser', 'patient/*.rs'],
+    contexts: [
+      'launch',
+      'launch/patient',
+      'launch/encounter',
+      'openid',
+      'fhirUser',
+      'patient/*.rs'
+    ],
     category: 'ehr-launch',
     isTemplate: true
   },
@@ -46,7 +59,13 @@ const LAUNCH_CONTEXT_TEMPLATES = [
     id: 'standalone-patient',
     name: 'Standalone Patient Launch',
     description: 'Standalone app launch with patient selection for apps launched outside EHR',
-    contexts: ['launch/patient', 'openid', 'fhirUser', 'patient/*.rs'],
+    contexts: [
+      'launch',
+      'launch/patient',
+      'openid',
+      'fhirUser',
+      'patient/*.rs'
+    ],
     category: 'standalone',
     isTemplate: true
   },
@@ -54,7 +73,13 @@ const LAUNCH_CONTEXT_TEMPLATES = [
     id: 'practitioner-context',
     name: 'Practitioner Context',
     description: 'Launch with practitioner context for workflow apps',
-    contexts: ['launch/practitioner', 'launch/patient', 'openid', 'fhirUser', 'user/Practitioner.rs'],
+    contexts: [
+      'launch',
+      'launch/practitioner',
+      'openid',
+      'fhirUser',
+      'user/Practitioner.rs'
+    ],
     category: 'workflow',
     isTemplate: true
   },
@@ -62,7 +87,15 @@ const LAUNCH_CONTEXT_TEMPLATES = [
     id: 'imaging-study-context',
     name: 'Imaging Study Context',
     description: 'Launch with imaging study context for radiology apps',
-    contexts: ['launch/imagingstudy', 'launch/patient', 'openid', 'fhirUser', 'patient/ImagingStudy.rs', 'patient/DiagnosticReport.rs'],
+    contexts: [
+      'launch',
+      'launch/imagingstudy',
+      'launch/patient',
+      'openid',
+      'fhirUser',
+      'patient/ImagingStudy.rs',
+      'patient/DiagnosticReport.rs'
+    ],
     category: 'specialty',
     isTemplate: true
   },
@@ -71,6 +104,7 @@ const LAUNCH_CONTEXT_TEMPLATES = [
     name: 'Medication Reconciliation',
     description: 'Medication reconciliation with role-based list contexts',
     contexts: [
+      'launch',
       'launch/patient',
       'launch/list?role=https://example.org/med-list-at-home',
       'launch/list?role=https://example.org/med-list-at-hospital',
@@ -86,7 +120,14 @@ const LAUNCH_CONTEXT_TEMPLATES = [
     id: 'questionnaire-context',
     name: 'Questionnaire Data Collection',
     description: 'Data collection app with questionnaire context',
-    contexts: ['launch/questionnaire', 'launch/patient', 'openid', 'fhirUser', 'patient/QuestionnaireResponse.cruds'],
+    contexts: [
+      'launch',
+      'launch/questionnaire',
+      'launch/patient',
+      'openid',
+      'fhirUser',
+      'patient/QuestionnaireResponse.cruds'
+    ],
     category: 'data-collection',
     isTemplate: true
   },
@@ -94,7 +135,10 @@ const LAUNCH_CONTEXT_TEMPLATES = [
     id: 'minimal-identity',
     name: 'Minimal Identity Only',
     description: 'Basic identity verification without patient access',
-    contexts: ['openid', 'fhirUser'],
+    contexts: [
+      'openid',
+      'fhirUser'
+    ],
     category: 'identity',
     isTemplate: true
   }
@@ -265,7 +309,7 @@ export function LaunchContextManager() {
     // Only load launch contexts when explicitly switching to users tab, not on component mount
     if (activeTab === 'users' && !launchContextsLoadedRef.current) {
       launchContextsLoadedRef.current = true;
-      // Call loadLaunchContexts directly inside useEffect to avoid dependency issues
+      // Call loadLaunchContexts immediately inside useEffect to avoid dependency issues
       const loadLaunchContextsImmediate = async () => {
         // Prevent infinite loading
         if (launchContextsLoadingRef.current) {

@@ -3,6 +3,7 @@ import { keycloakPlugin } from '../../lib/keycloak-plugin'
 import { SmartAppClient, ErrorResponse, SuccessResponse } from '../../schemas/common'
 import { config } from '../../config'
 import { logger } from '../../lib/logger'
+import { handleAdminError } from '../../lib/admin-error-handler'
 import * as crypto from 'crypto'
 import type KcAdminClient from '@keycloak/keycloak-admin-client'
 
@@ -75,8 +76,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
       
       return clients;
     } catch (error) {
-      set.status = 500
-      return { error: 'Failed to fetch SMART applications', details: error }
+      return handleAdminError(error, set)
     }
   }, {
     response: {
@@ -288,8 +288,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
       
       return clients[0]
     } catch (error) {
-      set.status = 500
-      return { error: 'Failed to fetch SMART application', details: error }
+      return handleAdminError(error, set)
     }
   }, {
     params: t.Object({
@@ -406,8 +405,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
       await admin.clients.del({ id: clients[0].id! })
       return { success: true, message: 'SMART application deleted successfully' }
     } catch (error) {
-      set.status = 500
-      return { error: 'Failed to delete SMART application', details: error }
+      return handleAdminError(error, set)
     }
   }, {
     params: t.Object({

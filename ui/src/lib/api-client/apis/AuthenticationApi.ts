@@ -49,6 +49,7 @@ export interface GetAuthAuthorizeRequest {
     codeChallenge?: string;
     codeChallengeMethod?: string;
     authorizationDetails?: string;
+    kcIdpHint?: string;
 }
 
 export interface GetAuthLoginRequest {
@@ -125,6 +126,10 @@ export class AuthenticationApi extends runtime.BaseAPI {
 
         if (requestParameters['authorizationDetails'] != null) {
             queryParameters['authorization_details'] = requestParameters['authorizationDetails'];
+        }
+
+        if (requestParameters['kcIdpHint'] != null) {
+            queryParameters['kc_idp_hint'] = requestParameters['kcIdpHint'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

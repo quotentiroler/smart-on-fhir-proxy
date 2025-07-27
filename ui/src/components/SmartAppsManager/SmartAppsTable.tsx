@@ -253,9 +253,9 @@ export function SmartAppsTable({
                           <DropdownMenuItem onClick={() => onToggleAppStatus(app.id)} className="rounded-lg">
                             <div className="flex items-center">
                               {app.status === 'active' ? (
-                                <X className="w-4 h-4 mr-2 text-red-600" />
+                                <X className="w-4 h-4 mr-2 text-red-600 dark:text-red-400" />
                               ) : (
-                                <CheckCircle className="w-4 h-4 mr-2 text-green-600" />
+                                <CheckCircle className="w-4 h-4 mr-2 text-green-600 dark:text-green-400" />
                               )}
                               {app.status === 'active' ? 'Deactivate' : 'Activate'}
                             </div>
@@ -278,7 +278,7 @@ export function SmartAppsTable({
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => onDeleteApp(app.id)}
-                            className="text-red-600 rounded-lg hover:bg-red-50"
+                            className="text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />
                             Delete

@@ -161,44 +161,27 @@ export interface DashboardData {
     error: string | null;
 }
 
-// Form types for create/update operations (UI-specific with conversion logic)
-export interface SmartAppFormData {
-    name: string;
-    clientId: string;
-    redirectUri: string; // UI uses single URI, converts to array for API
-    description?: string;
-    scopes: string[];
-    scopeSetId?: string; // UI-specific field
-    customScopes: string[]; // UI-specific field
-    appType: 'backend-service' | 'standalone-app' | 'ehr-launch' | 'agent'; // UI-specific
-    authenticationType: 'asymmetric' | 'symmetric' | 'none'; // UI-specific
-    serverAccessType: 'all-servers' | 'selected-servers' | 'user-person-servers'; // UI-specific
-    allowedServerIds?: string[]; // UI-specific
-    publicClient?: boolean;
-    webOrigins?: string[];
-    smartVersion?: string;
-    fhirVersion?: string;
-    publicKey?: string;
-    jwksUri?: string;
-    systemScopes?: string[];
+// Form types that directly extend API models (minimal UI-specific overrides)
+export interface SmartAppFormData extends PostAdminSmartAppsRequest {
+    // UI-specific fields for better UX - these get merged/converted at submission
+    scopeSetId?: string; // UI helper for scope management
+    customScopes?: string[]; // UI helper for custom scopes
+    appType?: 'backend-service' | 'standalone-app' | 'ehr-launch' | 'agent'; // UI classification
+    authenticationType?: 'asymmetric' | 'symmetric' | 'none'; // UI helper
+    serverAccessType?: 'all-servers' | 'selected-servers' | 'user-person-servers'; // UI helper
+    allowedServerIds?: string[]; // UI helper
 }
 
-// Utility function to convert UI form data to API request format
-export function convertSmartAppFormToApiRequest(formData: SmartAppFormData): PostAdminSmartAppsRequest {
-    return {
-        clientId: formData.clientId,
-        name: formData.name,
-        description: formData.description,
-        publicClient: formData.publicClient,
-        redirectUris: formData.redirectUri ? [formData.redirectUri] : [], // Convert single URI to array
-        webOrigins: formData.webOrigins,
-        scopes: [...(formData.scopes || []), ...(formData.customScopes || [])], // Merge scopes
-        smartVersion: formData.smartVersion,
-        fhirVersion: formData.fhirVersion,
-        publicKey: formData.publicKey,
-        jwksUri: formData.jwksUri,
-        systemScopes: formData.systemScopes,
-    };
+// Healthcare User Form that directly extends API model
+export interface HealthcareUserFormData extends PostAdminHealthcareUsersRequest {
+    // UI-specific helper fields
+    primaryRole?: string; // UI helper for easier role selection
+    fhirPersons?: Array<{
+        serverName: string;
+        personId: string;
+        display: string;
+        created: string;
+    }>; // UI helper for managing associations (gets converted to fhirUser string)
 }
 
 // Scope management types

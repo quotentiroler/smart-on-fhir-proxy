@@ -21,7 +21,9 @@ const app = new Elysia({
   },
   websocket: {
     idleTimeout: 120 // 2 minutes for WebSocket connections
-  }
+  },
+  aot: true,
+  sanitize: (value) => Bun.escapeHTML(value)
 })
   .use(cors({
     origin: ['http://localhost:5173', 'http://localhost:3000'],

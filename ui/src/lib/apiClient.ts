@@ -17,17 +17,15 @@ import {
 let onAuthError: (() => void) | null = null;
 
 export const setAuthErrorHandler = (handler: () => void) => {
-  console.log('Auth error handler set');
   onAuthError = handler;
 };
 
 // Wrapper function to handle authentication errors
 export const handleApiError = (error: unknown) => {
-  console.log('handleApiError called with:', error);
+  console.info('handleApiError called with:', error);
 
   // Check for ResponseError first
   if (error instanceof ResponseError) {
-    console.log('ResponseError detected, status:', error.response.status);
     if (error.response.status === 401 || error.response.status === 403) {
       console.warn('Authentication error detected (ResponseError), triggering logout');
       if (onAuthError) {
@@ -104,7 +102,7 @@ const wrapApiClient = <T extends object>(client: T): T => {
   return new Proxy(client, {
     get(target, prop, receiver) {
       const value = Reflect.get(target, prop, receiver);
-      
+
       // If it's a function, wrap it with error handling
       if (typeof value === 'function') {
         return async (...args: unknown[]) => {
@@ -118,7 +116,7 @@ const wrapApiClient = <T extends object>(client: T): T => {
           }
         };
       }
-      
+
       // For non-functions, return as-is
       return value;
     }

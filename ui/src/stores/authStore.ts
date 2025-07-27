@@ -56,7 +56,7 @@ interface AuthState {
   isAuthenticated: boolean;
   apiClients: ReturnType<typeof createApiClients>;
   
-  initiateLogin: () => Promise<void>;
+  initiateLogin: (idpHint?: string) => Promise<void>;
   exchangeCodeForToken: (code: string, codeVerifier: string) => Promise<void>;
   fetchProfile: () => Promise<void>;
   refreshTokens: () => Promise<void>;
@@ -87,15 +87,19 @@ export const useAuthStore = create<AuthState>()(
           get().logout();
         });
       },      // Actions
-      initiateLogin: async () => {
+      initiateLogin: async (idpHint?: string) => {
         set({ loading: true, error: null });
         
         try {
-          const { url, codeVerifier, state } = await openidService.getAuthorizationUrl();
+          const { url, codeVerifier, state } = await openidService.getAuthorizationUrl(idpHint);
           
           // Store PKCE parameters for callback
           sessionStorage.setItem('pkce_code_verifier', codeVerifier);
           sessionStorage.setItem('oauth_state', state);
+          
+          if (idpHint) {
+            console.log(`Initiating login with Identity Provider: ${idpHint}`);
+          }
           
           // Redirect to authorization server
           window.location.href = url;
@@ -265,9 +269,11 @@ export const useAuthStore = create<AuthState>()(
       }),
       // On rehydration, check if tokens still exist and are valid
       onRehydrateStorage: () => (state) => {
+        console.log('🔄 Auth store rehydrating...');
         if (state) {
           const tokens = getStoredTokens();
           if (!tokens || !isTokenValid(tokens)) {
+            console.log('❌ Invalid or missing tokens, clearing auth state');
             state.profile = null;
             state.isAuthenticated = false;
             state.apiClients = createApiClients(); // No token
@@ -275,7 +281,14 @@ export const useAuthStore = create<AuthState>()(
           } else {
             // Update API clients with current token
             state.apiClients = createApiClients(tokens.access_token);
+            // Set up auth error handler for rehydrated clients
+            setAuthErrorHandler(() => {
+              console.log('Auth error handler triggered during rehydration, logging out...');
+              useAuthStore.getState().logout();
+            });
           }
+        } else {
+          console.log('⚠️ No state found during rehydration');
         }
       },
     }

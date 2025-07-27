@@ -15,9 +15,7 @@ models/DeleteAdminRolesByRoleName200Response.ts
 models/GetAdminClientRegistrationSettings200Response.ts
 models/GetAdminHealthcareUsers200ResponseInner.ts
 models/GetAdminHealthcareUsersLimitParameter.ts
-models/GetAdminHealthcareUsersLimitParameterAnyOf.ts
 models/GetAdminHealthcareUsersOffsetParameter.ts
-models/GetAdminHealthcareUsersOffsetParameterAnyOf.ts
 models/GetAdminIdps200ResponseInner.ts
 models/GetAdminIdpsCount200Response.ts
 models/GetAdminLaunchContexts200ResponseInner.ts
@@ -49,6 +47,7 @@ models/GetStatus200ResponseKeycloak.ts
 models/GetStatus200ResponseServer.ts
 models/PostAdminHealthcareUsersRequest.ts
 models/PostAdminIdpsRequest.ts
+models/PostAdminIdpsRequestConfig.ts
 models/PostAdminLaunchContextsByUserIdFhirContextRequest.ts
 models/PostAdminRolesRequest.ts
 models/PostAdminSmartAppsRequest.ts
