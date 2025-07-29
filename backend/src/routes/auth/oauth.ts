@@ -56,7 +56,7 @@ async function generateAuthorizationDetailsFromToken(
     for (const serverInfo of serverInfos) {
       const serverDetail: AuthorizationDetail = {
         type: 'smart_on_fhir',
-        locations: [`${config.baseUrl}/${config.appName}/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}`],
+        locations: [`${config.baseUrl}/${config.name}/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}`],
         fhirVersions: [serverInfo.metadata.fhirVersion]
       }
 
@@ -90,7 +90,14 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
     const url = new URL(
       `${config.keycloak.baseUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/auth`
     )
-    Object.entries(query).forEach(([k, v]) => url.searchParams.set(k, v as string))
+    
+    // Add all query parameters to the Keycloak URL
+    Object.entries(query).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) {
+        url.searchParams.set(k, v as string)
+      }
+    })
+    
     return redirect(url.href)
   }, {
     query: t.Object({
@@ -101,7 +108,8 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
       state: t.Optional(t.String({ description: 'OAuth state parameter' })),
       code_challenge: t.Optional(t.String({ description: 'PKCE code challenge' })),
       code_challenge_method: t.Optional(t.String({ description: 'PKCE code challenge method' })),
-      authorization_details: t.Optional(t.String({ description: 'Authorization details JSON string for multiple FHIR servers' }))
+      authorization_details: t.Optional(t.String({ description: 'Authorization details JSON string for multiple FHIR servers' })),
+      kc_idp_hint: t.Optional(t.String({ description: 'Keycloak Identity Provider hint to skip provider selection' }))
     }),
     detail: {
       summary: 'OAuth Authorization Endpoint',

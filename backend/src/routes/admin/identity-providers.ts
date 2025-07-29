@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { keycloakPlugin } from '../../lib/keycloak-plugin'
 import { ErrorResponse } from '../../schemas/common'
+import { handleAdminError } from '../../lib/admin-error-handler'
 import type { IdentityProvider } from '../../types'
 
 /**
@@ -24,8 +25,7 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
       const enabledCount = providers.filter(provider => provider.enabled !== false).length
       return { count: enabledCount, total: providers.length }
     } catch (error) {
-      set.status = 500
-      return { error: 'Failed to fetch identity providers count', details: error }
+      return handleAdminError(error, set)
     }
   }, {
     response: {
@@ -113,7 +113,35 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
     body: t.Object({
       alias: t.String(),
       providerId: t.String(),
-      config: t.Object({})
+      displayName: t.Optional(t.String()),
+      enabled: t.Optional(t.Boolean()),
+      config: t.Object({
+        // Common fields
+        displayName: t.Optional(t.String()),
+        entityId: t.Optional(t.String()),
+        singleSignOnServiceUrl: t.Optional(t.String()),
+        singleLogoutServiceUrl: t.Optional(t.String()),
+        metadataDescriptorUrl: t.Optional(t.String()),
+        enabled: t.Optional(t.Boolean()),
+        
+        // OIDC/OAuth2 specific fields
+        clientSecret: t.Optional(t.String()),
+        tokenUrl: t.Optional(t.String()),
+        userInfoUrl: t.Optional(t.String()),
+        issuer: t.Optional(t.String()),
+        defaultScopes: t.Optional(t.String()),
+        logoutUrl: t.Optional(t.String()),
+        
+        // SAML specific fields
+        signatureAlgorithm: t.Optional(t.String()),
+        nameIdPolicyFormat: t.Optional(t.String()),
+        signingCertificate: t.Optional(t.String()),
+        validateSignature: t.Optional(t.Boolean()),
+        wantAuthnRequestsSigned: t.Optional(t.Boolean()),
+        
+        // Allow additional configuration
+        additionalConfig: t.Optional(t.Record(t.String(), t.Any()))
+      })
     }),
     response: {
       200: t.Object({
@@ -201,7 +229,33 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
     body: t.Object({
       displayName: t.Optional(t.String()),
       enabled: t.Optional(t.Boolean()),
-      config: t.Optional(t.Object({}))
+      config: t.Optional(t.Object({
+        // Common fields
+        displayName: t.Optional(t.String()),
+        entityId: t.Optional(t.String()),
+        singleSignOnServiceUrl: t.Optional(t.String()),
+        singleLogoutServiceUrl: t.Optional(t.String()),
+        metadataDescriptorUrl: t.Optional(t.String()),
+        enabled: t.Optional(t.Boolean()),
+        
+        // OIDC/OAuth2 specific fields
+        clientSecret: t.Optional(t.String()),
+        tokenUrl: t.Optional(t.String()),
+        userInfoUrl: t.Optional(t.String()),
+        issuer: t.Optional(t.String()),
+        defaultScopes: t.Optional(t.String()),
+        logoutUrl: t.Optional(t.String()),
+        
+        // SAML specific fields
+        signatureAlgorithm: t.Optional(t.String()),
+        nameIdPolicyFormat: t.Optional(t.String()),
+        signingCertificate: t.Optional(t.String()),
+        validateSignature: t.Optional(t.Boolean()),
+        wantAuthnRequestsSigned: t.Optional(t.Boolean()),
+        
+        // Allow additional configuration
+        additionalConfig: t.Optional(t.Record(t.String(), t.Any()))
+      }))
     }),
     response: {
       200: t.Object({

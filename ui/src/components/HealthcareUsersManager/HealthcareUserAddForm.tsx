@@ -10,32 +10,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Plus, Shield, Loader2, Server, Database, Trash2 } from 'lucide-react';
-import type { FhirPersonAssociation } from './healthcare-users-types';
-
-interface FhirServer {
-  name: string;
-  url: string;
-  supported: boolean;
-}
-
-interface AddUserFormData {
-  username: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  organization: string;
-  fhirPersons: FhirPersonAssociation[];
-  password: string;
-  temporaryPassword: boolean;
-  primaryRole: string;
-  realmRoles: string[];
-  clientRoles: Record<string, string[]>;
-}
+import type { 
+  FhirServer, 
+  CreateHealthcareUserRequest, 
+  HealthcareUserFormData
+} from '@/lib/types/api';
 
 interface HealthcareUserAddFormProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (formData: AddUserFormData) => Promise<void>;
+  onSubmit: (formData: CreateHealthcareUserRequest) => Promise<void>;
   submitting: boolean;
   fhirServers: FhirServer[];
   availableRealmRoles: string[];
@@ -43,18 +27,19 @@ interface HealthcareUserAddFormProps {
   getAllAvailableRoles: () => string[];
 }
 
-const initialFormData: AddUserFormData = {
+const initialFormData: HealthcareUserFormData = {
   username: '',
   firstName: '',
   lastName: '',
   email: '',
   organization: '',
-  fhirPersons: [],
   password: '',
   temporaryPassword: false,
-  primaryRole: '',
   realmRoles: [],
   clientRoles: {},
+  // UI helper fields
+  primaryRole: '',
+  fhirPersons: [],
 };
 
 export function HealthcareUserAddForm({
@@ -67,11 +52,34 @@ export function HealthcareUserAddForm({
   availableClientRoles,
   getAllAvailableRoles
 }: HealthcareUserAddFormProps) {
-  const [formData, setFormData] = useState<AddUserFormData>(initialFormData);
+  const [formData, setFormData] = useState<HealthcareUserFormData>(initialFormData);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit(formData);
+    
+    // Prepare API data directly from form data (minimal conversion)
+    const apiData: CreateHealthcareUserRequest = {
+      username: formData.username,
+      email: formData.email,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      organization: formData.organization,
+      password: formData.password,
+      temporaryPassword: formData.temporaryPassword,
+      realmRoles: formData.realmRoles?.length ? formData.realmRoles : undefined,
+      clientRoles: formData.clientRoles && Object.keys(formData.clientRoles).length 
+        ? formData.clientRoles 
+        : undefined,
+      // Convert UI helper field to API format
+      fhirUser: formData.fhirPersons?.length 
+        ? formData.fhirPersons
+            .filter(fp => fp.serverName && fp.personId)
+            .map(fp => `${fp.serverName}:${fp.personId}`)
+            .join(',')
+        : undefined,
+    };
+    
+    await onSubmit(apiData);
     setFormData(initialFormData);
   };
 
@@ -83,7 +91,7 @@ export function HealthcareUserAddForm({
   const addFhirPersonAssociation = () => {
     setFormData(prev => ({
       ...prev,
-      fhirPersons: [...prev.fhirPersons, {
+      fhirPersons: [...(prev.fhirPersons || []), {
         serverName: '',
         personId: '',
         display: '',
@@ -95,14 +103,14 @@ export function HealthcareUserAddForm({
   const removeFhirPersonAssociation = (index: number) => {
     setFormData(prev => ({
       ...prev,
-      fhirPersons: prev.fhirPersons.filter((_, i) => i !== index)
+      fhirPersons: (prev.fhirPersons || []).filter((_, i) => i !== index)
     }));
   };
 
-  const updateFhirPersonAssociation = (index: number, field: keyof FhirPersonAssociation, value: string) => {
+  const updateFhirPersonAssociation = (index: number, field: keyof NonNullable<HealthcareUserFormData['fhirPersons']>[0], value: string) => {
     setFormData(prev => ({
       ...prev,
-      fhirPersons: prev.fhirPersons.map((assoc, i) =>
+      fhirPersons: (prev.fhirPersons || []).map((assoc, i) =>
         i === index ? { ...assoc, [field]: value } : assoc
       )
     }));
@@ -197,7 +205,7 @@ export function HealthcareUserAddForm({
           <div className="space-y-3">
             <Label htmlFor="fhirPersons" className="text-sm font-semibold text-foreground">FHIR Person Associations</Label>
             <div className="space-y-4 bg-primary/5 p-4 rounded-xl border border-primary/20">
-              {formData.fhirPersons.map((association, index) => (
+              {(formData.fhirPersons || []).map((association, index) => (
                 <div key={index} className="space-y-3 bg-card p-4 rounded-lg border border-border">
                   <div className="flex items-center justify-between">
                     <h5 className="text-sm font-semibold text-foreground">FHIR Server Association #{index + 1}</h5>
@@ -345,17 +353,17 @@ export function HealthcareUserAddForm({
                     <input
                       id={`realm-${role}`}
                       type="checkbox"
-                      checked={formData.realmRoles.includes(role)}
+                      checked={(formData.realmRoles || []).includes(role)}
                       onChange={(e) => {
                         if (e.target.checked) {
                           setFormData({
                             ...formData,
-                            realmRoles: [...formData.realmRoles, role]
+                            realmRoles: [...(formData.realmRoles || []), role]
                           });
                         } else {
                           setFormData({
                             ...formData,
-                            realmRoles: formData.realmRoles.filter(r => r !== role)
+                            realmRoles: (formData.realmRoles || []).filter(r => r !== role)
                           });
                         }
                       }}
@@ -377,14 +385,14 @@ export function HealthcareUserAddForm({
                     <input
                       id={`client-${role}`}
                       type="checkbox"
-                      checked={formData.clientRoles['admin-ui']?.includes(role) || false}
+                      checked={(formData.clientRoles as Record<string, string[]>)?.[`admin-ui`]?.includes(role) || false}
                       onChange={(e) => {
-                        const currentAdminUiRoles = formData.clientRoles['admin-ui'] || [];
+                        const currentAdminUiRoles = (formData.clientRoles as Record<string, string[]>)?.[`admin-ui`] || [];
                         if (e.target.checked) {
                           setFormData({
                             ...formData,
                             clientRoles: {
-                              ...formData.clientRoles,
+                              ...(formData.clientRoles as Record<string, string[]>),
                               'admin-ui': [...currentAdminUiRoles, role]
                             }
                           });
@@ -392,8 +400,8 @@ export function HealthcareUserAddForm({
                           setFormData({
                             ...formData,
                             clientRoles: {
-                              ...formData.clientRoles,
-                              'admin-ui': currentAdminUiRoles.filter(r => r !== role)
+                              ...(formData.clientRoles as Record<string, string[]>),
+                              'admin-ui': currentAdminUiRoles.filter((r: string) => r !== role)
                             }
                           });
                         }

@@ -30,8 +30,8 @@ const ROLE_COLORS: { [key: string]: string } = {
   'other': '#ef4444', // red
 };
 
-// Simple SVG Pie Chart Component
-function PieChart({ data, size = 80 }: { data: RoleData[]; size?: number }) {
+// Responsive SVG Pie Chart Component
+function PieChart({ data, className = "" }: { data: RoleData[]; className?: string }) {
   const [hoveredSegment, setHoveredSegment] = useState<string | null>(null);
   
   // Filter out data with 0 count to avoid rendering issues
@@ -39,31 +39,24 @@ function PieChart({ data, size = 80 }: { data: RoleData[]; size?: number }) {
   
   if (validData.length === 0) {
     return (
-      <div 
-        className="rounded-full border-4 border-gray-300 dark:border-gray-600" 
-        style={{ width: size, height: size }}
-      />
+      <div className={`aspect-square rounded-full border-4 border-gray-300 dark:border-gray-600 ${className}`} />
     );
   }
 
   // If only one segment with 100%, render as a full circle
   if (validData.length === 1) {
     return (
-      <div className="relative group">
+      <div className={`relative group aspect-square ${className}`}>
         <div
-          className="rounded-full cursor-pointer transition-all duration-200 hover:opacity-80"
-          style={{ 
-            width: size, 
-            height: size, 
-            backgroundColor: validData[0].color 
-          }}
+          className="w-full h-full rounded-full cursor-pointer transition-all duration-200 hover:opacity-80 hover:scale-105"
+          style={{ backgroundColor: validData[0].color }}
           onMouseEnter={() => setHoveredSegment(validData[0].role)}
           onMouseLeave={() => setHoveredSegment(null)}
         />
         
-        {/* Tooltip */}
+        {/* Responsive Tooltip */}
         {hoveredSegment && (
-          <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-popover border border-border rounded-lg px-3 py-2 shadow-lg z-10 whitespace-nowrap">
+          <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-popover border border-border rounded-lg px-2 py-1 sm:px-3 sm:py-2 shadow-lg z-10 whitespace-nowrap">
             <div className="text-xs font-semibold text-popover-foreground">
               {hoveredSegment}: {validData[0].count} users
             </div>
@@ -73,6 +66,7 @@ function PieChart({ data, size = 80 }: { data: RoleData[]; size?: number }) {
     );
   }
 
+  const size = 100; // Base size for calculations (will be scaled via CSS)
   const radius = size / 2 - 2;
   const centerX = size / 2;
   const centerY = size / 2;
@@ -101,33 +95,49 @@ function PieChart({ data, size = 80 }: { data: RoleData[]; size?: number }) {
       'Z'
     ].join(' ');
     
+    // Calculate mid-angle for hover lift effect
+    const midAngle = (startAngle + endAngle) / 2;
+    const midAngleRad = (midAngle * Math.PI) / 180;
+    const liftDistance = hoveredSegment === item.role ? 3 : 0;
+    const liftX = Math.cos(midAngleRad) * liftDistance;
+    const liftY = Math.sin(midAngleRad) * liftDistance;
+    
     return {
       ...item,
       pathData,
+      liftX,
+      liftY,
       isHovered: hoveredSegment === item.role
     };
   });
 
   return (
-    <div className="relative group">
-      <svg width={size} height={size} className="transform -rotate-90">
+    <div className={`relative group aspect-square ${className}`}>
+      <svg 
+        viewBox={`0 0 ${size} ${size}`} 
+        className="w-full h-full transform -rotate-90 transition-transform duration-200"
+      >
         {segments.map((segment) => (
           <path
             key={segment.role}
             d={segment.pathData}
             fill={segment.color}
             className={`transition-all duration-200 cursor-pointer ${
-              segment.isHovered ? 'opacity-80 scale-105' : 'opacity-100'
+              segment.isHovered ? 'opacity-90' : 'opacity-100'
             }`}
+            style={{
+              transform: `translate(${segment.liftX}px, ${segment.liftY}px)`,
+              filter: segment.isHovered ? 'brightness(1.1)' : 'none'
+            }}
             onMouseEnter={() => setHoveredSegment(segment.role)}
             onMouseLeave={() => setHoveredSegment(null)}
           />
         ))}
       </svg>
       
-      {/* Tooltip */}
+      {/* Responsive Tooltip */}
       {hoveredSegment && (
-        <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-popover border border-border rounded-lg px-3 py-2 shadow-lg z-10 whitespace-nowrap">
+        <div className="absolute -top-10 sm:-top-12 left-1/2 transform -translate-x-1/2 bg-popover border border-border rounded-lg px-2 py-1 sm:px-3 sm:py-2 shadow-lg z-10 whitespace-nowrap">
           <div className="text-xs font-semibold text-popover-foreground">
             {hoveredSegment}: {validData.find(d => d.role === hoveredSegment)?.count} users
           </div>
@@ -213,78 +223,78 @@ export function HealthcareUsersStats({ users }: HealthcareUsersStatsProps) {
   })).sort((a, b) => b.count - a.count);
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-      <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+      <div className="bg-card/70 backdrop-blur-sm p-4 sm:p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
         <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm">
-                <Users className="w-6 h-6 text-primary" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm">
+                <Users className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
               </div>
-              <div className="text-sm font-semibold text-primary tracking-wide">Total Users</div>
+              <div className="text-xs sm:text-sm font-semibold text-primary tracking-wide">Total Users</div>
             </div>
-            <div className="text-3xl font-bold text-foreground mb-2">{users.length}</div>
+            <div className="text-2xl sm:text-3xl font-bold text-foreground mb-2">{users.length}</div>
           </div>
-          <div className="ml-4">
-            <PieChart data={roleData} size={64} />
+          <div className="ml-2 sm:ml-4 w-12 sm:w-16">
+            <PieChart data={roleData} className="w-full h-full" />
           </div>
         </div>
       </div>
       
-      <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+      <div className="bg-card/70 backdrop-blur-sm p-4 sm:p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
         <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 bg-emerald-500/10 dark:bg-emerald-400/20 rounded-xl flex items-center justify-center shadow-sm">
-                <UserCheck className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-emerald-500/10 dark:bg-emerald-400/20 rounded-xl flex items-center justify-center shadow-sm">
+                <UserCheck className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <div className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 tracking-wide">Active</div>
+              <div className="text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-300 tracking-wide">Active</div>
             </div>
-            <div className="text-3xl font-bold text-foreground mb-2">{activeUsers}</div>
-            <div className="text-sm text-emerald-600 dark:text-emerald-400">
+            <div className="text-2xl sm:text-3xl font-bold text-foreground mb-2">{activeUsers}</div>
+            <div className="text-xs sm:text-sm text-emerald-600 dark:text-emerald-400">
               {users.length > 0 ? Math.round((activeUsers / users.length) * 100) : 0}% of total
             </div>
           </div>
-          <div className="ml-4">
-            <PieChart data={activeRoleData} size={64} />
+          <div className="ml-2 sm:ml-4 w-12 sm:w-16">
+            <PieChart data={activeRoleData} className="w-full h-full" />
           </div>
         </div>
       </div>
       
-      <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+      <div className="bg-card/70 backdrop-blur-sm p-4 sm:p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
         <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 bg-red-500/10 dark:bg-red-400/20 rounded-xl flex items-center justify-center shadow-sm">
-                <UserX className="w-6 h-6 text-red-600 dark:text-red-400" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-red-500/10 dark:bg-red-400/20 rounded-xl flex items-center justify-center shadow-sm">
+                <UserX className="w-5 h-5 sm:w-6 sm:h-6 text-red-600 dark:text-red-400" />
               </div>
-              <div className="text-sm font-semibold text-red-700 dark:text-red-300 tracking-wide">Inactive</div>
+              <div className="text-xs sm:text-sm font-semibold text-red-700 dark:text-red-300 tracking-wide">Inactive</div>
             </div>
-            <div className="text-3xl font-bold text-foreground mb-2">{inactiveUsers}</div>
-            <div className="text-sm text-red-600 dark:text-red-400">
+            <div className="text-2xl sm:text-3xl font-bold text-foreground mb-2">{inactiveUsers}</div>
+            <div className="text-xs sm:text-sm text-red-600 dark:text-red-400">
               {users.length > 0 ? Math.round((inactiveUsers / users.length) * 100) : 0}% of total
             </div>
           </div>
-          <div className="ml-4">
-            <PieChart data={inactiveRoleData} size={64} />
+          <div className="ml-2 sm:ml-4 w-12 sm:w-16">
+            <PieChart data={inactiveRoleData} className="w-full h-full" />
           </div>
         </div>
       </div>
       
-      <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
+      <div className="bg-card/70 backdrop-blur-sm p-4 sm:p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
         <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-12 h-12 bg-violet-500/10 dark:bg-violet-400/20 rounded-xl flex items-center justify-center shadow-sm">
-                <Clock className="w-6 h-6 text-violet-600 dark:text-violet-400" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center space-x-2 sm:space-x-3 mb-3 sm:mb-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-violet-500/10 dark:bg-violet-400/20 rounded-xl flex items-center justify-center shadow-sm">
+                <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-violet-600 dark:text-violet-400" />
               </div>
-              <div className="text-sm font-semibold text-violet-700 dark:text-violet-300 tracking-wide">Recent</div>
+              <div className="text-xs sm:text-sm font-semibold text-violet-700 dark:text-violet-300 tracking-wide">Recent</div>
             </div>
-            <div className="text-3xl font-bold text-foreground mb-2">{recentUsers}</div>
-            <div className="text-sm text-violet-600 dark:text-violet-400">Added this week</div>
+            <div className="text-2xl sm:text-3xl font-bold text-foreground mb-2">{recentUsers}</div>
+            <div className="text-xs sm:text-sm text-violet-600 dark:text-violet-400">Added this week</div>
           </div>
-          <div className="ml-4">
-            <PieChart data={recentRoleData} size={64} />
+          <div className="ml-2 sm:ml-4 w-12 sm:w-16">
+            <PieChart data={recentRoleData} className="w-full h-full" />
           </div>
         </div>
       </div>

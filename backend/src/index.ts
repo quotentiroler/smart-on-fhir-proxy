@@ -15,12 +15,15 @@ import { initializeServer, displayServerEndpoints } from './init'
 import { oauthMetricsLogger } from './lib/oauth-metrics-logger'
 
 const app = new Elysia({
+  name: config.name,
   serve: {
     idleTimeout: 120 // 2 minutes - more secure, still sufficient for SSE with 30s keepalive
   },
   websocket: {
     idleTimeout: 120 // 2 minutes for WebSocket connections
-  }
+  },
+  aot: true,
+  sanitize: (value) => Bun.escapeHTML(value)
 })
   .use(cors({
     origin: ['http://localhost:5173', 'http://localhost:3000'],
@@ -31,9 +34,9 @@ const app = new Elysia({
   .use(swagger({
     documentation: {
       info: {
-        title: 'SMART on FHIR API',
-        version: '1.0.0',
-        description: 'Healthcare administration API for SMART on FHIR applications'
+        title:  config.displayName,
+        version: config.version,
+        description: 'SMART on FHIR Proxy + Healthcare Administration API using Keycloak and Elysia',
       },
       tags: [
         { name: 'authentication', description: 'Authentication and authorization endpoints' },
@@ -42,7 +45,9 @@ const app = new Elysia({
         { name: 'fhir', description: 'FHIR resource proxy endpoints' },
         { name: 'servers', description: 'FHIR server discovery endpoints' },
         { name: 'identity-providers', description: 'Identity provider management' },
-        { name: 'smart-apps', description: 'SMART on FHIR configuration endpoints' }
+        { name: 'smart-apps', description: 'SMART on FHIR configuration endpoints' },
+        { name: 'oauth-ws-monitoring', description: 'OAuth monitoring via WebSocket' },
+        { name: 'oauth-sse-monitoring', description: 'OAuth monitoring via Server-Sent Events' },
       ],
       components: {
         securitySchemes: {
@@ -76,7 +81,7 @@ initializeServer()
   .then(async () => {
     // Initialize OAuth metrics logger
     await oauthMetricsLogger.initialize();
-    
+
     app.listen(config.port, async () => {
       await displayServerEndpoints()
     })

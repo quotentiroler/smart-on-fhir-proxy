@@ -1,6 +1,6 @@
-import { 
+import {
   AdminApi,
-  AuthenticationApi, 
+  AuthenticationApi,
   HealthcareUsersApi,
   IdentityProvidersApi,
   LaunchContextsApi,
@@ -17,17 +17,15 @@ import {
 let onAuthError: (() => void) | null = null;
 
 export const setAuthErrorHandler = (handler: () => void) => {
-  console.log('Auth error handler set');
   onAuthError = handler;
 };
 
 // Wrapper function to handle authentication errors
 export const handleApiError = (error: unknown) => {
-  console.log('handleApiError called with:', error);
-  
+  console.info('handleApiError called with:', error);
+
   // Check for ResponseError first
   if (error instanceof ResponseError) {
-    console.log('ResponseError detected, status:', error.response.status);
     if (error.response.status === 401 || error.response.status === 403) {
       console.warn('Authentication error detected (ResponseError), triggering logout');
       if (onAuthError) {
@@ -36,14 +34,14 @@ export const handleApiError = (error: unknown) => {
       }
     }
   }
-  
+
   // Check for other error formats that might contain status
   if (error && typeof error === 'object') {
     const err = error as Record<string, unknown>;
     // Check various possible error formats
-    const status = (err.status as number) || 
-                  ((err.response as Record<string, unknown>)?.status as number) || 
-                  ((err.responseData as Record<string, unknown>)?.status as number);
+    const status = (err.status as number) ||
+      ((err.response as Record<string, unknown>)?.status as number) ||
+      ((err.responseData as Record<string, unknown>)?.status as number);
     if (status === 401 || status === 403) {
       console.warn('Authentication error detected (status check), triggering logout');
       if (onAuthError) {
@@ -51,7 +49,7 @@ export const handleApiError = (error: unknown) => {
         return; // Don't throw again
       }
     }
-    
+
     // Check for HTTP 401 in error message
     if (typeof err.message === 'string' && err.message.includes('401')) {
       console.warn('Authentication error detected (message check), triggering logout');
@@ -60,7 +58,7 @@ export const handleApiError = (error: unknown) => {
         return; // Don't throw again
       }
     }
-    
+
     // Check for nested error data
     const responseData = err.responseData as Record<string, unknown>;
     if (responseData && typeof responseData.error === 'string' && responseData.error.includes('401')) {
@@ -71,7 +69,7 @@ export const handleApiError = (error: unknown) => {
       }
     }
   }
-  
+
   console.log('No authentication error detected, rethrowing error');
   throw error;
 };
@@ -98,18 +96,45 @@ export const createSmartAppsApi = (token?: string) => new SmartAppsApi(createCon
 export const createServersApi = (token?: string) => new ServersApi(createConfig(token));
 export const createServerApi = (token?: string) => new ServerApi(createConfig(token));
 
-// Create all API clients at once
+// Create a wrapper that automatically handles auth errors for any API method
+const wrapApiClient = <T extends object>(client: T): T => {
+  // Create a Proxy that intercepts method calls
+  return new Proxy(client, {
+    get(target, prop, receiver) {
+      const value = Reflect.get(target, prop, receiver);
+
+      // If it's a function, wrap it with error handling
+      if (typeof value === 'function') {
+        return async (...args: unknown[]) => {
+          try {
+            const result = await value.apply(target, args);
+            return result;
+          } catch (error) {
+            handleApiError(error);
+            // If handleApiError doesn't throw (auth error handled), rethrow original error
+            throw error;
+          }
+        };
+      }
+
+      // For non-functions, return as-is
+      return value;
+    }
+  });
+};
+
+// Create all API clients at once with automatic auth error handling
 export const createApiClients = (token?: string) => ({
-  admin: createAdminApi(token),
-  auth: createAuthApi(token),
-  healthcareUsers: createHealthcareUsersApi(token),
-  identityProviders: createIdentityProvidersApi(token),
-  launchContexts: createLaunchContextsApi(token),
-  oauthMonitoring: createOauthMonitoringApi(token),
-  roles: createRolesApi(token),
-  smartApps: createSmartAppsApi(token),
-  servers: createServersApi(token),
-  server: createServerApi(token),
+  admin: wrapApiClient(createAdminApi(token)),
+  auth: wrapApiClient(createAuthApi(token)),
+  healthcareUsers: wrapApiClient(createHealthcareUsersApi(token)),
+  identityProviders: wrapApiClient(createIdentityProvidersApi(token)),
+  launchContexts: wrapApiClient(createLaunchContextsApi(token)),
+  oauthMonitoring: wrapApiClient(createOauthMonitoringApi(token)),
+  roles: wrapApiClient(createRolesApi(token)),
+  smartApps: wrapApiClient(createSmartAppsApi(token)),
+  servers: wrapApiClient(createServersApi(token)),
+  server: wrapApiClient(createServerApi(token)),
 });
 
 // Helper to get token from localStorage
@@ -117,15 +142,15 @@ export const getStoredToken = (): string | null => {
   try {
     const stored = localStorage.getItem('openid_tokens');
     if (!stored) return null;
-    
+
     const tokens = JSON.parse(stored);
-    
+
     // Check if token is valid
     if (!tokens.access_token) return null;
     if (tokens.expires_at && Date.now() >= tokens.expires_at * 1000) {
       return null; // Token is expired
     }
-    
+
     return tokens.access_token;
   } catch {
     return null;

@@ -183,10 +183,6 @@ class OAuthMonitoringService {
         withCredentials: true
       });
 
-      this.eventsEventSource.onopen = () => {
-        console.log('Connected to OAuth events stream');
-      };
-
       this.eventsEventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
@@ -251,10 +247,6 @@ class OAuthMonitoringService {
       this.analyticsEventSource = new EventSource(url, {
         withCredentials: true
       });
-
-      this.analyticsEventSource.onopen = () => {
-        console.log('Connected to OAuth analytics stream');
-      };
 
       this.analyticsEventSource.onmessage = (event) => {
         try {

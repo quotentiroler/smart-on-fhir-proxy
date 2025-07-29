@@ -70,7 +70,7 @@ async function proxyFHIR({ params, request, set }: {
     const text = await resp.text()
     return text.replaceAll(
       serverUrl,
-      `${config.baseUrl}/${config.appName}/${params.server_name}/${params.fhir_version}`
+      `${config.baseUrl}/${config.name}/${params.server_name}/${params.fhir_version}`
     )
   } catch (error) {
     logger.fhir.error('FHIR proxy error', { server: params.server_name, error })
@@ -118,7 +118,7 @@ const proxySchema = {
  * - Admin cache refresh endpoint available at /admin/smart-config/refresh
  */
 
-export const fhirRoutes = new Elysia({ prefix: `/${config.appName}/:server_name/:fhir_version`, tags: ['fhir'] })
+export const fhirRoutes = new Elysia({ prefix: `/${config.name}/:server_name/:fhir_version`, tags: ['fhir'] })
   // SMART on FHIR Configuration endpoint - server-specific configuration
   .get('/.well-known/smart-configuration', async (): Promise<SmartConfiguration> => {
     return await smartConfigService.getSmartConfiguration()
@@ -212,7 +212,7 @@ export const fhirRoutes = new Elysia({ prefix: `/${config.appName}/:server_name/
       // Rewrite URLs to use our proxy base URL
       const body = text.replaceAll(
         serverUrl,
-        `${config.baseUrl}/${config.appName}/${params.server_name}/${params.fhir_version}`
+        `${config.baseUrl}/${config.name}/${params.server_name}/${params.fhir_version}`
       )
       return body
     } catch (error) {

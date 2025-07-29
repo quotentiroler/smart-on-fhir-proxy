@@ -6,7 +6,6 @@ import { HealthcareUsersStats } from './HealthcareUsersStats';
 import { HealthcareUserAddForm } from './HealthcareUserAddForm';
 import { HealthcareUserEditForm } from './HealthcareUserEditForm';
 import type { FhirPersonAssociation } from './healthcare-users-types';
-import { useAuthSetup } from '@/hooks/useAuthSetup';
 import { useFhirServers } from '@/stores/smartStore';
 import { AddFhirPersonModal } from './AddFhirPersonModal';
 import type { GetAdminHealthcareUsers200ResponseInner } from '@/lib/api-client';
@@ -148,7 +147,7 @@ function transformApiUser(apiUser: GetAdminHealthcareUsers200ResponseInner): Hea
 }
 
 export function HealthcareUsersManager() {
-  const { isAuthenticated, apiClients, withAuthErrorHandling } = useAuth();
+  const { isAuthenticated, apiClients } = useAuth();
   
   // Store hooks for FHIR servers and healthcare users
   const { servers: fhirServers } = useFhirServers();
@@ -164,30 +163,24 @@ export function HealthcareUsersManager() {
   const [showAddPersonModal, setShowAddPersonModal] = useState(false);
   const [selectedUserForPerson, setSelectedUserForPerson] = useState<HealthcareUserWithPersons | null>(null);
 
-  // Set up auth error handler
-  useAuthSetup();
-
   // Load users from API
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
-      const apiUsers = await withAuthErrorHandling(() =>
-        apiClients.healthcareUsers.getAdminHealthcareUsers()
-      );
+      const apiUsers = await apiClients.healthcareUsers.getAdminHealthcareUsers();
       
       const transformedUsers = apiUsers.map(transformApiUser);
       setUsers(transformedUsers);
     } catch (err) {
       console.error('Failed to load users:', err);
-      // Error is already handled by withAuthErrorHandling (auth errors)
       // Set generic error for non-auth errors
       setError('Failed to load healthcare users. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [apiClients.healthcareUsers, withAuthErrorHandling]);
+  }, [apiClients.healthcareUsers]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -204,14 +197,12 @@ export function HealthcareUsersManager() {
     try {
       const newEnabled = currentStatus === 'inactive';
       
-      await withAuthErrorHandling(() =>
-        apiClients.healthcareUsers.putAdminHealthcareUsersByUserId({
-          userId: id,
-          putAdminHealthcareUsersByUserIdRequest: {
-            enabled: newEnabled
-          }
-        })
-      );
+      await apiClients.healthcareUsers.putAdminHealthcareUsersByUserId({
+        userId: id,
+        putAdminHealthcareUsersByUserIdRequest: {
+          enabled: newEnabled
+        }
+      });
 
       // Update local state
       setUsers(users.map(user => 
@@ -221,22 +212,18 @@ export function HealthcareUsersManager() {
       ));
     } catch (err) {
       console.error('Failed to toggle user status:', err);
-      // Error is already handled by withAuthErrorHandling (auth errors)
       setError('Failed to update user status. Please try again.');
     }
   };
 
   const deleteUser = async (id: string) => {
     try {
-      await withAuthErrorHandling(() =>
-        apiClients.healthcareUsers.deleteAdminHealthcareUsersByUserId({ userId: id })
-      );
+      await apiClients.healthcareUsers.deleteAdminHealthcareUsersByUserId({ userId: id });
       
       // Remove user from local state
       setUsers(users.filter(user => user.id !== id));
     } catch (err) {
       console.error('Failed to delete user:', err);
-      // Error is already handled by withAuthErrorHandling (auth errors)
       setError('Failed to delete healthcare user. Please try again.');
     }
   };
@@ -265,7 +252,7 @@ export function HealthcareUsersManager() {
   };
 
   return (
-    <div className="p-8 space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 lg:space-y-8">
       {/* Show loading state */}
       {loading && (
         <div className="flex justify-center items-center p-8">
@@ -317,11 +304,9 @@ export function HealthcareUsersManager() {
               clientRoles: Object.keys(formData.clientRoles).length > 0 ? formData.clientRoles : undefined,
             };
 
-            const createdUser = await withAuthErrorHandling(() =>
-              apiClients.healthcareUsers.postAdminHealthcareUsers({
-                postAdminHealthcareUsersRequest: createRequest
-              })
-            );
+            const createdUser = await apiClients.healthcareUsers.postAdminHealthcareUsers({
+              postAdminHealthcareUsersRequest: createRequest
+            });
 
             // Add the new user to the list
             const transformedUser = transformApiUser(createdUser);
@@ -329,7 +314,6 @@ export function HealthcareUsersManager() {
             setShowAddForm(false);
           } catch (err) {
             console.error('Failed to create user:', err);
-            // Error is already handled by withAuthErrorHandling (auth errors)
             setError('Failed to create healthcare user. Please try again.');
           } finally {
             setSubmitting(false);
@@ -365,12 +349,10 @@ export function HealthcareUsersManager() {
               clientRoles: Object.keys(formData.clientRoles).length > 0 ? formData.clientRoles : undefined,
             };
 
-            const updatedUser = await withAuthErrorHandling(() =>
-              apiClients.healthcareUsers.putAdminHealthcareUsersByUserId({
-                userId: formData.id,
-                putAdminHealthcareUsersByUserIdRequest: updateRequest
-              })
-            );
+            const updatedUser = await apiClients.healthcareUsers.putAdminHealthcareUsersByUserId({
+              userId: formData.id,
+              putAdminHealthcareUsersByUserIdRequest: updateRequest
+            });
 
             // Update the user in the local state
             const transformedUser = transformApiUser(updatedUser);
@@ -383,7 +365,6 @@ export function HealthcareUsersManager() {
             setEditingUser(null);
           } catch (err) {
             console.error('Failed to update user:', err);
-            // Error is already handled by withAuthErrorHandling (auth errors)
             setError('Failed to update healthcare user. Please try again.');
           } finally {
             setSubmitting(false);

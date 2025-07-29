@@ -145,7 +145,7 @@ const mockApps: SmartApp[] = [
 
 export function SmartAppsManager() {
   const { smartAppsManagerTab, setSmartAppsManagerTab } = useAppStore();
-  const { apiClients, withAuthErrorHandling } = useAuth();
+  const { apiClients } = useAuth();
   const [apps, setApps] = useState<SmartApp[]>([]);
   const [loading, setLoading] = useState(true);
   const [backendApps, setBackendApps] = useState<GetAdminSmartApps200ResponseInner[]>([]);
@@ -174,9 +174,7 @@ export function SmartAppsManager() {
     const fetchApps = async () => {
       try {
         setLoading(true);
-        const fetchedApps = await withAuthErrorHandling(() =>
-          apiClients.smartApps.getAdminSmartApps()
-        );
+        const fetchedApps = await apiClients.smartApps.getAdminSmartApps();
         
         setBackendApps(fetchedApps);
         
@@ -206,7 +204,6 @@ export function SmartAppsManager() {
         }
       } catch (error) {
         console.error('Failed to fetch SMART apps:', error);
-        // Error is already handled by withAuthErrorHandling (auth errors)
         // Fallback to mock apps on error
         setApps(mockApps);
       } finally {
@@ -215,7 +212,7 @@ export function SmartAppsManager() {
     };
 
     fetchApps();
-  }, [apiClients.smartApps, withAuthErrorHandling]);
+  }, [apiClients.smartApps]);
 
   const handleAddApp = (appData: Omit<SmartApp, 'id' | 'status' | 'lastUsed'>) => {
     const app: SmartApp = {

@@ -240,4 +240,143 @@
   .dark .mantine-Paper-root * {
     color: inherit;
   }
+  
+  /* Global select dropdown styling for theme awareness */
+  select {
+    background-color: oklch(var(--color-background));
+    color: oklch(var(--color-foreground));
+    border: 1px solid oklch(var(--color-border));
+    border-radius: var(--radius-lg);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    transition: all 0.2s ease-in-out;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+  }
+  
+  select:focus {
+    outline: none;
+    border-color: oklch(var(--color-ring));
+    box-shadow: 0 0 0 2px oklch(var(--color-ring) / 0.2);
+  }
+  
+  select option {
+    background-color: oklch(var(--color-popover)) !important;
+    color: oklch(var(--color-popover-foreground)) !important;
+    padding: 0.5rem;
+  }
+  
+  /* Dark mode specific styling */
+  .dark select {
+    background-color: oklch(var(--color-input));
+    color: oklch(var(--color-foreground));
+    border-color: oklch(var(--color-border));
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  }
+  
+  .dark select option {
+    background-color: oklch(var(--color-popover)) !important;
+    color: oklch(var(--color-popover-foreground)) !important;
+  }
+  
+  /* Force light text in dark mode options */
+  .dark select option {
+    color: oklch(0.985 0 0) !important; /* Force light text */
+    background-color: oklch(0.205 0 0) !important; /* Dark background */
+  }
+  
+  /* Alternative approach: Use contrasting colors directly */
+  html.dark select option {
+    color: white !important;
+    background-color: rgb(39, 39, 42) !important;
+  }
+  
+  /* Global input styling for theme awareness */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="search"],
+  textarea {
+    background-color: oklch(var(--color-background));
+    color: oklch(var(--color-foreground));
+    border: 1px solid oklch(var(--color-border));
+    border-radius: var(--radius-lg);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    transition: all 0.2s ease-in-out;
+  }
+  
+  input[type="text"]:focus,
+  input[type="email"]:focus,
+  input[type="password"]:focus,
+  input[type="number"]:focus,
+  input[type="url"]:focus,
+  input[type="tel"]:focus,
+  input[type="search"]:focus,
+  textarea:focus {
+    outline: none;
+    border-color: oklch(var(--color-ring));
+    box-shadow: 0 0 0 2px oklch(var(--color-ring) / 0.2);
+  }
+  
+  /* Dark mode specific input styling */
+  .dark input[type="text"],
+  .dark input[type="email"],
+  .dark input[type="password"],
+  .dark input[type="number"],
+  .dark input[type="url"],
+  .dark input[type="tel"],
+  .dark input[type="search"],
+  .dark textarea {
+    background-color: oklch(var(--color-input));
+    color: oklch(var(--color-foreground));
+    border-color: oklch(var(--color-border));
+  }
+  
+  /* Placeholder text styling */
+  input::placeholder,
+  textarea::placeholder {
+    color: oklch(var(--color-muted-foreground));
+    opacity: 1;
+  }
+  
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: oklch(var(--color-muted-foreground));
+    opacity: 0.7;
+  }
+  
+  /* Default form elements styling - covers elements without specific classes */
+  form input,
+  form select,
+  form textarea {
+    background-color: oklch(var(--color-background));
+    color: oklch(var(--color-foreground));
+    border: 1px solid oklch(var(--color-border));
+    border-radius: var(--radius-lg);
+  }
+  
+  .dark form input,
+  .dark form select,
+  .dark form textarea {
+    background-color: oklch(var(--color-input));
+    color: oklch(var(--color-foreground));
+    border-color: oklch(var(--color-border));
+  }
+  
+  /* Ensure text color is visible in dark mode */
+  .dark input,
+  .dark textarea,
+  .dark select {
+    color: oklch(0.985 0 0) !important; /* Force light text in dark mode */
+  }
 }

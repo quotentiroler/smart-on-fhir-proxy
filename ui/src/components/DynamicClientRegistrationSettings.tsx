@@ -25,7 +25,7 @@ import {
   Save,
   ExternalLink
 } from 'lucide-react';
-import { createAuthenticatedApiClients } from '@/lib/apiClient';
+import { useAuth } from '@/stores/authStore';
 import type { ClientRegistrationSettings } from '@/lib/types/api';
 
 // Simple Switch component since we don't have one
@@ -77,6 +77,7 @@ const DEFAULT_REDIRECT_PATTERNS = [
 ];
 
 export function DynamicClientRegistrationSettings() {
+  const { apiClients } = useAuth();
   const [settings, setSettings] = useState<ClientRegistrationSettings>({
     enabled: true,
     requireHttps: true,
@@ -105,7 +106,6 @@ export function DynamicClientRegistrationSettings() {
       setLoading(true);
       setMessage(null);
       
-      const apiClients = createAuthenticatedApiClients();
       const settingsData = await apiClients.admin.getAdminClientRegistrationSettings();
       
       setSettings(settingsData);
@@ -119,7 +119,7 @@ export function DynamicClientRegistrationSettings() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [apiClients]);
 
   useEffect(() => {
     loadSettings();
@@ -130,7 +130,6 @@ export function DynamicClientRegistrationSettings() {
       setSaving(true);
       setMessage(null);
       
-      const apiClients = createAuthenticatedApiClients();
       await apiClients.admin.putAdminClientRegistrationSettings({
         getAdminClientRegistrationSettings200Response: settings as ClientRegistrationSettings
       });
@@ -152,7 +151,6 @@ export function DynamicClientRegistrationSettings() {
       setSaving(true);
       setMessage(null);
       
-      const apiClients = createAuthenticatedApiClients();
       await apiClients.admin.postAdminClientRegistrationResetDefaults();
       
       // Reload the settings after reset
