@@ -22,6 +22,8 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { format } from 'date-fns';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { oauthWebSocketService, type OAuthEvent, type OAuthAnalytics } from '../service/oauth-websocket-service';
 
 interface SystemHealth {
@@ -687,12 +689,49 @@ export function OAuthMonitoringDashboard() {
                       <p className="text-muted-foreground font-medium">{t('OAuth flows over time')}</p>
                     </div>
                   </div>
-                  <div className="h-[300px] flex items-center justify-center text-muted-foreground">
-                    <div className="text-center">
-                      <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                      <p className="font-medium">{t('Chart visualization would be implemented here')}</p>
-                      <p className="text-sm mt-2">{t('Integration with charting library needed')}</p>
-                    </div>
+                  <div className="h-[300px]">
+                    {analytics?.hourlyStats?.length ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={analytics.hourlyStats}
+                          margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis
+                            dataKey="hour"
+                            tickFormatter={(hour) => format(new Date(hour), 'HH:mm')}
+                            minTickGap={20}
+                            className="text-muted-foreground"
+                          />
+                          <YAxis allowDecimals={false} className="text-muted-foreground" />
+                          <Tooltip
+                            labelFormatter={(hour) => format(new Date(hour), 'PPpp')}
+                            formatter={(value: number) => [value, t('flows')]}
+                            contentStyle={{
+                              backgroundColor: 'hsl(var(--card))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                            }}
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="total"
+                            stroke="hsl(var(--primary))"
+                            strokeWidth={2}
+                            dot={{ r: 3, fill: 'hsl(var(--primary))' }}
+                            activeDot={{ r: 5, fill: 'hsl(var(--primary))' }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center text-muted-foreground">
+                        <div className="text-center">
+                          <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                          <p className="font-medium">{t('No flow activity data available')}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -808,18 +847,156 @@ export function OAuthMonitoringDashboard() {
                     </p>
                   </div>
                 </div>
-                <div className="text-center text-muted-foreground py-8">
-                  <Activity className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                  <p>{t('OAuth events would be displayed here')}</p>
-                  <p className="text-sm mt-2">{t('Full event list implementation in progress')}</p>
-                </div>
+                {filteredEvents.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full table-auto text-sm">
+                      <thead>
+                        <tr className="bg-muted/50 text-muted-foreground border-b border-border">
+                          <th className="px-4 py-3 text-left font-semibold">{t('Time')}</th>
+                          <th className="px-4 py-3 text-left font-semibold">{t('Type')}</th>
+                          <th className="px-4 py-3 text-left font-semibold">{t('Client')}</th>
+                          <th className="px-4 py-3 text-left font-semibold">{t('Status')}</th>
+                          <th className="px-4 py-3 text-left font-semibold">{t('Details')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredEvents.slice(0, 50).map((event, index) => (
+                          <tr key={event.id || index} className="border-b border-border hover:bg-muted/30 transition-colors">
+                            <td className="px-4 py-3 text-muted-foreground">
+                              {format(new Date(event.timestamp), 'MMM dd, HH:mm:ss')}
+                            </td>
+                            <td className="px-4 py-3">
+                              <Badge variant="outline" className="font-mono text-xs">
+                                {event.type || t('Unknown')}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-3 font-medium text-foreground">
+                              {event.clientName || event.clientId || t('Unknown')}
+                            </td>
+                            <td className="px-4 py-3">
+                              <Badge
+                                className={
+                                  event.status === 'success'
+                                    ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-300'
+                                    : event.status === 'error'
+                                    ? 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-300'
+                                    : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-300'
+                                }
+                              >
+                                {event.status || t('Unknown')}
+                              </Badge>
+                            </td>
+                            <td className="px-4 py-3 text-muted-foreground max-w-xs truncate">
+                              {event.errorMessage || '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {filteredEvents.length > 50 && (
+                      <div className="text-center py-4 text-muted-foreground">
+                        <p className="text-sm">{t('Showing first 50 events of {{total}}', { total: filteredEvents.length })}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center text-muted-foreground py-8">
+                    <Activity className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="font-medium">{t('No events match your filters')}</p>
+                    <p className="text-sm mt-2">{t('Try adjusting your filter criteria')}</p>
+                  </div>
+                )}
               </div>
             </TabsContent>
 
             <TabsContent value="analytics" className="space-y-6">
-              <div className="text-center text-muted-foreground py-12">
-                <BarChart3 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                <p>{t('Advanced analytics charts coming soon')}</p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Success Rate Chart */}
+                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg">
+                  <div className="flex items-center space-x-3 mb-6">
+                    <div className="w-12 h-12 bg-gradient-to-br from-green-500/20 to-green-600/30 rounded-xl flex items-center justify-center shadow-sm">
+                      <TrendingUp className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-foreground tracking-tight">{t('Success Rate')}</h4>
+                      <p className="text-muted-foreground font-medium">{t('OAuth flow success over time')}</p>
+                    </div>
+                  </div>
+                  <div className="h-[300px]">
+                    {analytics?.hourlyStats?.length ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={analytics.hourlyStats}>
+                          <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                          <XAxis
+                            dataKey="hour"
+                            tickFormatter={(hour) => format(new Date(hour), 'HH:mm')}
+                            className="text-muted-foreground"
+                          />
+                          <YAxis className="text-muted-foreground" />
+                          <Tooltip
+                            labelFormatter={(hour) => format(new Date(hour), 'PPpp')}
+                            contentStyle={{
+                              backgroundColor: 'hsl(var(--card))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }}
+                          />
+                          <Bar dataKey="success" fill="hsl(var(--primary))" />
+                          <Bar dataKey="error" fill="#ef4444" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center">
+                        <p className="text-muted-foreground">{t('No success rate data available')}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Client Distribution Pie Chart */}
+                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border shadow-lg">
+                  <div className="flex items-center space-x-3 mb-6">
+                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500/20 to-purple-600/30 rounded-xl flex items-center justify-center shadow-sm">
+                      <Shield className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <h4 className="text-lg font-bold text-foreground tracking-tight">{t('Client Distribution')}</h4>
+                      <p className="text-muted-foreground font-medium">{t('OAuth clients by usage')}</p>
+                    </div>
+                  </div>
+                  <div className="h-[300px]">
+                    {analytics?.topClients?.length ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={analytics.topClients}
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={100}
+                            fill="hsl(var(--primary))"
+                            dataKey="count"
+                            label={({ clientName, count }) => `${clientName}: ${count}`}
+                          >
+                            {analytics.topClients.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={`hsl(${(index * 45) % 360}, 70%, 50%)`} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: 'hsl(var(--card))',
+                              border: '1px solid hsl(var(--border))',
+                              borderRadius: '8px'
+                            }}
+                          />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div className="h-full flex items-center justify-center">
+                        <p className="text-muted-foreground">{t('No client distribution data available')}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </TabsContent>
 
