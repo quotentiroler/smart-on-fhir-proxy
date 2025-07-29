@@ -7,7 +7,7 @@ import { logger } from './logger'
  * Handles authentication errors and Keycloak status code propagation
  */
 export function handleAdminError(error: unknown, set: Context['set']) {
-  logger.admin.error('Error in admin endpoint', { error })
+  logger.admin.info('HTTP Error in admin endpoint', { error })
   
   // Check if it's an authentication error
   if (error instanceof AuthenticationError) {

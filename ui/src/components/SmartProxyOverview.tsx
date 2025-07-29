@@ -89,6 +89,11 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
             serverName?: string;
             supported: boolean;
             error?: string;
+            endpoints?: {
+                base: string;
+                smartConfig: string;
+                metadata: string;
+            };
         }>;
         loading: boolean;
         error: string | null;
@@ -471,7 +476,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                                     {systemHealth.aiAgentStatus === 'connected' 
                                         ? t('AI Assistant: OpenAI Connected') 
                                         : systemHealth.aiAgentStatus === 'fallback'
-                                            ? t('AI Assistant: Semantic Fallback')
+                                            ? t('AI Assistant: API Key invalid')
                                             : systemHealth.aiAgentStatus === 'checking'
                                                 ? t('AI Assistant: Checking...')
                                                 : t('AI Assistant: Disconnected')
@@ -805,7 +810,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                                                 </span>
                                             </div>
                                             <div className="text-xs text-muted-foreground mt-1">
-                                                {server.url}
+                                                {server.endpoints?.base || server.url}
                                             </div>
                                             {server.error && (
                                                 <div className="text-xs text-red-600 dark:text-red-400 mt-1">
@@ -829,11 +834,6 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                                                     : t('Unknown')
                                             }
                                         </span>
-                                        {server.serverVersion && (
-                                            <div className="text-xs text-muted-foreground">
-                                                v{server.serverVersion}
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             ))
