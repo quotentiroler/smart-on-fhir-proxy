@@ -14,16 +14,6 @@
 
 
 import * as runtime from '../runtime';
-import type {
-  PostShutdown500Response,
-  PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response,
-} from '../models/index';
-import {
-    PostShutdown500ResponseFromJSON,
-    PostShutdown500ResponseToJSON,
-    PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseFromJSON,
-    PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseToJSON,
-} from '../models/index';
 
 export interface GetSmartProxyByServerNameByFhirVersionRequest {
     serverName: string;
@@ -44,7 +34,7 @@ export class FhirApi extends runtime.BaseAPI {
      * Serve the content from the FHIR server base URL
      * FHIR Server Base URL
      */
-    async getSmartProxyByServerNameByFhirVersionRaw(requestParameters: GetSmartProxyByServerNameByFhirVersionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+    async getSmartProxyByServerNameByFhirVersionRaw(requestParameters: GetSmartProxyByServerNameByFhirVersionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['serverName'] == null) {
             throw new runtime.RequiredError(
                 'serverName',
@@ -75,27 +65,22 @@ export class FhirApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        if (this.isJsonMime(response.headers.get('content-type'))) {
-            return new runtime.JSONApiResponse<any>(response);
-        } else {
-            return new runtime.TextApiResponse(response) as any;
-        }
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Serve the content from the FHIR server base URL
      * FHIR Server Base URL
      */
-    async getSmartProxyByServerNameByFhirVersion(requestParameters: GetSmartProxyByServerNameByFhirVersionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
-        const response = await this.getSmartProxyByServerNameByFhirVersionRaw(requestParameters, initOverrides);
-        return await response.value();
+    async getSmartProxyByServerNameByFhirVersion(requestParameters: GetSmartProxyByServerNameByFhirVersionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getSmartProxyByServerNameByFhirVersionRaw(requestParameters, initOverrides);
     }
 
     /**
      * Clear and refresh the cached FHIR server information
      * Refresh FHIR Server Cache
      */
-    async postSmartProxyByServerNameByFhirVersionCacheRefreshRaw(requestParameters: PostSmartProxyByServerNameByFhirVersionCacheRefreshRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response>> {
+    async postSmartProxyByServerNameByFhirVersionCacheRefreshRaw(requestParameters: PostSmartProxyByServerNameByFhirVersionCacheRefreshRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['serverName'] == null) {
             throw new runtime.RequiredError(
                 'serverName',
@@ -134,16 +119,15 @@ export class FhirApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Clear and refresh the cached FHIR server information
      * Refresh FHIR Server Cache
      */
-    async postSmartProxyByServerNameByFhirVersionCacheRefresh(requestParameters: PostSmartProxyByServerNameByFhirVersionCacheRefreshRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response> {
-        const response = await this.postSmartProxyByServerNameByFhirVersionCacheRefreshRaw(requestParameters, initOverrides);
-        return await response.value();
+    async postSmartProxyByServerNameByFhirVersionCacheRefresh(requestParameters: PostSmartProxyByServerNameByFhirVersionCacheRefreshRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.postSmartProxyByServerNameByFhirVersionCacheRefreshRaw(requestParameters, initOverrides);
     }
 
 }

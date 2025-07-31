@@ -115,7 +115,7 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
       summary: 'OAuth Authorization Endpoint',
       description: 'Redirects to Keycloak authorization endpoint for OAuth flow with support for authorization details',
       tags: ['authentication'],
-      response: { 200: { description: 'Redirects to authorization server.' } }
+      responses: { 200: { description: 'Redirects to authorization server.' } }
     }
   })
 
@@ -158,7 +158,7 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
       summary: 'Login Page Redirect',
       description: 'Simplified login endpoint that redirects to Keycloak with sensible defaults for UI applications',
       tags: ['authentication'],
-      response: { 200: { description: 'Redirects to Keycloak login page.' } }
+      responses: { 200: { description: 'Redirects to Keycloak login page.' } }
     }
   })
 
@@ -213,7 +213,7 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
       summary: 'Logout Endpoint',
       description: 'Proxies logout requests to Keycloak with sensible defaults',
       tags: ['authentication'],
-      response: { 200: { description: 'Redirects to Keycloak logout page.' } }
+      responses: { 200: { description: 'Redirects to Keycloak logout page.' } }
     }
   })
 
@@ -446,7 +446,7 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
       summary: 'OAuth Token Exchange',
       description: 'Exchange authorization code for access token with SMART launch context and authorization details for multiple FHIR servers',
       tags: ['authentication'],
-      response: { 200: { description: 'OAuth token response with access token, SMART launch context parameters, and authorization details for multiple FHIR servers.' } }
+      responses: { 200: { description: 'OAuth token response with access token, SMART launch context parameters, and authorization details for multiple FHIR servers.' } }
     }
   })
 
@@ -477,7 +477,7 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
       summary: 'Token Introspection',
       description: 'Validate and get information about an access token',
       tags: ['authentication'],
-      response: { 200: { description: 'Token introspection response.' } }
+      responses: { 200: { description: 'Token introspection response.' } }
     }
   })
 
@@ -524,7 +524,7 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
     headers: t.Object({
       authorization: t.String({ description: 'Bearer token' })
     }),
-    response: {
+    responses: {
       200: t.Object({
         id: t.String({ description: 'User ID' }),
         fhirUser: t.Optional(t.String({ description: 'FHIR user resource reference (e.g., Practitioner/123)' })),
@@ -546,6 +546,6 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
       description: 'Get authenticated user profile information from JWT token',
       tags: ['authentication'],
       security: [{ BearerAuth: [] }],
-      response: { 200: { description: 'User profile information.' } }
+      responses: { 200: { description: 'User profile information.' } }
     }
   })

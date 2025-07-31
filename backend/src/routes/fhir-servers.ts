@@ -73,7 +73,7 @@ export const serverDiscoveryRoutes = new Elysia({ prefix: '/fhir-servers', tags:
       url: t.String({ description: 'FHIR server base URL' }),
       name: t.Optional(t.String({ description: 'Optional custom name for the server' }))
     }),
-    response: {
+    responses: {
       200: t.Object({
         success: t.Boolean({ description: 'Whether the server was added successfully' }),
         message: t.String({ description: 'Success message' }),
@@ -106,7 +106,7 @@ export const serverDiscoveryRoutes = new Elysia({ prefix: '/fhir-servers', tags:
       description: 'Add a new FHIR server to the system by providing its base URL',
       tags: ['servers'],
       security: [{ BearerAuth: [] }],
-      response: { 
+      responses: { 
         200: { description: 'Server added successfully' },
         401: { description: 'Unauthorized - Bearer token required' },
         500: { description: 'Failed to add server' }
@@ -182,7 +182,7 @@ export const serverDiscoveryRoutes = new Elysia({ prefix: '/fhir-servers', tags:
       url: t.String({ description: 'New FHIR server base URL' }),
       name: t.Optional(t.String({ description: 'Optional custom name for the server' }))
     }),
-    response: {
+    responses: {
       200: t.Object({
         success: t.Boolean({ description: 'Whether the server was updated successfully' }),
         message: t.String({ description: 'Success message' }),
@@ -219,7 +219,7 @@ export const serverDiscoveryRoutes = new Elysia({ prefix: '/fhir-servers', tags:
       description: 'Update an existing FHIR server by providing its new base URL',
       tags: ['servers'],
       security: [{ BearerAuth: [] }],
-      response: { 
+      responses: { 
         200: { description: 'Server updated successfully' },
         400: { description: 'Bad request - Invalid URL or server not reachable' },
         401: { description: 'Unauthorized - Bearer token required' },
@@ -263,7 +263,7 @@ export const serverDiscoveryRoutes = new Elysia({ prefix: '/fhir-servers', tags:
       return { error: 'Failed to list FHIR servers', details: error }
     }
   }, {
-    response: {
+    responses: {
       200: t.Object({
         totalServers: t.Number({ description: 'Total number of configured FHIR servers' }),
         servers: t.Array(t.Object({
@@ -292,7 +292,7 @@ export const serverDiscoveryRoutes = new Elysia({ prefix: '/fhir-servers', tags:
       summary: 'List Available FHIR Servers',
       description: 'Get a list of all configured FHIR servers with their connection information and endpoints',
       tags: ['servers'],
-      response: { 
+      responses: { 
         200: { description: 'List of available FHIR servers' },
         500: { description: 'Failed to list servers' }
       }
@@ -336,7 +336,7 @@ export const serverDiscoveryRoutes = new Elysia({ prefix: '/fhir-servers', tags:
     params: t.Object({
       server_name: t.String({ description: 'FHIR server name or identifier' })
     }),
-    response: {
+    responses: {
       200: t.Object({
         name: t.String({ description: 'Server identifier used in URLs' }),
         displayName: t.String({ description: 'Human-readable server name from FHIR metadata' }),
@@ -365,7 +365,7 @@ export const serverDiscoveryRoutes = new Elysia({ prefix: '/fhir-servers', tags:
       summary: 'Get Server Information',
       description: 'Get detailed information about a specific FHIR server',
       tags: ['servers'],
-      response: { 
+      responses: { 
         200: { description: 'Server information' },
         404: { description: 'Server not found' },
         500: { description: 'Failed to get server information' }

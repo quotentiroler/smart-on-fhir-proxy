@@ -16,131 +16,131 @@ import { mapValues } from '../runtime';
 /**
  * 
  * @export
- * @interface PostAdminIdpsRequestConfig
+ * @interface PutAdminIdpsByAliasRequestConfig
  */
-export interface PostAdminIdpsRequestConfig {
+export interface PutAdminIdpsByAliasRequestConfig {
     /**
      * 
      * @type {string}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     displayName?: string;
     /**
      * 
      * @type {string}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     entityId?: string;
     /**
      * 
      * @type {string}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     singleSignOnServiceUrl?: string;
     /**
      * 
      * @type {string}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     singleLogoutServiceUrl?: string;
     /**
      * 
      * @type {string}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     metadataDescriptorUrl?: string;
     /**
      * 
      * @type {boolean}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     enabled?: boolean;
     /**
      * 
      * @type {string}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     clientSecret?: string;
     /**
      * 
      * @type {string}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     tokenUrl?: string;
     /**
      * 
      * @type {string}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     userInfoUrl?: string;
     /**
      * 
      * @type {string}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     issuer?: string;
     /**
      * 
      * @type {string}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     defaultScopes?: string;
     /**
      * 
      * @type {string}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     logoutUrl?: string;
     /**
      * 
      * @type {string}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     signatureAlgorithm?: string;
     /**
      * 
      * @type {string}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     nameIdPolicyFormat?: string;
     /**
      * 
      * @type {string}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     signingCertificate?: string;
     /**
      * 
      * @type {boolean}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     validateSignature?: boolean;
     /**
      * 
      * @type {boolean}
-     * @memberof PostAdminIdpsRequestConfig
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
     wantAuthnRequestsSigned?: boolean;
     /**
-     * Additional configuration as key-value pairs
-     * @type {{ [key: string]: any; }}
-     * @memberof PostAdminIdpsRequestConfig
+     * 
+     * @type {object}
+     * @memberof PutAdminIdpsByAliasRequestConfig
      */
-    additionalConfig?: { [key: string]: any; };
+    additionalConfig?: object;
 }
 
 /**
- * Check if a given object implements the PostAdminIdpsRequestConfig interface.
+ * Check if a given object implements the PutAdminIdpsByAliasRequestConfig interface.
  */
-export function instanceOfPostAdminIdpsRequestConfig(value: object): value is PostAdminIdpsRequestConfig {
+export function instanceOfPutAdminIdpsByAliasRequestConfig(value: object): value is PutAdminIdpsByAliasRequestConfig {
     return true;
 }
 
-export function PostAdminIdpsRequestConfigFromJSON(json: any): PostAdminIdpsRequestConfig {
-    return PostAdminIdpsRequestConfigFromJSONTyped(json, false);
+export function PutAdminIdpsByAliasRequestConfigFromJSON(json: any): PutAdminIdpsByAliasRequestConfig {
+    return PutAdminIdpsByAliasRequestConfigFromJSONTyped(json, false);
 }
 
-export function PostAdminIdpsRequestConfigFromJSONTyped(json: any, ignoreDiscriminator: boolean): PostAdminIdpsRequestConfig {
+export function PutAdminIdpsByAliasRequestConfigFromJSONTyped(json: any, ignoreDiscriminator: boolean): PutAdminIdpsByAliasRequestConfig {
     if (json == null) {
         return json;
     }
@@ -167,11 +167,11 @@ export function PostAdminIdpsRequestConfigFromJSONTyped(json: any, ignoreDiscrim
     };
 }
 
-export function PostAdminIdpsRequestConfigToJSON(json: any): PostAdminIdpsRequestConfig {
-    return PostAdminIdpsRequestConfigToJSONTyped(json, false);
+export function PutAdminIdpsByAliasRequestConfigToJSON(json: any): PutAdminIdpsByAliasRequestConfig {
+    return PutAdminIdpsByAliasRequestConfigToJSONTyped(json, false);
 }
 
-export function PostAdminIdpsRequestConfigToJSONTyped(value?: PostAdminIdpsRequestConfig | null, ignoreDiscriminator: boolean = false): any {
+export function PutAdminIdpsByAliasRequestConfigToJSONTyped(value?: PutAdminIdpsByAliasRequestConfig | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }

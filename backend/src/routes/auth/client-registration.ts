@@ -351,7 +351,7 @@ export const clientRegistrationRoutes = new Elysia({ tags: ['authentication'] })
       summary: 'Dynamic Client Registration',
       description: 'Register a new OAuth2 client dynamically according to RFC 7591. This is a public endpoint that does not require authentication.',
       tags: ['authentication'],
-      response: {
+      responses: {
         200: { description: 'Client registered successfully' },
         400: { description: 'Invalid request' },
         500: { description: 'Server error' }

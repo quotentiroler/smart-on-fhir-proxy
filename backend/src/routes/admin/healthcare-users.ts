@@ -147,8 +147,8 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/healthcare-users' })
     }
   }, {
     query: PaginationQuery,
-    response: {
-      200: t.Array(UserProfile),
+    responses: {
+      200: t.Array(UserProfile, { description: 'List of healthcare users' }),
       401: ErrorResponse,
       403: ErrorResponse,
       500: ErrorResponse
@@ -158,7 +158,7 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/healthcare-users' })
       description: 'Get all healthcare users with optional pagination',
       tags: ['healthcare-users'],
       security: [{ BearerAuth: [] }],
-      response: { 
+      responses: { 
         200: { description: 'A list of all healthcare users.' },
         401: { description: 'Unauthorized - Bearer token required' },
         403: { description: 'Forbidden - Insufficient permissions' },
@@ -287,9 +287,12 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/healthcare-users' })
       password: t.Optional(t.String({ description: 'Initial password' })),
       temporaryPassword: t.Optional(t.Boolean({ description: 'Whether password is temporary' })),
       realmRoles: t.Optional(t.Array(t.String({ description: 'Realm roles to assign' }))),
-      clientRoles: t.Optional(t.Record(t.String(), t.Array(t.String()), { description: 'Client roles to assign' }))
+      clientRoles: t.Optional(t.Object({}, { 
+        description: 'Client roles to assign as key-value pairs (clientId: string[])',
+        additionalProperties: t.Array(t.String())
+      }))
     }),
-    response: {
+    responses: {
       200: UserProfile,
       400: ErrorResponse,
       401: ErrorResponse,
@@ -301,7 +304,7 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/healthcare-users' })
       description: 'Create a new healthcare user',
       tags: ['healthcare-users'],
       security: [{ BearerAuth: [] }],
-      response: { 
+      responses: { 
         200: { description: 'Healthcare user created.' },
         400: { description: 'Invalid request data' },
         401: { description: 'Unauthorized - Bearer token required' },
@@ -355,7 +358,7 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/healthcare-users' })
     params: t.Object({
       userId: t.String({ description: 'User ID' })
     }),
-    response: {
+    responses: {
       200: UserProfile,
       401: ErrorResponse,
       403: ErrorResponse,
@@ -367,7 +370,7 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/healthcare-users' })
       description: 'Get a healthcare user by userId',
       tags: ['healthcare-users'],
       security: [{ BearerAuth: [] }],
-      response: { 
+      responses: { 
         200: { description: 'Healthcare user details.' },
         401: { description: 'Unauthorized - Bearer token required' },
         403: { description: 'Forbidden - Insufficient permissions' },
@@ -518,9 +521,12 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/healthcare-users' })
       organization: t.Optional(t.String({ description: 'Organization' })),
       fhirUser: t.Optional(t.String({ description: 'FHIR User identifiers in format "server1:Person/123,server2:Person/456"' })),
       realmRoles: t.Optional(t.Array(t.String({ description: 'Realm roles to assign' }))),
-      clientRoles: t.Optional(t.Record(t.String(), t.Array(t.String()), { description: 'Client roles to assign' }))
+      clientRoles: t.Optional(t.Object({}, { 
+        description: 'Client roles to assign as key-value pairs (clientId: string[])',
+        additionalProperties: t.Array(t.String())
+      }))
     }),
-    response: {
+    responses: {
       200: UserProfile,
       400: ErrorResponse,
       401: ErrorResponse,
@@ -533,7 +539,7 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/healthcare-users' })
       description: 'Update a healthcare user by userId',
       tags: ['healthcare-users'],
       security: [{ BearerAuth: [] }],
-      response: { 
+      responses: { 
         200: { description: 'Healthcare user updated.' },
         400: { description: 'Invalid request data' },
         401: { description: 'Unauthorized - Bearer token required' },
@@ -584,8 +590,11 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/healthcare-users' })
     params: t.Object({
       userId: t.String({ description: 'User ID' })
     }),
-    response: {
-      200: SuccessResponse,
+    responses: {
+      200: t.Object({
+        success: t.Boolean({ description: 'Whether the operation was successful' }),
+        message: t.Optional(t.String({ description: 'Success message' }))
+      }, { description: 'User deleted successfully' }),
       401: ErrorResponse,
       403: ErrorResponse,
       404: ErrorResponse,
@@ -596,7 +605,7 @@ export const healthcareUsersRoutes = new Elysia({ prefix: '/healthcare-users' })
       description: 'Delete a healthcare user by userId',
       tags: ['healthcare-users'],
       security: [{ BearerAuth: [] }],
-      response: { 
+      responses: { 
         200: { description: 'Healthcare user deleted.' },
         401: { description: 'Unauthorized - Bearer token required' },
         403: { description: 'Forbidden - Insufficient permissions' },

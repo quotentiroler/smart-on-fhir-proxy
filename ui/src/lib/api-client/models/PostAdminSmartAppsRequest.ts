@@ -13,14 +13,6 @@
  */
 
 import { mapValues } from '../runtime';
-import type { PostAdminSmartAppsRequestClientType } from './PostAdminSmartAppsRequestClientType';
-import {
-    PostAdminSmartAppsRequestClientTypeFromJSON,
-    PostAdminSmartAppsRequestClientTypeFromJSONTyped,
-    PostAdminSmartAppsRequestClientTypeToJSON,
-    PostAdminSmartAppsRequestClientTypeToJSONTyped,
-} from './PostAdminSmartAppsRequestClientType';
-
 /**
  * 
  * @export
@@ -76,17 +68,17 @@ export interface PostAdminSmartAppsRequest {
      */
     smartVersion?: string;
     /**
-     * FHIR version (default: R4)
+     * FHIR version (default: STU3)
      * @type {string}
      * @memberof PostAdminSmartAppsRequest
      */
     fhirVersion?: string;
     /**
-     * 
-     * @type {PostAdminSmartAppsRequestClientType}
+     * Client type (public, confidential, backend-service)
+     * @type {string}
      * @memberof PostAdminSmartAppsRequest
      */
-    clientType?: PostAdminSmartAppsRequestClientType;
+    clientType?: PostAdminSmartAppsRequestClientTypeEnum;
     /**
      * PEM-formatted public key for JWT authentication (required for backend-service)
      * @type {string}
@@ -106,6 +98,18 @@ export interface PostAdminSmartAppsRequest {
      */
     systemScopes?: Array<string>;
 }
+
+
+/**
+ * @export
+ */
+export const PostAdminSmartAppsRequestClientTypeEnum = {
+    Public: 'public',
+    Confidential: 'confidential',
+    BackendService: 'backend-service'
+} as const;
+export type PostAdminSmartAppsRequestClientTypeEnum = typeof PostAdminSmartAppsRequestClientTypeEnum[keyof typeof PostAdminSmartAppsRequestClientTypeEnum];
+
 
 /**
  * Check if a given object implements the PostAdminSmartAppsRequest interface.
@@ -135,7 +139,7 @@ export function PostAdminSmartAppsRequestFromJSONTyped(json: any, ignoreDiscrimi
         'scopes': json['scopes'] == null ? undefined : json['scopes'],
         'smartVersion': json['smartVersion'] == null ? undefined : json['smartVersion'],
         'fhirVersion': json['fhirVersion'] == null ? undefined : json['fhirVersion'],
-        'clientType': json['clientType'] == null ? undefined : PostAdminSmartAppsRequestClientTypeFromJSON(json['clientType']),
+        'clientType': json['clientType'] == null ? undefined : json['clientType'],
         'publicKey': json['publicKey'] == null ? undefined : json['publicKey'],
         'jwksUri': json['jwksUri'] == null ? undefined : json['jwksUri'],
         'systemScopes': json['systemScopes'] == null ? undefined : json['systemScopes'],
@@ -162,7 +166,7 @@ export function PostAdminSmartAppsRequestToJSONTyped(value?: PostAdminSmartAppsR
         'scopes': value['scopes'],
         'smartVersion': value['smartVersion'],
         'fhirVersion': value['fhirVersion'],
-        'clientType': PostAdminSmartAppsRequestClientTypeToJSON(value['clientType']),
+        'clientType': value['clientType'],
         'publicKey': value['publicKey'],
         'jwksUri': value['jwksUri'],
         'systemScopes': value['systemScopes'],

@@ -15,29 +15,17 @@
 
 import * as runtime from '../runtime';
 import type {
-  GetAuthUserinfo200Response,
-  PostAuthIntrospect200Response,
   PostAuthIntrospectRequest,
   PostAuthRegisterRequest,
-  PostAuthToken200Response,
   PostAuthTokenRequest,
-  PostFhirServers401Response,
 } from '../models/index';
 import {
-    GetAuthUserinfo200ResponseFromJSON,
-    GetAuthUserinfo200ResponseToJSON,
-    PostAuthIntrospect200ResponseFromJSON,
-    PostAuthIntrospect200ResponseToJSON,
     PostAuthIntrospectRequestFromJSON,
     PostAuthIntrospectRequestToJSON,
     PostAuthRegisterRequestFromJSON,
     PostAuthRegisterRequestToJSON,
-    PostAuthToken200ResponseFromJSON,
-    PostAuthToken200ResponseToJSON,
     PostAuthTokenRequestFromJSON,
     PostAuthTokenRequestToJSON,
-    PostFhirServers401ResponseFromJSON,
-    PostFhirServers401ResponseToJSON,
 } from '../models/index';
 
 export interface GetAuthAuthorizeRequest {
@@ -259,7 +247,7 @@ export class AuthenticationApi extends runtime.BaseAPI {
      * Get authenticated user profile information from JWT token
      * Get Current User Profile
      */
-    async getAuthUserinfoRaw(requestParameters: GetAuthUserinfoRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAuthUserinfo200Response>> {
+    async getAuthUserinfoRaw(requestParameters: GetAuthUserinfoRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['authorization'] == null) {
             throw new runtime.RequiredError(
                 'authorization',
@@ -293,23 +281,22 @@ export class AuthenticationApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetAuthUserinfo200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Get authenticated user profile information from JWT token
      * Get Current User Profile
      */
-    async getAuthUserinfo(requestParameters: GetAuthUserinfoRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAuthUserinfo200Response> {
-        const response = await this.getAuthUserinfoRaw(requestParameters, initOverrides);
-        return await response.value();
+    async getAuthUserinfo(requestParameters: GetAuthUserinfoRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getAuthUserinfoRaw(requestParameters, initOverrides);
     }
 
     /**
      * Validate and get information about an access token
      * Token Introspection
      */
-    async postAuthIntrospectRaw(requestParameters: PostAuthIntrospectOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostAuthIntrospect200Response>> {
+    async postAuthIntrospectRaw(requestParameters: PostAuthIntrospectOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['postAuthIntrospectRequest'] == null) {
             throw new runtime.RequiredError(
                 'postAuthIntrospectRequest',
@@ -334,16 +321,15 @@ export class AuthenticationApi extends runtime.BaseAPI {
             body: PostAuthIntrospectRequestToJSON(requestParameters['postAuthIntrospectRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PostAuthIntrospect200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Validate and get information about an access token
      * Token Introspection
      */
-    async postAuthIntrospect(requestParameters: PostAuthIntrospectOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostAuthIntrospect200Response> {
-        const response = await this.postAuthIntrospectRaw(requestParameters, initOverrides);
-        return await response.value();
+    async postAuthIntrospect(requestParameters: PostAuthIntrospectOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.postAuthIntrospectRaw(requestParameters, initOverrides);
     }
 
     /**
@@ -390,7 +376,7 @@ export class AuthenticationApi extends runtime.BaseAPI {
      * Exchange authorization code for access token with SMART launch context and authorization details for multiple FHIR servers
      * OAuth Token Exchange
      */
-    async postAuthTokenRaw(requestParameters: PostAuthTokenOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostAuthToken200Response>> {
+    async postAuthTokenRaw(requestParameters: PostAuthTokenOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['postAuthTokenRequest'] == null) {
             throw new runtime.RequiredError(
                 'postAuthTokenRequest',
@@ -415,16 +401,15 @@ export class AuthenticationApi extends runtime.BaseAPI {
             body: PostAuthTokenRequestToJSON(requestParameters['postAuthTokenRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PostAuthToken200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Exchange authorization code for access token with SMART launch context and authorization details for multiple FHIR servers
      * OAuth Token Exchange
      */
-    async postAuthToken(requestParameters: PostAuthTokenOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostAuthToken200Response> {
-        const response = await this.postAuthTokenRaw(requestParameters, initOverrides);
-        return await response.value();
+    async postAuthToken(requestParameters: PostAuthTokenOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.postAuthTokenRaw(requestParameters, initOverrides);
     }
 
 }

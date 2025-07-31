@@ -15,24 +15,12 @@
 
 import * as runtime from '../runtime';
 import type {
-  DeleteAdminRolesByRoleName200Response,
-  GetAdminRoles200ResponseInner,
   PostAdminRolesRequest,
-  PostShutdown500Response,
-  PutAdminRolesByRoleName200Response,
   PutAdminRolesByRoleNameRequest,
 } from '../models/index';
 import {
-    DeleteAdminRolesByRoleName200ResponseFromJSON,
-    DeleteAdminRolesByRoleName200ResponseToJSON,
-    GetAdminRoles200ResponseInnerFromJSON,
-    GetAdminRoles200ResponseInnerToJSON,
     PostAdminRolesRequestFromJSON,
     PostAdminRolesRequestToJSON,
-    PostShutdown500ResponseFromJSON,
-    PostShutdown500ResponseToJSON,
-    PutAdminRolesByRoleName200ResponseFromJSON,
-    PutAdminRolesByRoleName200ResponseToJSON,
     PutAdminRolesByRoleNameRequestFromJSON,
     PutAdminRolesByRoleNameRequestToJSON,
 } from '../models/index';
@@ -63,7 +51,7 @@ export class RolesApi extends runtime.BaseAPI {
      * Delete a healthcare-specific role by name
      * Delete Healthcare Role
      */
-    async deleteAdminRolesByRoleNameRaw(requestParameters: DeleteAdminRolesByRoleNameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminRolesByRoleName200Response>> {
+    async deleteAdminRolesByRoleNameRaw(requestParameters: DeleteAdminRolesByRoleNameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['roleName'] == null) {
             throw new runtime.RequiredError(
                 'roleName',
@@ -94,23 +82,22 @@ export class RolesApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Delete a healthcare-specific role by name
      * Delete Healthcare Role
      */
-    async deleteAdminRolesByRoleName(requestParameters: DeleteAdminRolesByRoleNameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminRolesByRoleName200Response> {
-        const response = await this.deleteAdminRolesByRoleNameRaw(requestParameters, initOverrides);
-        return await response.value();
+    async deleteAdminRolesByRoleName(requestParameters: DeleteAdminRolesByRoleNameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.deleteAdminRolesByRoleNameRaw(requestParameters, initOverrides);
     }
 
     /**
      * Get all roles
      * List All Roles
      */
-    async getAdminRolesRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GetAdminRoles200ResponseInner>>> {
+    async getAdminRolesRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -133,23 +120,22 @@ export class RolesApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(GetAdminRoles200ResponseInnerFromJSON));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Get all roles
      * List All Roles
      */
-    async getAdminRoles(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GetAdminRoles200ResponseInner>> {
-        const response = await this.getAdminRolesRaw(initOverrides);
-        return await response.value();
+    async getAdminRoles(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getAdminRolesRaw(initOverrides);
     }
 
     /**
      * Get a healthcare-specific role by name
      * Get Healthcare Role
      */
-    async getAdminRolesByRoleNameRaw(requestParameters: GetAdminRolesByRoleNameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminRoles200ResponseInner>> {
+    async getAdminRolesByRoleNameRaw(requestParameters: GetAdminRolesByRoleNameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['roleName'] == null) {
             throw new runtime.RequiredError(
                 'roleName',
@@ -180,23 +166,22 @@ export class RolesApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminRoles200ResponseInnerFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Get a healthcare-specific role by name
      * Get Healthcare Role
      */
-    async getAdminRolesByRoleName(requestParameters: GetAdminRolesByRoleNameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminRoles200ResponseInner> {
-        const response = await this.getAdminRolesByRoleNameRaw(requestParameters, initOverrides);
-        return await response.value();
+    async getAdminRolesByRoleName(requestParameters: GetAdminRolesByRoleNameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getAdminRolesByRoleNameRaw(requestParameters, initOverrides);
     }
 
     /**
      * Create a new healthcare-specific role
      * Create Healthcare Role
      */
-    async postAdminRolesRaw(requestParameters: PostAdminRolesOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminRoles200ResponseInner>> {
+    async postAdminRolesRaw(requestParameters: PostAdminRolesOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['postAdminRolesRequest'] == null) {
             throw new runtime.RequiredError(
                 'postAdminRolesRequest',
@@ -229,23 +214,22 @@ export class RolesApi extends runtime.BaseAPI {
             body: PostAdminRolesRequestToJSON(requestParameters['postAdminRolesRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminRoles200ResponseInnerFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Create a new healthcare-specific role
      * Create Healthcare Role
      */
-    async postAdminRoles(requestParameters: PostAdminRolesOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminRoles200ResponseInner> {
-        const response = await this.postAdminRolesRaw(requestParameters, initOverrides);
-        return await response.value();
+    async postAdminRoles(requestParameters: PostAdminRolesOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.postAdminRolesRaw(requestParameters, initOverrides);
     }
 
     /**
      * Update a healthcare-specific role by name
      * Update Healthcare Role
      */
-    async putAdminRolesByRoleNameRaw(requestParameters: PutAdminRolesByRoleNameOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminRolesByRoleName200Response>> {
+    async putAdminRolesByRoleNameRaw(requestParameters: PutAdminRolesByRoleNameOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['roleName'] == null) {
             throw new runtime.RequiredError(
                 'roleName',
@@ -286,16 +270,15 @@ export class RolesApi extends runtime.BaseAPI {
             body: PutAdminRolesByRoleNameRequestToJSON(requestParameters['putAdminRolesByRoleNameRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Update a healthcare-specific role by name
      * Update Healthcare Role
      */
-    async putAdminRolesByRoleName(requestParameters: PutAdminRolesByRoleNameOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminRolesByRoleName200Response> {
-        const response = await this.putAdminRolesByRoleNameRaw(requestParameters, initOverrides);
-        return await response.value();
+    async putAdminRolesByRoleName(requestParameters: PutAdminRolesByRoleNameOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.putAdminRolesByRoleNameRaw(requestParameters, initOverrides);
     }
 
 }

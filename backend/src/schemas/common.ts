@@ -9,13 +9,13 @@ export const ErrorResponse = t.Object({
   error: t.String({ description: 'Error message' }),
   code: t.Optional(t.String({ description: 'Error code' })),
   details: t.Optional(t.Any({ description: 'Additional error details' }))
-})
+}, { description: 'Error response' })
 
 // Success response
 export const SuccessResponse = t.Object({
   success: t.Boolean({ description: 'Whether the operation was successful' }),
   message: t.Optional(t.String({ description: 'Success message' }))
-})
+}, { description: 'Success response' })
 
 // Common response schemas for different HTTP status codes
 export const CommonResponses = {

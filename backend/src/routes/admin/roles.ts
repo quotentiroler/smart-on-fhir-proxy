@@ -29,20 +29,23 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
       return handleAdminError(error, set)
     }
   }, {
-    response: {
+    responses: {
       200: t.Array(t.Object({
         id: t.Optional(t.String({ description: 'Role ID' })),
         name: t.Optional(t.String({ description: 'Role name' })),
         description: t.Optional(t.String({ description: 'Role description' })),
         attributes: t.Optional(t.Record(t.String(), t.Array(t.String()))),
-      })),
+      }), { description: 'List of all available roles' }),
       401: ErrorResponse,
       500: ErrorResponse
     },
     detail: {
       summary: 'List All Roles',
       description: 'Get all roles',
-      tags: ['roles']
+      tags: ['roles'],
+      responses: {
+        200: { description: 'List of all available roles' }
+      }
     }
   })
 
@@ -79,20 +82,23 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
       description: t.Optional(t.String({ description: 'Role description' })),
       fhirScopes: t.Optional(t.Array(t.String({ description: 'FHIR scopes for this role' })))
     }),
-    response: {
+    responses: {
       200: t.Object({
         id: t.Optional(t.String({ description: 'Role ID' })),
         name: t.Optional(t.String({ description: 'Role name' })),
         description: t.Optional(t.String({ description: 'Role description' })),
         attributes: t.Optional(t.Record(t.String(), t.Array(t.String()))),
-      }),
+      }, { description: 'Successfully created role' }),
       400: ErrorResponse,
       401: ErrorResponse
     },
     detail: {
       summary: 'Create Healthcare Role',
       description: 'Create a new healthcare-specific role',
-      tags: ['roles']
+      tags: ['roles'],
+      responses: {
+        200: { description: 'Successfully created role' }
+      }
     }
   })
 
@@ -118,13 +124,13 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
       return handleAdminError(error, set)
     }
   }, {
-    response: {
+    responses: {
       200: t.Object({
         id: t.Optional(t.String({ description: 'Role ID' })),
         name: t.Optional(t.String({ description: 'Role name' })),
         description: t.Optional(t.String({ description: 'Role description' })),
         attributes: t.Optional(t.Record(t.String(), t.Array(t.String()))),
-      }),
+      }, { description: 'Role details' }),
       401: ErrorResponse,
       404: ErrorResponse,
       500: ErrorResponse
@@ -132,7 +138,10 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
     detail: {
       summary: 'Get Healthcare Role',
       description: 'Get a healthcare-specific role by name',
-      tags: ['roles']
+      tags: ['roles'],
+      responses: {
+        200: { description: 'Role details' }
+      }
     }
   })
 
@@ -172,10 +181,10 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
       description: t.Optional(t.String({ description: 'Role description' })),
       fhirScopes: t.Optional(t.Array(t.String({ description: 'FHIR scopes for this role' })))
     }),
-    response: {
+    responses: {
       200: t.Object({
         success: t.Boolean({ description: 'Whether the update was successful' })
-      }),
+      }, { description: 'Role updated successfully' }),
       400: ErrorResponse,
       401: ErrorResponse,
       404: ErrorResponse
@@ -183,7 +192,10 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
     detail: {
       summary: 'Update Healthcare Role',
       description: 'Update a healthcare-specific role by name',
-      tags: ['roles']
+      tags: ['roles'],
+      responses: {
+        200: { description: 'Role updated successfully' }
+      }
     }
   })
 
@@ -212,10 +224,10 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
       return { error: 'Failed to delete role', details: error }
     }
   }, {
-    response: {
+    responses: {
       200: t.Object({
         success: t.Boolean({ description: 'Whether the delete was successful' })
-      }),
+      }, { description: 'Role deleted successfully' }),
       400: ErrorResponse,
       401: ErrorResponse,
       404: ErrorResponse
@@ -223,6 +235,9 @@ export const rolesRoutes = new Elysia({ prefix: '/roles' })
     detail: {
       summary: 'Delete Healthcare Role',
       description: 'Delete a healthcare-specific role by name',
-      tags: ['roles']
+      tags: ['roles'],
+      responses: {
+        200: { description: 'Role deleted successfully' }
+      }
     }
   })

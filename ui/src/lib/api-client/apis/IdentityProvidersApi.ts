@@ -15,29 +15,14 @@
 
 import * as runtime from '../runtime';
 import type {
-  DeleteAdminRolesByRoleName200Response,
-  GetAdminIdps200ResponseInner,
-  GetAdminIdpsCount200Response,
   PostAdminIdpsRequest,
-  PostShutdown500Response,
   PutAdminIdpsByAliasRequest,
-  PutAdminRolesByRoleName200Response,
 } from '../models/index';
 import {
-    DeleteAdminRolesByRoleName200ResponseFromJSON,
-    DeleteAdminRolesByRoleName200ResponseToJSON,
-    GetAdminIdps200ResponseInnerFromJSON,
-    GetAdminIdps200ResponseInnerToJSON,
-    GetAdminIdpsCount200ResponseFromJSON,
-    GetAdminIdpsCount200ResponseToJSON,
     PostAdminIdpsRequestFromJSON,
     PostAdminIdpsRequestToJSON,
-    PostShutdown500ResponseFromJSON,
-    PostShutdown500ResponseToJSON,
     PutAdminIdpsByAliasRequestFromJSON,
     PutAdminIdpsByAliasRequestToJSON,
-    PutAdminRolesByRoleName200ResponseFromJSON,
-    PutAdminRolesByRoleName200ResponseToJSON,
 } from '../models/index';
 
 export interface DeleteAdminIdpsByAliasRequest {
@@ -66,7 +51,7 @@ export class IdentityProvidersApi extends runtime.BaseAPI {
      * Delete an identity provider by alias
      * Delete Identity Provider
      */
-    async deleteAdminIdpsByAliasRaw(requestParameters: DeleteAdminIdpsByAliasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeleteAdminRolesByRoleName200Response>> {
+    async deleteAdminIdpsByAliasRaw(requestParameters: DeleteAdminIdpsByAliasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['alias'] == null) {
             throw new runtime.RequiredError(
                 'alias',
@@ -97,23 +82,22 @@ export class IdentityProvidersApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => DeleteAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Delete an identity provider by alias
      * Delete Identity Provider
      */
-    async deleteAdminIdpsByAlias(requestParameters: DeleteAdminIdpsByAliasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeleteAdminRolesByRoleName200Response> {
-        const response = await this.deleteAdminIdpsByAliasRaw(requestParameters, initOverrides);
-        return await response.value();
+    async deleteAdminIdpsByAlias(requestParameters: DeleteAdminIdpsByAliasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.deleteAdminIdpsByAliasRaw(requestParameters, initOverrides);
     }
 
     /**
      * Get all configured identity providers
      * List Identity Providers
      */
-    async getAdminIdpsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GetAdminIdps200ResponseInner>>> {
+    async getAdminIdpsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -136,23 +120,22 @@ export class IdentityProvidersApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(GetAdminIdps200ResponseInnerFromJSON));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Get all configured identity providers
      * List Identity Providers
      */
-    async getAdminIdps(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GetAdminIdps200ResponseInner>> {
-        const response = await this.getAdminIdpsRaw(initOverrides);
-        return await response.value();
+    async getAdminIdps(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getAdminIdpsRaw(initOverrides);
     }
 
     /**
      * Get an identity provider by alias
      * Get Identity Provider
      */
-    async getAdminIdpsByAliasRaw(requestParameters: GetAdminIdpsByAliasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminIdps200ResponseInner>> {
+    async getAdminIdpsByAliasRaw(requestParameters: GetAdminIdpsByAliasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['alias'] == null) {
             throw new runtime.RequiredError(
                 'alias',
@@ -183,23 +166,22 @@ export class IdentityProvidersApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminIdps200ResponseInnerFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Get an identity provider by alias
      * Get Identity Provider
      */
-    async getAdminIdpsByAlias(requestParameters: GetAdminIdpsByAliasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminIdps200ResponseInner> {
-        const response = await this.getAdminIdpsByAliasRaw(requestParameters, initOverrides);
-        return await response.value();
+    async getAdminIdpsByAlias(requestParameters: GetAdminIdpsByAliasRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getAdminIdpsByAliasRaw(requestParameters, initOverrides);
     }
 
     /**
      * Get the count of enabled and total identity providers
      * Get Identity Providers Count
      */
-    async getAdminIdpsCountRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminIdpsCount200Response>> {
+    async getAdminIdpsCountRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -222,23 +204,22 @@ export class IdentityProvidersApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminIdpsCount200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Get the count of enabled and total identity providers
      * Get Identity Providers Count
      */
-    async getAdminIdpsCount(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminIdpsCount200Response> {
-        const response = await this.getAdminIdpsCountRaw(initOverrides);
-        return await response.value();
+    async getAdminIdpsCount(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getAdminIdpsCountRaw(initOverrides);
     }
 
     /**
      * Create a new identity provider
      * Create Identity Provider
      */
-    async postAdminIdpsRaw(requestParameters: PostAdminIdpsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminIdps200ResponseInner>> {
+    async postAdminIdpsRaw(requestParameters: PostAdminIdpsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['postAdminIdpsRequest'] == null) {
             throw new runtime.RequiredError(
                 'postAdminIdpsRequest',
@@ -271,23 +252,22 @@ export class IdentityProvidersApi extends runtime.BaseAPI {
             body: PostAdminIdpsRequestToJSON(requestParameters['postAdminIdpsRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminIdps200ResponseInnerFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Create a new identity provider
      * Create Identity Provider
      */
-    async postAdminIdps(requestParameters: PostAdminIdpsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminIdps200ResponseInner> {
-        const response = await this.postAdminIdpsRaw(requestParameters, initOverrides);
-        return await response.value();
+    async postAdminIdps(requestParameters: PostAdminIdpsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.postAdminIdpsRaw(requestParameters, initOverrides);
     }
 
     /**
      * Update an identity provider by alias
      * Update Identity Provider
      */
-    async putAdminIdpsByAliasRaw(requestParameters: PutAdminIdpsByAliasOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminRolesByRoleName200Response>> {
+    async putAdminIdpsByAliasRaw(requestParameters: PutAdminIdpsByAliasOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['alias'] == null) {
             throw new runtime.RequiredError(
                 'alias',
@@ -328,16 +308,15 @@ export class IdentityProvidersApi extends runtime.BaseAPI {
             body: PutAdminIdpsByAliasRequestToJSON(requestParameters['putAdminIdpsByAliasRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminRolesByRoleName200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Update an identity provider by alias
      * Update Identity Provider
      */
-    async putAdminIdpsByAlias(requestParameters: PutAdminIdpsByAliasOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminRolesByRoleName200Response> {
-        const response = await this.putAdminIdpsByAliasRaw(requestParameters, initOverrides);
-        return await response.value();
+    async putAdminIdpsByAlias(requestParameters: PutAdminIdpsByAliasOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.putAdminIdpsByAliasRaw(requestParameters, initOverrides);
     }
 
 }

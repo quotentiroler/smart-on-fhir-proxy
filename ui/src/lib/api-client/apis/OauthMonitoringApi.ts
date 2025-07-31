@@ -14,16 +14,6 @@
 
 
 import * as runtime from '../runtime';
-import type {
-  GetMonitoringOauthAnalytics200Response,
-  GetMonitoringOauthEvents200Response,
-} from '../models/index';
-import {
-    GetMonitoringOauthAnalytics200ResponseFromJSON,
-    GetMonitoringOauthAnalytics200ResponseToJSON,
-    GetMonitoringOauthEvents200ResponseFromJSON,
-    GetMonitoringOauthEvents200ResponseToJSON,
-} from '../models/index';
 
 export interface GetMonitoringOauthAnalyticsRequest {
     authorization?: string;
@@ -69,7 +59,7 @@ export class OauthMonitoringApi extends runtime.BaseAPI {
      * Get current OAuth analytics and metrics
      * Get OAuth Analytics
      */
-    async getMonitoringOauthAnalyticsRaw(requestParameters: GetMonitoringOauthAnalyticsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetMonitoringOauthAnalytics200Response>> {
+    async getMonitoringOauthAnalyticsRaw(requestParameters: GetMonitoringOauthAnalyticsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -96,16 +86,15 @@ export class OauthMonitoringApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetMonitoringOauthAnalytics200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Get current OAuth analytics and metrics
      * Get OAuth Analytics
      */
-    async getMonitoringOauthAnalytics(requestParameters: GetMonitoringOauthAnalyticsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetMonitoringOauthAnalytics200Response> {
-        const response = await this.getMonitoringOauthAnalyticsRaw(requestParameters, initOverrides);
-        return await response.value();
+    async getMonitoringOauthAnalytics(requestParameters: GetMonitoringOauthAnalyticsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getMonitoringOauthAnalyticsRaw(requestParameters, initOverrides);
     }
 
     /**
@@ -207,7 +196,7 @@ export class OauthMonitoringApi extends runtime.BaseAPI {
      * Retrieve recent OAuth events with optional filtering
      * Get OAuth Events
      */
-    async getMonitoringOauthEventsRaw(requestParameters: GetMonitoringOauthEventsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetMonitoringOauthEvents200Response>> {
+    async getMonitoringOauthEventsRaw(requestParameters: GetMonitoringOauthEventsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         if (requestParameters['limit'] != null) {
@@ -254,16 +243,15 @@ export class OauthMonitoringApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetMonitoringOauthEvents200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Retrieve recent OAuth events with optional filtering
      * Get OAuth Events
      */
-    async getMonitoringOauthEvents(requestParameters: GetMonitoringOauthEventsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetMonitoringOauthEvents200Response> {
-        const response = await this.getMonitoringOauthEventsRaw(requestParameters, initOverrides);
-        return await response.value();
+    async getMonitoringOauthEvents(requestParameters: GetMonitoringOauthEventsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getMonitoringOauthEventsRaw(requestParameters, initOverrides);
     }
 
     /**

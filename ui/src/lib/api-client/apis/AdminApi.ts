@@ -15,21 +15,15 @@
 
 import * as runtime from '../runtime';
 import type {
-  GetAdminClientRegistrationSettings200Response,
-  PostShutdown500Response,
-  PutAdminSmartAppsByClientId200Response,
+  PutAdminClientRegistrationSettingsRequest,
 } from '../models/index';
 import {
-    GetAdminClientRegistrationSettings200ResponseFromJSON,
-    GetAdminClientRegistrationSettings200ResponseToJSON,
-    PostShutdown500ResponseFromJSON,
-    PostShutdown500ResponseToJSON,
-    PutAdminSmartAppsByClientId200ResponseFromJSON,
-    PutAdminSmartAppsByClientId200ResponseToJSON,
+    PutAdminClientRegistrationSettingsRequestFromJSON,
+    PutAdminClientRegistrationSettingsRequestToJSON,
 } from '../models/index';
 
-export interface PutAdminClientRegistrationSettingsRequest {
-    getAdminClientRegistrationSettings200Response: GetAdminClientRegistrationSettings200Response;
+export interface PutAdminClientRegistrationSettingsOperationRequest {
+    putAdminClientRegistrationSettingsRequest: PutAdminClientRegistrationSettingsRequest;
 }
 
 /**
@@ -41,7 +35,7 @@ export class AdminApi extends runtime.BaseAPI {
      * Get current settings for dynamic client registration
      * Get Dynamic Client Registration Settings
      */
-    async getAdminClientRegistrationSettingsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminClientRegistrationSettings200Response>> {
+    async getAdminClientRegistrationSettingsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -64,23 +58,22 @@ export class AdminApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminClientRegistrationSettings200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Get current settings for dynamic client registration
      * Get Dynamic Client Registration Settings
      */
-    async getAdminClientRegistrationSettings(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminClientRegistrationSettings200Response> {
-        const response = await this.getAdminClientRegistrationSettingsRaw(initOverrides);
-        return await response.value();
+    async getAdminClientRegistrationSettings(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getAdminClientRegistrationSettingsRaw(initOverrides);
     }
 
     /**
      * Reset all client registration settings to their default values
      * Reset Client Registration Settings to Defaults
      */
-    async postAdminClientRegistrationResetDefaultsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminSmartAppsByClientId200Response>> {
+    async postAdminClientRegistrationResetDefaultsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -103,16 +96,15 @@ export class AdminApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminSmartAppsByClientId200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Reset all client registration settings to their default values
      * Reset Client Registration Settings to Defaults
      */
-    async postAdminClientRegistrationResetDefaults(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminSmartAppsByClientId200Response> {
-        const response = await this.postAdminClientRegistrationResetDefaultsRaw(initOverrides);
-        return await response.value();
+    async postAdminClientRegistrationResetDefaults(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.postAdminClientRegistrationResetDefaultsRaw(initOverrides);
     }
 
     /**
@@ -157,11 +149,11 @@ export class AdminApi extends runtime.BaseAPI {
      * Update settings for dynamic client registration
      * Update Dynamic Client Registration Settings
      */
-    async putAdminClientRegistrationSettingsRaw(requestParameters: PutAdminClientRegistrationSettingsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminSmartAppsByClientId200Response>> {
-        if (requestParameters['getAdminClientRegistrationSettings200Response'] == null) {
+    async putAdminClientRegistrationSettingsRaw(requestParameters: PutAdminClientRegistrationSettingsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        if (requestParameters['putAdminClientRegistrationSettingsRequest'] == null) {
             throw new runtime.RequiredError(
-                'getAdminClientRegistrationSettings200Response',
-                'Required parameter "getAdminClientRegistrationSettings200Response" was null or undefined when calling putAdminClientRegistrationSettings().'
+                'putAdminClientRegistrationSettingsRequest',
+                'Required parameter "putAdminClientRegistrationSettingsRequest" was null or undefined when calling putAdminClientRegistrationSettings().'
             );
         }
 
@@ -187,19 +179,18 @@ export class AdminApi extends runtime.BaseAPI {
             method: 'PUT',
             headers: headerParameters,
             query: queryParameters,
-            body: GetAdminClientRegistrationSettings200ResponseToJSON(requestParameters['getAdminClientRegistrationSettings200Response']),
+            body: PutAdminClientRegistrationSettingsRequestToJSON(requestParameters['putAdminClientRegistrationSettingsRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminSmartAppsByClientId200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Update settings for dynamic client registration
      * Update Dynamic Client Registration Settings
      */
-    async putAdminClientRegistrationSettings(requestParameters: PutAdminClientRegistrationSettingsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminSmartAppsByClientId200Response> {
-        const response = await this.putAdminClientRegistrationSettingsRaw(requestParameters, initOverrides);
-        return await response.value();
+    async putAdminClientRegistrationSettings(requestParameters: PutAdminClientRegistrationSettingsOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.putAdminClientRegistrationSettingsRaw(requestParameters, initOverrides);
     }
 
 }

@@ -36,7 +36,7 @@ export const smartConfigAdminRoutes = new Elysia({ prefix: '/smart-config', tags
       description: 'Manually refresh the cached SMART configuration from Keycloak',
       tags: ['admin', 'smart-apps'],
       security: [{ BearerAuth: [] }],
-      response: { 
+      responses: { 
         200: { description: 'Cache refreshed successfully' },
         401: { description: 'Unauthorized - Bearer token required' },
         500: { description: 'Failed to refresh cache' }

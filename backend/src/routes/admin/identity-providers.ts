@@ -28,11 +28,11 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
       return handleAdminError(error, set)
     }
   }, {
-    response: {
+    responses: {
       200: t.Object({
         count: t.Number({ description: 'Number of enabled identity providers' }),
         total: t.Number({ description: 'Total number of identity providers' })
-      }),
+      }, { description: 'Identity providers count' }),
       401: ErrorResponse,
       500: ErrorResponse
     },
@@ -40,7 +40,9 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
       summary: 'Get Identity Providers Count',
       description: 'Get the count of enabled and total identity providers',
       tags: ['identity-providers'],
-      response: { 200: { description: 'Identity providers count.' } }
+      responses: {
+        200: { description: 'Identity providers count' }
+      }
     }
   })
 
@@ -67,14 +69,14 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
       return { error: 'Failed to fetch identity providers', details: error }
     }
   }, {
-    response: {
+    responses: {
       200: t.Array(t.Object({
         alias: t.String({ description: 'Provider alias' }),
         providerId: t.String({ description: 'Provider type' }),
         displayName: t.Optional(t.String({ description: 'Display name' })),
         enabled: t.Optional(t.Boolean({ description: 'Whether provider is enabled' })),
         config: t.Optional(t.Object({}))
-      })),
+      }), { description: 'A list of all configured identity providers' }),
       401: ErrorResponse,
       500: ErrorResponse
     },
@@ -82,7 +84,9 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
       summary: 'List Identity Providers',
       description: 'Get all configured identity providers',
       tags: ['identity-providers'],
-      response: { 200: { description: 'A list of all configured identity providers.' } }
+      responses: {
+        200: { description: 'A list of all configured identity providers' }
+      }
     }
   })
 
@@ -140,17 +144,20 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
         wantAuthnRequestsSigned: t.Optional(t.Boolean()),
         
         // Allow additional configuration
-        additionalConfig: t.Optional(t.Record(t.String(), t.Any()))
+        additionalConfig: t.Optional(t.Object({}, { 
+          description: 'Additional configuration as key-value pairs',
+          additionalProperties: t.Any()
+        }))
       })
     }),
-    response: {
+    responses: {
       200: t.Object({
         alias: t.String({ description: 'Provider alias' }),
         providerId: t.String({ description: 'Provider type' }),
         displayName: t.Optional(t.String({ description: 'Display name' })),
         enabled: t.Optional(t.Boolean({ description: 'Whether provider is enabled' })),
         config: t.Optional(t.Object({}))
-      }),
+      }, { description: 'Identity provider created successfully' }),
       400: ErrorResponse,
       401: ErrorResponse
     },
@@ -158,7 +165,9 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
       summary: 'Create Identity Provider',
       description: 'Create a new identity provider',
       tags: ['identity-providers'],
-      response: { 200: { description: 'Identity provider created successfully.' } }
+      responses: {
+        200: { description: 'Identity provider created successfully' }
+      }
     }
   })
 
@@ -189,14 +198,14 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
       return { error: 'Failed to fetch identity provider', details: error }
     }
   }, {
-    response: {
+    responses: {
       200: t.Object({
         alias: t.String({ description: 'Provider alias' }),
         providerId: t.String({ description: 'Provider type' }),
         displayName: t.Optional(t.String({ description: 'Display name' })),
         enabled: t.Optional(t.Boolean({ description: 'Whether provider is enabled' })),
         config: t.Optional(t.Object({}))
-      }),
+      }, { description: 'Identity provider details' }),
       401: ErrorResponse,
       404: ErrorResponse,
       500: ErrorResponse
@@ -205,7 +214,9 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
       summary: 'Get Identity Provider',
       description: 'Get an identity provider by alias',
       tags: ['identity-providers'],
-      response: { 200: { description: 'Identity provider details.' } }
+      responses: {
+        200: { description: 'Identity provider details' }
+      }
     }
   })
 
@@ -254,13 +265,16 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
         wantAuthnRequestsSigned: t.Optional(t.Boolean()),
         
         // Allow additional configuration
-        additionalConfig: t.Optional(t.Record(t.String(), t.Any()))
+        additionalConfig: t.Optional(t.Object({}, { 
+          description: 'Additional configuration as key-value pairs',
+          additionalProperties: t.Any()
+        }))
       }))
     }),
-    response: {
+    responses: {
       200: t.Object({
         success: t.Boolean({ description: 'Whether the update was successful' })
-      }),
+      }, { description: 'Identity provider updated successfully' }),
       400: ErrorResponse,
       401: ErrorResponse
     },
@@ -268,7 +282,9 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
       summary: 'Update Identity Provider',
       description: 'Update an identity provider by alias',
       tags: ['identity-providers'],
-      response: { 200: { description: 'Identity provider updated successfully.' } }
+      responses: {
+        200: { description: 'Identity provider updated successfully' }
+      }
     }
   })
 
@@ -289,10 +305,10 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
       return { error: 'Identity provider not found or could not be deleted', details: error }
     }
   }, {
-    response: {
+    responses: {
       200: t.Object({
         success: t.Boolean({ description: 'Whether the delete was successful' })
-      }),
+      }, { description: 'Identity provider deleted successfully' }),
       401: ErrorResponse,
       404: ErrorResponse
     },
@@ -300,6 +316,8 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
       summary: 'Delete Identity Provider',
       description: 'Delete an identity provider by alias',
       tags: ['identity-providers'],
-      response: { 200: { description: 'Identity provider deleted successfully.' } }
+      responses: {
+        200: { description: 'Identity provider deleted successfully' }
+      }
     }
   })

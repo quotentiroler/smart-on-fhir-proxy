@@ -62,11 +62,11 @@ export interface PutAdminHealthcareUsersByUserIdRequest {
      */
     realmRoles?: Array<string>;
     /**
-     * Client roles to assign
-     * @type {object}
+     * Client roles to assign as key-value pairs (clientId: string[])
+     * @type {{ [key: string]: Array<string>; }}
      * @memberof PutAdminHealthcareUsersByUserIdRequest
      */
-    clientRoles?: object;
+    clientRoles?: { [key: string]: Array<string>; };
 }
 
 /**

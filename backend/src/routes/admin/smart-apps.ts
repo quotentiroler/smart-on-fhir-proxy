@@ -79,8 +79,8 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
       return handleAdminError(error, set)
     }
   }, {
-    response: {
-      200: t.Array(SmartAppClient),
+    responses: {
+      200: t.Array(SmartAppClient, { description: 'List of registered SMART on FHIR applications' }),
       401: ErrorResponse,
       403: ErrorResponse,
       500: ErrorResponse
@@ -90,7 +90,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
       description: 'Get all registered SMART on FHIR applications',
       tags: ['smart-apps'],
       security: [{ BearerAuth: [] }],
-      response: {
+      responses: {
         200: { description: 'A list of all registered SMART on FHIR applications.' },
         401: { description: 'Unauthorized - Bearer token required' },
         403: { description: 'Forbidden - Insufficient permissions' },
@@ -233,12 +233,15 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
       smartVersion: t.Optional(t.String({ description: 'SMART version (default: 2.0.0)' })),
       fhirVersion: t.Optional(t.String({ description: `FHIR version (default: ${config.fhir.supportedVersions[0]})` })),
       // Backend Services specific fields
-      clientType: t.Optional(t.Union([t.Literal('public'), t.Literal('confidential'), t.Literal('backend-service')], { description: 'Client type (public, confidential, backend-service)' })),
+      clientType: t.Optional(t.String({ 
+        description: 'Client type (public, confidential, backend-service)',
+        enum: ['public', 'confidential', 'backend-service']
+      })),
       publicKey: t.Optional(t.String({ description: 'PEM-formatted public key for JWT authentication (required for backend-service)' })),
       jwksUri: t.Optional(t.String({ description: 'JWKS URI for public key discovery (alternative to publicKey)' })),
       systemScopes: t.Optional(t.Array(t.String({ description: 'System-level scopes for Backend Services (e.g., system/*.read)' })))
     }),
-    response: {
+    responses: {
       200: SmartAppClient,
       400: ErrorResponse,
       401: ErrorResponse,
@@ -251,7 +254,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
       description: 'Create a new SMART on FHIR application',
       tags: ['smart-apps'],
       security: [{ BearerAuth: [] }],
-      response: {
+      responses: {
         200: { description: 'SMART app client created.' },
         400: { description: 'Invalid request data' },
         401: { description: 'Unauthorized - Bearer token required' },
@@ -294,7 +297,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
     params: t.Object({
       clientId: t.String({ description: 'SMART application client ID' })
     }),
-    response: {
+    responses: {
       200: SmartAppClient,
       404: ErrorResponse,
       401: ErrorResponse,
@@ -306,7 +309,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
       description: 'Get a single SMART on FHIR application by clientId',
       tags: ['smart-apps'],
       security: [{ BearerAuth: [] }],
-      response: {
+      responses: {
         200: { description: 'SMART app client details.' },
         404: { description: 'SMART application not found' },
         401: { description: 'Unauthorized - Bearer token required' },
@@ -363,8 +366,11 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
       smartVersion: t.Optional(t.String({ description: 'SMART version' })),
       fhirVersion: t.Optional(t.String({ description: 'FHIR version' }))
     }),
-    response: {
-      200: SuccessResponse,
+    responses: {
+      200: t.Object({
+        success: t.Boolean({ description: 'Whether the operation was successful' }),
+        message: t.Optional(t.String({ description: 'Success message' }))
+      }, { description: 'Application updated successfully' }),
       400: ErrorResponse,
       404: ErrorResponse,
       401: ErrorResponse,
@@ -376,7 +382,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
       description: 'Update an existing SMART on FHIR application',
       tags: ['smart-apps'],
       security: [{ BearerAuth: [] }],
-      response: {
+      responses: {
         200: { description: 'SMART app client updated.' },
         400: { description: 'Invalid request data' },
         404: { description: 'SMART application not found' },
@@ -411,8 +417,11 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
     params: t.Object({
       clientId: t.String({ description: 'SMART application client ID' })
     }),
-    response: {
-      200: SuccessResponse,
+    responses: {
+      200: t.Object({
+        success: t.Boolean({ description: 'Whether the operation was successful' }),
+        message: t.Optional(t.String({ description: 'Success message' }))
+      }, { description: 'Application deleted successfully' }),
       404: ErrorResponse,
       401: ErrorResponse,
       403: ErrorResponse,
@@ -423,7 +432,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart
       description: 'Delete a SMART on FHIR application by clientId',
       tags: ['smart-apps'],
       security: [{ BearerAuth: [] }],
-      response: {
+      responses: {
         200: { description: 'SMART app client deleted.' },
         404: { description: 'SMART application not found' },
         401: { description: 'Unauthorized - Bearer token required' },

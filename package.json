@@ -10,7 +10,8 @@
     "concurrently": "^9.2.0",
     "eslint": "^9.30.0",
     "globals": "^16.2.0",
-    "typescript-eslint": "^8.35.0"
+    "typescript-eslint": "^8.35.0",
+    "nodemon": "^2.0.22"
   },
   "description": "SMART on FHIR application with Keycloak integration",
   "engines": {
@@ -31,7 +32,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"bun run dev:backend\" \"bun run dev:ui\"",
-    "dev:backend": "cd backend && bun run dev",
+    "dev:backend": "concurrently \"bun run watch:routes\" \"cd backend && bun run dev\" ",
     "dev:ui": "cd ui && bun run dev",
     "build": "bun run build:backend && bun run build:ui",
     "build:backend": "cd backend && bun run build",
@@ -64,7 +65,8 @@
     "docker:logs": "docker compose logs -f",
     "keycloak:start": "docker compose up -d keycloak",
     "keycloak:stop": "docker compose stop keycloak",
-    "setup": "bun install && cd backend && bun install && cd ../ui && bun install && cd ../test && bun install"
+    "setup": "bun install && cd backend && bun install && cd ../ui && bun install && cd ../test && bun install",
+    "watch:routes": "nodemon --watch backend/src/routes --ext ts,js,json,yaml,yml --exec \"node scripts/delay.js\""
   },
   "type": "module",
   "workspaces": [

@@ -87,7 +87,7 @@ const proxySchema = {
     description: 'Proxy authenticated FHIR requests to the upstream FHIR server',
     tags: ['fhir'],
     security: [{ BearerAuth: [] }],
-    response: { 
+    responses: { 
       200: { description: 'FHIR resource response' },
       401: { description: 'Unauthorized - Bearer token required' },
       403: { description: 'Forbidden - Invalid token' },
@@ -145,7 +145,7 @@ export const fhirRoutes = new Elysia({ prefix: `/${config.name}/:server_name/:fh
       summary: 'SMART on FHIR Configuration for Specific Server',
       description: 'Get SMART on FHIR well-known configuration for this specific FHIR server and version',
       tags: ['smart-apps'],
-      response: { 200: { description: 'SMART on FHIR configuration object' } }
+      responses: { 200: { description: 'SMART on FHIR configuration object' } }
     }
   })
   // CORS preflight
@@ -165,7 +165,7 @@ export const fhirRoutes = new Elysia({ prefix: `/${config.name}/:server_name/:fh
       summary: 'FHIR CORS Preflight',
       description: 'Handle CORS preflight requests for FHIR endpoints',
       tags: ['fhir'],
-      response: { 200: { description: 'CORS preflight response' } }
+      responses: { 200: { description: 'CORS preflight response' } }
     }
   })
   
@@ -224,7 +224,7 @@ export const fhirRoutes = new Elysia({ prefix: `/${config.name}/:server_name/:fh
       server_name: t.String({ description: 'FHIR server name or identifier' }),
       fhir_version: t.String({ description: 'FHIR version (e.g., R4, R5)' })
     }),
-    response: {
+    responses: {
       200: t.Any({ description: 'FHIR server base response' }),
       500: ErrorResponse
     },
@@ -232,7 +232,7 @@ export const fhirRoutes = new Elysia({ prefix: `/${config.name}/:server_name/:fh
       summary: 'FHIR Server Base URL',
       description: 'Serve the content from the FHIR server base URL',
       tags: ['fhir'],
-      response: { 
+      responses: { 
         200: { description: 'FHIR server base response' },
         500: { description: 'Failed to serve FHIR server content' }
       }
@@ -283,7 +283,7 @@ export const fhirRoutes = new Elysia({ prefix: `/${config.name}/:server_name/:fh
       server_name: t.String({ description: 'FHIR server name or identifier' }),
       fhir_version: t.String({ description: 'FHIR version (e.g., R4, R5)' })
     }),
-    response: {
+    responses: {
       200: t.Object({
         success: t.Boolean({ description: 'Whether refresh was successful' }),
         message: t.String({ description: 'Success message' }),
@@ -303,7 +303,7 @@ export const fhirRoutes = new Elysia({ prefix: `/${config.name}/:server_name/:fh
       description: 'Clear and refresh the cached FHIR server information',
       tags: ['fhir'],
       security: [{ BearerAuth: [] }],
-      response: { 
+      responses: { 
         200: { description: 'Cache refreshed successfully' },
         401: { description: 'Unauthorized - Bearer token required' },
         403: { description: 'Forbidden - Invalid token' },

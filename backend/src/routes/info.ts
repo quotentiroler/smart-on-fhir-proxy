@@ -73,7 +73,7 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
       return { error: 'Failed to shutdown server', details: error }
     }
   }, {
-    response: {
+    responses: {
       200: t.Object({
         success: t.Boolean({ description: 'Whether shutdown was initiated successfully' }),
         message: t.String({ description: 'Shutdown status message' }),
@@ -85,7 +85,7 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
       summary: 'Shutdown Server',
       description: 'Gracefully shutdown the SMART on FHIR server',
       tags: ['server'],
-      response: {
+      responses: {
         200: { description: 'Server shutdown initiated' },
         500: { description: 'Failed to shutdown server' }
       }
@@ -114,7 +114,7 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
       return { error: 'Failed to restart server', details: error }
     }
   }, {
-    response: {
+    responses: {
       200: t.Object({
         success: t.Boolean({ description: 'Whether restart was initiated successfully' }),
         message: t.String({ description: 'Restart status message' }),
@@ -126,7 +126,7 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
       summary: 'Restart Server',
       description: 'Restart the SMART on FHIR server process',
       tags: ['server'],
-      response: {
+      responses: {
         200: { description: 'Server restart initiated' },
         500: { description: 'Failed to restart server' }
       }
@@ -188,7 +188,7 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
       }
     }
   }, {
-    response: {
+    responses: {
       200: t.Object({
         status: t.Literal('healthy', { description: 'Health status' }),
         timestamp: t.String({ description: 'Current timestamp' }),
@@ -229,7 +229,7 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
       summary: 'Health Check',
       description: 'Check the health status of the SMART on FHIR server',
       tags: ['server'],
-      response: {
+      responses: {
         200: { description: 'Server is healthy' },
         503: { description: 'Server is unhealthy' }
       }
@@ -319,7 +319,7 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
 
     return status
   }, {
-    response: {
+    responses: {
       200: t.Object({
         timestamp: t.String({ description: 'Current timestamp' }),
         uptime: t.Number({ description: 'Server uptime in seconds' }),
@@ -381,7 +381,7 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
       summary: 'System Status',
       description: 'Get comprehensive status of all system components (server, FHIR, Keycloak)',
       tags: ['server'],
-      response: {
+      responses: {
         200: { description: 'All systems healthy' },
         503: { description: 'One or more systems unhealthy' }
       }

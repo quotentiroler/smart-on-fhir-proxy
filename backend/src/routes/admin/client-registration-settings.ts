@@ -142,7 +142,7 @@ export const clientRegistrationSettingsRoutes = new Elysia({ prefix: '/client-re
       return { error: 'Failed to get client registration settings', details: error }
     }
   }, {
-    response: {
+    responses: {
       200: t.Object({
         enabled: t.Boolean({ description: 'Whether dynamic client registration is enabled' }),
         requireHttps: t.Boolean({ description: 'Whether HTTPS is required for redirect URIs' }),
@@ -158,7 +158,7 @@ export const clientRegistrationSettingsRoutes = new Elysia({ prefix: '/client-re
         maxRedirectUris: t.Number({ description: 'Maximum number of redirect URIs per client' }),
         allowedRedirectUriPatterns: t.Array(t.String({ description: 'Allowed redirect URI regex patterns' })),
         notificationEmail: t.Optional(t.String({ description: 'Email to notify of new registrations' }))
-      }),
+      }, { description: 'Current client registration settings' }),
       401: ErrorResponse,
       403: ErrorResponse,
       500: ErrorResponse
@@ -168,11 +168,8 @@ export const clientRegistrationSettingsRoutes = new Elysia({ prefix: '/client-re
       description: 'Get current settings for dynamic client registration',
       tags: ['admin'],
       security: [{ BearerAuth: [] }],
-      response: {
-        200: { description: 'Client registration settings' },
-        401: { description: 'Unauthorized - Bearer token required' },
-        403: { description: 'Forbidden - Admin permissions required' },
-        500: { description: 'Internal server error' }
+      responses: {
+        200: { description: 'Current client registration settings' }
       }
     }
   })
@@ -212,8 +209,11 @@ export const clientRegistrationSettingsRoutes = new Elysia({ prefix: '/client-re
       allowedRedirectUriPatterns: t.Array(t.String({ description: 'Allowed redirect URI regex patterns' })),
       notificationEmail: t.Optional(t.String({ description: 'Email to notify of new registrations' }))
     }),
-    response: {
-      200: SuccessResponse,
+    responses: {
+      200: t.Object({
+        success: t.Boolean({ description: 'Whether the operation was successful' }),
+        message: t.Optional(t.String({ description: 'Success message' }))
+      }, { description: 'Settings updated successfully' }),
       400: ErrorResponse,
       401: ErrorResponse,
       403: ErrorResponse,
@@ -224,12 +224,8 @@ export const clientRegistrationSettingsRoutes = new Elysia({ prefix: '/client-re
       description: 'Update settings for dynamic client registration',
       tags: ['admin'],
       security: [{ BearerAuth: [] }],
-      response: {
-        200: { description: 'Settings updated successfully' },
-        400: { description: 'Invalid request data' },
-        401: { description: 'Unauthorized - Bearer token required' },
-        403: { description: 'Forbidden - Admin permissions required' },
-        500: { description: 'Internal server error' }
+      responses: {
+        200: { description: 'Settings updated successfully' }
       }
     }
   })
@@ -253,8 +249,11 @@ export const clientRegistrationSettingsRoutes = new Elysia({ prefix: '/client-re
       return { error: 'Failed to reset client registration settings', details: error }
     }
   }, {
-    response: {
-      200: SuccessResponse,
+    responses: {
+      200: t.Object({
+        success: t.Boolean({ description: 'Whether the operation was successful' }),
+        message: t.Optional(t.String({ description: 'Success message' }))
+      }, { description: 'Settings reset to defaults successfully' }),
       401: ErrorResponse,
       403: ErrorResponse,
       500: ErrorResponse
@@ -264,11 +263,8 @@ export const clientRegistrationSettingsRoutes = new Elysia({ prefix: '/client-re
       description: 'Reset all client registration settings to their default values',
       tags: ['admin'],
       security: [{ BearerAuth: [] }],
-      response: {
-        200: { description: 'Settings reset successfully' },
-        401: { description: 'Unauthorized - Bearer token required' },
-        403: { description: 'Forbidden - Admin permissions required' },
-        500: { description: 'Internal server error' }
+      responses: {
+        200: { description: 'Settings reset to defaults successfully' }
       }
     }
   })

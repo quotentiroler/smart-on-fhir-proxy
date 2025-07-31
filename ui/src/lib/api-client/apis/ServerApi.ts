@@ -14,28 +14,6 @@
 
 
 import * as runtime from '../runtime';
-import type {
-  GetHealth200Response,
-  GetHealth503Response,
-  GetStatus200Response,
-  PostRestart200Response,
-  PostShutdown200Response,
-  PostShutdown500Response,
-} from '../models/index';
-import {
-    GetHealth200ResponseFromJSON,
-    GetHealth200ResponseToJSON,
-    GetHealth503ResponseFromJSON,
-    GetHealth503ResponseToJSON,
-    GetStatus200ResponseFromJSON,
-    GetStatus200ResponseToJSON,
-    PostRestart200ResponseFromJSON,
-    PostRestart200ResponseToJSON,
-    PostShutdown200ResponseFromJSON,
-    PostShutdown200ResponseToJSON,
-    PostShutdown500ResponseFromJSON,
-    PostShutdown500ResponseToJSON,
-} from '../models/index';
 
 /**
  * 
@@ -46,7 +24,7 @@ export class ServerApi extends runtime.BaseAPI {
      * Check the health status of the SMART on FHIR server
      * Health Check
      */
-    async getHealthRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetHealth200Response>> {
+    async getHealthRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -61,23 +39,22 @@ export class ServerApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetHealth200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Check the health status of the SMART on FHIR server
      * Health Check
      */
-    async getHealth(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetHealth200Response> {
-        const response = await this.getHealthRaw(initOverrides);
-        return await response.value();
+    async getHealth(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getHealthRaw(initOverrides);
     }
 
     /**
      * Get comprehensive status of all system components (server, FHIR, Keycloak)
      * System Status
      */
-    async getStatusRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetStatus200Response>> {
+    async getStatusRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -92,23 +69,22 @@ export class ServerApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetStatus200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Get comprehensive status of all system components (server, FHIR, Keycloak)
      * System Status
      */
-    async getStatus(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetStatus200Response> {
-        const response = await this.getStatusRaw(initOverrides);
-        return await response.value();
+    async getStatus(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getStatusRaw(initOverrides);
     }
 
     /**
      * Restart the SMART on FHIR server process
      * Restart Server
      */
-    async postRestartRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostRestart200Response>> {
+    async postRestartRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -123,23 +99,22 @@ export class ServerApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PostRestart200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Restart the SMART on FHIR server process
      * Restart Server
      */
-    async postRestart(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostRestart200Response> {
-        const response = await this.postRestartRaw(initOverrides);
-        return await response.value();
+    async postRestart(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.postRestartRaw(initOverrides);
     }
 
     /**
      * Gracefully shutdown the SMART on FHIR server
      * Shutdown Server
      */
-    async postShutdownRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostShutdown200Response>> {
+    async postShutdownRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -154,16 +129,15 @@ export class ServerApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PostShutdown200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Gracefully shutdown the SMART on FHIR server
      * Shutdown Server
      */
-    async postShutdown(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostShutdown200Response> {
-        const response = await this.postShutdownRaw(initOverrides);
-        return await response.value();
+    async postShutdown(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.postShutdownRaw(initOverrides);
     }
 
 }

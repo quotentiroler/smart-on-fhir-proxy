@@ -136,11 +136,18 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
     headers: t.Object({
       authorization: t.Optional(t.String({ description: 'Bearer token' }))
     }),
+    responses: {
+      200: t.String({ description: 'Server-sent events stream for real-time OAuth events' }),
+      401: t.String({ description: 'Unauthorized - Bearer token required' })
+    },
     detail: {
       summary: 'OAuth Events Stream',
       description: 'Server-sent events stream for real-time OAuth flow monitoring. Token can be passed as query parameter or Authorization header.',
       tags: ['oauth-monitoring'],
-      security: [{ BearerAuth: [] }]
+      security: [{ BearerAuth: [] }],
+      responses: {
+        200: { description: 'Server-sent events stream for real-time OAuth events' }
+      }
     }
   })
 
@@ -270,11 +277,18 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
     headers: t.Object({
       authorization: t.Optional(t.String({ description: 'Bearer token' }))
     }),
+    responses: {
+      200: t.String({ description: 'Server-sent events stream for real-time OAuth analytics' }),
+      401: t.String({ description: 'Unauthorized - Bearer token required' })
+    },
     detail: {
       summary: 'OAuth Analytics Stream',
       description: 'Server-sent events stream for real-time OAuth analytics updates. Token can be passed as query parameter or Authorization header.',
       tags: ['oauth-monitoring'],
-      security: [{ BearerAuth: [] }]
+      security: [{ BearerAuth: [] }],
+      responses: {
+        200: { description: 'Server-sent events stream for real-time OAuth analytics' }
+      }
     }
   })
 
@@ -320,41 +334,47 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
     headers: t.Object({
       authorization: t.Optional(t.String({ description: 'Bearer token' }))
     }),
-    response: t.Object({
-      events: t.Array(t.Object({
-        id: t.String(),
-        timestamp: t.String(),
-        type: t.String(),
-        status: t.String(),
-        clientId: t.String(),
-        clientName: t.Optional(t.String()),
-        userId: t.Optional(t.String()),
-        userName: t.Optional(t.String()),
-        scopes: t.Array(t.String()),
-        grantType: t.String(),
-        responseTime: t.Number(),
-        ipAddress: t.String(),
-        userAgent: t.String(),
-        errorMessage: t.Optional(t.String()),
-        errorCode: t.Optional(t.String()),
-        tokenType: t.Optional(t.String()),
-        expiresIn: t.Optional(t.Number()),
-        refreshToken: t.Optional(t.Boolean()),
-        fhirContext: t.Optional(t.Object({
-          patient: t.Optional(t.String()),
-          encounter: t.Optional(t.String()),
-          location: t.Optional(t.String()),
-          fhirUser: t.Optional(t.String())
-        }))
-      })),
-      total: t.Number(),
-      timestamp: t.String()
-    }),
+    responses: {
+      200: t.Object({
+        events: t.Array(t.Object({
+          id: t.String(),
+          timestamp: t.String(),
+          type: t.String(),
+          status: t.String(),
+          clientId: t.String(),
+          clientName: t.Optional(t.String()),
+          userId: t.Optional(t.String()),
+          userName: t.Optional(t.String()),
+          scopes: t.Array(t.String()),
+          grantType: t.String(),
+          responseTime: t.Number(),
+          ipAddress: t.String(),
+          userAgent: t.String(),
+          errorMessage: t.Optional(t.String()),
+          errorCode: t.Optional(t.String()),
+          tokenType: t.Optional(t.String()),
+          expiresIn: t.Optional(t.Number()),
+          refreshToken: t.Optional(t.Boolean()),
+          fhirContext: t.Optional(t.Object({
+            patient: t.Optional(t.String()),
+            encounter: t.Optional(t.String()),
+            location: t.Optional(t.String()),
+            fhirUser: t.Optional(t.String())
+          }))
+        })),
+        total: t.Number(),
+        timestamp: t.String()
+      }, { description: 'List of OAuth events with metadata' }),
+      401: t.String({ description: 'Unauthorized - Bearer token required' })
+    },
     detail: {
       summary: 'Get OAuth Events',
       description: 'Retrieve recent OAuth events with optional filtering',
       tags: ['oauth-monitoring'],
-      security: [{ BearerAuth: [] }]
+      security: [{ BearerAuth: [] }],
+      responses: {
+        200: { description: 'List of OAuth events with metadata' }
+      }
     }
   })
 
@@ -398,32 +418,38 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
     headers: t.Object({
       authorization: t.Optional(t.String({ description: 'Bearer token' }))
     }),
-    response: t.Object({
-      totalFlows: t.Number(),
-      successRate: t.Number(),
-      averageResponseTime: t.Number(),
-      activeTokens: t.Number(),
-      topClients: t.Array(t.Object({
-        clientId: t.String(),
-        clientName: t.String(),
-        count: t.Number(),
-        successRate: t.Number()
-      })),
-      flowsByType: t.Record(t.String(), t.Number()),
-      errorsByType: t.Record(t.String(), t.Number()),
-      hourlyStats: t.Array(t.Object({
-        hour: t.String(),
-        success: t.Number(),
-        error: t.Number(),
-        total: t.Number()
-      })),
-      timestamp: t.String()
-    }),
+    responses: {
+      200: t.Object({
+        totalFlows: t.Number(),
+        successRate: t.Number(),
+        averageResponseTime: t.Number(),
+        activeTokens: t.Number(),
+        topClients: t.Array(t.Object({
+          clientId: t.String(),
+          clientName: t.String(),
+          count: t.Number(),
+          successRate: t.Number()
+        })),
+        flowsByType: t.Record(t.String(), t.Number()),
+        errorsByType: t.Record(t.String(), t.Number()),
+        hourlyStats: t.Array(t.Object({
+          hour: t.String(),
+          success: t.Number(),
+          error: t.Number(),
+          total: t.Number()
+        })),
+        timestamp: t.String()
+      }, { description: 'OAuth analytics and metrics data' }),
+      401: t.String({ description: 'Unauthorized - Bearer token required' })
+    },
     detail: {
       summary: 'Get OAuth Analytics',
       description: 'Get current OAuth analytics and metrics',
       tags: ['oauth-monitoring'],
-      security: [{ BearerAuth: [] }]
+      security: [{ BearerAuth: [] }],
+      responses: {
+        200: { description: 'OAuth analytics and metrics data' }
+      }
     }
   })
 
@@ -477,11 +503,35 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
     headers: t.Object({
       authorization: t.Optional(t.String({ description: 'Bearer token' }))
     }),
+    responses: {
+      200: t.Object({
+        status: t.String(),
+        oauth: t.Object({
+          status: t.String(),
+          activeTokens: t.Number(),
+          storageUsed: t.Number()
+        }),
+        network: t.Object({
+          status: t.String(),
+          throughput: t.String(),
+          errorRate: t.Number()
+        }),
+        alerts: t.Array(t.Object({
+          type: t.String(),
+          message: t.String()
+        })),
+        timestamp: t.String()
+      }, { description: 'System health status and metrics' }),
+      401: t.String({ description: 'Unauthorized - Bearer token required' })
+    },
     detail: {
       summary: 'Get System Health',
       description: 'Get OAuth system health metrics and alerts',
       tags: ['oauth-monitoring'],
-      security: [{ BearerAuth: [] }]
+      security: [{ BearerAuth: [] }],
+      responses: {
+        200: { description: 'System health status and metrics' }
+      }
     }
   })
 
@@ -529,11 +579,24 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
     headers: t.Object({
       authorization: t.String({ description: 'Bearer token' })
     }),
+    responses: {
+      200: t.Object({
+        exportedAt: t.String(),
+        exportType: t.String(),
+        data: t.Any()
+      }, { description: 'OAuth analytics data export as JSON file' }),
+      401: t.String({ description: 'Unauthorized - Bearer token required' }),
+      404: t.String({ description: 'No analytics data available' }),
+      500: t.String({ description: 'Failed to export analytics data' })
+    },
     detail: {
       summary: 'Export Analytics Data',
       description: 'Download current OAuth analytics data as JSON file',
       tags: ['oauth-monitoring'],
-      security: [{ BearerAuth: [] }]
+      security: [{ BearerAuth: [] }],
+      responses: {
+        200: { description: 'OAuth analytics data export as JSON file' }
+      }
     }
   })
 
@@ -587,10 +650,18 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
     headers: t.Object({
       authorization: t.String({ description: 'Bearer token' })
     }),
+    responses: {
+      200: t.String({ description: 'OAuth events data export as JSONL file' }),
+      401: t.String({ description: 'Unauthorized - Bearer token required' }),
+      500: t.String({ description: 'Failed to export events data' })
+    },
     detail: {
       summary: 'Export Events Data',
       description: 'Download OAuth events log as JSONL file',
       tags: ['oauth-monitoring'],
-      security: [{ BearerAuth: [] }]
+      security: [{ BearerAuth: [] }],
+      responses: {
+        200: { description: 'OAuth events data export as JSONL file' }
+      }
     }
   });

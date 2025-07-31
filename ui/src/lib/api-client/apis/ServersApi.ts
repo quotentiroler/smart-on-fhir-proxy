@@ -15,36 +15,12 @@
 
 import * as runtime from '../runtime';
 import type {
-  GetFhirServers200Response,
-  GetFhirServers500Response,
-  GetFhirServersByServerName200Response,
-  GetFhirServersByServerName500Response,
-  PostFhirServers200Response,
-  PostFhirServers401Response,
   PostFhirServersRequest,
-  PutFhirServersByServerId200Response,
-  PutFhirServersByServerId400Response,
   PutFhirServersByServerIdRequest,
 } from '../models/index';
 import {
-    GetFhirServers200ResponseFromJSON,
-    GetFhirServers200ResponseToJSON,
-    GetFhirServers500ResponseFromJSON,
-    GetFhirServers500ResponseToJSON,
-    GetFhirServersByServerName200ResponseFromJSON,
-    GetFhirServersByServerName200ResponseToJSON,
-    GetFhirServersByServerName500ResponseFromJSON,
-    GetFhirServersByServerName500ResponseToJSON,
-    PostFhirServers200ResponseFromJSON,
-    PostFhirServers200ResponseToJSON,
-    PostFhirServers401ResponseFromJSON,
-    PostFhirServers401ResponseToJSON,
     PostFhirServersRequestFromJSON,
     PostFhirServersRequestToJSON,
-    PutFhirServersByServerId200ResponseFromJSON,
-    PutFhirServersByServerId200ResponseToJSON,
-    PutFhirServersByServerId400ResponseFromJSON,
-    PutFhirServersByServerId400ResponseToJSON,
     PutFhirServersByServerIdRequestFromJSON,
     PutFhirServersByServerIdRequestToJSON,
 } from '../models/index';
@@ -71,7 +47,7 @@ export class ServersApi extends runtime.BaseAPI {
      * Get a list of all configured FHIR servers with their connection information and endpoints
      * List Available FHIR Servers
      */
-    async getFhirServersRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetFhirServers200Response>> {
+    async getFhirServersRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -86,23 +62,22 @@ export class ServersApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetFhirServers200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Get a list of all configured FHIR servers with their connection information and endpoints
      * List Available FHIR Servers
      */
-    async getFhirServers(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetFhirServers200Response> {
-        const response = await this.getFhirServersRaw(initOverrides);
-        return await response.value();
+    async getFhirServers(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getFhirServersRaw(initOverrides);
     }
 
     /**
      * Get detailed information about a specific FHIR server
      * Get Server Information
      */
-    async getFhirServersByServerNameRaw(requestParameters: GetFhirServersByServerNameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetFhirServersByServerName200Response>> {
+    async getFhirServersByServerNameRaw(requestParameters: GetFhirServersByServerNameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['serverName'] == null) {
             throw new runtime.RequiredError(
                 'serverName',
@@ -125,23 +100,22 @@ export class ServersApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetFhirServersByServerName200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Get detailed information about a specific FHIR server
      * Get Server Information
      */
-    async getFhirServersByServerName(requestParameters: GetFhirServersByServerNameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetFhirServersByServerName200Response> {
-        const response = await this.getFhirServersByServerNameRaw(requestParameters, initOverrides);
-        return await response.value();
+    async getFhirServersByServerName(requestParameters: GetFhirServersByServerNameRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getFhirServersByServerNameRaw(requestParameters, initOverrides);
     }
 
     /**
      * Add a new FHIR server to the system by providing its base URL
      * Add New FHIR Server
      */
-    async postFhirServersRaw(requestParameters: PostFhirServersOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostFhirServers200Response>> {
+    async postFhirServersRaw(requestParameters: PostFhirServersOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['postFhirServersRequest'] == null) {
             throw new runtime.RequiredError(
                 'postFhirServersRequest',
@@ -174,23 +148,22 @@ export class ServersApi extends runtime.BaseAPI {
             body: PostFhirServersRequestToJSON(requestParameters['postFhirServersRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PostFhirServers200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Add a new FHIR server to the system by providing its base URL
      * Add New FHIR Server
      */
-    async postFhirServers(requestParameters: PostFhirServersOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostFhirServers200Response> {
-        const response = await this.postFhirServersRaw(requestParameters, initOverrides);
-        return await response.value();
+    async postFhirServers(requestParameters: PostFhirServersOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.postFhirServersRaw(requestParameters, initOverrides);
     }
 
     /**
      * Update an existing FHIR server by providing its new base URL
      * Update FHIR Server
      */
-    async putFhirServersByServerIdRaw(requestParameters: PutFhirServersByServerIdOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutFhirServersByServerId200Response>> {
+    async putFhirServersByServerIdRaw(requestParameters: PutFhirServersByServerIdOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['serverId'] == null) {
             throw new runtime.RequiredError(
                 'serverId',
@@ -231,16 +204,15 @@ export class ServersApi extends runtime.BaseAPI {
             body: PutFhirServersByServerIdRequestToJSON(requestParameters['putFhirServersByServerIdRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PutFhirServersByServerId200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Update an existing FHIR server by providing its new base URL
      * Update FHIR Server
      */
-    async putFhirServersByServerId(requestParameters: PutFhirServersByServerIdOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutFhirServersByServerId200Response> {
-        const response = await this.putFhirServersByServerIdRaw(requestParameters, initOverrides);
-        return await response.value();
+    async putFhirServersByServerId(requestParameters: PutFhirServersByServerIdOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.putFhirServersByServerIdRaw(requestParameters, initOverrides);
     }
 
 }

@@ -15,29 +15,20 @@
 
 import * as runtime from '../runtime';
 import type {
-  GetAdminHealthcareUsers200ResponseInner,
   GetAdminHealthcareUsersLimitParameter,
   GetAdminHealthcareUsersOffsetParameter,
   PostAdminHealthcareUsersRequest,
-  PostShutdown500Response,
   PutAdminHealthcareUsersByUserIdRequest,
-  PutAdminSmartAppsByClientId200Response,
 } from '../models/index';
 import {
-    GetAdminHealthcareUsers200ResponseInnerFromJSON,
-    GetAdminHealthcareUsers200ResponseInnerToJSON,
     GetAdminHealthcareUsersLimitParameterFromJSON,
     GetAdminHealthcareUsersLimitParameterToJSON,
     GetAdminHealthcareUsersOffsetParameterFromJSON,
     GetAdminHealthcareUsersOffsetParameterToJSON,
     PostAdminHealthcareUsersRequestFromJSON,
     PostAdminHealthcareUsersRequestToJSON,
-    PostShutdown500ResponseFromJSON,
-    PostShutdown500ResponseToJSON,
     PutAdminHealthcareUsersByUserIdRequestFromJSON,
     PutAdminHealthcareUsersByUserIdRequestToJSON,
-    PutAdminSmartAppsByClientId200ResponseFromJSON,
-    PutAdminSmartAppsByClientId200ResponseToJSON,
 } from '../models/index';
 
 export interface DeleteAdminHealthcareUsersByUserIdRequest {
@@ -71,7 +62,7 @@ export class HealthcareUsersApi extends runtime.BaseAPI {
      * Delete a healthcare user by userId
      * Delete Healthcare User
      */
-    async deleteAdminHealthcareUsersByUserIdRaw(requestParameters: DeleteAdminHealthcareUsersByUserIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PutAdminSmartAppsByClientId200Response>> {
+    async deleteAdminHealthcareUsersByUserIdRaw(requestParameters: DeleteAdminHealthcareUsersByUserIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['userId'] == null) {
             throw new runtime.RequiredError(
                 'userId',
@@ -102,23 +93,22 @@ export class HealthcareUsersApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PutAdminSmartAppsByClientId200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Delete a healthcare user by userId
      * Delete Healthcare User
      */
-    async deleteAdminHealthcareUsersByUserId(requestParameters: DeleteAdminHealthcareUsersByUserIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PutAdminSmartAppsByClientId200Response> {
-        const response = await this.deleteAdminHealthcareUsersByUserIdRaw(requestParameters, initOverrides);
-        return await response.value();
+    async deleteAdminHealthcareUsersByUserId(requestParameters: DeleteAdminHealthcareUsersByUserIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.deleteAdminHealthcareUsersByUserIdRaw(requestParameters, initOverrides);
     }
 
     /**
      * Get all healthcare users with optional pagination
      * List Healthcare Users
      */
-    async getAdminHealthcareUsersRaw(requestParameters: GetAdminHealthcareUsersRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GetAdminHealthcareUsers200ResponseInner>>> {
+    async getAdminHealthcareUsersRaw(requestParameters: GetAdminHealthcareUsersRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         if (requestParameters['limit'] != null) {
@@ -149,23 +139,22 @@ export class HealthcareUsersApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(GetAdminHealthcareUsers200ResponseInnerFromJSON));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Get all healthcare users with optional pagination
      * List Healthcare Users
      */
-    async getAdminHealthcareUsers(requestParameters: GetAdminHealthcareUsersRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GetAdminHealthcareUsers200ResponseInner>> {
-        const response = await this.getAdminHealthcareUsersRaw(requestParameters, initOverrides);
-        return await response.value();
+    async getAdminHealthcareUsers(requestParameters: GetAdminHealthcareUsersRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getAdminHealthcareUsersRaw(requestParameters, initOverrides);
     }
 
     /**
      * Get a healthcare user by userId
      * Get Healthcare User
      */
-    async getAdminHealthcareUsersByUserIdRaw(requestParameters: GetAdminHealthcareUsersByUserIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminHealthcareUsers200ResponseInner>> {
+    async getAdminHealthcareUsersByUserIdRaw(requestParameters: GetAdminHealthcareUsersByUserIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['userId'] == null) {
             throw new runtime.RequiredError(
                 'userId',
@@ -196,23 +185,22 @@ export class HealthcareUsersApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminHealthcareUsers200ResponseInnerFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Get a healthcare user by userId
      * Get Healthcare User
      */
-    async getAdminHealthcareUsersByUserId(requestParameters: GetAdminHealthcareUsersByUserIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminHealthcareUsers200ResponseInner> {
-        const response = await this.getAdminHealthcareUsersByUserIdRaw(requestParameters, initOverrides);
-        return await response.value();
+    async getAdminHealthcareUsersByUserId(requestParameters: GetAdminHealthcareUsersByUserIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.getAdminHealthcareUsersByUserIdRaw(requestParameters, initOverrides);
     }
 
     /**
      * Create a new healthcare user
      * Create Healthcare User
      */
-    async postAdminHealthcareUsersRaw(requestParameters: PostAdminHealthcareUsersOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminHealthcareUsers200ResponseInner>> {
+    async postAdminHealthcareUsersRaw(requestParameters: PostAdminHealthcareUsersOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['postAdminHealthcareUsersRequest'] == null) {
             throw new runtime.RequiredError(
                 'postAdminHealthcareUsersRequest',
@@ -245,23 +233,22 @@ export class HealthcareUsersApi extends runtime.BaseAPI {
             body: PostAdminHealthcareUsersRequestToJSON(requestParameters['postAdminHealthcareUsersRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminHealthcareUsers200ResponseInnerFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Create a new healthcare user
      * Create Healthcare User
      */
-    async postAdminHealthcareUsers(requestParameters: PostAdminHealthcareUsersOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminHealthcareUsers200ResponseInner> {
-        const response = await this.postAdminHealthcareUsersRaw(requestParameters, initOverrides);
-        return await response.value();
+    async postAdminHealthcareUsers(requestParameters: PostAdminHealthcareUsersOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.postAdminHealthcareUsersRaw(requestParameters, initOverrides);
     }
 
     /**
      * Update a healthcare user by userId
      * Update Healthcare User
      */
-    async putAdminHealthcareUsersByUserIdRaw(requestParameters: PutAdminHealthcareUsersByUserIdOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAdminHealthcareUsers200ResponseInner>> {
+    async putAdminHealthcareUsersByUserIdRaw(requestParameters: PutAdminHealthcareUsersByUserIdOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['userId'] == null) {
             throw new runtime.RequiredError(
                 'userId',
@@ -302,16 +289,15 @@ export class HealthcareUsersApi extends runtime.BaseAPI {
             body: PutAdminHealthcareUsersByUserIdRequestToJSON(requestParameters['putAdminHealthcareUsersByUserIdRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => GetAdminHealthcareUsers200ResponseInnerFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Update a healthcare user by userId
      * Update Healthcare User
      */
-    async putAdminHealthcareUsersByUserId(requestParameters: PutAdminHealthcareUsersByUserIdOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAdminHealthcareUsers200ResponseInner> {
-        const response = await this.putAdminHealthcareUsersByUserIdRaw(requestParameters, initOverrides);
-        return await response.value();
+    async putAdminHealthcareUsersByUserId(requestParameters: PutAdminHealthcareUsersByUserIdOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.putAdminHealthcareUsersByUserIdRaw(requestParameters, initOverrides);
     }
 
 }

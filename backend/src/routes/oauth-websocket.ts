@@ -1,4 +1,4 @@
-import { Elysia } from 'elysia';
+import { Elysia, t } from 'elysia';
 import { oauthMetricsLogger, type OAuthFlowEvent } from '../lib/oauth-metrics-logger';
 import { validateToken } from '../lib/auth';
 import { logger } from '../lib/logger';
@@ -123,10 +123,21 @@ export const oauthWebSocket = new Elysia({ prefix: '/oauth/monitoring' })
       ]
     };
   }, {
+    responses: {
+      200: t.Object({
+        endpoint: t.String(),
+        protocol: t.String(),
+        supportedMessages: t.Array(t.String()),
+        subscriptionTypes: t.Array(t.String())
+      }, { description: 'WebSocket connection information and supported operations' })
+    },
     detail: {
       summary: 'WebSocket Connection Info',
       description: 'Information about the OAuth monitoring WebSocket endpoint',
-      tags: ['oauth-monitoring']
+      tags: ['oauth-monitoring'],
+      responses: {
+        200: { description: 'WebSocket connection information and supported operations' }
+      }
     }
   });
 

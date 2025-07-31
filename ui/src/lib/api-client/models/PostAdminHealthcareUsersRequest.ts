@@ -74,11 +74,11 @@ export interface PostAdminHealthcareUsersRequest {
      */
     realmRoles?: Array<string>;
     /**
-     * Client roles to assign
-     * @type {object}
+     * Client roles to assign as key-value pairs (clientId: string[])
+     * @type {{ [key: string]: Array<string>; }}
      * @memberof PostAdminHealthcareUsersRequest
      */
-    clientRoles?: object;
+    clientRoles?: { [key: string]: Array<string>; };
 }
 
 /**
