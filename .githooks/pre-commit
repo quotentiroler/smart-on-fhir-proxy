@@ -1,0 +1,12 @@
+#!/bin/bash
+
+# Pre-commit hook to ensure version consistency
+echo "Checking version consistency..."
+
+# Run version sync to ensure all packages have the same version
+node scripts/version.js sync
+
+# Add any modified package.json files to the commit
+git add package.json backend/package.json ui/package.json test/package.json
+
+echo "✅ Version consistency ensured"

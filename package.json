@@ -64,7 +64,13 @@
     "docker:logs": "docker compose logs -f",
     "keycloak:start": "docker compose up -d keycloak",
     "keycloak:stop": "docker compose stop keycloak",
-    "setup": "bun install && cd backend && bun install && cd ../ui && bun install && cd ../test && bun install"
+    "setup": "bun install && cd backend && bun install && cd ../ui && bun install && cd ../test && bun install && node scripts/setup-hooks.js",
+    "version:sync": "node scripts/version.js sync",
+    "version:bump": "node scripts/version.js bump",
+    "version:bump:minor": "node scripts/version.js bump minor",
+    "version:bump:major": "node scripts/version.js bump major",
+    "version:set": "node scripts/version.js set",
+    "precommit": "npm run version:sync"
   },
   "type": "module",
   "workspaces": [
