@@ -138,6 +138,12 @@ jobs:
         run: |
           node scripts/version.js set ${{ steps.version.outputs.new_version }}
           
+      - name: Update README version badge
+        run: |
+          # Update version badge in README.md
+          sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z0-9\.-]*\)\?-blue/version-${{ steps.version.outputs.new_version }}-blue/g" README.md
+          echo "Updated README.md version badge to ${{ steps.version.outputs.new_version }}"
+          
       - name: Build and test
         run: |
           # Build backend
@@ -149,7 +155,7 @@ jobs:
           
       - name: Commit version updates
         run: |
-          git add package.json backend/package.json ui/package.json test/package.json
+          git add package.json backend/package.json ui/package.json test/package.json README.md
           git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
           git push origin develop
 
@@ -204,6 +210,12 @@ jobs:
         run: |
           node scripts/version.js set ${{ steps.version.outputs.new_version }}
           
+      - name: Update README version badge
+        run: |
+          # Update version badge in README.md
+          sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z0-9\.-]*\)\?-blue/version-${{ steps.version.outputs.new_version }}-blue/g" README.md
+          echo "Updated README.md version badge to ${{ steps.version.outputs.new_version }}"
+          
       - name: Build and test
         run: |
           # Build backend
@@ -215,7 +227,7 @@ jobs:
           
       - name: Commit version updates
         run: |
-          git add package.json backend/package.json ui/package.json test/package.json
+          git add package.json backend/package.json ui/package.json test/package.json README.md
           git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
           git push origin test
 
@@ -285,6 +297,12 @@ jobs:
         run: |
           node scripts/version.js set ${{ steps.version.outputs.new_version }}
           
+      - name: Update README version badge
+        run: |
+          # Update version badge in README.md
+          sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z0-9\.-]*\)\?-blue/version-${{ steps.version.outputs.new_version }}-blue/g" README.md
+          echo "Updated README.md version badge to ${{ steps.version.outputs.new_version }}"
+          
       - name: Generate changelog
         id: changelog
         run: |
@@ -349,7 +367,7 @@ jobs:
           
       - name: Commit version updates
         run: |
-          git add package.json backend/package.json ui/package.json test/package.json CHANGELOG.md
+          git add package.json backend/package.json ui/package.json test/package.json CHANGELOG.md README.md
           git commit -m "chore: bump version to v${{ steps.version.outputs.new_version }}"
           git push origin main
           
