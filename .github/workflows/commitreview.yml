@@ -218,7 +218,26 @@ jobs:
       - name: Update existing PR
         if: steps.check-pr.outputs.pr_exists != '0'
         run: |
-          echo "PR from ${{ github.ref_name }} to develop already exists. Skipping creation."
+          echo "PR from ${{ github.ref_name }} to develop already exists. Updating with latest info..."
+          
+          # Get the PR number
+          PR_NUMBER=$(gh pr list --base develop --head ${{ github.ref_name }} --state open --json number --jq '.[0].number')
+          
+          # Update PR body with current stats
+          gh pr edit $PR_NUMBER --body "**Automated Pull Request** 🤖
+
+          This PR was automatically created to merge changes from \`${{ github.ref_name }}\` into \`develop\`.
+          
+          **Changes:**
+          - Commits ahead of develop: ${{ steps.check-diff.outputs.commits_ahead }}
+          - Commits behind develop: ${{ steps.check-diff.outputs.commits_behind }}
+          - TODOs remaining in codebase: ${{ steps.check-diff.outputs.todo_count }}
+          
+          **Review:** Please review the changes before merging.
+          
+          _Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_"
+          
+          echo "Updated PR #$PR_NUMBER with latest commit and TODO counts"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -302,7 +321,21 @@ jobs:
       - name: Update existing PR
         if: steps.check-pr.outputs.pr_exists != '0'
         run: |
-          echo "PR from develop to test already exists. Skipping creation."
+          echo "PR from develop to test already exists. Updating with latest info..."
+          
+          # Get the PR number
+          PR_NUMBER=$(gh pr list --base test --head develop --state open --json number --jq '.[0].number')
+          
+          # Update PR body with current stats
+          gh pr edit $PR_NUMBER --body "**Automated Pull Request** 🤖  
+            
+            Commits ahead of test: ${{ steps.check-diff.outputs.commits_ahead }}
+            Commits behind test: ${{ steps.check-diff.outputs.commits_behind }}
+            TODOs remaining in codebase: ${{ steps.check-diff.outputs.todo_count }}
+            
+            _Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_"
+          
+          echo "Updated PR #$PR_NUMBER with latest commit and TODO counts"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -391,6 +424,25 @@ jobs:
       - name: Update existing PR
         if: steps.check-pr.outputs.pr_exists != '0'
         run: |
-          echo "PR from test to main already exists. Skipping creation."
+          echo "PR from test to main already exists. Updating with latest info..."
+          
+          # Get the PR number
+          PR_NUMBER=$(gh pr list --base main --head test --state open --json number --jq '.[0].number')
+          
+          # Update PR body with current stats
+          gh pr edit $PR_NUMBER --body "**Automated Pull Request** 🤖
+
+          This PR was automatically created to merge changes from \`test\` into \`main\`.
+          
+          **Changes:**
+          - Commits ahead of main: ${{ steps.check-diff.outputs.commits_ahead }}
+          - Commits behind main: ${{ steps.check-diff.outputs.commits_behind }}
+          - TODOs remaining in codebase: ${{ steps.check-diff.outputs.todo_count }}
+          
+          **Review:** Please review the changes before merging.
+          
+          _Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_"
+          
+          echo "Updated PR #$PR_NUMBER with latest commit and TODO counts"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

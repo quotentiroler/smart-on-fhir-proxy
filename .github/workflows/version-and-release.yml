@@ -166,6 +166,75 @@ jobs:
           git add package.json backend/package.json ui/package.json test/package.json README.md
           git commit -m "chore: alpha build ${{ steps.version.outputs.new_version }} [skip ci]"
           git push origin develop
+          
+      - name: Create and push tag
+        run: |
+          git tag "v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ steps.version.outputs.new_version }}"
+          
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "Generating alpha changelog..."
+          
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LAST_TAG" ]; then
+            echo "No previous tags found, using recent commits"
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --reverse -10)
+          else
+            echo "Getting commits since $LAST_TAG"
+            COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"- %s (%h)" --reverse)
+          fi
+          
+          # Save changelog for release notes
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "### Changes in v${{ steps.version.outputs.new_version }} (Alpha)" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+      - name: Create GitHub Alpha Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: v${{ steps.version.outputs.new_version }}
+        run: |
+          # Create release notes content
+          cat > release_notes.md << 'EOF'
+          # SMART on FHIR Proxy v${{ steps.version.outputs.new_version }} (Alpha)
+          
+          ⚠️ **This is an alpha release** - Use with caution in development environments only.
+          
+          **Build Info:**
+          - Build Number: ${{ steps.version.outputs.build_number }}
+          - Commit: ${{ steps.version.outputs.short_sha }}
+          - Built from: `develop` branch
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ## Components
+          - **Backend**: SMART on FHIR Proxy Server
+          - **UI**: Administration Interface  
+          - **Test Suite**: Comprehensive FHIR compliance tests
+          
+          ## Installation
+          ```bash
+          git clone https://github.com/${{ github.repository }}.git
+          cd smart-on-fhir-proxy
+          git checkout v${{ steps.version.outputs.new_version }}
+          ```
+          
+          See the [README](README.md) for setup instructions.
+          EOF
+          
+          # Create prerelease with GitHub CLI
+          gh release create "$tag" \
+              --repo="$GITHUB_REPOSITORY" \
+              --title="SMART on FHIR Proxy $tag (Alpha)" \
+              --notes-file release_notes.md \
+              --prerelease \
+              --generate-notes
 
   beta-release:
     name: Create Beta Release (test)
@@ -264,6 +333,75 @@ jobs:
           git add package.json backend/package.json ui/package.json test/package.json README.md
           git commit -m "chore: beta build ${{ steps.version.outputs.new_version }} [skip ci]"
           git push origin test
+          
+      - name: Create and push tag
+        run: |
+          git tag "v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ steps.version.outputs.new_version }}"
+          
+      - name: Generate changelog
+        id: changelog
+        run: |
+          echo "Generating beta changelog..."
+          
+          # Get commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          
+          if [ -z "$LAST_TAG" ]; then
+            echo "No previous tags found, using recent commits"
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --reverse -10)
+          else
+            echo "Getting commits since $LAST_TAG"
+            COMMITS=$(git log $LAST_TAG..HEAD --pretty=format:"- %s (%h)" --reverse)
+          fi
+          
+          # Save changelog for release notes
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "### Changes in v${{ steps.version.outputs.new_version }} (Beta)" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "$COMMITS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+      - name: Create GitHub Beta Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: v${{ steps.version.outputs.new_version }}
+        run: |
+          # Create release notes content
+          cat > release_notes.md << 'EOF'
+          # SMART on FHIR Proxy v${{ steps.version.outputs.new_version }} (Beta)
+          
+          🧪 **This is a beta release** - Suitable for testing and staging environments.
+          
+          **Build Info:**
+          - Build Number: ${{ steps.version.outputs.build_number }}
+          - Commit: ${{ steps.version.outputs.short_sha }}
+          - Built from: `test` branch
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ## Components
+          - **Backend**: SMART on FHIR Proxy Server
+          - **UI**: Administration Interface  
+          - **Test Suite**: Comprehensive FHIR compliance tests
+          
+          ## Installation
+          ```bash
+          git clone https://github.com/${{ github.repository }}.git
+          cd smart-on-fhir-proxy
+          git checkout v${{ steps.version.outputs.new_version }}
+          ```
+          
+          See the [README](README.md) for setup instructions.
+          EOF
+          
+          # Create prerelease with GitHub CLI
+          gh release create "$tag" \
+              --repo="$GITHUB_REPOSITORY" \
+              --title="SMART on FHIR Proxy $tag (Beta)" \
+              --notes-file release_notes.md \
+              --prerelease \
+              --generate-notes
 
   release:
     name: Create Production Release (main)
