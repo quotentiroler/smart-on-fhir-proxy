@@ -21,6 +21,10 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+  pull-requests: read
+
 jobs:
   version-check:
     name: Check Version Consistency
@@ -355,29 +359,38 @@ jobs:
           git push origin "v${{ steps.version.outputs.new_version }}"
           
       - name: Create GitHub Release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.version.outputs.new_version }}
-          release_name: Release v${{ steps.version.outputs.new_version }}
-          body: |
-            # SMART on FHIR Proxy v${{ steps.version.outputs.new_version }}
-            
-            ${{ steps.changelog.outputs.changelog }}
-            
-            ## Components
-            - Backend: SMART on FHIR Proxy Server
-            - UI: Administration Interface  
-            - Test Suite: Comprehensive FHIR compliance tests
-            
-            ## Installation
-            ```bash
-            git clone https://github.com/${{ github.repository }}.git
-            cd smart-on-fhir-proxy
-            git checkout v${{ steps.version.outputs.new_version }}
-            ```
-            
-            See the [README](README.md) for setup instructions.
-          draft: false
-          prerelease: false
+          tag: v${{ steps.version.outputs.new_version }}
+        run: |
+          # Create release notes content
+          cat > release_notes.md << 'EOF'
+          # SMART on FHIR Proxy v${{ steps.version.outputs.new_version }}
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ## Components
+          - **Backend**: SMART on FHIR Proxy Server
+          - **UI**: Administration Interface  
+          - **Test Suite**: Comprehensive FHIR compliance tests
+          
+          ## Installation
+          ```bash
+          git clone https://github.com/${{ github.repository }}.git
+          cd smart-on-fhir-proxy
+          git checkout v${{ steps.version.outputs.new_version }}
+          ```
+          
+          See the [README](README.md) for setup instructions.
+          
+          ---
+          
+          ## Auto-generated Release Notes
+          EOF
+          
+          # Create release with GitHub CLI
+          gh release create "$tag" \
+              --repo="$GITHUB_REPOSITORY" \
+              --title="SMART on FHIR Proxy $tag" \
+              --notes-file release_notes.md \
+              --generate-notes
