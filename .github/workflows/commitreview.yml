@@ -237,47 +237,35 @@ jobs:
       - name: Check if branches differ
         id: check-diff
         run: |
-          # Fetch all branches to ensure we have the latest refs
           git fetch origin --prune
-          
-          # Check if test branch exists on remote
+
           if git ls-remote --heads origin test | grep -q "refs/heads/test"; then
             echo "Test branch exists on remote"
             git fetch origin test:test
-            
-            # Check if there are any commits between test and develop
             COMMITS_AHEAD=$(git rev-list --count test..develop)
             COMMITS_BEHIND=$(git rev-list --count develop..test)
-            
             echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
             echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
-            echo "Branch develop is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind test"
-            
-            # Only create PR if we have commits to contribute
             if [ "$COMMITS_AHEAD" -gt 0 ]; then
               echo "has_changes=true" >> $GITHUB_OUTPUT
             else
               echo "has_changes=false" >> $GITHUB_OUTPUT
             fi
           else
-            echo "Test branch doesn't exist on remote, will create it"
-            echo "commits_ahead=1" >> $GITHUB_OUTPUT
+            echo "Test branch doesn't exist → first‐time create only"
+            echo "commits_ahead=0" >> $GITHUB_OUTPUT
             echo "commits_behind=0" >> $GITHUB_OUTPUT
-            echo "has_changes=true" >> $GITHUB_OUTPUT
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "needs_branch_creation=true" >> $GITHUB_OUTPUT
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create test branch if it doesn't exist
-        if: steps.check-diff.outputs.has_changes == 'true' && steps.check-pr.outputs.pr_exists == '0'
+      - name: Create test branch if it doesn’t exist
+        if: steps.check-diff.outputs.needs_branch_creation == 'true' && steps.check-pr.outputs.pr_exists == '0'
         run: |
-          # Check if test branch exists on remote
-          if ! git ls-remote --heads origin test | grep -q "refs/heads/test"; then
-            echo "Creating test branch from develop"
-            git checkout -b test develop
-            git push origin test
-            echo "Created test branch"
-          fi
+          git checkout -b test develop
+          git push origin test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -288,22 +276,16 @@ jobs:
             --base test \
             --head develop \
             --title "🧪 Auto-PR: Merge \`develop\` → \`test\`" \
-            --body "**Automated Pull Request** 🤖
-
-          This PR was automatically created to merge changes from \`develop\` into \`test\`.
-          
-          **Changes:**
-          - Commits ahead of test: ${{ steps.check-diff.outputs.commits_ahead }}
-          - Commits behind test: ${{ steps.check-diff.outputs.commits_behind }}
-          
-          **Review:** Please review the changes before merging."
+            --body "**Automated Pull Request** 🤖  
+            
+            Commits ahead of test: ${{ steps.check-diff.outputs.commits_ahead }}
+            Commits behind test: ${{ steps.check-diff.outputs.commits_behind }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Skip PR creation - no changes
+      - name: Skip PR creation – no changes
         if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'false'
-        run: |
-          echo "⏭️ Skipping PR creation - no new commits in develop compared to test"
+        run: echo "⏭️ No new commits in develop compared to test"
 
       - name: Update existing PR
         if: steps.check-pr.outputs.pr_exists != '0'
