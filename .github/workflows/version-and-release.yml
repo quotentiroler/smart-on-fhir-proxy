@@ -101,7 +101,7 @@ jobs:
         id: version
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
-          # Remove any existing suffix
+          # Remove any existing suffix to get the base version
           BASE_VERSION=$(echo "$CURRENT_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g')
           echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
@@ -112,16 +112,26 @@ jobs:
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           
-          # For alpha, use current base version with alpha suffix and build number
-          # Don't increment the version number here
+          # For alpha, DO NOT increment version - just add alpha suffix with build number
           NEW_VERSION="$BASE_VERSION-alpha.$BUILD_NUMBER+$SHORT_SHA"
           
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "Alpha version will be: $NEW_VERSION"
+          echo "Alpha version will be: $NEW_VERSION (no version increment)"
           
-      - name: Update versions for alpha build
+      - name: Update versions (alpha build)
         run: |
+          # Set the new version in all packages
           node scripts/version.js set ${{ steps.version.outputs.new_version }}
+          # Sync to ensure all packages are consistent
+          npm run version:sync
+          # Verify versions are now consistent
+          echo "Verifying version consistency:"
+          for file in package.json backend/package.json ui/package.json test/package.json; do
+            if [ -f "$file" ]; then
+              VERSION=$(node -p "require('./$file').version")
+              echo "$file: $VERSION"
+            fi
+          done
           
       - name: Update README version badge
         run: |
@@ -257,7 +267,7 @@ jobs:
         id: version
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
-          # Remove any existing suffix
+          # Remove any existing suffix to get the base version
           BASE_VERSION=$(echo "$CURRENT_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g')
           echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
@@ -268,16 +278,26 @@ jobs:
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           
-          # For beta, use current base version with beta suffix and build number
-          # Don't increment the version number here
+          # For beta, DO NOT increment version - just add beta suffix with build number
           NEW_VERSION="$BASE_VERSION-beta.$BUILD_NUMBER+$SHORT_SHA"
           
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "Beta version will be: $NEW_VERSION"
+          echo "Beta version will be: $NEW_VERSION (no version increment)"
           
-      - name: Update versions for beta build
+      - name: Update versions (beta build)
         run: |
+          # Set the new version in all packages
           node scripts/version.js set ${{ steps.version.outputs.new_version }}
+          # Sync to ensure all packages are consistent
+          npm run version:sync
+          # Verify versions are now consistent
+          echo "Verifying version consistency:"
+          for file in package.json backend/package.json ui/package.json test/package.json; do
+            if [ -f "$file" ]; then
+              VERSION=$(node -p "require('./$file').version")
+              echo "$file: $VERSION"
+            fi
+          done
           
       - name: Update README version badge
         run: |
@@ -445,9 +465,20 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "New version will be: $NEW_VERSION"
           
-      - name: Update versions
+      - name: Update versions (production release)
         run: |
+          # Set the new version in all packages
           node scripts/version.js set ${{ steps.version.outputs.new_version }}
+          # Sync to ensure all packages are consistent
+          npm run version:sync
+          # Verify versions are now consistent
+          echo "Verifying version consistency:"
+          for file in package.json backend/package.json ui/package.json test/package.json; do
+            if [ -f "$file" ]; then
+              VERSION=$(node -p "require('./$file').version")
+              echo "$file: $VERSION"
+            fi
+          done
           
       - name: Update README version badge
         run: |
