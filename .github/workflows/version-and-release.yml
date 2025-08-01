@@ -147,11 +147,24 @@ jobs:
       - name: Build and test
         run: |
           # Build backend
-          cd backend && bun install && bun run build && cd ..
+          echo "Building backend..."
+          cd backend
+          bun install
+          bun run build
+          cd ..
+          
           # Build UI  
-          cd ui && bun install && bun run build && cd ..
+          echo "Building UI..."
+          cd ui
+          bun install
+          bun run build
+          cd ..
+          
           # Install test dependencies
-          cd test && bun install && cd ..
+          echo "Installing test dependencies..."
+          cd test
+          bun install
+          cd ..
           
       - name: Commit version updates
         run: |
@@ -219,11 +232,25 @@ jobs:
       - name: Build and test
         run: |
           # Build backend
-          cd backend && bun install && bun run build && cd ..
+          echo "Building backend..."
+          cd backend
+          bun install
+          bun run build
+          cd ..
+          
           # Build UI
-          cd ui && bun install && bun run build && cd ..
+          echo "Building UI..."
+          cd ui
+          bun install
+          bun run build
+          cd ..
+          
           # Run tests
-          cd test && bun install && bun run test || echo "Tests failed, but continuing with release" && cd ..
+          echo "Running tests..."
+          cd test
+          bun install
+          bun run test || echo "Tests failed, but continuing with release"
+          cd ..
           
       - name: Commit version updates
         run: |
