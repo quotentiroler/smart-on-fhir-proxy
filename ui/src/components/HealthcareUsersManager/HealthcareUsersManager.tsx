@@ -5,7 +5,7 @@ import { HealthcareUsersHeader } from './HealthcareUsersHeader';
 import { HealthcareUsersStats } from './HealthcareUsersStats';
 import { HealthcareUserAddForm } from './HealthcareUserAddForm';
 import { HealthcareUserEditForm } from './HealthcareUserEditForm';
-import type { FhirPersonAssociation } from './healthcare-users-types';
+import type { FhirPersonAssociation, HealthcareUserFormData } from '@/lib/types/api';
 import { useFhirServers } from '@/stores/smartStore';
 import { AddFhirPersonModal } from './AddFhirPersonModal';
 import type { GetAdminHealthcareUsers200ResponseInner } from '@/lib/api-client';
@@ -286,7 +286,7 @@ export function HealthcareUsersManager() {
       <HealthcareUserAddForm
         isOpen={showAddForm}
         onClose={() => setShowAddForm(false)}
-        onSubmit={async (formData) => {
+        onSubmit={async (formData: HealthcareUserFormData) => {
           try {
             setSubmitting(true);
             setError(null);
@@ -297,11 +297,11 @@ export function HealthcareUsersManager() {
               firstName: formData.firstName,
               lastName: formData.lastName,
               organization: formData.organization || undefined,
-              fhirUser: serializeFhirPersons(formData.fhirPersons),
+              fhirUser: serializeFhirPersons(formData.fhirPersons || []),
               password: formData.password || undefined,
               temporaryPassword: formData.temporaryPassword,
-              realmRoles: formData.realmRoles.length > 0 ? formData.realmRoles : undefined,
-              clientRoles: Object.keys(formData.clientRoles).length > 0 ? formData.clientRoles : undefined,
+              realmRoles: (formData.realmRoles && formData.realmRoles.length > 0) ? formData.realmRoles : undefined,
+              clientRoles: (formData.clientRoles && Object.keys(formData.clientRoles).length > 0) ? formData.clientRoles : undefined,
             };
 
             const createdUser = await apiClients.healthcareUsers.postAdminHealthcareUsers({
