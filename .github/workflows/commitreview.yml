@@ -4,7 +4,8 @@ on:
   push:
     branches:
       - "dev/*"
-      - "update"
+      - "develop"
+      - "test"
 
 jobs:
   ai-comment:
@@ -109,8 +110,8 @@ jobs:
           EOF
           node review-commit.mjs
 
-  pr-to-update:
-    name: Create/Update PR from dev/* → update
+  pr-to-develop:
+    name: Create/Update PR from dev/* → develop
     needs: ai-comment
     if: startsWith(github.ref, 'refs/heads/dev/')
     runs-on: ubuntu-latest
@@ -123,7 +124,7 @@ jobs:
       - name: Check if PR already exists
         id: check-pr
         run: |
-          PR_EXISTS=$(gh pr list --base update --head ${{ github.ref_name }} --state open --json number --jq length)
+          PR_EXISTS=$(gh pr list --base develop --head ${{ github.ref_name }} --state open --json number --jq length)
           echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -131,47 +132,93 @@ jobs:
       - name: Check if branches differ
         id: check-diff
         run: |
-          # Fetch the update branch to ensure it exists locally
-          git fetch origin update:update || echo "Update branch may not exist yet"
-
-          # Check if there are any commits between update and current branch
-          if git rev-parse --verify update >/dev/null 2>&1; then
-            COMMITS_AHEAD=$(git rev-list --count update..${{ github.ref_name }})
+          # Fetch all branches to ensure we have the latest refs
+          git fetch origin --prune
+          
+          # Check if develop branch exists on remote
+          if git ls-remote --heads origin develop | grep -q "refs/heads/develop"; then
+            echo "Develop branch exists on remote"
+            git fetch origin develop:develop
+            
+            # Check if there are any commits between develop and current branch
+            COMMITS_AHEAD=$(git rev-list --count develop..${{ github.ref_name }})
+            COMMITS_BEHIND=$(git rev-list --count ${{ github.ref_name }}..develop)
+            
             echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
-            echo "Branch ${{ github.ref_name }} is $COMMITS_AHEAD commits ahead of update"
+            echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
+            echo "Branch ${{ github.ref_name }} is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind develop"
+            
+            # Only create PR if we have commits to contribute
+            if [ "$COMMITS_AHEAD" -gt 0 ]; then
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+            else
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            fi
           else
-            echo "Update branch doesn't exist, assuming this is the first dev branch"
+            echo "Develop branch doesn't exist on remote, will create it"
             echo "commits_ahead=1" >> $GITHUB_OUTPUT
+            echo "commits_behind=0" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create develop branch if it doesn't exist
+        if: steps.check-diff.outputs.has_changes == 'true' && steps.check-pr.outputs.pr_exists == '0'
+        run: |
+          # Check if develop branch exists on remote
+          if ! git ls-remote --heads origin develop | grep -q "refs/heads/develop"; then
+            echo "Creating develop branch from main (or current branch if main doesn't exist)"
+            
+            # Try to create develop branch from main, fallback to current branch
+            if git ls-remote --heads origin main | grep -q "refs/heads/main"; then
+              git fetch origin main:main
+              git checkout -b develop main
+            else
+              echo "Main branch doesn't exist, creating develop from current branch"
+              git checkout -b develop
+            fi
+            
+            git push origin develop
+            echo "Created develop branch"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Pull Request
-        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.commits_ahead != '0'
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'true'
         run: |
           gh pr create \
-            --base update \
+            --base develop \
             --head ${{ github.ref_name }} \
-            --title "🔄 Auto-PR to merge \`${{ github.ref_name }}\` into \`update\`" \
-            --body "This PR was automatically created by GitHub Actions to merge changes from \`${{ github.ref_name }}\` into \`update\`."
+            --title "🔄 Auto-PR: Merge \`${{ github.ref_name }}\` → \`develop\`" \
+            --body "**Automated Pull Request** 🤖
+
+          This PR was automatically created to merge changes from \`${{ github.ref_name }}\` into \`develop\`.
+          
+          **Changes:**
+          - Commits ahead of develop: ${{ steps.check-diff.outputs.commits_ahead }}
+          - Commits behind develop: ${{ steps.check-diff.outputs.commits_behind }}
+          
+          **Review:** Please review the changes before merging."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Skip PR creation - no changes
-        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.commits_ahead == '0'
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'false'
         run: |
-          echo "Skipping PR creation - no commits between update and ${{ github.ref_name }}"
+          echo "⏭️ Skipping PR creation - no new commits in ${{ github.ref_name }} compared to develop"
 
       - name: Update existing PR
         if: steps.check-pr.outputs.pr_exists != '0'
         run: |
-          echo "PR from ${{ github.ref_name }} to update already exists. Skipping creation."
+          echo "PR from ${{ github.ref_name }} to develop already exists. Skipping creation."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  pr-to-main:
-    name: Create/Update PR from update → main
-    if: github.ref == 'refs/heads/update'
+  pr-to-test:
+    name: Create/Update PR from develop → test
+    if: github.ref == 'refs/heads/develop'
     runs-on: ubuntu-latest
 
     steps:
@@ -182,7 +229,7 @@ jobs:
       - name: Check if PR already exists
         id: check-pr
         run: |
-          PR_EXISTS=$(gh pr list --base main --head update --state open --json number --jq length)
+          PR_EXISTS=$(gh pr list --base test --head develop --state open --json number --jq length)
           echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -190,40 +237,160 @@ jobs:
       - name: Check if branches differ
         id: check-diff
         run: |
-          # Fetch the main branch to ensure it exists locally
-          git fetch origin main:main || echo "Main branch may not exist yet"
-
-          # Check if there are any commits between main and update
-          if git rev-parse --verify main >/dev/null 2>&1; then
-            COMMITS_AHEAD=$(git rev-list --count main..update)
+          # Fetch all branches to ensure we have the latest refs
+          git fetch origin --prune
+          
+          # Check if test branch exists on remote
+          if git ls-remote --heads origin test | grep -q "refs/heads/test"; then
+            echo "Test branch exists on remote"
+            git fetch origin test:test
+            
+            # Check if there are any commits between test and develop
+            COMMITS_AHEAD=$(git rev-list --count test..develop)
+            COMMITS_BEHIND=$(git rev-list --count develop..test)
+            
             echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
-            echo "Branch update is $COMMITS_AHEAD commits ahead of main"
+            echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
+            echo "Branch develop is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind test"
+            
+            # Only create PR if we have commits to contribute
+            if [ "$COMMITS_AHEAD" -gt 0 ]; then
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+            else
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            fi
           else
-            echo "Main branch doesn't exist, assuming this is the first update"
+            echo "Test branch doesn't exist on remote, will create it"
             echo "commits_ahead=1" >> $GITHUB_OUTPUT
+            echo "commits_behind=0" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create test branch if it doesn't exist
+        if: steps.check-diff.outputs.has_changes == 'true' && steps.check-pr.outputs.pr_exists == '0'
+        run: |
+          # Check if test branch exists on remote
+          if ! git ls-remote --heads origin test | grep -q "refs/heads/test"; then
+            echo "Creating test branch from develop"
+            git checkout -b test develop
+            git push origin test
+            echo "Created test branch"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create Pull Request
-        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.commits_ahead != '0'
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'true'
         run: |
           gh pr create \
-            --base main \
-            --head update \
-            --title "🚀 Auto-PR to merge \`update\` into \`main\`" \
-            --body "This PR was automatically created by GitHub Actions to merge changes from \`update\` into \`main\`."
+            --base test \
+            --head develop \
+            --title "🧪 Auto-PR: Merge \`develop\` → \`test\`" \
+            --body "**Automated Pull Request** 🤖
+
+          This PR was automatically created to merge changes from \`develop\` into \`test\`.
+          
+          **Changes:**
+          - Commits ahead of test: ${{ steps.check-diff.outputs.commits_ahead }}
+          - Commits behind test: ${{ steps.check-diff.outputs.commits_behind }}
+          
+          **Review:** Please review the changes before merging."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Skip PR creation - no changes
-        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.commits_ahead == '0'
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'false'
         run: |
-          echo "Skipping PR creation - no commits between main and update"
+          echo "⏭️ Skipping PR creation - no new commits in develop compared to test"
 
       - name: Update existing PR
         if: steps.check-pr.outputs.pr_exists != '0'
         run: |
-          echo "PR from update to main already exists. Skipping creation."
+          echo "PR from develop to test already exists. Skipping creation."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pr-to-main:
+    name: Create/Update PR from test → main
+    if: github.ref == 'refs/heads/test'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if PR already exists
+        id: check-pr
+        run: |
+          PR_EXISTS=$(gh pr list --base main --head test --state open --json number --jq length)
+          echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if branches differ
+        id: check-diff
+        run: |
+          # Fetch all branches to ensure we have the latest refs
+          git fetch origin --prune
+          
+          # Check if main branch exists on remote
+          if git ls-remote --heads origin main | grep -q "refs/heads/main"; then
+            echo "Main branch exists on remote"
+            git fetch origin main:main
+            
+            # Check if there are any commits between main and test
+            COMMITS_AHEAD=$(git rev-list --count main..test)
+            COMMITS_BEHIND=$(git rev-list --count test..main)
+            
+            echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
+            echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
+            echo "Branch test is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind main"
+            
+            # Only create PR if we have commits to contribute
+            if [ "$COMMITS_AHEAD" -gt 0 ]; then
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+            else
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "Main branch doesn't exist on remote, this will be the first PR to create main"
+            echo "commits_ahead=1" >> $GITHUB_OUTPUT
+            echo "commits_behind=0" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Pull Request
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'true'
+        run: |
+          gh pr create \
+            --base main \
+            --head test \
+            --title "🚀 Auto-PR: Merge \`test\` → \`main\`" \
+            --body "**Automated Pull Request** 🤖
+
+          This PR was automatically created to merge changes from \`test\` into \`main\`.
+          
+          **Changes:**
+          - Commits ahead of main: ${{ steps.check-diff.outputs.commits_ahead }}
+          - Commits behind main: ${{ steps.check-diff.outputs.commits_behind }}
+          
+          **Review:** Please review the changes before merging."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip PR creation - no changes
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'false'
+        run: |
+          echo "⏭️ Skipping PR creation - no new commits in test compared to main"
+
+      - name: Update existing PR
+        if: steps.check-pr.outputs.pr_exists != '0'
+        run: |
+          echo "PR from test to main already exists. Skipping creation."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
