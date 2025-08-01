@@ -2,6 +2,7 @@ import { Elysia, t } from 'elysia'
 import { keycloakPlugin } from '../../lib/keycloak-plugin'
 import { ErrorResponse } from '../../schemas/common'
 import { extractBearerToken, UNAUTHORIZED_RESPONSE, getValidatedAdmin, getUserAttribute, getUserAttributeBoolean, setUserAttribute } from '../../lib/admin-utils'
+import { logger } from '../../lib/logger'
 
 /**
  * SMART Launch Context Management - handles patient/encounter/user contexts per SMART App Launch spec
@@ -22,22 +23,27 @@ import { extractBearerToken, UNAUTHORIZED_RESPONSE, getValidatedAdmin, getUserAt
  * multi-server authorization (authorization_details), not physical location context. Physical
  * locations would be included in fhirContext as Location resources if needed.
  */
-export const launchContextRoutes = new Elysia({ prefix: '/admin/launch-contexts' })
+export const launchContextRoutes = new Elysia({ prefix: '/launch-contexts' })
   .use(keycloakPlugin)
   
   .get('/', async ({ getAdmin, headers, set }) => {
+    logger.admin.info('Fetching users with launch context attributes')
+    
     try {
       // Extract user's token from Authorization header
       const token = extractBearerToken(headers)
       if (!token) {
+        logger.admin.warn('Unauthorized access attempt - no bearer token provided')
         set.status = 401
         return UNAUTHORIZED_RESPONSE
       }
 
       // Get users with SMART launch context attributes
       const admin = await getValidatedAdmin(getAdmin, token)
+      logger.admin.debug('Successfully validated admin token for launch contexts request')
+      
       const users = await admin.users.find()
-      return users
+      const filteredUsers = users
         .filter(user => 
           user.attributes?.['smart_fhir_user'] || 
           user.attributes?.['smart_patient'] || 
@@ -66,7 +72,16 @@ export const launchContextRoutes = new Elysia({ prefix: '/admin/launch-contexts'
           launchPatient: getUserAttribute(user, 'launch_patient'),
           launchEncounter: getUserAttribute(user, 'launch_encounter')
         }))
+      
+      logger.admin.info('Successfully retrieved launch context users', { 
+        totalUsers: users.length, 
+        usersWithContexts: filteredUsers.length 
+      })
+      
+      return filteredUsers
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      logger.admin.error('Failed to fetch launch contexts', { error: errorMessage }, error instanceof Error ? error : undefined)
       set.status = 500
       return { error: 'Failed to fetch launch contexts', details: error }
     }
@@ -99,18 +114,33 @@ export const launchContextRoutes = new Elysia({ prefix: '/admin/launch-contexts'
   
   // SMART on FHIR context management routes
   .post('/:userId/fhir-user/:fhirUserId', async ({ getAdmin, params, headers, set }) => {
+    logger.admin.info('Setting FHIR user context', { userId: params.userId, fhirUserId: params.fhirUserId })
+    
     try {
       // Extract user's token from Authorization header
       const token = extractBearerToken(headers)
       if (!token) {
+        logger.admin.warn('Unauthorized attempt to set FHIR user context', { userId: params.userId })
         set.status = 401
         return UNAUTHORIZED_RESPONSE
       }
 
       const admin = await getValidatedAdmin(getAdmin, token)
       await setUserAttribute(admin, params.userId, 'smart_fhir_user', params.fhirUserId)
+      
+      logger.admin.info('Successfully set FHIR user context', { 
+        userId: params.userId, 
+        fhirUserId: params.fhirUserId 
+      })
+      
       return { success: true }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      logger.admin.error('Failed to set FHIR user context', { 
+        userId: params.userId, 
+        fhirUserId: params.fhirUserId,
+        error: errorMessage 
+      }, error instanceof Error ? error : undefined)
       set.status = 400
       return { error: 'Failed to set fhirUser context', details: error }
     }
@@ -130,10 +160,13 @@ export const launchContextRoutes = new Elysia({ prefix: '/admin/launch-contexts'
   })
 
   .post('/:userId/patient/:patientId', async ({ getAdmin, params, headers, set }) => {
+    logger.admin.info('Setting patient context', { userId: params.userId, patientId: params.patientId })
+    
     try {
       // Extract user's token from Authorization header
       const token = extractBearerToken(headers)
       if (!token) {
+        logger.admin.warn('Unauthorized attempt to set patient context', { userId: params.userId })
         set.status = 401
         return UNAUTHORIZED_RESPONSE
       }
@@ -141,8 +174,20 @@ export const launchContextRoutes = new Elysia({ prefix: '/admin/launch-contexts'
       const admin = await getValidatedAdmin(getAdmin, token)
       // Set both new and legacy attributes for backwards compatibility
       await setUserAttribute(admin, params.userId, 'smart_patient', params.patientId, 'launch_patient')
+      
+      logger.admin.info('Successfully set patient context', { 
+        userId: params.userId, 
+        patientId: params.patientId 
+      })
+      
       return { success: true }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      logger.admin.error('Failed to set patient context', { 
+        userId: params.userId, 
+        patientId: params.patientId,
+        error: errorMessage 
+      }, error instanceof Error ? error : undefined)
       set.status = 400
       return { error: 'Failed to set patient context', details: error }
     }

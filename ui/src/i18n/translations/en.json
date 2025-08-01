@@ -44,12 +44,16 @@
   "5min ago": "5min ago",
   "Overview": "Overview",
   "FHIR server connected": "FHIR server connected",
-  "Clinical Administration Dashboard": "Clinical Administration Dashboard",
+  "SMART on FHIR Dashboard": "SMART on FHIR Dashboard",
   "Authentication Error": "Authentication Error",
   "Healthy": "Healthy",
   "SMART Apps": "SMART Apps",
   "Platform Version": "Platform Version",
   "Environment": "Environment",
   "Language": "Language",
+  "Theme": "Theme",
+  "Light": "Light",
+  "Dark": "Dark",
+  "System": "System",
   "Authenticating and preparing your clinical workspace": "TODO: Translate Authenticating and preparing your clinical workspace..."
 }

@@ -1,6 +1,7 @@
 import { Elysia, t } from 'elysia'
 import { keycloakPlugin } from '../../lib/keycloak-plugin'
 import { ErrorResponse } from '../../schemas/common'
+import { handleAdminError } from '../../lib/admin-error-handler'
 
 /**
  * Healthcare Roles & Permissions Management
@@ -8,7 +9,7 @@ import { ErrorResponse } from '../../schemas/common'
  * All routes now use the user's access token to perform operations,
  * acting as a secure proxy for Keycloak admin operations.
  */
-export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
+export const rolesRoutes = new Elysia({ prefix: '/roles' })
   .use(keycloakPlugin)
 
   .get('/', async ({ getAdmin, headers, set }) => {
@@ -25,8 +26,7 @@ export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
 
       return realmRoles;
     } catch (error) {
-      set.status = 500
-      return { error: 'Failed to fetch roles', details: error }
+      return handleAdminError(error, set)
     }
   }, {
     response: {
@@ -115,8 +115,7 @@ export const rolesRoutes = new Elysia({ prefix: '/admin/roles' })
 
       return role
     } catch (error) {
-      set.status = 500
-      return { error: 'Failed to fetch role', details: error }
+      return handleAdminError(error, set)
     }
   }, {
     response: {

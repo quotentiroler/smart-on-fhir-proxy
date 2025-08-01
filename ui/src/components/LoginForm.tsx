@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';
+import { createApiClients } from '../lib/apiClient';
 import { 
   Heart, 
   Shield, 
@@ -7,13 +8,51 @@ import {
   Loader2,
   Lock,
   Stethoscope,
-  Globe
+  Globe,
+  Building2,
+  Users,
+  ArrowRight
 } from 'lucide-react';
 
 export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [availableIdps, setAvailableIdps] = useState<Array<{
+    alias: string;
+    displayName?: string;
+    providerId: string;
+    enabled?: boolean;
+  }>>([]);
+  const [loadingIdps, setLoadingIdps] = useState(true);
   const { initiateLogin, exchangeCodeForToken } = useAuthStore();
+
+  // Fetch available identity providers
+  const fetchAvailableIdps = useCallback(async () => {
+    try {
+      setLoadingIdps(true);
+      const apiClients = createApiClients(); // No token needed for public IdP list
+      const idps = await apiClients.identityProviders.getAdminIdps();
+      
+      // Filter to only show enabled identity providers
+      const enabledIdps = idps.filter(idp => idp.enabled !== false);
+      setAvailableIdps(enabledIdps);
+      
+      if (enabledIdps.length > 0) {
+        console.log(`Found ${enabledIdps.length} available identity providers:`, enabledIdps.map(idp => idp.displayName || idp.alias));
+      }
+    } catch (error) {
+      console.warn('Could not fetch identity providers (this is normal for public access):', error);
+      // Don't show this as an error to users - it's expected when not authenticated
+      setAvailableIdps([]);
+    } finally {
+      setLoadingIdps(false);
+    }
+  }, []);
+
+  // Load IdPs on component mount
+  useEffect(() => {
+    fetchAvailableIdps();
+  }, [fetchAvailableIdps]);
 
   const handleCodeExchange = useCallback(async (code: string, state: string) => {
     setLoading(true);
@@ -72,12 +111,15 @@ export function LoginForm() {
     }
   }, [handleCodeExchange]);
 
-  const handleLogin = async () => {
+  const handleLogin = async (idpAlias?: string) => {
     setLoading(true);
     setError(null);
     
     try {
-      await initiateLogin();
+      console.log(`Initiating login${idpAlias ? ` with Identity Provider: ${idpAlias}` : ' with default provider'}`);
+      
+      // Pass the IdP alias as a hint to the authentication service
+      await initiateLogin(idpAlias);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to initiate login');
       setLoading(false);
@@ -136,27 +178,100 @@ export function LoginForm() {
                   </div>
                 </div>
               )}
-              
-              <button 
-                onClick={handleLogin}
-                className="w-full group relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl py-4 px-6 font-semibold transition-all duration-200 hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                disabled={loading}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-indigo-700 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left"></div>
-                <div className="relative flex items-center justify-center space-x-3">
-                  {loading ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Signing in...</span>
-                    </>
-                  ) : (
-                    <>
-                      <LogIn className="w-5 h-5" />
-                      <span>Sign in with OpenID Connect</span>
-                    </>
-                  )}
+
+              {/* Loading state for IdPs */}
+              {loadingIdps ? (
+                <div className="text-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm text-gray-500">Loading authentication options...</p>
                 </div>
-              </button>
+              ) : (
+                <>
+                  {/* Available Identity Providers */}
+                  {availableIdps.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="text-center">
+                        <p className="text-sm font-medium text-gray-700 mb-4">Choose your authentication method</p>
+                      </div>
+                      
+                      {availableIdps.map((idp) => (
+                        <button
+                          key={idp.alias}
+                          onClick={() => handleLogin(idp.alias)}
+                          className="w-full group relative overflow-hidden bg-white border-2 border-gray-200 text-gray-700 rounded-xl py-4 px-6 font-medium transition-all duration-200 hover:border-blue-300 hover:bg-blue-50 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                          disabled={loading}
+                        >
+                          <div className="relative flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
+                                {idp.providerId === 'saml' && <Building2 className="w-4 h-4 text-white" />}
+                                {idp.providerId === 'oidc' && <Globe className="w-4 h-4 text-white" />}
+                                {idp.providerId === 'google' && <Users className="w-4 h-4 text-white" />}
+                                {!['saml', 'oidc', 'google'].includes(idp.providerId) && <Shield className="w-4 h-4 text-white" />}
+                              </div>
+                              <div className="text-left">
+                                <div className="text-sm font-medium">
+                                  {idp.displayName || idp.alias}
+                                </div>
+                                <div className="text-xs text-gray-500 capitalize">
+                                  {idp.providerId} Authentication
+                                </div>
+                              </div>
+                            </div>
+                            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                          </div>
+                        </button>
+                      ))}
+                      
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-gray-200"></div>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                          <span className="px-3 bg-white text-gray-500">or</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Default OpenID Connect Login */}
+                  <button 
+                    onClick={() => handleLogin()}
+                    className="w-full group relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl py-4 px-6 font-semibold transition-all duration-200 hover:shadow-xl hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                    disabled={loading}
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-indigo-700 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-200 origin-left"></div>
+                    <div className="relative flex items-center justify-center space-x-3">
+                      {loading ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span>Signing in...</span>
+                        </>
+                      ) : (
+                        <>
+                          <LogIn className="w-5 h-5" />
+                          <span>
+                            {availableIdps.length > 0 ? 'Default Authentication' : 'Sign in with OpenID Connect'}
+                          </span>
+                        </>
+                      )}
+                    </div>
+                  </button>
+
+                  {/* Info message when no IdPs are available */}
+                  {availableIdps.length === 0 && !loadingIdps && (
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-start space-x-2">
+                        <Globe className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                        <div className="text-xs text-blue-700">
+                          <p className="font-medium mb-1">Single Sign-On Available</p>
+                          <p>Use the default authentication method above. Additional identity providers can be configured by administrators.</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
             
             {/* Security info */}

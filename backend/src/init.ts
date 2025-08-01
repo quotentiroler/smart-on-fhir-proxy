@@ -211,7 +211,7 @@ export async function displayServerEndpoints(): Promise<void> {
     if (serverInfos.length > 0) {
       logger.server.info(`SMART Protected FHIR Servers available:`)
       serverInfos.forEach((serverInfo) => {
-        logger.server.info(`${serverInfo.identifier}: ${config.baseUrl}/${config.appName}/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}`)
+        logger.server.info(`${serverInfo.identifier}: ${config.baseUrl}/${config.name}/${serverInfo.identifier}/${serverInfo.metadata.fhirVersion}`)
       })
     }
   } catch (error) {

@@ -1,7 +1,8 @@
 import React from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { openidService } from '../lib/openid-service';
+import { openidService } from '../service/openid-service';
+import { createApiClients, setAuthErrorHandler } from '../lib/apiClient';
 import type { GetAuthUserinfo200Response } from '../lib/api-client';
 
 interface TokenData {
@@ -53,13 +54,15 @@ interface AuthState {
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
+  apiClients: ReturnType<typeof createApiClients>;
   
-  initiateLogin: () => Promise<void>;
+  initiateLogin: (idpHint?: string) => Promise<void>;
   exchangeCodeForToken: (code: string, codeVerifier: string) => Promise<void>;
   fetchProfile: () => Promise<void>;
   refreshTokens: () => Promise<void>;
   logout: () => void;
   clearError: () => void;
+  updateApiClients: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -70,17 +73,33 @@ export const useAuthStore = create<AuthState>()(
       loading: false,
       error: null,
       isAuthenticated: false,
+      apiClients: createApiClients(), // Initialize with no token
 
-      // Actions
-      initiateLogin: async () => {
+      // Helper function to update API clients with current token
+      updateApiClients: () => {
+        const tokens = getStoredTokens();
+        const token = tokens?.access_token || undefined;
+        set({ apiClients: createApiClients(token) });
+        
+        // Set up auth error handler each time we update clients
+        setAuthErrorHandler(() => {
+          console.log('Auth error handler triggered, logging out...');
+          get().logout();
+        });
+      },      // Actions
+      initiateLogin: async (idpHint?: string) => {
         set({ loading: true, error: null });
         
         try {
-          const { url, codeVerifier, state } = await openidService.getAuthorizationUrl();
+          const { url, codeVerifier, state } = await openidService.getAuthorizationUrl(idpHint);
           
           // Store PKCE parameters for callback
           sessionStorage.setItem('pkce_code_verifier', codeVerifier);
           sessionStorage.setItem('oauth_state', state);
+          
+          if (idpHint) {
+            console.log(`Initiating login with Identity Provider: ${idpHint}`);
+          }
           
           // Redirect to authorization server
           window.location.href = url;
@@ -96,12 +115,6 @@ export const useAuthStore = create<AuthState>()(
 
         try {
           const tokens = await openidService.exchangeCodeForTokens(code, codeVerifier);
-          console.log('Token exchange successful:', {
-            hasAccessToken: !!tokens.access_token,
-            hasIdToken: !!tokens.id_token,
-            hasRefreshToken: !!tokens.refresh_token,
-            expiresIn: tokens.expires_in
-          });
           
           const tokenData: TokenData = {
             access_token: tokens.access_token,
@@ -112,6 +125,9 @@ export const useAuthStore = create<AuthState>()(
           
           storeTokens(tokenData);
           set({ isAuthenticated: true });
+          
+          // Update API clients with new token
+          get().updateApiClients();
           
           // Fetch user profile
           await get().fetchProfile();
@@ -189,6 +205,9 @@ export const useAuthStore = create<AuthState>()(
           storeTokens(tokenData);
           set({ isAuthenticated: true, loading: false });
           
+          // Update API clients with refreshed token
+          get().updateApiClients();
+          
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Token refresh failed';
           set({ 
@@ -217,6 +236,9 @@ export const useAuthStore = create<AuthState>()(
           loading: false 
         });
         
+        // Update API clients to have no token
+        get().updateApiClients();
+        
         clearTokens();
         sessionStorage.removeItem('pkce_code_verifier');
         sessionStorage.removeItem('oauth_state');
@@ -234,7 +256,7 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-store',
       storage: createJSONStorage(() => localStorage),
-      // Only persist profile and isAuthenticated, not loading/error states
+      // Only persist profile and isAuthenticated, not loading/error states or apiClients
       partialize: (state) => ({ 
         profile: state.profile, 
         isAuthenticated: state.isAuthenticated 
@@ -244,10 +266,22 @@ export const useAuthStore = create<AuthState>()(
         if (state) {
           const tokens = getStoredTokens();
           if (!tokens || !isTokenValid(tokens)) {
+            console.log('❌ Invalid or missing tokens, clearing auth state');
             state.profile = null;
             state.isAuthenticated = false;
+            state.apiClients = createApiClients(); // No token
             clearTokens();
+          } else {
+            // Update API clients with current token
+            state.apiClients = createApiClients(tokens.access_token);
+            // Set up auth error handler for rehydrated clients
+            setAuthErrorHandler(() => {
+              console.log('Auth error handler triggered during rehydration, logging out...');
+              useAuthStore.getState().logout();
+            });
           }
+        } else {
+          console.log('⚠️ No state found during rehydration');
         }
       },
     }
@@ -257,13 +291,14 @@ export const useAuthStore = create<AuthState>()(
 // Custom hook that automatically handles token refresh and profile fetching
 export const useAuth = () => {
   const store = useAuthStore();
+  const { isAuthenticated, profile, loading } = store;
   
   React.useEffect(() => {
     const tokens = getStoredTokens();
     
     if (tokens && isTokenValid(tokens)) {
       // Auto-fetch profile if authenticated but no profile exists
-      if (store.isAuthenticated && !store.profile && !store.loading) {
+      if (isAuthenticated && !profile && !loading) {
         store.fetchProfile();
       }
     } else if (tokens && !isTokenValid(tokens) && tokens.refresh_token) {
@@ -273,7 +308,7 @@ export const useAuth = () => {
       // Clear invalid tokens
       store.logout();
     }
-  }, [store]);
+  }, [isAuthenticated, profile, loading, store]);
 
   return store;
 };

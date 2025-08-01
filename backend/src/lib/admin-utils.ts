@@ -1,4 +1,5 @@
 import KeycloakAdminClient from '@keycloak/keycloak-admin-client'
+import { logger } from './logger'
 
 
 // Define a minimal user type based on Keycloak user structure
@@ -35,19 +36,54 @@ export const UNAUTHORIZED_RESPONSE = {
 }
 
 /**
+ * Custom error class for authentication-related errors
+ */
+export class AuthenticationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthenticationError';
+  }
+}
+
+/**
  * Get admin client with proper error handling
  * @param getAdmin Admin client factory function
  * @param token Bearer token
  * @returns Admin client instance
+ * @throws AuthenticationError for auth-related issues, Error for other issues
  */
 export async function getValidatedAdmin(
   getAdmin: (token: string) => Promise<KeycloakAdminClient>,
   token: string
 ): Promise<KeycloakAdminClient> {
+  logger.debug('admin', 'getValidatedAdmin called', { tokenLength: token.length })
+  
   try {
-    return await getAdmin(token)
+    const adminClient = await getAdmin(token)
+    return adminClient
   } catch (error) {
-    throw new Error(`Failed to get admin client: ${error}`)
+    logger.error('admin', 'Error in getValidatedAdmin', { 
+      error: error instanceof Error ? error.message : String(error),
+      errorType: error?.constructor?.name,
+      stack: error instanceof Error ? error.stack : undefined
+    })
+    
+    // Check if the error is authentication-related
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    
+    // Common authentication error patterns
+    if (errorMessage.includes('401') || 
+        errorMessage.includes('Unauthorized') || 
+        errorMessage.includes('Invalid token') ||
+        errorMessage.includes('Token expired') ||
+        errorMessage.includes('authentication')) {
+      logger.warn('admin', 'Detected authentication error, throwing AuthenticationError')
+      throw new AuthenticationError(`Authentication failed: ${errorMessage}`);
+    }
+    
+    // For any other errors, throw as server error
+    logger.warn('admin', 'Detected non-authentication error, throwing generic Error')
+    throw new Error(`Failed to get admin client: ${errorMessage}`);
   }
 }
 

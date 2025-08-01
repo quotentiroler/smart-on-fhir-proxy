@@ -53,16 +53,16 @@ class FHIRServerStore {
         } catch (error) {
           logger.fhir.warn(`Failed to fetch metadata for ${serverUrl}`, { error })
           
-          // Add fallback server info
+          // Add fallback server info when metadata retrieval fails
           const fallbackIdentifier = `server-${i}`
           const fallbackServerInfo: FHIRServerInfo = {
             name: `Server ${i + 1}`,
             url: serverUrl,
             identifier: fallbackIdentifier,
             metadata: {
-              fhirVersion: config.fhir.supportedVersions[0],
-              serverName: `Server ${i + 1}`,
-              supported: true
+              fhirVersion: 'Unknown',
+              serverName: 'Unknown FHIR Server',
+              supported: false
             },
             lastUpdated: Date.now()
           }
@@ -126,6 +126,14 @@ class FHIRServerStore {
     return Array.from(this.servers.values())
   }
 
+  addServer(identifier: string, serverInfo: FHIRServerInfo): void {
+    this.servers.set(identifier, serverInfo)
+  }
+
+  updateServer(identifier: string, serverInfo: FHIRServerInfo): void {
+    this.servers.set(identifier, serverInfo)
+  }
+
   clearError(): void {
     this.error = null
   }
@@ -174,6 +182,95 @@ export async function getAllServers(): Promise<FHIRServerInfo[]> {
   }
   
   return fhirServerStore.getAllServers()
+}
+
+// Add a new server to the store
+export async function addServer(serverUrl: string, name?: string): Promise<FHIRServerInfo> {
+  try {
+    // Ensure store is initialized first
+    await ensureServersInitialized()
+        
+    // Check if a server with this URL already exists
+    const existingServers = fhirServerStore.getAllServers()
+    const existingServer = existingServers.find(server => server.url === serverUrl)
+    
+    if (existingServer) {
+      throw new Error(`A server with URL ${serverUrl} already exists: ${existingServer.name}`)
+    }
+    // Fetch server metadata
+    const metadata = await getFHIRServerInfo(serverUrl)
+    let identifier = getServerIdentifier(metadata, serverUrl, Date.now())
+    
+    // Ensure unique identifier by checking for conflicts and appending number if needed
+    let counter = 1
+    let uniqueIdentifier = identifier
+    while (fhirServerStore.getServerByName(uniqueIdentifier)) {
+      uniqueIdentifier = `${identifier}-${counter}`
+      counter++
+    }
+    identifier = uniqueIdentifier
+    
+    const serverInfo: FHIRServerInfo = {
+      name: name || metadata.serverName || `Server ${identifier}`,
+      url: serverUrl,
+      identifier,
+      metadata,
+      lastUpdated: Date.now()
+    }
+    
+    // Add to store
+    fhirServerStore.addServer(identifier, serverInfo)
+    
+    logger.fhir.info(`Added new FHIR server: ${serverInfo.name}`, { 
+      url: serverUrl, 
+      identifier,
+      version: metadata.fhirVersion 
+    })
+    
+    return serverInfo
+  } catch (error) {
+    logger.fhir.error(`Failed to add FHIR server: ${serverUrl}`, { error })
+    throw new Error(`Failed to add FHIR server: ${error}`)
+  }
+}
+
+// Update an existing server in the store
+export async function updateServer(serverIdentifier: string, newServerUrl: string, name?: string): Promise<FHIRServerInfo> {
+  try {
+    // Ensure store is initialized first
+    await ensureServersInitialized()
+        // Check if a server with this URL already exists
+    const existingServers = fhirServerStore.getAllServers()
+    const existingServer = existingServers.find(server => server.url === newServerUrl)
+    
+    if (existingServer) {
+      throw new Error(`A server with URL ${newServerUrl} already exists: ${existingServer.name}`)
+    }
+    // Fetch server metadata for the new URL
+    const metadata = await getFHIRServerInfo(newServerUrl)
+    
+    const serverInfo: FHIRServerInfo = {
+      name: name || metadata.serverName || `Server ${serverIdentifier}`,
+      url: newServerUrl,
+      identifier: serverIdentifier, // Keep the same identifier
+      metadata,
+      lastUpdated: Date.now()
+    }
+    
+    // Update in store
+    fhirServerStore.updateServer(serverIdentifier, serverInfo)
+    
+    logger.fhir.info(`Updated FHIR server: ${serverInfo.name}`, { 
+      url: newServerUrl, 
+      identifier: serverIdentifier,
+      version: metadata.fhirVersion 
+    })
+    
+    return serverInfo
+  } catch (error) {
+    logger.fhir.error(`Failed to update FHIR server: ${newServerUrl}`, { error })
+    throw new Error(`Failed to update FHIR server: ${error}`)
+  }
 }
 
 // Helper function to ensure servers are initialized

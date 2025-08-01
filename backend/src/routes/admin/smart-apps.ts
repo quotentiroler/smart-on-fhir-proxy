@@ -3,6 +3,7 @@ import { keycloakPlugin } from '../../lib/keycloak-plugin'
 import { SmartAppClient, ErrorResponse, SuccessResponse } from '../../schemas/common'
 import { config } from '../../config'
 import { logger } from '../../lib/logger'
+import { handleAdminError } from '../../lib/admin-error-handler'
 import * as crypto from 'crypto'
 import type KcAdminClient from '@keycloak/keycloak-admin-client'
 
@@ -48,7 +49,7 @@ async function registerPublicKeyForClient(admin: KcAdminClient, clientId: string
  * All routes now use the user's access token to perform operations,
  * acting as a secure proxy for Keycloak admin operations.
  */
-export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: ['smart-apps'] })
+export const smartAppsRoutes = new Elysia({ prefix: '/smart-apps', tags: ['smart-apps'] })
   .use(keycloakPlugin)
 
   .get('/', async ({ getAdmin, headers, set }) => {
@@ -62,12 +63,20 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
 
       const admin = await getAdmin(token)
       let clients = await admin.clients.find()
-      //Filter out admin-ui
+      
+      // Filter for SMART on FHIR applications only
+      clients = clients.filter(client => 
+        client.protocol === 'openid-connect' && 
+        (client.attributes?.['smart_app']?.includes('true') || 
+         client.clientId?.includes('smart'))
+      )
+      
+      // Filter out admin-ui if it somehow gets through
       clients = clients.filter(client => client.clientId !== 'admin-ui')
+      
       return clients;
     } catch (error) {
-      set.status = 500
-      return { error: 'Failed to fetch SMART applications', details: error }
+      return handleAdminError(error, set)
     }
   }, {
     response: {
@@ -181,10 +190,13 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
           
           // Debug: Log what we're about to return as HTTP response
           const finalResponse = updatedClient || fullClient
-          console.log('🌐 HTTP Response Fields:', Object.keys(finalResponse))
-          console.log('🔑 HTTP Response clientAuthenticatorType:', finalResponse.clientAuthenticatorType)
-          console.log('⚙️  HTTP Response serviceAccountsEnabled:', finalResponse.serviceAccountsEnabled)
-          console.log('🔄 HTTP Response standardFlowEnabled:', finalResponse.standardFlowEnabled)
+          logger.admin.debug('HTTP Response for Backend Services client after key registration', {
+            fields: Object.keys(finalResponse),
+            clientId: finalResponse.clientId,
+            clientAuthenticatorType: finalResponse.clientAuthenticatorType,
+            serviceAccountsEnabled: finalResponse.serviceAccountsEnabled,
+            standardFlowEnabled: finalResponse.standardFlowEnabled
+          })
           
           return finalResponse
         } catch (keyError) {
@@ -196,10 +208,13 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
       }
       
       // Debug: Log what we're about to return as HTTP response  
-      console.log('🌐 HTTP Response Fields (no key registration):', Object.keys(fullClient))
-      console.log('🔑 HTTP Response clientAuthenticatorType:', fullClient.clientAuthenticatorType)
-      console.log('⚙️  HTTP Response serviceAccountsEnabled:', fullClient.serviceAccountsEnabled)
-      console.log('🔄 HTTP Response standardFlowEnabled:', fullClient.standardFlowEnabled)
+      logger.admin.debug('HTTP Response for standard client creation', {
+        fields: Object.keys(fullClient),
+        clientId: fullClient.clientId,
+        clientAuthenticatorType: fullClient.clientAuthenticatorType,
+        serviceAccountsEnabled: fullClient.serviceAccountsEnabled,
+        standardFlowEnabled: fullClient.standardFlowEnabled
+      })
       
       return fullClient
     } catch (error) {
@@ -263,15 +278,17 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
       }
       
       // Debug: Log what we're about to return for individual client retrieval
-      console.log('🔍 Individual Client Response Fields:', Object.keys(clients[0]))
-      console.log('🔑 Individual Client clientAuthenticatorType:', clients[0].clientAuthenticatorType)
-      console.log('⚙️  Individual Client serviceAccountsEnabled:', clients[0].serviceAccountsEnabled)
-      console.log('🔄 Individual Client standardFlowEnabled:', clients[0].standardFlowEnabled)
+      logger.admin.debug('Individual Client Response', {
+        fields: Object.keys(clients[0]),
+        clientId: clients[0].clientId,
+        clientAuthenticatorType: clients[0].clientAuthenticatorType,
+        serviceAccountsEnabled: clients[0].serviceAccountsEnabled,
+        standardFlowEnabled: clients[0].standardFlowEnabled
+      })
       
       return clients[0]
     } catch (error) {
-      set.status = 500
-      return { error: 'Failed to fetch SMART application', details: error }
+      return handleAdminError(error, set)
     }
   }, {
     params: t.Object({
@@ -388,8 +405,7 @@ export const smartAppsRoutes = new Elysia({ prefix: '/admin/smart-apps', tags: [
       await admin.clients.del({ id: clients[0].id! })
       return { success: true, message: 'SMART application deleted successfully' }
     } catch (error) {
-      set.status = 500
-      return { error: 'Failed to delete SMART application', details: error }
+      return handleAdminError(error, set)
     }
   }, {
     params: t.Object({

@@ -1,13 +1,48 @@
 import { Elysia, t } from 'elysia'
 import { keycloakPlugin } from '../../lib/keycloak-plugin'
 import { ErrorResponse } from '../../schemas/common'
+import { handleAdminError } from '../../lib/admin-error-handler'
 import type { IdentityProvider } from '../../types'
 
 /**
  * Identity Provider Management - handles external IdP integrations
  */
-export const identityProvidersRoutes = new Elysia({ prefix: '/admin/idps' })
+export const identityProvidersRoutes = new Elysia({ prefix: '/idps' })
   .use(keycloakPlugin)
+
+  .get('/count', async ({ getAdmin, headers, set }) => {
+    try {
+      // Extract user's token from Authorization header
+      const token = headers.authorization?.replace('Bearer ', '')
+      if (!token) {
+        set.status = 401
+        return { error: 'Authorization header required' }
+      }
+
+      const admin = await getAdmin(token)
+      const providers = await admin.identityProviders.find()
+      // Count only enabled providers
+      const enabledCount = providers.filter(provider => provider.enabled !== false).length
+      return { count: enabledCount, total: providers.length }
+    } catch (error) {
+      return handleAdminError(error, set)
+    }
+  }, {
+    response: {
+      200: t.Object({
+        count: t.Number({ description: 'Number of enabled identity providers' }),
+        total: t.Number({ description: 'Total number of identity providers' })
+      }),
+      401: ErrorResponse,
+      500: ErrorResponse
+    },
+    detail: {
+      summary: 'Get Identity Providers Count',
+      description: 'Get the count of enabled and total identity providers',
+      tags: ['identity-providers'],
+      response: { 200: { description: 'Identity providers count.' } }
+    }
+  })
 
   .get('/', async ({ getAdmin, headers, set }) => {
     try {
@@ -78,7 +113,35 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/admin/idps' })
     body: t.Object({
       alias: t.String(),
       providerId: t.String(),
-      config: t.Object({})
+      displayName: t.Optional(t.String()),
+      enabled: t.Optional(t.Boolean()),
+      config: t.Object({
+        // Common fields
+        displayName: t.Optional(t.String()),
+        entityId: t.Optional(t.String()),
+        singleSignOnServiceUrl: t.Optional(t.String()),
+        singleLogoutServiceUrl: t.Optional(t.String()),
+        metadataDescriptorUrl: t.Optional(t.String()),
+        enabled: t.Optional(t.Boolean()),
+        
+        // OIDC/OAuth2 specific fields
+        clientSecret: t.Optional(t.String()),
+        tokenUrl: t.Optional(t.String()),
+        userInfoUrl: t.Optional(t.String()),
+        issuer: t.Optional(t.String()),
+        defaultScopes: t.Optional(t.String()),
+        logoutUrl: t.Optional(t.String()),
+        
+        // SAML specific fields
+        signatureAlgorithm: t.Optional(t.String()),
+        nameIdPolicyFormat: t.Optional(t.String()),
+        signingCertificate: t.Optional(t.String()),
+        validateSignature: t.Optional(t.Boolean()),
+        wantAuthnRequestsSigned: t.Optional(t.Boolean()),
+        
+        // Allow additional configuration
+        additionalConfig: t.Optional(t.Record(t.String(), t.Any()))
+      })
     }),
     response: {
       200: t.Object({
@@ -166,7 +229,33 @@ export const identityProvidersRoutes = new Elysia({ prefix: '/admin/idps' })
     body: t.Object({
       displayName: t.Optional(t.String()),
       enabled: t.Optional(t.Boolean()),
-      config: t.Optional(t.Object({}))
+      config: t.Optional(t.Object({
+        // Common fields
+        displayName: t.Optional(t.String()),
+        entityId: t.Optional(t.String()),
+        singleSignOnServiceUrl: t.Optional(t.String()),
+        singleLogoutServiceUrl: t.Optional(t.String()),
+        metadataDescriptorUrl: t.Optional(t.String()),
+        enabled: t.Optional(t.Boolean()),
+        
+        // OIDC/OAuth2 specific fields
+        clientSecret: t.Optional(t.String()),
+        tokenUrl: t.Optional(t.String()),
+        userInfoUrl: t.Optional(t.String()),
+        issuer: t.Optional(t.String()),
+        defaultScopes: t.Optional(t.String()),
+        logoutUrl: t.Optional(t.String()),
+        
+        // SAML specific fields
+        signatureAlgorithm: t.Optional(t.String()),
+        nameIdPolicyFormat: t.Optional(t.String()),
+        signingCertificate: t.Optional(t.String()),
+        validateSignature: t.Optional(t.Boolean()),
+        wantAuthnRequestsSigned: t.Optional(t.Boolean()),
+        
+        // Allow additional configuration
+        additionalConfig: t.Optional(t.Record(t.String(), t.Any()))
+      }))
     }),
     response: {
       200: t.Object({

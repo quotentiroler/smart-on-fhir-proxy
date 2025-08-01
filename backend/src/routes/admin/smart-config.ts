@@ -5,7 +5,7 @@ import { validateToken } from '../../lib/auth'
 /**
  * SMART Configuration Admin endpoints
  */
-export const smartConfigAdminRoutes = new Elysia({ prefix: '/admin/smart-config', tags: ['admin'] })
+export const smartConfigAdminRoutes = new Elysia({ prefix: '/smart-config', tags: ['admin'] })
   .post('/refresh', async ({ set, headers }) => {
     // Require authentication for cache management
     const auth = headers.authorization?.replace('Bearer ', '')

@@ -68,8 +68,6 @@ services:
       BASE_URL: http://localhost:8445
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_REALM: smart-on-fhir
-      KEYCLOAK_CLIENT_ID: smart-on-fhir-backend
-      KEYCLOAK_CLIENT_SECRET: your-client-secret
       KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/smart-on-fhir/protocol/openid-connect/certs
       FHIR_SERVER_BASE: https://hapi.fhir.org/baseR4
     ports:

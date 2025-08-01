@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { PostAdminSmartAppsRequestClientType } from './PostAdminSmartAppsRequestClientType';
+import {
+    PostAdminSmartAppsRequestClientTypeFromJSON,
+    PostAdminSmartAppsRequestClientTypeFromJSONTyped,
+    PostAdminSmartAppsRequestClientTypeToJSON,
+    PostAdminSmartAppsRequestClientTypeToJSONTyped,
+} from './PostAdminSmartAppsRequestClientType';
+
 /**
  * 
  * @export
@@ -73,6 +81,30 @@ export interface PostAdminSmartAppsRequest {
      * @memberof PostAdminSmartAppsRequest
      */
     fhirVersion?: string;
+    /**
+     * 
+     * @type {PostAdminSmartAppsRequestClientType}
+     * @memberof PostAdminSmartAppsRequest
+     */
+    clientType?: PostAdminSmartAppsRequestClientType;
+    /**
+     * PEM-formatted public key for JWT authentication (required for backend-service)
+     * @type {string}
+     * @memberof PostAdminSmartAppsRequest
+     */
+    publicKey?: string;
+    /**
+     * JWKS URI for public key discovery (alternative to publicKey)
+     * @type {string}
+     * @memberof PostAdminSmartAppsRequest
+     */
+    jwksUri?: string;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof PostAdminSmartAppsRequest
+     */
+    systemScopes?: Array<string>;
 }
 
 /**
@@ -103,6 +135,10 @@ export function PostAdminSmartAppsRequestFromJSONTyped(json: any, ignoreDiscrimi
         'scopes': json['scopes'] == null ? undefined : json['scopes'],
         'smartVersion': json['smartVersion'] == null ? undefined : json['smartVersion'],
         'fhirVersion': json['fhirVersion'] == null ? undefined : json['fhirVersion'],
+        'clientType': json['clientType'] == null ? undefined : PostAdminSmartAppsRequestClientTypeFromJSON(json['clientType']),
+        'publicKey': json['publicKey'] == null ? undefined : json['publicKey'],
+        'jwksUri': json['jwksUri'] == null ? undefined : json['jwksUri'],
+        'systemScopes': json['systemScopes'] == null ? undefined : json['systemScopes'],
     };
 }
 
@@ -126,6 +162,10 @@ export function PostAdminSmartAppsRequestToJSONTyped(value?: PostAdminSmartAppsR
         'scopes': value['scopes'],
         'smartVersion': value['smartVersion'],
         'fhirVersion': value['fhirVersion'],
+        'clientType': PostAdminSmartAppsRequestClientTypeToJSON(value['clientType']),
+        'publicKey': value['publicKey'],
+        'jwksUri': value['jwksUri'],
+        'systemScopes': value['systemScopes'],
     };
 }
 

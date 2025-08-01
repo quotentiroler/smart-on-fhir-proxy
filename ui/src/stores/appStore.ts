@@ -14,13 +14,17 @@ interface AppState {
   language: string;
   setLanguage: (language: string) => Promise<void>;
   
-  // Theme settings (for future use)
-  theme: 'light' | 'dark' | 'system';
-  setTheme: (theme: 'light' | 'dark' | 'system') => void;
-  
   // UI preferences
   sidebarCollapsed: boolean;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  
+  // Navigation state
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  
+  // Smart Apps Manager tab state
+  smartAppsManagerTab: string;
+  setSmartAppsManagerTab: (tab: string) => void;
   
   // Notification preferences
   notificationsEnabled: boolean;
@@ -47,26 +51,17 @@ export const useAppStore = create<AppState>()(
         }
       },
       
-      // Theme settings
-      theme: 'system',
-      setTheme: (theme) => {
-        set({ theme });
-        // Apply theme to document
-        const root = document.documentElement;
-        if (theme === 'dark') {
-          root.classList.add('dark');
-        } else if (theme === 'light') {
-          root.classList.remove('dark');
-        } else {
-          // System theme
-          const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-          root.classList.toggle('dark', isDark);
-        }
-      },
-      
       // UI preferences
       sidebarCollapsed: false,
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+      
+      // Navigation state
+      activeTab: 'dashboard',
+      setActiveTab: (tab) => set({ activeTab: tab }),
+      
+      // Smart Apps Manager tab state
+      smartAppsManagerTab: 'apps',
+      setSmartAppsManagerTab: (tab) => set({ smartAppsManagerTab: tab }),
       
       // Notification preferences
       notificationsEnabled: true,
@@ -77,8 +72,9 @@ export const useAppStore = create<AppState>()(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         language: state.language,
-        theme: state.theme,
         sidebarCollapsed: state.sidebarCollapsed,
+        activeTab: state.activeTab,
+        smartAppsManagerTab: state.smartAppsManagerTab,
         notificationsEnabled: state.notificationsEnabled,
       }),
     }

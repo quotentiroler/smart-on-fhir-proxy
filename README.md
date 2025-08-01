@@ -2,7 +2,7 @@
 
 A comprehensive SMART on FHIR server implementation that acts as a secure proxy for FHIR servers, providing OAuth2/OIDC authorization using Keycloak with PostgreSQL backend. This project implements the full SMART App Launch Framework specification with support for EHR Launch, Standalone Launch, and Backend Services flows.
 
-⚠️ **DEVELOPMENT STATUS: Early Development Phase** ⚠️
+⚠️ **DEVELOPMENT STATUS: Development Phase** ⚠️
 
 Checkout from `update` branch to create a new branch.
 
