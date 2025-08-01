@@ -23,14 +23,9 @@ import {
   CheckCircle,
   Loader2
 } from 'lucide-react';
+import type { FhirPersonAssociation } from '@/lib/types/api';
 
-interface FhirPersonAssociation {
-  serverName: string;
-  personId: string;
-  display?: string;
-  created?: string;
-}
-
+// TODO: dont use custom interfaces for backend models, use or inherit the existing generated API models instead
 interface HealthcareUser {
   id: string;
   firstName: string;
