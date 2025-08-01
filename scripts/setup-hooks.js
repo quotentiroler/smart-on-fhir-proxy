@@ -1,0 +1,38 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+console.log('Setting up git hooks for version management...');
+
+try {
+  // Make sure .githooks directory exists
+  if (!fs.existsSync('.githooks')) {
+    console.error('❌ .githooks directory not found');
+    process.exit(1);
+  }
+
+  // Configure git to use our hooks directory
+  execSync('git config core.hooksPath .githooks');
+  
+  // Make hooks executable (Unix/Mac)
+  if (process.platform !== 'win32') {
+    execSync('chmod +x .githooks/*');
+  }
+  
+  console.log('✅ Git hooks configured successfully!');
+  console.log('');
+  console.log('Available version management commands:');
+  console.log('  npm run version:sync        - Sync all package versions to root version');
+  console.log('  npm run version:bump        - Bump patch version (0.0.1 → 0.0.2)');
+  console.log('  npm run version:bump:minor  - Bump minor version (0.0.1 → 0.1.0)');
+  console.log('  npm run version:bump:major  - Bump major version (0.0.1 → 1.0.0)');
+  console.log('  npm run version:set 1.2.3   - Set specific version');
+  console.log('');
+  console.log('The pre-commit hook will automatically sync versions on every commit.');
+  
+} catch (error) {
+  console.error('❌ Error setting up git hooks:', error.message);
+  process.exit(1);
+}
