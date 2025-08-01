@@ -160,6 +160,11 @@ jobs:
             echo "commits_behind=0" >> $GITHUB_OUTPUT
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
+          
+          # Count TODOs in the codebase
+          TODO_COUNT=$(grep -r " TODO:" --include="*.ts" --include="*.js" --include="*.tsx" --include="*.jsx" --include="*.vue" --include="*.py" --include="*.java" --include="*.cs" --include="*.go" --include="*.rs" --include="*.cpp" --include="*.c" --include="*.h" . | wc -l || echo "0")
+          echo "todo_count=$TODO_COUNT" >> $GITHUB_OUTPUT
+          echo "Found $TODO_COUNT TODOs in the codebase"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -199,6 +204,7 @@ jobs:
           **Changes:**
           - Commits ahead of develop: ${{ steps.check-diff.outputs.commits_ahead }}
           - Commits behind develop: ${{ steps.check-diff.outputs.commits_behind }}
+          - TODOs remaining in codebase: ${{ steps.check-diff.outputs.todo_count }}
           
           **Review:** Please review the changes before merging."
         env:
@@ -258,6 +264,11 @@ jobs:
             echo "has_changes=false" >> $GITHUB_OUTPUT
             echo "needs_branch_creation=true" >> $GITHUB_OUTPUT
           fi
+          
+          # Count TODOs in the codebase
+          TODO_COUNT=$(grep -r " TODO:" --include="*.ts" --include="*.js" --include="*.tsx" --include="*.jsx" --include="*.vue" --include="*.py" --include="*.java" --include="*.cs" --include="*.go" --include="*.rs" --include="*.cpp" --include="*.c" --include="*.h" . | wc -l || echo "0")
+          echo "todo_count=$TODO_COUNT" >> $GITHUB_OUTPUT
+          echo "Found $TODO_COUNT TODOs in the codebase"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -279,7 +290,8 @@ jobs:
             --body "**Automated Pull Request** 🤖  
             
             Commits ahead of test: ${{ steps.check-diff.outputs.commits_ahead }}
-            Commits behind test: ${{ steps.check-diff.outputs.commits_behind }}"
+            Commits behind test: ${{ steps.check-diff.outputs.commits_behind }}
+            TODOs remaining in codebase: ${{ steps.check-diff.outputs.todo_count }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -343,6 +355,11 @@ jobs:
             echo "commits_behind=0" >> $GITHUB_OUTPUT
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
+          
+          # Count TODOs in the codebase
+          TODO_COUNT=$(grep -r " TODO:" --include="*.ts" --include="*.js" --include="*.tsx" --include="*.jsx" --include="*.vue" --include="*.py" --include="*.java" --include="*.cs" --include="*.go" --include="*.rs" --include="*.cpp" --include="*.c" --include="*.h" . | wc -l || echo "0")
+          echo "todo_count=$TODO_COUNT" >> $GITHUB_OUTPUT
+          echo "Found $TODO_COUNT TODOs in the codebase"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -360,6 +377,7 @@ jobs:
           **Changes:**
           - Commits ahead of main: ${{ steps.check-diff.outputs.commits_ahead }}
           - Commits behind main: ${{ steps.check-diff.outputs.commits_behind }}
+          - TODOs remaining in codebase: ${{ steps.check-diff.outputs.todo_count }}
           
           **Review:** Please review the changes before merging."
         env:
