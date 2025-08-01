@@ -97,46 +97,41 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-      - name: Determine version increment
+      - name: Determine version for alpha
         id: version
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
-          # Remove any existing suffix
+          # Remove any existing suffix to get the base version
           BASE_VERSION=$(echo "$CURRENT_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g')
           echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           
-          if [ "${{ github.event.inputs.custom_version }}" != "" ]; then
-            NEW_VERSION="${{ github.event.inputs.custom_version }}-alpha"
-            echo "Using custom version: $NEW_VERSION"
-          else
-            VERSION_TYPE="${{ github.event.inputs.version_type || 'patch' }}"
-            echo "Incrementing $VERSION_TYPE version from $BASE_VERSION"
-            
-            # Parse version parts
-            IFS='.' read -r major minor patch <<< "$BASE_VERSION"
-            
-            case $VERSION_TYPE in
-              major)
-                NEW_BASE_VERSION="$((major + 1)).0.0"
-                ;;
-              minor)
-                NEW_BASE_VERSION="$major.$((minor + 1)).0"
-                ;;
-              patch)
-                NEW_BASE_VERSION="$major.$minor.$((patch + 1))"
-                ;;
-            esac
-            
-            NEW_VERSION="$NEW_BASE_VERSION-alpha"
-          fi
+          # Generate build number based on timestamp and commit hash
+          BUILD_NUMBER=$(date +%Y%m%d%H%M%S)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          
+          # For alpha, DO NOT increment version - just add alpha suffix with build number
+          NEW_VERSION="$BASE_VERSION-alpha.$BUILD_NUMBER+$SHORT_SHA"
           
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "New version will be: $NEW_VERSION"
+          echo "Alpha version will be: $NEW_VERSION (no version increment)"
           
-      - name: Update versions
+      - name: Update versions (alpha build)
         run: |
+          # Set the new version in all packages
           node scripts/version.js set ${{ steps.version.outputs.new_version }}
+          # Sync to ensure all packages are consistent
+          npm run version:sync
+          # Verify versions are now consistent
+          echo "Verifying version consistency:"
+          for file in package.json backend/package.json ui/package.json test/package.json; do
+            if [ -f "$file" ]; then
+              VERSION=$(node -p "require('./$file').version")
+              echo "$file: $VERSION"
+            fi
+          done
           
       - name: Update README version badge
         run: |
@@ -169,7 +164,7 @@ jobs:
       - name: Commit version updates
         run: |
           git add package.json backend/package.json ui/package.json test/package.json README.md
-          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
+          git commit -m "chore: alpha build ${{ steps.version.outputs.new_version }} [skip ci]"
           git push origin develop
 
   beta-release:
@@ -199,29 +194,41 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-      - name: Determine version increment
+      - name: Determine version for beta
         id: version
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
-          # Remove any existing suffix
+          # Remove any existing suffix to get the base version
           BASE_VERSION=$(echo "$CURRENT_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g')
           echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           
-          if [ "${{ github.event.inputs.custom_version }}" != "" ]; then
-            NEW_VERSION="${{ github.event.inputs.custom_version }}-beta"
-            echo "Using custom version: $NEW_VERSION"
-          else
-            # For beta, we use the same base version but with beta suffix
-            NEW_VERSION="$BASE_VERSION-beta"
-          fi
+          # Generate build number based on timestamp and commit hash
+          BUILD_NUMBER=$(date +%Y%m%d%H%M%S)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          
+          # For beta, DO NOT increment version - just add beta suffix with build number
+          NEW_VERSION="$BASE_VERSION-beta.$BUILD_NUMBER+$SHORT_SHA"
           
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "New version will be: $NEW_VERSION"
+          echo "Beta version will be: $NEW_VERSION (no version increment)"
           
-      - name: Update versions
+      - name: Update versions (beta build)
         run: |
+          # Set the new version in all packages
           node scripts/version.js set ${{ steps.version.outputs.new_version }}
+          # Sync to ensure all packages are consistent
+          npm run version:sync
+          # Verify versions are now consistent
+          echo "Verifying version consistency:"
+          for file in package.json backend/package.json ui/package.json test/package.json; do
+            if [ -f "$file" ]; then
+              VERSION=$(node -p "require('./$file').version")
+              echo "$file: $VERSION"
+            fi
+          done
           
       - name: Update README version badge
         run: |
@@ -255,7 +262,7 @@ jobs:
       - name: Commit version updates
         run: |
           git add package.json backend/package.json ui/package.json test/package.json README.md
-          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
+          git commit -m "chore: beta build ${{ steps.version.outputs.new_version }} [skip ci]"
           git push origin test
 
   release:
@@ -320,9 +327,20 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "New version will be: $NEW_VERSION"
           
-      - name: Update versions
+      - name: Update versions (production release)
         run: |
+          # Set the new version in all packages
           node scripts/version.js set ${{ steps.version.outputs.new_version }}
+          # Sync to ensure all packages are consistent
+          npm run version:sync
+          # Verify versions are now consistent
+          echo "Verifying version consistency:"
+          for file in package.json backend/package.json ui/package.json test/package.json; do
+            if [ -f "$file" ]; then
+              VERSION=$(node -p "require('./$file').version")
+              echo "$file: $VERSION"
+            fi
+          done
           
       - name: Update README version badge
         run: |
