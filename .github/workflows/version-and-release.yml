@@ -97,7 +97,7 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-      - name: Determine version increment
+      - name: Determine version for alpha
         id: version
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
@@ -112,35 +112,14 @@ jobs:
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           
-          if [ "${{ github.event.inputs.custom_version }}" != "" ]; then
-            NEW_VERSION="${{ github.event.inputs.custom_version }}-alpha.$BUILD_NUMBER+$SHORT_SHA"
-            echo "Using custom version: $NEW_VERSION"
-          else
-            VERSION_TYPE="${{ github.event.inputs.version_type || 'patch' }}"
-            echo "Incrementing $VERSION_TYPE version from $BASE_VERSION"
-            
-            # Parse version parts
-            IFS='.' read -r major minor patch <<< "$BASE_VERSION"
-            
-            case $VERSION_TYPE in
-              major)
-                NEW_BASE_VERSION="$((major + 1)).0.0"
-                ;;
-              minor)
-                NEW_BASE_VERSION="$major.$((minor + 1)).0"
-                ;;
-              patch)
-                NEW_BASE_VERSION="$major.$minor.$((patch + 1))"
-                ;;
-            esac
-            
-            NEW_VERSION="$NEW_BASE_VERSION-alpha.$BUILD_NUMBER+$SHORT_SHA"
-          fi
+          # For alpha, use current base version with alpha suffix and build number
+          # Don't increment the version number here
+          NEW_VERSION="$BASE_VERSION-alpha.$BUILD_NUMBER+$SHORT_SHA"
           
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "New version will be: $NEW_VERSION"
+          echo "Alpha version will be: $NEW_VERSION"
           
-      - name: Update versions
+      - name: Update versions for alpha build
         run: |
           node scripts/version.js set ${{ steps.version.outputs.new_version }}
           
@@ -175,7 +154,7 @@ jobs:
       - name: Commit version updates
         run: |
           git add package.json backend/package.json ui/package.json test/package.json README.md
-          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
+          git commit -m "chore: alpha build ${{ steps.version.outputs.new_version }} [skip ci]"
           git push origin develop
           
       - name: Create and push tag
@@ -274,7 +253,7 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-      - name: Determine version increment
+      - name: Determine version for beta
         id: version
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
@@ -289,18 +268,14 @@ jobs:
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           
-          if [ "${{ github.event.inputs.custom_version }}" != "" ]; then
-            NEW_VERSION="${{ github.event.inputs.custom_version }}-beta.$BUILD_NUMBER+$SHORT_SHA"
-            echo "Using custom version: $NEW_VERSION"
-          else
-            # For beta, we use the same base version but with beta suffix and build number
-            NEW_VERSION="$BASE_VERSION-beta.$BUILD_NUMBER+$SHORT_SHA"
-          fi
+          # For beta, use current base version with beta suffix and build number
+          # Don't increment the version number here
+          NEW_VERSION="$BASE_VERSION-beta.$BUILD_NUMBER+$SHORT_SHA"
           
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "New version will be: $NEW_VERSION"
+          echo "Beta version will be: $NEW_VERSION"
           
-      - name: Update versions
+      - name: Update versions for beta build
         run: |
           node scripts/version.js set ${{ steps.version.outputs.new_version }}
           
@@ -336,7 +311,7 @@ jobs:
       - name: Commit version updates
         run: |
           git add package.json backend/package.json ui/package.json test/package.json README.md
-          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
+          git commit -m "chore: beta build ${{ steps.version.outputs.new_version }} [skip ci]"
           git push origin test
           
       - name: Create and push tag
