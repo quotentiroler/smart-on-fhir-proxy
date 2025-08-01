@@ -48,6 +48,24 @@ This server intercepts requests to otherwise open FHIR servers and requires prop
 
 ### 🚧 Currently Working On
 
+- SMART App Launch 2.2.0 specification implementation
+- Discovery endpoints and configuration
+- EHR and Standalone launch flows
+- Enhanced OAuth2 security patterns
+
+### 📋 Development Roadmap
+
+**[📖 View Complete Roadmap](ROADMAP.md)**
+
+- **v0.0.8**: Full SMART App Launch 2.2.0 compliance
+- **v0.9.x**: AI-enhanced monitoring and analytics
+- **v1.0.0**: Production-ready stable release
+
+See also:
+- [SMART 2.2.0 Implementation Checklist](docs/SMART_2.2.0_CHECKLIST.md)
+- [Version Feature Mapping](docs/VERSION_FEATURE_MAPPING.md)
+- [Version Management Guide](docs/VERSION_MANAGEMENT.md)
+
 - **Test Suite Implementation** - This is our immediate focus
 
 ### ❌ Missing Critical Components
