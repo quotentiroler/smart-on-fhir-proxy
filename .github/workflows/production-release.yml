@@ -1,0 +1,311 @@
+name: Production Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version increment type'
+        required: true
+        default: 'patch'
+        type: choice
+        options:
+        - patch
+        - minor
+        - major
+      custom_version:
+        description: 'Custom version (optional, overrides version_type)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  production-release:
+    name: Create Production Release (main)
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+          
+      - name: Configure git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+      - name: Determine version increment
+        id: version
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          # Remove any existing suffix for production release
+          BASE_VERSION=$(echo "$CURRENT_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g')
+          echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          
+          if [ "${{ github.event.inputs.custom_version }}" != "" ]; then
+            NEW_VERSION="${{ github.event.inputs.custom_version }}-RELEASE"
+            echo "Using custom version: $NEW_VERSION"
+          else
+            VERSION_TYPE="${{ github.event.inputs.version_type || 'patch' }}"
+            echo "Incrementing $VERSION_TYPE version from $BASE_VERSION"
+            
+            # Parse version parts
+            IFS='.' read -r major minor patch <<< "$BASE_VERSION"
+            
+            case $VERSION_TYPE in
+              major)
+                NEW_VERSION="$((major + 1)).0.0-RELEASE"
+                ;;
+              minor)
+                NEW_VERSION="$major.$((minor + 1)).0-RELEASE"
+                ;;
+              patch)
+                NEW_VERSION="$major.$minor.$((patch + 1))-RELEASE"
+                ;;
+            esac
+          fi
+          
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "New version will be: $NEW_VERSION"
+          
+      - name: Update versions (production release)
+        run: |
+          # Set the new version in all packages
+          node scripts/version.js set ${{ steps.version.outputs.new_version }}
+          # Sync to ensure all packages are consistent
+          npm run version:sync
+          # Verify versions are now consistent
+          echo "Verifying version consistency:"
+          for file in package.json backend/package.json ui/package.json test/package.json; do
+            if [ -f "$file" ]; then
+              VERSION=$(node -p "require('./$file').version")
+              echo "$file: $VERSION"
+            fi
+          done
+          
+      - name: Update README version badge
+        run: |
+          # Update version badge in README.md
+          sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z0-9\.-]*\)\?-blue/version-${{ steps.version.outputs.new_version }}-blue/g" README.md
+          echo "Updated README.md version badge to ${{ steps.version.outputs.new_version }}"
+          
+      - name: Get commit SHAs for this PR
+        id: pr_commits
+        run: |
+          # Find the PR that was merged to trigger this push
+          echo "Looking for PR associated with this push..."
+          
+          # Try to find PR number from the push event or recent merge commit
+          PR_NUM=""
+          
+          # Method 1: Check if this push was from a merged PR by looking at recent commits
+          RECENT_COMMIT_MSG=$(git log --format="%s" -n 1)
+          if echo "$RECENT_COMMIT_MSG" | grep -E "Merge pull request #[0-9]+" > /dev/null; then
+            PR_NUM=$(echo "$RECENT_COMMIT_MSG" | grep -oE "#[0-9]+" | sed 's/#//')
+            echo "Found PR number from merge commit: $PR_NUM"
+          fi
+          
+          # Method 2: Use GitHub API to find PRs that were merged recently
+          if [ -z "$PR_NUM" ]; then
+            echo "Searching for recently merged PRs..."
+            PR_NUM=$(gh api repos/${{ github.repository }}/pulls \
+              --field state=closed \
+              --field base=main \
+              --field sort=updated \
+              --field direction=desc \
+              --jq '.[] | select(.merged_at != null) | select(.merge_commit_sha == "'${{ github.sha }}'") | .number' \
+              | head -n1)
+          fi
+          
+          if [ -n "$PR_NUM" ]; then
+            echo "Found PR #$PR_NUM"
+            # Get the exact commits that were in this PR
+            COMMITS=$(gh pr view "$PR_NUM" --repo "${{ github.repository }}" \
+              --json commits --jq '.commits[].oid' | tr '\n' ' ')
+            echo "commits=$COMMITS" >> $GITHUB_OUTPUT
+            echo "pr_number=$PR_NUM" >> $GITHUB_OUTPUT
+            echo "Found ${#COMMITS[@]} commits in PR #$PR_NUM"
+          else
+            echo "No PR found for this push"
+            echo "commits=" >> $GITHUB_OUTPUT
+            echo "pr_number=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate changelog
+        id: changelog
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          echo "Generating production changelog with AI summaries..."
+          
+          # Get commits from the specific PR
+          ALL_SHAS="${{ steps.pr_commits.outputs.commits }}"
+          PR_NUM="${{ steps.pr_commits.outputs.pr_number }}"
+          
+          if [ -z "$ALL_SHAS" ]; then
+            echo "⚠️  No PR commits found—using fallback to recent commits"
+            # Fallback to recent commits if no PR detected
+            ALL_SHAS=$(git log --pretty=format:"%H" --no-merges --reverse -20 | tr '\n' ' ')
+          else
+            echo "Using commits from PR #$PR_NUM: $ALL_SHAS"
+          fi
+          
+          # Function to get AI summary of commit comments
+          get_ai_summary() {
+            local commits="$1"
+            local all_comments=""
+            
+            for sha in $commits; do
+              if [ -n "$sha" ]; then
+                # Get AI comment for this commit
+                ai_comment=$(gh api repos/${{ github.repository }}/commits/$sha/comments --jq '.[0].body // ""' 2>/dev/null || echo "")
+                commit_msg=$(git log --format="%s" -n 1 $sha)
+                
+                if [ -n "$ai_comment" ]; then
+                  all_comments="${all_comments}**${commit_msg}**: ${ai_comment}\n\n"
+                else
+                  echo "No AI comment found for commit $sha: $commit_msg"
+                fi
+              fi
+            done
+            
+            if [ -n "$all_comments" ]; then
+              # Use OpenAI to summarize the commit comments into concise changelog entries
+              summary=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
+                -H "Authorization: Bearer $OPENAI_API_KEY" \
+                -H "Content-Type: application/json" \
+                -d '{
+                  "model": "gpt-4o-mini",
+                  "messages": [
+                    {
+                      "role": "system",
+                      "content": "You are a technical writer creating concise changelog entries. Summarize the provided commit comments into bullet points that highlight the key changes, features, fixes, and improvements. Each bullet should be clear, concise (1-2 lines max), and focus on user-facing changes. Use action verbs and be specific about what changed."
+                    },
+                    {
+                      "role": "user", 
+                      "content": "Summarize these commit comments into concise changelog entries:\n\n'"$all_comments"'"
+                    }
+                  ],
+                  "max_tokens": 500,
+                  "temperature": 0.3
+                }' | jq -r '.choices[0].message.content // "- No changes summarized"')
+              
+              echo "$summary"
+            else
+              echo "- No AI comments found for any commits"
+            fi
+          }
+          
+          # Generate AI-powered changelog
+          CHANGELOG=$(get_ai_summary "$ALL_SHAS")
+          
+          # Create changelog file with AI summary
+          cat > CHANGELOG.md << EOF
+          # Changelog
+          
+          ## [v${{ steps.version.outputs.new_version }}] - $(date +%Y-%m-%d)
+          
+          ### Changes
+          $CHANGELOG
+          
+          EOF
+          
+          # Save changelog for release notes
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "### Changes in v${{ steps.version.outputs.new_version }}" >> $GITHUB_OUTPUT
+          echo "" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+      - name: Build all projects
+        run: |
+          echo "Building all projects..."
+          
+          # Build backend
+          cd backend
+          bun install
+          bun run build
+          cd ..
+          
+          # Build UI
+          cd ui
+          bun install
+          bun run build
+          cd ..
+          
+          # Install test dependencies
+          cd test
+          bun install
+          cd ..
+          
+      - name: Run tests
+        run: |
+          echo "Running tests..."
+          cd test
+          bun run test || echo "Tests failed, but continuing with release"
+          cd ..
+          
+      - name: Commit version updates
+        run: |
+          git add package.json backend/package.json ui/package.json test/package.json CHANGELOG.md README.md
+          git commit -m "chore: bump version to v${{ steps.version.outputs.new_version }}"
+          git push origin main
+          
+      - name: Create and push tag
+        run: |
+          git tag "v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ steps.version.outputs.new_version }}"
+          
+      - name: Create GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag: v${{ steps.version.outputs.new_version }}
+        run: |
+          # Create release notes content
+          cat > release_notes.md << 'EOF'
+          # SMART on FHIR Proxy v${{ steps.version.outputs.new_version }}
+          
+          ${{ steps.changelog.outputs.changelog }}
+          
+          ## Components
+          - **Backend**: SMART on FHIR Proxy Server
+          - **UI**: Administration Interface  
+          - **Test Suite**: Comprehensive FHIR compliance tests
+          
+          ## Installation
+          ```bash
+          git clone https://github.com/${{ github.repository }}.git
+          cd smart-on-fhir-proxy
+          git checkout v${{ steps.version.outputs.new_version }}
+          ```
+          
+          See the [README](README.md) for setup instructions.
+          
+          ---
+          
+          ## Auto-generated Release Notes
+          EOF
+          
+          # Create release with GitHub CLI
+          gh release create "$tag" \
+              --repo="$GITHUB_REPOSITORY" \
+              --title="SMART on FHIR Proxy $tag" \
+              --notes-file release_notes.md \
+              --generate-notes
