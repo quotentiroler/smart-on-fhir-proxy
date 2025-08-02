@@ -96,8 +96,9 @@ jobs:
   # Manage version
   version:
     name: Version Management
-    uses: ./.github/workflows/version-management.yml
+    uses: ./.github/workflows/version-operations.yml
     with:
+      operation: 'update'
       release_type: ${{ inputs.release_type }}
       should_bump_version: ${{ inputs.should_bump_version }}
       version_suffix: ${{ inputs.version_suffix }}

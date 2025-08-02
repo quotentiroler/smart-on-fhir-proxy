@@ -1,0 +1,200 @@
+name: Version Operations
+
+on:
+  workflow_call:
+    inputs:
+      operation:
+        description: "Operation to perform: 'validate' or 'update'"
+        required: true
+        type: string
+      release_type:
+        description: "Type of release (alpha, beta, production) - only for 'update'"
+        required: false
+        type: string
+      should_bump_version:
+        description: "Whether to bump the version number - only for 'update'"
+        required: false
+        type: boolean
+        default: false
+      version_suffix:
+        description: "Version suffix (alpha, beta, RELEASE) - only for 'update'"
+        required: false
+        type: string
+    outputs:
+      current_version:
+        description: "Current version before any changes"
+        value: ${{ jobs.version-ops.outputs.current_version }}
+      new_version:
+        description: "New version after processing (only for 'update')"
+        value: ${{ jobs.version-ops.outputs.new_version }}
+      base_version:
+        description: "Base version without suffixes"
+        value: ${{ jobs.version-ops.outputs.base_version }}
+      build_number:
+        description: "Build number for non-production releases"
+        value: ${{ jobs.version-ops.outputs.build_number }}
+      short_sha:
+        description: "Short commit SHA"
+        value: ${{ jobs.version-ops.outputs.short_sha }}
+      is_consistent:
+        description: "Whether versions are consistent across packages"
+        value: ${{ jobs.version-ops.outputs.is_consistent }}
+
+jobs:
+  version-ops:
+    name: Version Operations
+    runs-on: ubuntu-latest
+    outputs:
+      current_version: ${{ steps.check.outputs.current_version }}
+      new_version: ${{ steps.update.outputs.new_version }}
+      base_version: ${{ steps.check.outputs.base_version }}
+      build_number: ${{ steps.update.outputs.build_number }}
+      short_sha: ${{ steps.update.outputs.short_sha }}
+      is_consistent: ${{ steps.check.outputs.is_consistent }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate inputs
+        run: |
+          if [ "${{ inputs.operation }}" = "update" ]; then
+            if [ -z "${{ inputs.release_type }}" ] || [ -z "${{ inputs.version_suffix }}" ]; then
+              echo "❌ release_type and version_suffix are required for 'update' operation"
+              exit 1
+            fi
+          fi
+
+      - name: Check version consistency
+        id: check
+        run: |
+          echo "Checking version consistency across all package.json files..."
+          
+          # Get root version
+          ROOT_VERSION=$(node -p "require('./package.json').version")
+          echo "Root version: $ROOT_VERSION"
+          echo "current_version=$ROOT_VERSION" >> $GITHUB_OUTPUT
+          
+          # Remove any existing suffix to get the base version
+          BASE_VERSION=$(echo "$ROOT_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g' | sed 's/-RELEASE.*//g')
+          echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
+          
+          # Check all package.json files
+          INCONSISTENT=false
+          
+          for file in backend/package.json ui/package.json test/package.json; do
+            if [ -f "$file" ]; then
+              VERSION=$(node -p "require('./$file').version")
+              echo "$file version: $VERSION"
+              if [ "$VERSION" != "$ROOT_VERSION" ]; then
+                echo "❌ Version mismatch in $file: $VERSION (expected: $ROOT_VERSION)"
+                INCONSISTENT=true
+              fi
+            fi
+          done
+          
+          if [ "$INCONSISTENT" = true ]; then
+            echo "is_consistent=false" >> $GITHUB_OUTPUT
+            if [ "${{ inputs.operation }}" = "validate" ]; then
+              echo "❌ Version inconsistency detected!"
+              echo "Run 'npm run version:sync' to fix this."
+              exit 1
+            else
+              echo "⚠️ Version inconsistency detected, but continuing with update operation"
+            fi
+          else
+            echo "is_consistent=true" >> $GITHUB_OUTPUT
+            echo "✅ All versions are consistent!"
+          fi
+
+      - name: Check if version should be bumped (alpha releases only)
+        id: version_check
+        if: inputs.operation == 'update' && inputs.release_type == 'alpha'
+        run: |
+          # Get current version from current branch
+          CURRENT_VERSION="${{ steps.check.outputs.current_version }}"
+          CURRENT_BASE="${{ steps.check.outputs.base_version }}"
+
+          # Get version from main branch
+          git fetch origin main
+          MAIN_VERSION=$(git show origin/main:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8')).version")
+          MAIN_BASE=$(echo "$MAIN_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g' | sed 's/-RELEASE.*//g')
+
+          echo "current_base=$CURRENT_BASE" >> $GITHUB_OUTPUT
+          echo "main_base=$MAIN_BASE" >> $GITHUB_OUTPUT
+
+          # Check if versions match (meaning we should bump)
+          if [ "$CURRENT_BASE" = "$MAIN_BASE" ]; then
+            echo "should_bump=true" >> $GITHUB_OUTPUT
+            echo "✅ Versions match ($CURRENT_BASE = $MAIN_BASE) - will bump version"
+          else
+            echo "should_bump=false" >> $GITHUB_OUTPUT
+            echo "⏭️  Versions differ ($CURRENT_BASE ≠ $MAIN_BASE) - will use current version"
+          fi
+
+      - name: Update versions
+        id: update
+        if: inputs.operation == 'update'
+        run: |
+          BASE_VERSION="${{ steps.check.outputs.base_version }}"
+          
+          # Generate build info for non-production releases
+          if [ "${{ inputs.release_type }}" != "production" ]; then
+            SHORT_SHA=$(git rev-parse --short HEAD)
+            BUILD_NUMBER=$(date +%Y%m%d%H%M)
+            echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+            echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          fi
+
+          # Determine new version based on release type and bump requirements
+          case "${{ inputs.release_type }}" in
+            "alpha")
+              if [ "${{ inputs.should_bump_version }}" = "true" ] && [ "${{ steps.version_check.outputs.should_bump }}" = "true" ]; then
+                # Bump patch version for alpha
+                NEW_BASE=$(echo "$BASE_VERSION" | awk -F. '{$NF = $NF + 1; print}' | sed 's/ /./g')
+                NEW_VERSION="${NEW_BASE}-${{ inputs.version_suffix }}.${BUILD_NUMBER}.${SHORT_SHA}"
+              else
+                NEW_VERSION="${BASE_VERSION}-${{ inputs.version_suffix }}.${BUILD_NUMBER}.${SHORT_SHA}"
+              fi
+              ;;
+            "beta")
+              NEW_VERSION="${BASE_VERSION}-${{ inputs.version_suffix }}.${BUILD_NUMBER}.${SHORT_SHA}"
+              ;;
+            "production")
+              NEW_VERSION="${BASE_VERSION}"
+              ;;
+            *)
+              echo "❌ Unknown release type: ${{ inputs.release_type }}"
+              exit 1
+              ;;
+          esac
+
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Final version: $NEW_VERSION"
+
+          # Set the new version in all packages
+          node scripts/version.js set "$NEW_VERSION"
+          # Sync to ensure all packages are consistent
+          npm run version:sync
+          
+          # Verify versions are now consistent
+          echo "Verifying version consistency:"
+          for file in package.json backend/package.json ui/package.json test/package.json; do
+            if [ -f "$file" ]; then
+              version=$(node -p "require('./$file').version")
+              echo "$file: $version"
+            fi
+          done
+
+          # Update README version badge
+          if [ -f "README.md" ]; then
+            sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z0-9\.-]*\)\?-blue/version-$NEW_VERSION-blue/g" README.md
+            echo "Updated README.md version badge to $NEW_VERSION"
+          fi
