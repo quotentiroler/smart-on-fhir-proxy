@@ -35,8 +35,6 @@ on:
         type: number
         default: 10
     secrets:
-      GITHUB_TOKEN:
-        required: true
       OPENAI_API_KEY:
         required: false
 
