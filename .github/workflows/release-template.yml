@@ -411,12 +411,12 @@ jobs:
             git add package.json backend/package.json ui/package.json test/package.json README.md
           fi
           git commit -m "$COMMIT_MSG"
-          git push origin ${{ inputs.target_branch }}
+          git push origin ${{ inputs.target_branch }} --force
 
       - name: Create and push tag
         run: |
           git tag "v${{ steps.version.outputs.new_version }}"
-          git push origin "v${{ steps.version.outputs.new_version }}"
+          git push origin "v${{ steps.version.outputs.new_version }}" --force
 
       - name: Create GitHub Release
         env:
