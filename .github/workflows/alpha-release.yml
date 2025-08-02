@@ -36,6 +36,34 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
+      - name: Check if version should be bumped
+        id: version_check
+        run: |
+          # Get current version from develop branch
+          DEVELOP_VERSION=$(node -p "require('./package.json').version")
+          echo "develop_version=$DEVELOP_VERSION" >> $GITHUB_OUTPUT
+          
+          # Get version from main branch
+          git fetch origin main
+          MAIN_VERSION=$(git show origin/main:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8')).version")
+          echo "main_version=$MAIN_VERSION" >> $GITHUB_OUTPUT
+          
+          # Remove any existing suffix to get base versions for comparison
+          DEVELOP_BASE=$(echo "$DEVELOP_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g')
+          MAIN_BASE=$(echo "$MAIN_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g' | sed 's/-RELEASE.*//g')
+          
+          echo "develop_base=$DEVELOP_BASE" >> $GITHUB_OUTPUT
+          echo "main_base=$MAIN_BASE" >> $GITHUB_OUTPUT
+          
+          # Check if versions match (meaning we should bump)
+          if [ "$DEVELOP_BASE" = "$MAIN_BASE" ]; then
+            echo "should_bump=true" >> $GITHUB_OUTPUT
+            echo "✅ Versions match ($DEVELOP_BASE = $MAIN_BASE) - will bump version"
+          else
+            echo "should_bump=false" >> $GITHUB_OUTPUT
+            echo "⏭️  Versions differ ($DEVELOP_BASE ≠ $MAIN_BASE) - will use current version"
+          fi
+
       - name: Determine version for alpha
         id: version
         run: |
@@ -51,11 +79,24 @@ jobs:
           echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           
-          # For alpha, DO NOT increment version - just add alpha suffix with build number
-          NEW_VERSION="$BASE_VERSION-alpha.$BUILD_NUMBER+$SHORT_SHA"
+          # Determine if we should bump the version
+          if [ "${{ steps.version_check.outputs.should_bump }}" = "true" ]; then
+            # Bump patch version since develop and main are in sync
+            IFS='.' read -r major minor patch <<< "$BASE_VERSION"
+            NEW_BASE_VERSION="$major.$minor.$((patch + 1))"
+            echo "🔄 Bumping version: $BASE_VERSION → $NEW_BASE_VERSION"
+          else
+            # Use current base version
+            NEW_BASE_VERSION="$BASE_VERSION"
+            echo "📌 Using current version: $BASE_VERSION"
+          fi
+          
+          # Create alpha version with build info
+          NEW_VERSION="$NEW_BASE_VERSION-alpha.$BUILD_NUMBER+$SHORT_SHA"
           
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "Alpha version will be: $NEW_VERSION (no version increment)"
+          echo "new_base_version=$NEW_BASE_VERSION" >> $GITHUB_OUTPUT
+          echo "Final alpha version: $NEW_VERSION"
           
       - name: Update versions (alpha build)
         run: |
@@ -102,8 +143,14 @@ jobs:
           
       - name: Commit version updates
         run: |
+          if [ "${{ steps.version_check.outputs.should_bump }}" = "true" ]; then
+            COMMIT_MSG="chore: bump to ${{ steps.version.outputs.new_base_version }} and create alpha build ${{ steps.version.outputs.new_version }} [skip ci]"
+          else
+            COMMIT_MSG="chore: alpha build ${{ steps.version.outputs.new_version }} [skip ci]"
+          fi
+          
           git add package.json backend/package.json ui/package.json test/package.json README.md
-          git commit -m "chore: alpha build ${{ steps.version.outputs.new_version }} [skip ci]"
+          git commit -m "$COMMIT_MSG"
           git push origin develop
           
       - name: Create and push tag
@@ -179,19 +226,49 @@ jobs:
             
             for sha in $commits; do
               if [ -n "$sha" ]; then
-                # Get AI comment for this commit
-                ai_comment=$(gh api repos/${{ github.repository }}/commits/$sha/comments --jq '.[0].body // ""' 2>/dev/null || echo "")
                 commit_msg=$(git log --format="%s" -n 1 $sha)
+                echo "Processing commit $sha: $commit_msg"
                 
-                if [ -n "$ai_comment" ]; then
+                # Try multiple methods to get commit comments
+                ai_comment=""
+                
+                # Method 1: Get commit comments via API
+                api_comments=$(gh api repos/${{ github.repository }}/commits/$sha/comments --jq '.[].body // empty' 2>/dev/null | head -1 || echo "")
+                
+                # Method 2: If no API comments, try getting comments from the commit page
+                if [ -z "$api_comments" ]; then
+                  # Try to get comments from the commit URL directly
+                  commit_page=$(gh api repos/${{ github.repository }}/commits/$sha --jq '.html_url' 2>/dev/null || echo "")
+                  if [ -n "$commit_page" ]; then
+                    echo "Checking commit page: $commit_page"
+                    # Get all comments for this commit via the API with more details
+                    detailed_comments=$(gh api repos/${{ github.repository }}/commits/$sha/comments --jq '.[] | "\(.body)\n---\n"' 2>/dev/null || echo "")
+                    if [ -n "$detailed_comments" ]; then
+                      api_comments="$detailed_comments"
+                    fi
+                  fi
+                fi
+                
+                # Method 3: Fallback - use commit message if it's descriptive enough
+                if [ -z "$api_comments" ] && [ ${#commit_msg} -gt 10 ] && [ "$commit_msg" != "Update" ] && [ "$commit_msg" != "update" ]; then
+                  api_comments="$commit_msg"
+                fi
+                
+                ai_comment="$api_comments"
+                
+                if [ -n "$ai_comment" ] && [ "$ai_comment" != "" ]; then
                   all_comments="${all_comments}**${commit_msg}**: ${ai_comment}\n\n"
+                  echo "✅ Found comment for commit $sha"
                 else
-                  echo "No AI comment found for commit $sha: $commit_msg"
+                  echo "❌ No comment found for commit $sha: $commit_msg"
+                  # Still include the commit message for context
+                  all_comments="${all_comments}**${commit_msg}**: [No detailed description available]\n\n"
                 fi
               fi
             done
             
-            if [ -n "$all_comments" ]; then
+            if [ -n "$all_comments" ] && [ "$all_comments" != "" ]; then
+              echo "Generating AI summary from collected comments..."
               # Use OpenAI to summarize the commit comments into concise changelog entries
               summary=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
                 -H "Authorization: Bearer $OPENAI_API_KEY" \
@@ -201,20 +278,26 @@ jobs:
                   "messages": [
                     {
                       "role": "system",
-                      "content": "You are a technical writer creating concise changelog entries. Summarize the provided commit comments into bullet points that highlight the key changes, features, fixes, and improvements. Each bullet should be clear, concise (1-2 lines max), and focus on user-facing changes. Use action verbs and be specific about what changed."
+                      "content": "You are a technical writer creating concise changelog entries. Summarize the provided commit information into bullet points that highlight the key changes, features, fixes, and improvements. Each bullet should be clear, concise (1-2 lines max), and focus on user-facing changes. Use action verbs and be specific about what changed. If a commit has \"[No detailed description available]\", infer the likely changes from the commit message."
                     },
                     {
                       "role": "user", 
-                      "content": "Summarize these commit comments into concise changelog entries:\n\n'"$all_comments"'"
+                      "content": "Summarize these commit entries into concise changelog entries:\n\n'"$all_comments"'"
                     }
                   ],
                   "max_tokens": 500,
                   "temperature": 0.3
-                }' | jq -r '.choices[0].message.content // "- No changes summarized"')
+                }' | jq -r '.choices[0].message.content // "- Unable to generate summary"')
+              
+              if [ "$summary" = "- Unable to generate summary" ] || [ -z "$summary" ]; then
+                echo "⚠️  OpenAI summary failed, using commit messages directly"
+                # Fallback to basic formatting of commit messages
+                summary=$(echo -e "$all_comments" | sed 's/\*\*\([^:]*\)\*\*:/- \1:/' | sed 's/\[No detailed description available\]//' | grep -v '^$')
+              fi
               
               echo "$summary"
             else
-              echo "- No AI comments found for any commits"
+              echo "- No commits with meaningful descriptions found in this release"
             fi
           }
           
@@ -223,7 +306,11 @@ jobs:
           
           # Save changelog for release notes
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "### Changes in v${{ steps.version.outputs.new_version }} (Alpha)" >> $GITHUB_OUTPUT
+          if [ "${{ steps.version_check.outputs.should_bump }}" = "true" ]; then
+            echo "### Changes in v${{ steps.version.outputs.new_version }} (Alpha - Version Bumped)" >> $GITHUB_OUTPUT
+          else
+            echo "### Changes in v${{ steps.version.outputs.new_version }} (Alpha)" >> $GITHUB_OUTPUT
+          fi
           echo "" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT

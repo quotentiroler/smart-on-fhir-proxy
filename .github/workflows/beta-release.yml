@@ -169,9 +169,15 @@ jobs:
             echo "⚠️  No PR commits found—using fallback to recent commits"
             # Fallback to recent commits if no PR detected
             ALL_SHAS=$(git log --pretty=format:"%H" --no-merges --reverse -10 | tr '\n' ' ')
+            echo "Fallback commits: $ALL_SHAS"
           else
             echo "Using commits from PR #$PR_NUM: $ALL_SHAS"
           fi
+          
+          # Debug: List all commits we're processing
+          echo "All commits to process: $ALL_SHAS"
+          commit_count=$(echo "$ALL_SHAS" | wc -w)
+          echo "Total commits to process: $commit_count"
           
           # Function to get AI summary of commit comments
           get_ai_summary() {
@@ -180,19 +186,49 @@ jobs:
             
             for sha in $commits; do
               if [ -n "$sha" ]; then
-                # Get AI comment for this commit
-                ai_comment=$(gh api repos/${{ github.repository }}/commits/$sha/comments --jq '.[0].body // ""' 2>/dev/null || echo "")
                 commit_msg=$(git log --format="%s" -n 1 $sha)
+                echo "Processing commit $sha: $commit_msg"
                 
-                if [ -n "$ai_comment" ]; then
+                # Try multiple methods to get commit comments
+                ai_comment=""
+                
+                # Method 1: Get commit comments via API
+                api_comments=$(gh api repos/${{ github.repository }}/commits/$sha/comments --jq '.[].body // empty' 2>/dev/null | head -1 || echo "")
+                
+                # Method 2: If no API comments, try getting comments from the commit page
+                if [ -z "$api_comments" ]; then
+                  # Try to get comments from the commit URL directly
+                  commit_page=$(gh api repos/${{ github.repository }}/commits/$sha --jq '.html_url' 2>/dev/null || echo "")
+                  if [ -n "$commit_page" ]; then
+                    echo "Checking commit page: $commit_page"
+                    # Get all comments for this commit via the API with more details
+                    detailed_comments=$(gh api repos/${{ github.repository }}/commits/$sha/comments --jq '.[] | "\(.body)\n---\n"' 2>/dev/null || echo "")
+                    if [ -n "$detailed_comments" ]; then
+                      api_comments="$detailed_comments"
+                    fi
+                  fi
+                fi
+                
+                # Method 3: Fallback - use commit message if it's descriptive enough
+                if [ -z "$api_comments" ] && [ ${#commit_msg} -gt 10 ] && [ "$commit_msg" != "Update" ] && [ "$commit_msg" != "update" ]; then
+                  api_comments="$commit_msg"
+                fi
+                
+                ai_comment="$api_comments"
+                
+                if [ -n "$ai_comment" ] && [ "$ai_comment" != "" ]; then
                   all_comments="${all_comments}**${commit_msg}**: ${ai_comment}\n\n"
+                  echo "✅ Found comment for commit $sha"
                 else
-                  echo "No AI comment found for commit $sha: $commit_msg"
+                  echo "❌ No comment found for commit $sha: $commit_msg"
+                  # Still include the commit message for context
+                  all_comments="${all_comments}**${commit_msg}**: [No detailed description available]\n\n"
                 fi
               fi
             done
             
-            if [ -n "$all_comments" ]; then
+            if [ -n "$all_comments" ] && [ "$all_comments" != "" ]; then
+              echo "Generating AI summary from collected comments..."
               # Use OpenAI to summarize the commit comments into concise changelog entries
               summary=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
                 -H "Authorization: Bearer $OPENAI_API_KEY" \
@@ -202,20 +238,26 @@ jobs:
                   "messages": [
                     {
                       "role": "system",
-                      "content": "You are a technical writer creating concise changelog entries. Summarize the provided commit comments into bullet points that highlight the key changes, features, fixes, and improvements. Each bullet should be clear, concise (1-2 lines max), and focus on user-facing changes. Use action verbs and be specific about what changed."
+                      "content": "You are a technical writer creating concise changelog entries. Summarize the provided commit information into bullet points that highlight the key changes, features, fixes, and improvements. Each bullet should be clear, concise (1-2 lines max), and focus on user-facing changes. Use action verbs and be specific about what changed. If a commit has \"[No detailed description available]\", infer the likely changes from the commit message."
                     },
                     {
                       "role": "user", 
-                      "content": "Summarize these commit comments into concise changelog entries:\n\n'"$all_comments"'"
+                      "content": "Summarize these commit entries into concise changelog entries:\n\n'"$all_comments"'"
                     }
                   ],
                   "max_tokens": 500,
                   "temperature": 0.3
-                }' | jq -r '.choices[0].message.content // "- No changes summarized"')
+                }' | jq -r '.choices[0].message.content // "- Unable to generate summary"')
+              
+              if [ "$summary" = "- Unable to generate summary" ] || [ -z "$summary" ]; then
+                echo "⚠️  OpenAI summary failed, using commit messages directly"
+                # Fallback to basic formatting of commit messages
+                summary=$(echo -e "$all_comments" | sed 's/\*\*\([^:]*\)\*\*:/- \1:/' | sed 's/\[No detailed description available\]//' | grep -v '^$')
+              fi
               
               echo "$summary"
             else
-              echo "- No AI comments found for any commits"
+              echo "- No commits with meaningful descriptions found in this release"
             fi
           }
           
