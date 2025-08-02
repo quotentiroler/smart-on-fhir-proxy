@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   alpha-release:
-    uses: ./.github/workflows/release-template.yml
+    uses: ./.github/workflows/release-orchestrator.yml
     with:
       release_type: 'alpha'
       source_branch: 'develop'

@@ -1,0 +1,226 @@
+name: Release Orchestrator
+
+on:
+  workflow_call:
+    inputs:
+      release_type:
+        description: "Type of release (alpha, beta, production)"
+        required: true
+        type: string
+      source_branch:
+        description: "Source branch for the release"
+        required: true
+        type: string
+      target_branch:
+        description: "Target branch to push changes to"
+        required: true
+        type: string
+      version_suffix:
+        description: "Version suffix (alpha, beta, RELEASE)"
+        required: true
+        type: string
+      should_bump_version:
+        description: "Whether to bump the version number"
+        required: false
+        type: boolean
+        default: false
+      is_prerelease:
+        description: "Whether this is a prerelease"
+        required: false
+        type: boolean
+        default: false
+      commit_limit:
+        description: "Number of commits to check for changelog"
+        required: false
+        type: number
+        default: 10
+    secrets:
+      APP_ID:
+        required: true
+      APP_PRIVATE_KEY:
+        required: true
+      OPENAI_API_KEY:
+        required: false
+
+jobs:
+  # Get commits for changelog
+  get-commits:
+    name: Get Commits for Changelog
+    runs-on: ubuntu-latest
+    outputs:
+      commit_shas: ${{ steps.commits.outputs.commit_shas }}
+    
+    steps:
+      - name: Generate token
+        id: generate_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Get commit SHAs for changelog
+        id: commits
+        run: |
+          # Find the PR that was merged to trigger this push or get recent commits
+          echo "Looking for commits to include in changelog..."
+
+          # Try to find PR number from the push event or recent merge commit
+          RECENT_COMMIT_MSG=$(git log --format="%s" -n 1)
+          PR_NUM=""
+          
+          if echo "$RECENT_COMMIT_MSG" | grep -E "Merge pull request #[0-9]+" > /dev/null; then
+            PR_NUM=$(echo "$RECENT_COMMIT_MSG" | grep -oE "#[0-9]+" | sed 's/#//')
+            echo "Found PR number from merge commit: $PR_NUM"
+          fi
+
+          if [ -n "$PR_NUM" ]; then
+            # Get commits from the merged PR
+            COMMITS=$(gh pr view "$PR_NUM" --json commits --jq '.commits[].oid' | tr '\n' ',' | sed 's/,$//')
+            echo "Found commits in PR #$PR_NUM: $COMMITS"
+          else
+            # Fall back to recent commits
+            COMMITS=$(git log --format="%H" -n ${{ inputs.commit_limit }} | tr '\n' ',' | sed 's/,$//')
+            echo "Using recent ${{ inputs.commit_limit }} commits: $COMMITS"
+          fi
+
+          echo "commit_shas=$COMMITS" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+
+  # Manage version
+  version:
+    name: Version Management
+    uses: ./.github/workflows/version-management.yml
+    with:
+      release_type: ${{ inputs.release_type }}
+      should_bump_version: ${{ inputs.should_bump_version }}
+      version_suffix: ${{ inputs.version_suffix }}
+
+  # Generate changelog
+  changelog:
+    name: Generate Changelog
+    needs: [get-commits, version]
+    uses: ./.github/workflows/generate-changelog.yml
+    with:
+      commit_shas: ${{ needs.get-commits.outputs.commit_shas }}
+      release_type: ${{ inputs.release_type }}
+      version: ${{ needs.version.outputs.new_version }}
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+  # Build and test
+  build:
+    name: Build and Test
+    needs: [version]
+    uses: ./.github/workflows/build-and-test.yml
+    with:
+      run_tests: true
+      fail_on_test_failure: false
+
+  # Commit and tag
+  commit-and-tag:
+    name: Commit and Tag
+    needs: [version, changelog, build]
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Generate token
+        id: generate_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Configure git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Download changelog file (production only)
+        if: inputs.release_type == 'production' && needs.changelog.outputs.changelog_file
+        run: |
+          # This would need to be implemented if we want to persist changelog files
+          echo "Production changelog file would be handled here"
+
+      - name: Commit version updates
+        run: |
+          # The version management workflow already updated the files, 
+          # but we need to commit them in this context
+          case "${{ inputs.release_type }}" in
+            "alpha")
+              COMMIT_MSG="🚀 Alpha release v${{ needs.version.outputs.new_version }}"
+              ;;
+            "beta")
+              COMMIT_MSG="🧪 Beta release v${{ needs.version.outputs.new_version }}"
+              ;;
+            "production")
+              COMMIT_MSG="🎉 Production release v${{ needs.version.outputs.new_version }}"
+              ;;
+          esac
+
+          # Re-apply version changes (since we're in a fresh checkout)
+          if [ -f "scripts/version.js" ]; then
+            node scripts/version.js set ${{ needs.version.outputs.new_version }}
+            npm run version:sync || echo "version:sync not available"
+          fi
+
+          # Update README badge
+          if [ -f "README.md" ]; then
+            sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z0-9\.-]*\)\?-blue/version-${{ needs.version.outputs.new_version }}-blue/g" README.md
+          fi
+
+          # Add files to commit
+          FILES_TO_ADD="package.json"
+          for file in backend/package.json ui/package.json test/package.json README.md; do
+            if [ -f "$file" ]; then
+              FILES_TO_ADD="$FILES_TO_ADD $file"
+            fi
+          done
+
+          # Add CHANGELOG.md for production releases
+          if [ "${{ inputs.release_type }}" = "production" ] && [ -f "CHANGELOG.md" ]; then
+            FILES_TO_ADD="$FILES_TO_ADD CHANGELOG.md"
+          fi
+
+          git add $FILES_TO_ADD
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "$COMMIT_MSG"
+            git push origin ${{ inputs.target_branch }}
+          fi
+
+      - name: Create and push tag
+        run: |
+          git tag "v${{ needs.version.outputs.new_version }}"
+          git push origin "v${{ needs.version.outputs.new_version }}"
+
+  # Create GitHub release
+  release:
+    name: Create GitHub Release
+    needs: [version, changelog, commit-and-tag]
+    uses: ./.github/workflows/create-release.yml
+    with:
+      release_type: ${{ inputs.release_type }}
+      version: ${{ needs.version.outputs.new_version }}
+      changelog: ${{ needs.changelog.outputs.changelog }}
+      source_branch: ${{ inputs.source_branch }}
+      is_prerelease: ${{ inputs.is_prerelease }}
+      build_number: ${{ needs.version.outputs.build_number }}
+      short_sha: ${{ needs.version.outputs.short_sha }}
+    secrets:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
