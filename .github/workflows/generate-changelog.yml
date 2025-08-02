@@ -1,0 +1,134 @@
+name: Generate Changelog
+
+on:
+  workflow_call:
+    inputs:
+      commit_shas:
+        description: "Comma-separated list of commit SHAs to include in changelog"
+        required: true
+        type: string
+      release_type:
+        description: "Type of release (alpha, beta, production)"
+        required: true
+        type: string
+      version:
+        description: "Version number for this release"
+        required: true
+        type: string
+    outputs:
+      changelog:
+        description: "Generated changelog content"
+        value: ${{ jobs.generate.outputs.changelog }}
+      changelog_file:
+        description: "Path to generated changelog file (for production releases)"
+        value: ${{ jobs.generate.outputs.changelog_file }}
+    secrets:
+      OPENAI_API_KEY:
+        required: false
+
+jobs:
+  generate:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    outputs:
+      changelog: ${{ steps.generate.outputs.changelog }}
+      changelog_file: ${{ steps.generate.outputs.changelog_file }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog content
+        id: generate
+        shell: bash
+        run: |
+          set -euo pipefail
+          
+          # Parse commit SHAs
+          IFS=',' read -ra SHAS <<< "${{ inputs.commit_shas }}"
+          
+          # Function to get AI summary of commit comments
+          get_ai_summary() {
+            local commit_shas="$1"
+            local all_comments=""
+            
+            # Collect commit information
+            for sha in $commit_shas; do
+              if git cat-file -e "$sha" 2>/dev/null; then
+                commit_msg=$(git log --format="%s" -n 1 "$sha" 2>/dev/null || echo "")
+                commit_body=$(git log --format="%b" -n 1 "$sha" 2>/dev/null || echo "")
+                
+                if [ -n "$commit_body" ] && [ "$commit_body" != "$commit_msg" ]; then
+                  full_comment="$commit_msg - $commit_body"
+                else
+                  full_comment="$commit_msg"
+                fi
+                
+                if [ -z "$full_comment" ]; then
+                  full_comment="[No detailed description available]"
+                fi
+                
+                all_comments="${all_comments}- **${sha:0:7}**: $full_comment"$'\n'
+              fi
+            done
+            
+            if [ -z "$all_comments" ]; then
+              echo "- Minor updates and improvements"
+              return
+            fi
+            
+            # Use OpenAI if available, otherwise return formatted commit list
+            if [ -n "${{ secrets.OPENAI_API_KEY }}" ]; then
+              changelog_content=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
+                -H "Content-Type: application/json" \
+                -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+                -d '{
+                  "model": "gpt-4o-mini",
+                  "messages": [
+                    {
+                      "role": "system",
+                      "content": "You are a technical writer creating concise changelog entries. Summarize the provided commit information into bullet points that highlight the key changes, features, fixes, and improvements. Each bullet should be clear, concise (1-2 lines max), and focus on user-facing changes. Use action verbs and be specific about what changed. If a commit has \"[No detailed description available]\", infer the likely changes from the commit message."
+                    },
+                    {
+                      "role": "user",
+                      "content": "Summarize these commit entries into concise changelog entries:\n\n'"$all_comments"'"
+                    }
+                  ],
+                  "max_tokens": 500,
+                  "temperature": 0.3
+                }' | jq -r '.choices[0].message.content // empty')
+              
+              if [ -n "$changelog_content" ]; then
+                echo "$changelog_content"
+              else
+                echo "$all_comments"
+              fi
+            else
+              echo "$all_comments"
+            fi
+          }
+          
+          # Generate the changelog
+          CHANGELOG=$(get_ai_summary "${SHAS[*]}")
+          
+          # Create changelog file for production releases
+          if [ "${{ inputs.release_type }}" = "production" ]; then
+            CHANGELOG_FILE="CHANGELOG-${{ inputs.version }}.md"
+            cat > "$CHANGELOG_FILE" << EOF
+          # Changelog
+
+          ## [v${{ inputs.version }}] - $(date +%Y-%m-%d)
+
+          ### Changes
+          $CHANGELOG
+
+          EOF
+            echo "changelog_file=$CHANGELOG_FILE" >> $GITHUB_OUTPUT
+          fi
+          
+          # Output the changelog
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT

@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   production-release:
-    uses: ./.github/workflows/release-template.yml
+    uses: ./.github/workflows/release-orchestrator.yml
     with:
       release_type: 'production'
       source_branch: 'main'
