@@ -60,7 +60,7 @@ jobs:
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           
           if [ "${{ github.event.inputs.custom_version }}" != "" ]; then
-            NEW_VERSION="${{ github.event.inputs.custom_version }}"
+            NEW_VERSION="${{ github.event.inputs.custom_version }}-RELEASE"
             echo "Using custom version: $NEW_VERSION"
           else
             VERSION_TYPE="${{ github.event.inputs.version_type || 'patch' }}"
@@ -71,13 +71,13 @@ jobs:
             
             case $VERSION_TYPE in
               major)
-                NEW_VERSION="$((major + 1)).0.0"
+                NEW_VERSION="$((major + 1)).0.0-RELEASE"
                 ;;
               minor)
-                NEW_VERSION="$major.$((minor + 1)).0"
+                NEW_VERSION="$major.$((minor + 1)).0-RELEASE"
                 ;;
               patch)
-                NEW_VERSION="$major.$minor.$((patch + 1))"
+                NEW_VERSION="$major.$minor.$((patch + 1))-RELEASE"
                 ;;
             esac
           fi
