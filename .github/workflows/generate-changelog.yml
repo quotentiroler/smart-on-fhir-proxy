@@ -43,34 +43,64 @@ jobs:
       - name: Generate changelog content
         id: generate
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           
           # Parse commit SHAs
           IFS=',' read -ra SHAS <<< "${{ inputs.commit_shas }}"
           
-          # Function to get AI summary of commit comments
+          # Function to get AI summary from commit comments
           get_ai_summary() {
             local commit_shas="$1"
             local all_comments=""
             
-            # Collect commit information
+            echo "🔍 Processing commits for changelog..."
+            
+            # Collect commit information and their AI comments
             for sha in $commit_shas; do
               if git cat-file -e "$sha" 2>/dev/null; then
                 commit_msg=$(git log --format="%s" -n 1 "$sha" 2>/dev/null || echo "")
-                commit_body=$(git log --format="%b" -n 1 "$sha" 2>/dev/null || echo "")
+                echo "Processing commit $sha: $commit_msg"
                 
-                if [ -n "$commit_body" ] && [ "$commit_body" != "$commit_msg" ]; then
-                  full_comment="$commit_msg - $commit_body"
-                else
-                  full_comment="$commit_msg"
+                # Try to get AI-generated commit comments via GitHub API
+                ai_comment=""
+                if [ -n "$GITHUB_TOKEN" ]; then
+                  echo "🤖 Fetching AI comment for commit $sha..."
+                  api_comments=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+                    -H "Accept: application/vnd.github+json" \
+                    "https://api.github.com/repos/${{ github.repository }}/commits/$sha/comments" \
+                    | jq -r '.[].body // empty' 2>/dev/null | head -1)
+                  
+                  if [ -n "$api_comments" ] && [ "$api_comments" != "null" ] && [ "$api_comments" != "" ]; then
+                    ai_comment="$api_comments"
+                    echo "✅ Found AI comment for $sha"
+                  else
+                    echo "⚠️ No AI comment found for $sha"
+                  fi
                 fi
                 
-                if [ -z "$full_comment" ]; then
-                  full_comment="[No detailed description available]"
+                # Use AI comment if available, otherwise enhance commit message
+                if [ -n "$ai_comment" ]; then
+                  full_comment="$ai_comment"
+                else
+                  # Fallback: enhance commit message with file changes
+                  if [ "$commit_msg" = "update" ] || [ "$commit_msg" = "Update" ] || [ -z "$commit_msg" ]; then
+                    files_changed=$(git diff-tree --no-commit-id --name-only -r "$sha" 2>/dev/null | head -5 | tr '\n' ', ' | sed 's/,$//')
+                    if [ -n "$files_changed" ]; then
+                      full_comment="Updated files: $files_changed"
+                    else
+                      full_comment="Minor updates and improvements"
+                    fi
+                  else
+                    full_comment="$commit_msg"
+                  fi
                 fi
                 
                 all_comments="${all_comments}- **${sha:0:7}**: $full_comment"$'\n'
+              else
+                echo "⚠️ Commit $sha not found"
               fi
             done
             
@@ -79,8 +109,15 @@ jobs:
               return
             fi
             
-            # Use OpenAI if available, otherwise return formatted commit list
+            echo "📝 Collected commit information with AI comments:"
+            echo "$all_comments"
+            
+            # Since we already have AI-enhanced content, we can either:
+            # 1. Use it directly (since it's already AI-processed)
+            # 2. Or further summarize it with OpenAI for a higher-level overview
+            
             if [ -n "${{ secrets.OPENAI_API_KEY }}" ]; then
+              echo "🤖 Creating high-level summary from AI comments..."
               changelog_content=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
                 -H "Content-Type: application/json" \
                 -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
@@ -89,24 +126,29 @@ jobs:
                   "messages": [
                     {
                       "role": "system",
-                      "content": "You are a technical writer creating concise changelog entries. Summarize the provided commit information into bullet points that highlight the key changes, features, fixes, and improvements. Each bullet should be clear, concise (1-2 lines max), and focus on user-facing changes. Use action verbs and be specific about what changed. If a commit has \"[No detailed description available]\", infer the likely changes from the commit message."
+                      "content": "You are a technical writer creating concise changelog entries. The provided text contains AI-generated commit summaries. Organize and summarize them into clean changelog entries that highlight the key changes, features, fixes, and improvements. Group similar changes together. Each bullet should be clear, concise (1-2 lines max), and focus on user-facing changes. Use action verbs and be specific about what changed."
                     },
                     {
                       "role": "user",
-                      "content": "Summarize these commit entries into concise changelog entries:\n\n'"$all_comments"'"
+                      "content": "Create a clean changelog from these AI-enhanced commit summaries:\n\n'"$all_comments"'"
                     }
                   ],
                   "max_tokens": 500,
                   "temperature": 0.3
-                }' | jq -r '.choices[0].message.content // empty')
+                }' | jq -r '.choices[0].message.content // empty' 2>/dev/null)
               
-              if [ -n "$changelog_content" ]; then
+              if [ -n "$changelog_content" ] && [ "$changelog_content" != "null" ] && [ "$changelog_content" != "" ]; then
+                echo "✅ High-level AI summary generated successfully"
                 echo "$changelog_content"
               else
-                echo "$all_comments"
+                echo "⚠️ High-level summary failed, using AI commit comments directly"
+                # Format the AI comments nicely
+                echo "$all_comments" | sed 's/^- \*\*[^*]*\*\*: /- /' | sed 's/Updated files: /📁 Updated: /'
               fi
             else
-              echo "$all_comments"
+              echo "⚠️ No OpenAI API key provided, using AI commit comments directly"
+              # Format the AI comments nicely even without further AI processing
+              echo "$all_comments" | sed 's/^- \*\*[^*]*\*\*: /- /' | sed 's/Updated files: /📁 Updated: /'
             fi
           }
           
