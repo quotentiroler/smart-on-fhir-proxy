@@ -44,13 +44,21 @@ jobs:
   release:
     name: Create ${{ inputs.release_type }} Release
     runs-on: ubuntu-latest
-
+    
     steps:
+      # Generate GitHub App token
+      - name: Generate token
+        id: generate_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ steps.generate_token.outputs.token }}  # Use app token
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -58,7 +66,7 @@ jobs:
           node-version: "22"
 
       - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
@@ -410,17 +418,23 @@ jobs:
           else
             git add package.json backend/package.json ui/package.json test/package.json README.md
           fi
-          git commit -m "$COMMIT_MSG"
-          git push origin ${{ inputs.target_branch }} --force
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "$COMMIT_MSG"
+            git push origin ${{ inputs.target_branch }}  # Remove --force for safety
+          fi
 
       - name: Create and push tag
         run: |
           git tag "v${{ steps.version.outputs.new_version }}"
-          git push origin "v${{ steps.version.outputs.new_version }}" --force
+          git push origin "v${{ steps.version.outputs.new_version }}"
 
       - name: Create GitHub Release
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}  # Use app token
           tag: v${{ steps.version.outputs.new_version }}
         run: |
           # Create release notes content
