@@ -2,7 +2,9 @@ name: Alpha Release
 
 on:
   push:
-    branches: [develop]
+    # Trigger only on alpha tag creation to avoid looping on branch commits
+    tags:
+      - 'v*-alpha*'
   workflow_dispatch:
 
 permissions:

@@ -2,7 +2,9 @@ name: Production Release
 
 on:
   push:
-    branches: [main]
+    # Trigger only on production tag creation to avoid looping on branch commits
+    tags:
+      - 'v*-RELEASE*'
   workflow_dispatch:
 
 permissions:
