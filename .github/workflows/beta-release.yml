@@ -187,49 +187,19 @@ jobs:
             for sha in $commits; do
               if [ -n "$sha" ]; then
                 commit_msg=$(git log --format="%s" -n 1 $sha)
-                echo "Processing commit $sha: $commit_msg"
+                short_sha=$(echo "$sha" | cut -c1-7)
                 
-                # Try multiple methods to get commit comments
-                ai_comment=""
+                # Get commit comments via GitHub API (get the first/oldest comment)
+                comment_body=$(gh api repos/${{ github.repository }}/commits/$sha/comments --jq '.[0].body // empty' 2>/dev/null || echo "")
                 
-                # Method 1: Get commit comments via API
-                api_comments=$(gh api repos/${{ github.repository }}/commits/$sha/comments --jq '.[].body // empty' 2>/dev/null | head -1 || echo "")
-                
-                # Method 2: If no API comments, try getting comments from the commit page
-                if [ -z "$api_comments" ]; then
-                  # Try to get comments from the commit URL directly
-                  commit_page=$(gh api repos/${{ github.repository }}/commits/$sha --jq '.html_url' 2>/dev/null || echo "")
-                  if [ -n "$commit_page" ]; then
-                    echo "Checking commit page: $commit_page"
-                    # Get all comments for this commit via the API with more details
-                    detailed_comments=$(gh api repos/${{ github.repository }}/commits/$sha/comments --jq '.[] | "\(.body)\n---\n"' 2>/dev/null || echo "")
-                    if [ -n "$detailed_comments" ]; then
-                      api_comments="$detailed_comments"
-                    fi
-                  fi
-                fi
-                
-                # Method 3: Fallback - use commit message if it's descriptive enough
-                if [ -z "$api_comments" ] && [ ${#commit_msg} -gt 10 ] && [ "$commit_msg" != "Update" ] && [ "$commit_msg" != "update" ]; then
-                  api_comments="$commit_msg"
-                fi
-                
-                ai_comment="$api_comments"
-                
-                if [ -n "$ai_comment" ] && [ "$ai_comment" != "" ]; then
-                  all_comments="${all_comments}**${commit_msg}**: ${ai_comment}\n\n"
-                  echo "✅ Found comment for commit $sha"
-                else
-                  echo "❌ No comment found for commit $sha: $commit_msg"
-                  # Still include the commit message for context
-                  all_comments="${all_comments}**${commit_msg}**: [No detailed description available]\n\n"
+                if [ -n "$comment_body" ] && [ "$comment_body" != "" ] && [ "$comment_body" != "empty" ]; then
+                  all_comments="${all_comments}**${commit_msg}** (${short_sha}): ${comment_body}\n\n"
                 fi
               fi
             done
             
             if [ -n "$all_comments" ] && [ "$all_comments" != "" ]; then
-              echo "Generating AI summary from collected comments..."
-              # Use OpenAI to summarize the commit comments into concise changelog entries
+              # Use OpenAI to create clean changelog entries with commit hashes
               summary=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
                 -H "Authorization: Bearer $OPENAI_API_KEY" \
                 -H "Content-Type: application/json" \
@@ -238,26 +208,20 @@ jobs:
                   "messages": [
                     {
                       "role": "system",
-                      "content": "You are a technical writer creating concise changelog entries. Summarize the provided commit information into bullet points that highlight the key changes, features, fixes, and improvements. Each bullet should be clear, concise (1-2 lines max), and focus on user-facing changes. Use action verbs and be specific about what changed. If a commit has \"[No detailed description available]\", infer the likely changes from the commit message."
+                      "content": "You are a technical writer creating changelog entries. For each commit provided, create a bullet point that summarizes the changes in 1-2 sentences maximum. Focus on what actually changed, what was added, fixed, or improved. Include the commit hash in the format: \"- [Description of change] in commit [hash]\". Use action verbs (enhanced, fixed, added, removed, etc.) and be specific about what changed."
                     },
                     {
                       "role": "user", 
-                      "content": "Summarize these commit entries into concise changelog entries:\n\n'"$all_comments"'"
+                      "content": "Create concise changelog entries for these commits. For each commit, provide a bullet point (starting with -) that summarizes the key changes and includes the commit hash:\n\n'"$all_comments"'"
                     }
                   ],
-                  "max_tokens": 500,
-                  "temperature": 0.3
-                }' | jq -r '.choices[0].message.content // "- Unable to generate summary"')
-              
-              if [ "$summary" = "- Unable to generate summary" ] || [ -z "$summary" ]; then
-                echo "⚠️  OpenAI summary failed, using commit messages directly"
-                # Fallback to basic formatting of commit messages
-                summary=$(echo -e "$all_comments" | sed 's/\*\*\([^:]*\)\*\*:/- \1:/' | sed 's/\[No detailed description available\]//' | grep -v '^$')
-              fi
+                  "max_tokens": 800,
+                  "temperature": 0.2
+                }' | jq -r '.choices[0].message.content // "- No changes documented"')
               
               echo "$summary"
             else
-              echo "- No commits with meaningful descriptions found in this release"
+              echo "- No commit comments found for this release"
             fi
           }
           
