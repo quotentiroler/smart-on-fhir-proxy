@@ -35,7 +35,9 @@ on:
         type: number
         default: 10
     secrets:
-      GH_TOKEN:
+      APP_ID:
+        required: true
+      APP_PRIVATE_KEY:
         required: true
       OPENAI_API_KEY:
         required: false
