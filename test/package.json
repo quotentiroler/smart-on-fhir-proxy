@@ -1,6 +1,6 @@
 {
   "name": "smart-on-fhir-tests",
-  "version": "0.0.2-alpha.202508022338.32feef0",
+  "version": "0.0.2-alpha.202508022339.66d95f7",
   "description": "Tests for SMART on FHIR implementation",
   "scripts": {
     "test": "jest",
