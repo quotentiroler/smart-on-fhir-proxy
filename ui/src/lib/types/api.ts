@@ -111,6 +111,7 @@ export type {
 export type AuthenticationType = 'symmetric' | 'asymmetric' | 'none';
 export type SmartAppType = 'standalone-app' | 'backend-service' | 'ehr-launch' | 'agent';
 
+// TODO: dont use custom interfaces for backend models, use or inherit the existing generated API models instead
 // SMART Application UI Model (extends API model with UI-specific fields)
 export interface SmartApp {
     id: string;
@@ -162,6 +163,13 @@ export interface DashboardData {
 }
 
 // Form types that directly extend API models (minimal UI-specific overrides)
+export interface FhirPersonAssociation {
+    serverName: string;
+    personId: string;
+    display?: string;
+    created?: string;
+}
+
 export interface SmartAppFormData extends PostAdminSmartAppsRequest {
     // UI-specific fields for better UX - these get merged/converted at submission
     scopeSetId?: string; // UI helper for scope management
@@ -176,12 +184,7 @@ export interface SmartAppFormData extends PostAdminSmartAppsRequest {
 export interface HealthcareUserFormData extends PostAdminHealthcareUsersRequest {
     // UI-specific helper fields
     primaryRole?: string; // UI helper for easier role selection
-    fhirPersons?: Array<{
-        serverName: string;
-        personId: string;
-        display: string;
-        created: string;
-    }>; // UI helper for managing associations (gets converted to fhirUser string)
+    fhirPersons?: FhirPersonAssociation[]; // UI helper for managing associations (gets converted to fhirUser string)
 }
 
 // Scope management types

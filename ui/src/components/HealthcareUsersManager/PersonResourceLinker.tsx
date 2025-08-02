@@ -24,17 +24,17 @@ import {
   CheckCircle,
   AlertCircle
 } from 'lucide-react';
-import {
-  type PersonResource,
-  type PersonLink,
-  type LinkedResourceType,
-  type AssuranceLevel,
-  validateFhirReference,
+import { 
+  type PersonResource, 
+  type LinkedResourceType, 
+  type AssuranceLevel, 
+  type CustomPersonLink,
+  validateFhirReference 
 } from '@/lib/fhir-types';
 
 interface PersonResourceLinkerProps {
   availablePersons?: PersonResource[];
-  onPersonUpdate: (personId: string, updatedLinks: PersonLink[]) => void;
+  onPersonUpdate: (personId: string, updatedLinks: CustomPersonLink[]) => void;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -47,7 +47,7 @@ export function PersonResourceLinker({
 }: PersonResourceLinkerProps) {
   const [selectedPersonId, setSelectedPersonId] = useState<string>('');
   const [showAddLinkForm, setShowAddLinkForm] = useState(false);
-  const [newLink, setNewLink] = useState<Partial<PersonLink>>({
+  const [newLink, setNewLink] = useState<Partial<CustomPersonLink>>({
     target: {
       resourceType: 'Patient',
       reference: '',
@@ -102,7 +102,7 @@ export function PersonResourceLinker({
       return;
     }
 
-    const link: PersonLink = {
+    const link: CustomPersonLink = {
       id: Date.now().toString(),
       target: {
         resourceType: newLink.target.resourceType as LinkedResourceType,
@@ -124,7 +124,7 @@ export function PersonResourceLinker({
   const handleRemoveLink = (linkId: string) => {
     if (!selectedPerson) return;
     
-    const updatedLinks = selectedPerson.links.filter(link => link.id !== linkId);
+    const updatedLinks = selectedPerson.links.filter((link: CustomPersonLink) => link.id !== linkId);
     onPersonUpdate(selectedPerson.id || selectedPerson.display, updatedLinks);
   };
 
@@ -264,7 +264,7 @@ export function PersonResourceLinker({
                         onValueChange={(value) => {
                           const currentId = newLink.target?.reference?.split('/')[1] || '';
                           const newReference = currentId ? `${value}/${currentId}` : '';
-                          setNewLink(prev => ({
+                          setNewLink((prev: Partial<CustomPersonLink>) => ({
                             ...prev,
                             target: { 
                               ...prev.target!, 
@@ -304,7 +304,7 @@ export function PersonResourceLinker({
                       <Label className="text-sm font-medium">Assurance Level</Label>
                       <Select
                         value={newLink.assurance}
-                        onValueChange={(value) => setNewLink(prev => ({
+                        onValueChange={(value) => setNewLink((prev: Partial<CustomPersonLink>) => ({
                           ...prev,
                           assurance: value as AssuranceLevel
                         }))}
@@ -330,7 +330,7 @@ export function PersonResourceLinker({
                       onChange={(e) => {
                         const resourceType = newLink.target?.resourceType || 'Patient';
                         const fullReference = e.target.value ? `${resourceType}/${e.target.value}` : '';
-                        setNewLink(prev => ({
+                        setNewLink((prev: Partial<CustomPersonLink>) => ({
                           ...prev,
                           target: { ...prev.target!, reference: fullReference }
                         }));
@@ -352,7 +352,7 @@ export function PersonResourceLinker({
                     <Input
                       placeholder="e.g., John Doe or Dr. Smith"
                       value={newLink.target?.display}
-                      onChange={(e) => setNewLink(prev => ({
+                      onChange={(e) => setNewLink((prev: Partial<CustomPersonLink>) => ({
                         ...prev,
                         target: { ...prev.target!, display: e.target.value }
                       }))}
@@ -365,7 +365,7 @@ export function PersonResourceLinker({
                     <Input
                       placeholder="Additional notes about this link..."
                       value={newLink.notes}
-                      onChange={(e) => setNewLink(prev => ({ ...prev, notes: e.target.value }))}
+                      onChange={(e) => setNewLink((prev: Partial<CustomPersonLink>) => ({ ...prev, notes: e.target.value }))}
                       className="rounded-xl"
                     />
                   </div>
@@ -396,7 +396,7 @@ export function PersonResourceLinker({
               {selectedPerson.links.length > 0 ? (
                 <div className="space-y-3">
                   <h4 className="font-semibold text-gray-900">Existing Links</h4>
-                  {selectedPerson.links.map(link => (
+                  {selectedPerson.links.map((link: CustomPersonLink) => (
                     <div key={link.id} className="p-4 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow duration-200">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-4">
@@ -503,7 +503,7 @@ export function PersonResourceLinkerTrigger({
 }: {
   children: React.ReactNode;
   availablePersons?: PersonResource[];
-  onPersonUpdate: (personId: string, updatedLinks: PersonLink[]) => void;
+  onPersonUpdate: (personId: string, updatedLinks: CustomPersonLink[]) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 

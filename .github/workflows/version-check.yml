@@ -1,0 +1,53 @@
+name: Version Check
+
+on:
+  pull_request:
+    branches: [main, develop, test]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  version-check:
+    name: Check Version Consistency
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          
+      - name: Check version consistency
+        run: |
+          echo "Checking version consistency across all package.json files..."
+          
+          # Get root version
+          ROOT_VERSION=$(node -p "require('./package.json').version")
+          echo "Root version: $ROOT_VERSION"
+          
+          # Check all package.json files
+          INCONSISTENT=false
+          
+          for file in backend/package.json ui/package.json test/package.json; do
+            if [ -f "$file" ]; then
+              VERSION=$(node -p "require('./$file').version")
+              echo "$file version: $VERSION"
+              if [ "$VERSION" != "$ROOT_VERSION" ]; then
+                echo "❌ Version mismatch in $file: $VERSION (expected: $ROOT_VERSION)"
+                INCONSISTENT=true
+              fi
+            fi
+          done
+          
+          if [ "$INCONSISTENT" = true ]; then
+            echo "❌ Version inconsistency detected!"
+            echo "Run 'npm run version:sync' to fix this."
+            exit 1
+          else
+            echo "✅ All versions are consistent!"
+          fi

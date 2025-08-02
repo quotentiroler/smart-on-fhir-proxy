@@ -16,7 +16,24 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Users, Server, Plus, MoreHorizontal } from 'lucide-react';
-import type { HealthcareUser } from './healthcare-users-types';
+import type { FhirPersonAssociation } from '@/lib/types/api';
+
+// TODO: dont use custom interfaces for backend models, use or inherit the existing generated API models instead
+interface HealthcareUser {
+  id: string;
+  name: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  organization: string;
+  enabled: boolean;
+  realmRoles: string[];
+  clientRoles: Record<string, string[]>;
+  primaryRole?: string;
+  fhirPersons: FhirPersonAssociation[];
+  createdAt: string;
+  lastLogin?: string;
+}
 
 interface HealthcareUsersTableProps {
   users: HealthcareUser[];
@@ -147,12 +164,12 @@ export function HealthcareUsersTable({
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {user.realmRoles?.map((role) => (
+                      {user.realmRoles?.map((role: string) => (
                         <Badge key={`realm-${role}`} variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">
                           {role}
                         </Badge>
                       ))}
-                      {user.clientRoles?.['admin-ui']?.map((role) => (
+                      {user.clientRoles?.['admin-ui']?.map((role: string) => (
                         <Badge key={`client-${role}`} variant="outline" className="text-xs bg-violet-500/10 dark:bg-violet-400/20 text-violet-700 dark:text-violet-300 border-violet-500/20 dark:border-violet-400/20">
                           UI: {role}
                         </Badge>
@@ -166,7 +183,7 @@ export function HealthcareUsersTable({
                     <div className="space-y-2">
                       <div className="space-y-1">
                         {user.fhirPersons.length > 0 ? (
-                          user.fhirPersons.slice(0, 2).map((association, index) => (
+                          user.fhirPersons.slice(0, 2).map((association: FhirPersonAssociation, index: number) => (
                             <div key={index} className="flex items-center space-x-2 text-xs">
                               <Server className="w-3 h-3 text-primary" />
                               <span className="font-medium text-foreground">{association.serverName}:</span>

@@ -32,7 +32,7 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
   const [newApp, setNewApp] = useState<SmartAppFormData>({
     name: '',
     clientId: '',
-    redirectUri: '', // Back to single URI for UI
+    redirectUris: [], // Changed to array for API compatibility
     description: '',
     scopes: [],
     scopeSetId: '',
@@ -49,26 +49,28 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
   });
 
   // Helper functions
-  const isInteractive = (appType: SmartAppType): boolean => {
+  const isInteractive = (appType: SmartAppType | undefined): boolean => {
+    if (!appType) return false;
     return appType === 'standalone-app' || appType === 'ehr-launch';
   };
 
-  const requiresRedirectUri = (appType: SmartAppType): boolean => {
+  const requiresRedirectUri = (appType: SmartAppType | undefined): boolean => {
     return isInteractive(appType);
   };
 
-  const hasFixedAuthType = (appType: SmartAppType): boolean => {
+  const hasFixedAuthType = (appType: SmartAppType | undefined): boolean => {
+    if (!appType) return false;
     return appType === 'backend-service' || appType === 'agent';
   };
 
-  const getFixedAuthType = (appType: SmartAppType): AuthenticationType => {
+  const getFixedAuthType = (appType: SmartAppType | undefined): AuthenticationType => {
     if (appType === 'backend-service' || appType === 'agent') {
       return 'asymmetric';
     }
     return 'asymmetric';
   };
 
-  const getAuthTypeDescription = (appType: SmartAppType): string => {
+  const getAuthTypeDescription = (appType: SmartAppType | undefined): string => {
     if (appType === 'agent') {
       return 'Agents require private key JWT for secure autonomous authentication';
     }
@@ -78,7 +80,7 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
     return '';
   };
 
-  const getRedirectUriHelperText = (appType: SmartAppType): string => {
+  const getRedirectUriHelperText = (appType: SmartAppType | undefined): string => {
     if (appType === 'backend-service') {
       return 'Backend services use client credentials flow - no redirect URI needed';
     }
@@ -88,7 +90,7 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
     return '';
   };
 
-  const isAgent = (appType: SmartAppType): boolean => {
+  const isAgent = (appType: SmartAppType | undefined): boolean => {
     return appType === 'agent';
   };
 
@@ -114,36 +116,36 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Get scopes from selected scope set
-    let finalScopes = [...newApp.scopes];
+    // Get scopes from selected scope set - guard against undefined arrays
+    let finalScopes = [...(newApp.scopes || [])];
     if (newApp.scopeSetId) {
       const selectedScopeSet = scopeSets.find(set => set.id === newApp.scopeSetId);
       if (selectedScopeSet) {
-        finalScopes = [...selectedScopeSet.scopes, ...newApp.customScopes];
+        finalScopes = [...selectedScopeSet.scopes, ...(newApp.customScopes || [])];
       }
     } else {
-      finalScopes = [...newApp.scopes, ...newApp.customScopes];
+      finalScopes = [...(newApp.scopes || []), ...(newApp.customScopes || [])];
     }
     
     onAddApp({
       name: newApp.name,
       clientId: newApp.clientId,
-      redirectUri: newApp.redirectUri,
+      redirectUris: newApp.redirectUris || [],
       description: newApp.description,
       scopes: finalScopes,
       scopeSetId: newApp.scopeSetId,
-      customScopes: newApp.customScopes,
-      appType: newApp.appType,
+      customScopes: newApp.customScopes || [],
+      appType: newApp.appType!,
       authenticationType: newApp.authenticationType,
-      serverAccessType: newApp.serverAccessType,
-      allowedServerIds: newApp.allowedServerIds,
+      serverAccessType: newApp.serverAccessType!,
+      allowedServerIds: newApp.allowedServerIds || [],
     });
 
     // Reset form
     setNewApp({ 
       name: '', 
       clientId: '', 
-      redirectUri: '', 
+      redirectUris: [], 
       description: '', 
       scopes: [], 
       scopeSetId: '',
@@ -160,7 +162,7 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
     setNewApp({ 
       name: '', 
       clientId: '', 
-      redirectUri: '', 
+      redirectUris: [], 
       description: '', 
       scopes: [], 
       scopeSetId: '',
@@ -226,7 +228,7 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
                 setNewApp({
                   ...newApp,
                   appType,
-                  redirectUri: requiresRedirectUri(appType) ? newApp.redirectUri : '',
+                  redirectUris: requiresRedirectUri(appType) ? newApp.redirectUris : [],
                   authenticationType: hasFixedAuthType(appType) ? getFixedAuthType(appType) : newApp.authenticationType
                 });
               }}
@@ -260,7 +262,7 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
               <div className="p-3 bg-muted/50 rounded-lg border border-border">
                 <span className="text-sm font-medium text-foreground">Asymmetric (Required)</span>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {getAuthTypeDescription(newApp.appType)}
+                  {getAuthTypeDescription(newApp.appType!)}
                 </p>
               </div>
             </div>
@@ -273,16 +275,19 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
             id="redirectUri"
             type="url"
             placeholder="https://your-app.com/callback"
-            value={newApp.redirectUri}
-            onChange={(e) => setNewApp({ ...newApp, redirectUri: e.target.value })}
+            value={(newApp.redirectUris || [])[0] || ''}
+            onChange={(e) => setNewApp({ 
+              ...newApp, 
+              redirectUris: e.target.value ? [e.target.value] : []
+            })}
             className="rounded-xl border-input focus:border-ring focus:ring-ring shadow-sm"
-            required={requiresRedirectUri(newApp.appType)}
-            disabled={!requiresRedirectUri(newApp.appType)}
+            required={requiresRedirectUri(newApp.appType!)}
+            disabled={!requiresRedirectUri(newApp.appType!)}
           />
-          {!requiresRedirectUri(newApp.appType) && (
-            <p className="text-xs text-muted-foreground">{getRedirectUriHelperText(newApp.appType)}</p>
+          {!requiresRedirectUri(newApp.appType!) && (
+            <p className="text-xs text-muted-foreground">{getRedirectUriHelperText(newApp.appType!)}</p>
           )}
-          {isAgent(newApp.appType) && (
+          {isAgent(newApp.appType!) && (
             <div className="mt-3 p-4 bg-purple-500/10 border border-purple-500/20 rounded-lg">
               <div className="flex items-start space-x-2">
                 <AlertCircle className="w-4 h-4 text-purple-600 dark:text-purple-400 mt-0.5 flex-shrink-0" />
@@ -350,7 +355,7 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
                 )}
               </select>
               <p className="text-xs text-muted-foreground">
-                {getServerAccessTypeDescription(newApp.serverAccessType)}
+                {getServerAccessTypeDescription(newApp.serverAccessType!)}
               </p>
             </div>
 
@@ -481,7 +486,7 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
               <Input
                 id="customScopes"
                 placeholder="patient/Patient.read, user/Observation.read"
-                value={newApp.customScopes.join(', ')}
+                value={(newApp.customScopes || []).join(', ')}
                 onChange={(e) => setNewApp({ 
                   ...newApp, 
                   customScopes: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
@@ -491,7 +496,7 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
             </div>
           </div>
 
-          {(newApp.scopeSetId || newApp.customScopes.length > 0) && (
+          {(newApp.scopeSetId || (newApp.customScopes || []).length > 0) && (
             <div className="bg-card/50 p-4 rounded-lg border border-border">
               <Label className="text-sm font-semibold text-foreground mb-2 block">Current Scope Preview</Label>
               <div className="text-xs text-muted-foreground mb-2">
@@ -505,7 +510,7 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
                   </Badge>
                 ))}
                 {/* Show custom scopes */}
-                {newApp.customScopes.map((scope, index) => (
+                {(newApp.customScopes || []).map((scope, index) => (
                   <Badge key={`custom-${index}`} variant="outline" className="text-xs bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 font-mono">
                     {scope}
                   </Badge>
