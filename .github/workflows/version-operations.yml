@@ -212,7 +212,8 @@ jobs:
             esac
 
             # Update the version badge - handle complex version formats with build numbers and SHA
-            sed -i "s/version-[^b]*\(-blue\)/version-$BADGE_VERSION\1/g" README.md
+            # This regex matches: version-X.X.X.anything-blue and replaces with version-$BADGE_VERSION-blue
+            sed -i "s/version-[^-]*\(-blue\)/version.$BADGE_VERSION\1/g" README.md
             echo "Updated README.md version badge to $BADGE_VERSION"
           fi
 
