@@ -58,6 +58,7 @@ jobs:
           get_ai_summary() {
             local commit_shas="$1"
             local all_comments=""
+            local commit_list=""
             
             echo "🔍 Processing commits for changelog..." >&2
             
@@ -67,6 +68,9 @@ jobs:
                 commit_msg=$(git log --format="%s" -n 1 "$sha" 2>/dev/null || echo "")
                 echo "Processing commit $sha: $commit_msg" >&2
                 
+                # Build simple commit list for display
+                commit_list="${commit_list}- **${sha:0:7}**: $commit_msg"$'\n'
+                
                 # Try to get AI-generated commit comments via GitHub API
                 ai_comment=""
                 if [ -n "$GITHUB_TOKEN" ]; then
@@ -74,7 +78,7 @@ jobs:
                   api_comments=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
                     -H "Accept: application/vnd.github+json" \
                     "https://api.github.com/repos/${{ github.repository }}/commits/$sha/comments" \
-                    | jq -r '.[].body // empty' 2>/dev/null | head -1)
+                    | jq -r '.[].body // empty' 2>/dev/null)
                   
                   if [ -n "$api_comments" ] && [ "$api_comments" != "null" ] && [ "$api_comments" != "" ]; then
                     ai_comment="$api_comments"
@@ -84,7 +88,7 @@ jobs:
                   fi
                 fi
                 
-                # Use AI comment if available, otherwise enhance commit message
+                # Use AI comment if available for AI processing, otherwise enhance commit message
                 if [ -n "$ai_comment" ]; then
                   full_comment="$ai_comment"
                 else
@@ -101,6 +105,7 @@ jobs:
                   fi
                 fi
                 
+                # Build detailed comments for AI processing (but not for display)
                 all_comments="${all_comments}- **${sha:0:7}**: $full_comment"$'\n'
               else
                 echo "⚠️ Commit $sha not found"
@@ -153,53 +158,33 @@ jobs:
                 changelog_content=$(echo "$response_body" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
                 if [ -n "$changelog_content" ] && [ "$changelog_content" != "null" ] && [ "$changelog_content" != "" ]; then
                   echo "✅ High-level AI summary generated successfully" >&2
+                  # Output AI summary first, then commit list
                   echo "$changelog_content"
+                  echo ""
+                  echo "## Commit Details"
+                  echo "$commit_list"
+                  return
                 else
                   echo "⚠️ Failed to extract content from API response" >&2
                   echo "Raw response: $response_body" >&2
-                  # Fall through to categorized changelog
+                  # Fall through to simple commit list
                 fi
               else
                 echo "⚠️ OpenAI API call failed with status $http_code" >&2
                 echo "Error response: $response_body" >&2
-                # Fall through to categorized changelog
+                # Fall through to simple commit list
               fi
               
-              # If we reach here, AI summary failed - generate categorized changelog
+              # If we reach here, AI summary failed - show simple commit list only
               if [ -z "$changelog_content" ] || [ "$changelog_content" = "null" ] || [ "$changelog_content" = "" ]; then
-                echo "📝 Generating categorized changelog as fallback..." >&2
-                # Categorize commit summaries into sections
-                new_features=""
-                improvements=""
-                bug_fixes=""
-                tech_updates=""
-                security=""
-                # Normalize comments list
-                formatted=$(echo "$all_comments" | sed 's/^\- \*\*[^*]*\*\*: /- /')
-                while IFS= read -r line; do
-                  msg="${line#- }"
-                  case "$msg" in
-                    feat*|Feat*) new_features+="- $msg\n";;
-                    fix*|Fix*) bug_fixes+="- $msg\n";;
-                    perf*|Perf*|refactor*|Refactor*) improvements+="- $msg\n";;
-                    chore*|docs*|style*|ci*|test*) tech_updates+="- $msg\n";;
-                    security*|Security*|sec*) security+="- $msg\n";;
-                    *) improvements+="- $msg\n";;
-                  esac
-                done <<< "$formatted"
-                # Output sections
-                [ -n "$new_features" ] && echo "## 🚀 New Features"$'\n'
-                [ -n "$improvements" ] && echo "## ⚡ Improvements"$'\n'
-                [ -n "$bug_fixes" ] && echo "## 🐛 Bug Fixes"$'\n'
-                [ -n "$tech_updates" ] && echo "## 🔧 Technical Updates"$'\n'
-                [ -n "$security" ] && echo "## 🔒 Security"$'\n'
-                # Print categorized entries
-                echo -e "${new_features}${improvements}${bug_fixes}${tech_updates}${security}"
+                echo "OpenAI summarization failed, showing commit list" >&2
+                echo "## Commit Details"
+                echo "$commit_list"
               fi
             else
-              echo "⚠️ No OpenAI API key provided, using AI commit comments directly" >&2
-              # Format the AI comments nicely even without further AI processing
-              echo "$all_comments" | sed 's/^- \*\*[^*]*\*\*: /- /' | sed 's/Updated files: /📁 Updated: /'
+              echo "⚠️ No OpenAI API key provided, showing commit list" >&2
+              echo "## Commit Details"
+              echo "$commit_list"
             fi
           }
           
