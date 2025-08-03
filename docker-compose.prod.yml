@@ -23,7 +23,7 @@ services:
       KEYCLOAK_DOMAIN: localhost
       KEYCLOAK_REALM: smart-on-fhir
       KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/smart-on-fhir/protocol/openid-connect/certs
-      FHIR_SERVER_BASE: https://hapi.fhir.org/baseR4
+      FHIR_SERVER_BASE: https://hapi.fhir.org/baseR4,https://server.fire.ly # Multiple FHIR servers can be specified, separated by commas
     ports:
       - "8445:8445"
     depends_on:
