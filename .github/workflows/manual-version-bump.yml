@@ -1,0 +1,170 @@
+name: Manual Version Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_type:
+        description: 'Version increment type'
+        required: true
+        type: choice
+        options:
+          - minor
+          - major
+        default: minor
+      custom_version:
+        description: 'Custom version (optional, overrides version_type)'
+        required: false
+        type: string
+      branch:
+        description: 'Branch to use for version bump'
+        required: true
+        type: string
+        default: 'develop'
+
+jobs:
+  manual-version-bump:
+    name: Manual Version Bump
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Generate GitHub App Token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          
+      - name: Validate inputs
+        run: |
+          echo "🔍 Validating inputs..."
+          echo "Version type: ${{ inputs.version_type }}"
+          echo "Custom version: ${{ inputs.custom_version }}"
+          echo "Branch: ${{ inputs.branch }}"
+          
+          if [ -n "${{ inputs.custom_version }}" ]; then
+            echo "✅ Using custom version: ${{ inputs.custom_version }}"
+            # Validate semver format
+            if [[ ! "${{ inputs.custom_version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "❌ Custom version must be in semver format (x.y.z)"
+              exit 1
+            fi
+          else
+            echo "✅ Using version type: ${{ inputs.version_type }}"
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+          token: ${{ steps.generate-token.outputs.token }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Get current version
+        id: current
+        run: |
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          # Remove any existing suffix to get the base version
+          BASE_VERSION=$(echo "$CURRENT_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g' | sed 's/-RELEASE.*//g')
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
+          echo "📋 Current version: $CURRENT_VERSION"
+          echo "📋 Base version: $BASE_VERSION"
+
+      - name: Calculate new version
+        id: calculate
+        run: |
+          if [ -n "${{ inputs.custom_version }}" ]; then
+            NEW_VERSION="${{ inputs.custom_version }}"
+            echo "🎯 Using custom version: $NEW_VERSION"
+          else
+            BASE_VERSION="${{ steps.current.outputs.base_version }}"
+            
+            case "${{ inputs.version_type }}" in
+              "minor")
+                # Increment minor version, reset patch to 0
+                NEW_VERSION=$(echo "$BASE_VERSION" | awk -F. '{$2 = $2 + 1; $3 = 0; print}' | sed 's/ /./g')
+                ;;
+              "major")
+                # Increment major version, reset minor and patch to 0
+                NEW_VERSION=$(echo "$BASE_VERSION" | awk -F. '{$1 = $1 + 1; $2 = 0; $3 = 0; print}' | sed 's/ /./g')
+                ;;
+              *)
+                echo "❌ Unknown version type: ${{ inputs.version_type }}"
+                exit 1
+                ;;
+            esac
+            echo "🚀 Calculated new version: $NEW_VERSION"
+          fi
+          
+          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Validate version operations
+        uses: ./.github/workflows/version-operations.yml
+        with:
+          operation: validate
+
+      - name: Update versions
+        run: |
+          NEW_VERSION="${{ steps.calculate.outputs.new_version }}"
+          echo "📝 Updating all package.json files to version: $NEW_VERSION"
+          
+          # Set the new version in all packages
+          node scripts/version.js set "$NEW_VERSION"
+          # Sync to ensure all packages are consistent
+          npm run version:sync
+          
+          # Update README version badge
+          if [ -f "README.md" ]; then
+            sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z0-9\.-]*\)\?-blue/version-$NEW_VERSION-blue/g" README.md
+            echo "📝 Updated README.md version badge to $NEW_VERSION"
+          fi
+
+      - name: Commit and push changes
+        env:
+          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+        run: |
+          NEW_VERSION="${{ steps.calculate.outputs.new_version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Configure git to use the token for authentication
+          git config --global url."https://x-access-token:${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/"
+          
+          git add .
+          git commit -m "🔄 Manual version bump to $NEW_VERSION
+
+          - Version type: ${{ inputs.version_type }}
+          - Custom version: ${{ inputs.custom_version || 'N/A' }}
+          - Branch: ${{ inputs.branch }}
+          - Previous version: ${{ steps.current.outputs.current_version }}
+          - New version: $NEW_VERSION"
+          
+          git push origin ${{ inputs.branch }}
+          
+          echo "✅ Successfully bumped version to $NEW_VERSION on branch ${{ inputs.branch }}"
+
+      - name: Create summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🚀 Manual Version Bump Complete
+          
+          ## Version Information
+          - **Previous Version**: \`${{ steps.current.outputs.current_version }}\`
+          - **New Version**: \`${{ steps.calculate.outputs.new_version }}\`
+          - **Version Type**: \`${{ inputs.version_type }}\`
+          - **Custom Version**: \`${{ inputs.custom_version || 'N/A' }}\`
+          - **Branch**: \`${{ inputs.branch }}\`
+          
+          ## Changes Made
+          - ✅ Updated all package.json files
+          - ✅ Updated README.md version badge
+          - ✅ Committed and pushed changes
+          
+          ## Next Steps
+          You can now create a release from the updated branch or continue development.
+          EOF
