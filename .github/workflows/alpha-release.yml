@@ -2,9 +2,7 @@ name: Alpha Release
 
 on:
   push:
-    # Trigger only on alpha tag creation to avoid looping on branch commits
-    tags:
-      - 'v*-alpha*'
+    branches: [develop]
   workflow_dispatch:
 
 permissions:
@@ -13,6 +11,8 @@ permissions:
 
 jobs:
   alpha-release:
+    # Only run if the last commit is not a release commit to avoid infinite loops
+    if: ${{ !contains(github.event.head_commit.message, 'Alpha release') && !contains(github.event.head_commit.message, '🚀') }}
     uses: ./.github/workflows/release-orchestrator.yml
     with:
       release_type: 'alpha'
