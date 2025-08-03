@@ -8,16 +8,69 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Package.json files to sync
-const packagePaths = [
-  'package.json',
-  'backend/package.json', 
-  'ui/package.json',
-  'test/package.json'
-];
+// Recursively find all package.json files using built-in modules
+function findPackageFiles(dir = process.cwd(), found = []) {
+  try {
+    const items = fs.readdirSync(dir);
+    
+    for (const item of items) {
+      const fullPath = path.join(dir, item);
+      const stat = fs.statSync(fullPath);
+      
+      if (stat.isDirectory()) {
+        // Skip node_modules, dist, build directories
+        if (!['node_modules', 'dist', 'build', '.git'].includes(item)) {
+          findPackageFiles(fullPath, found);
+        }
+      } else if (item === 'package.json') {
+        // Convert to relative path from process.cwd()
+        const relativePath = path.relative(process.cwd(), fullPath);
+        found.push(relativePath || 'package.json');
+      }
+    }
+    
+    return found;
+  } catch (error) {
+    console.warn(`Warning: Could not read directory ${dir}:`, error.message);
+    return found;
+  }
+}
+
+// Dynamically find all package.json files
+function getPackagePaths() {
+  try {
+    const allPackages = findPackageFiles();
+    
+    // Ensure root package.json is first
+    const rootIndex = allPackages.indexOf('package.json');
+    if (rootIndex > 0) {
+      allPackages.splice(rootIndex, 1);
+      allPackages.unshift('package.json');
+    }
+    
+    return allPackages;
+  } catch (error) {
+    // Fallback to manual list if finding fails
+    console.warn('⚠ Warning: Could not auto-detect package.json files, using fallback list');
+    return [
+      'package.json',
+      'backend/package.json', 
+      'ui/package.json',
+      'testing/package.json',
+      'testing/alpha/package.json',
+      'testing/beta/package.json',
+      'testing/production/package.json'
+    ];
+  }
+}
 
 function updateVersion(newVersion) {
   console.log(`Updating all packages to version: ${newVersion}`);
+  
+  const packagePaths = getPackagePaths();
+  console.log(`Found ${packagePaths.length} package.json files:`);
+  packagePaths.forEach(p => console.log(`  - ${p}`));
+  console.log('');
   
   packagePaths.forEach(packagePath => {
     if (fs.existsSync(packagePath)) {
@@ -59,6 +112,7 @@ function getBaseVersion(version) {
 
 function checkConsistency() {
   const rootVersion = getCurrentVersion();
+  const packagePaths = getPackagePaths();
   let isConsistent = true;
   
   console.log(`Checking version consistency (root: ${rootVersion})`);

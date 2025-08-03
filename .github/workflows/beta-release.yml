@@ -12,9 +12,18 @@ permissions:
   pull-requests: read
 
 jobs:
+  # Beta releases run comprehensive testing (unit + integration + E2E)
+  beta-testing:
+    name: Beta Testing
+    uses: ./.github/workflows/testing-strategy.yml
+    with:
+      test_stage: 'beta'
+      test_scope: 'all'
+
   beta-release:
     # Only run if the last commit is not a release commit to avoid infinite loops
     if: ${{ !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, '🧪 Beta release v') }}
+    needs: [beta-testing]
     uses: ./.github/workflows/release-orchestrator.yml
     with:
       release_type: 'beta'
