@@ -213,7 +213,7 @@ jobs:
 
             # Update the version badge - handle complex version formats with build numbers and SHA
             # This regex matches: version-X.X.X.anything-blue and replaces with version-$BADGE_VERSION-blue
-            sed -i "s/version-[^-]*\(-blue\)/v$BADGE_VERSION\1/g" README.md
+            sed -i "s/v[^-]*\(-blue\)/v$BADGE_VERSION\1/g" README.md
             echo "Updated README.md version badge to $BADGE_VERSION"
           fi
 
