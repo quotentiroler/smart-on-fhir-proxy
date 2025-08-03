@@ -25,6 +25,8 @@ on:
     secrets:
       OPENAI_API_KEY:
         required: false
+      GH_TOKEN:
+        required: true
 
 jobs:
   generate:
@@ -44,7 +46,7 @@ jobs:
         id: generate
         shell: bash
         env:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           set -euo pipefail
           
@@ -56,18 +58,18 @@ jobs:
             local commit_shas="$1"
             local all_comments=""
             
-            echo "🔍 Processing commits for changelog..."
+            echo "🔍 Processing commits for changelog..." >&2
             
             # Collect commit information and their AI comments
             for sha in $commit_shas; do
               if git cat-file -e "$sha" 2>/dev/null; then
                 commit_msg=$(git log --format="%s" -n 1 "$sha" 2>/dev/null || echo "")
-                echo "Processing commit $sha: $commit_msg"
+                echo "Processing commit $sha: $commit_msg" >&2
                 
                 # Try to get AI-generated commit comments via GitHub API
                 ai_comment=""
                 if [ -n "$GITHUB_TOKEN" ]; then
-                  echo "🤖 Fetching AI comment for commit $sha..."
+                  echo "🤖 Fetching AI comment for commit $sha..." >&2
                   api_comments=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
                     -H "Accept: application/vnd.github+json" \
                     "https://api.github.com/repos/${{ github.repository }}/commits/$sha/comments" \
@@ -75,9 +77,9 @@ jobs:
                   
                   if [ -n "$api_comments" ] && [ "$api_comments" != "null" ] && [ "$api_comments" != "" ]; then
                     ai_comment="$api_comments"
-                    echo "✅ Found AI comment for $sha"
+                    echo "✅ Found AI comment for $sha" >&2
                   else
-                    echo "⚠️ No AI comment found for $sha"
+                    echo "⚠️ No AI comment found for $sha" >&2
                   fi
                 fi
                 
@@ -109,7 +111,7 @@ jobs:
               return
             fi
             
-            echo "📝 Collected commit information with AI comments:"
+            echo "📝 Collected commit information with AI comments:" >&2
             echo "$all_comments"
             
             # Since we already have AI-enhanced content, we can either:
@@ -117,7 +119,7 @@ jobs:
             # 2. Or further summarize it with OpenAI for a higher-level overview
             
             if [ -n "${{ secrets.OPENAI_API_KEY }}" ]; then
-              echo "🤖 Creating high-level summary from AI comments..."
+              echo "🤖 Creating high-level summary from AI comments..." >&2
               changelog_content=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
                 -H "Content-Type: application/json" \
                 -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
@@ -138,15 +140,15 @@ jobs:
                 }' | jq -r '.choices[0].message.content // empty' 2>/dev/null)
               
               if [ -n "$changelog_content" ] && [ "$changelog_content" != "null" ] && [ "$changelog_content" != "" ]; then
-                echo "✅ High-level AI summary generated successfully"
+                echo "✅ High-level AI summary generated successfully" >&2
                 echo "$changelog_content"
               else
-                echo "⚠️ High-level summary failed, using AI commit comments directly"
+                echo "⚠️ High-level summary failed, using AI commit comments directly" >&2
                 # Format the AI comments nicely
                 echo "$all_comments" | sed 's/^- \*\*[^*]*\*\*: /- /' | sed 's/Updated files: /📁 Updated: /'
               fi
             else
-              echo "⚠️ No OpenAI API key provided, using AI commit comments directly"
+              echo "⚠️ No OpenAI API key provided, using AI commit comments directly" >&2
               # Format the AI comments nicely even without further AI processing
               echo "$all_comments" | sed 's/^- \*\*[^*]*\*\*: /- /' | sed 's/Updated files: /📁 Updated: /'
             fi

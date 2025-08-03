@@ -85,8 +85,15 @@ jobs:
             echo "Found commits in PR #$PR_NUM: $COMMITS"
           else
             # Fall back to recent commits
-            COMMITS=$(git log --format="%H" -n ${{ inputs.commit_limit }} | tr '\n' ',' | sed 's/,$//')
-            echo "Using recent ${{ inputs.commit_limit }} commits: $COMMITS"
+            RAW_COMMITS=$(git log --format="%H" -n ${{ inputs.commit_limit }} | tr '\n' ',' | sed 's/,$//')
+            echo "Using recent ${{ inputs.commit_limit }} commits: $RAW_COMMITS"
+            # Exclude our own release commits (messages containing 'release')
+            FILTERED=$(echo "$RAW_COMMITS" | tr ',' '\n' | while read sha; do
+              msg=$(git log --format="%s" -n 1 "$sha");
+              echo "$msg" | grep -Eiq 'release'; if [ $? -ne 0 ]; then echo "$sha"; fi
+            done | tr '\n' ',' | sed 's/,$//')
+            COMMITS=$FILTERED
+            echo "Filtered commits: $COMMITS"
           fi
 
           echo "commit_shas=$COMMITS" >> $GITHUB_OUTPUT
@@ -114,6 +121,7 @@ jobs:
       version: ${{ needs.version.outputs.new_version }}
     secrets:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Build and test
   build:
