@@ -216,7 +216,7 @@ This project follows [Semantic Versioning](https://semver.org/):
 ```bash
 # If you see version mismatch errors:
 bun run version:sync
-git add package.json backend/package.json ui/package.json test/package.json
+git add **/package.json
 git commit -m "sync: align package versions"
 ```
 
