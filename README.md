@@ -229,7 +229,7 @@ bun run version:bump patch      # Bump patch version
 - **`develop`**: Alpha releases with `-alpha` suffix
 - **`dev/*`**: Feature branches
 
-Each branch automatically triggers appropriate CI/CD workflows with version management.
+Each branch automatically triggers appropriate CI/CD workflows with version management. No PR needs to be created when pushing into a branch starting with `dev/`
 
 ## 📋 Development Status
 
@@ -242,6 +242,7 @@ Each branch automatically triggers appropriate CI/CD workflows with version mana
 - Docker containerization and development environment
 - Comprehensive documentation structure
 - AI assistant integration framework
+- GitHub Release and Versioning Pipeline
 
 ### 🚧 In Progress (v0.0.2-v0.0.8)
 
