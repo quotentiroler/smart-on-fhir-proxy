@@ -6,6 +6,7 @@ import { fhirServerStore, getServerByName, getServerInfoByName } from '../lib/fh
 import { ErrorResponse } from '../schemas/common'
 import { smartConfigService } from '../lib/smart-config'
 import { logger } from '../lib/logger'
+import { fetchWithMtls, getMtlsConfig } from './fhir-servers'
 import type { SmartConfiguration } from '../types'
 
 // Extract proxy logic into a reusable function
@@ -48,13 +49,22 @@ async function proxyFHIR({ params, request, set }: {
     request.headers.forEach((v: string, k: string) => k !== 'host' && k !== 'connection' && headers.set(k, v!))
     headers.set('accept', 'application/fhir+json')
 
-    const resp = await fetch(target, {
+    const fetchOptions = {
       method: request.method,
       headers,
       body: ['POST','PUT','PATCH'].includes(request.method) 
         ? await request.text() 
         : undefined
-    })
+    }
+
+    // Check if mTLS is configured for this server
+    const mtlsConfig = getMtlsConfig(serverInfo.identifier)
+    const useMtls = mtlsConfig?.enabled && target.startsWith('https://')
+    
+    // Use appropriate fetch method based on mTLS configuration
+    const resp = useMtls 
+      ? await fetchWithMtls(target, { ...fetchOptions, serverId: serverInfo.identifier })
+      : await fetch(target, fetchOptions)
 
     // copy status & CORS headers
     set.status = resp.status

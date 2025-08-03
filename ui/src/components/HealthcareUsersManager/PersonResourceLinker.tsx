@@ -183,7 +183,7 @@ export function PersonResourceLinker({
                       <User className="w-4 h-4" />
                       <span>{person.display}</span>
                       <Badge variant="outline" className="text-xs">
-                        {person.serverInfo.displayName}
+                        {person.serverInfo.serverName}
                       </Badge>
                       <Badge variant="outline" className="text-xs bg-blue-50 text-blue-600">
                         {person.serverInfo.version}
@@ -207,7 +207,7 @@ export function PersonResourceLinker({
                     <div className="flex items-center space-x-2 mt-1">
                       <Database className="w-4 h-4 text-blue-600" />
                       <span className="text-sm text-blue-700">
-                        <strong>Server:</strong> {selectedPerson.serverInfo.displayName}
+                        <strong>Server:</strong> {selectedPerson.serverInfo.serverName}
                       </span>
                     </div>
                     <p className="text-xs text-blue-600 mt-1">
@@ -239,7 +239,7 @@ export function PersonResourceLinker({
                     <span>2. Manage Resource Links</span>
                   </CardTitle>
                   <CardDescription>
-                    Add or remove links to other resources on {selectedPerson.serverInfo.displayName}
+                    Add or remove links to other resources on {selectedPerson.serverInfo.serverName}
                   </CardDescription>
                 </div>
                 <Button
@@ -338,7 +338,7 @@ export function PersonResourceLinker({
                       className="rounded-xl"
                     />
                     <p className="text-xs text-gray-600 mt-1">
-                      Enter just the ID that exists on {selectedPerson.serverInfo.displayName}
+                      Enter just the ID that exists on {selectedPerson.serverInfo.serverName}
                     </p>
                     {newLink.target?.reference && (
                       <p className="text-xs text-blue-600 mt-1">
@@ -459,7 +459,7 @@ export function PersonResourceLinker({
                     No links yet
                   </h3>
                   <p className="text-gray-600 mb-4">
-                    Link this Person to other resources on {selectedPerson.serverInfo.displayName}
+                    Link this Person to other resources on {selectedPerson.serverInfo.serverName}
                   </p>
                   <Button
                     onClick={() => setShowAddLinkForm(true)}
