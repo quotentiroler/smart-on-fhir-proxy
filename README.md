@@ -229,7 +229,7 @@ bun run version:bump patch      # Bump patch version
 - **`develop`**: Alpha releases with `-alpha` suffix
 - **`dev/*`**: Feature branches
 
-Each branch automatically triggers appropriate CI/CD workflows with version management.
+Each branch automatically triggers appropriate CI/CD workflows with version management. No PR needs to be created when pushing into a branch starting with `dev/`
 
 ## 📋 Development Status
 
