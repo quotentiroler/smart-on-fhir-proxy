@@ -15,6 +15,7 @@ jobs:
   # Alpha releases run unit tests first
   alpha-testing:
     name: Alpha Testing
+    if: ${{ !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Alpha release') && !contains(github.event.head_commit.message, '🚀') && !contains(github.event.head_commit.message, 'smart-on-fhir-proxy-releaser') }}
     uses: ./.github/workflows/testing-strategy.yml
     with:
       test_stage: 'alpha'
