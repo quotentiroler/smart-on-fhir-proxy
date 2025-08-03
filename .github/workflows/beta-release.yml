@@ -3,6 +3,8 @@ name: Beta Release
 on:
   push:
     branches: [test]
+    paths-ignore:
+      - 'ui/src/lib/api-client/**'
   workflow_dispatch:
 
 permissions:

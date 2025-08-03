@@ -390,7 +390,7 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-2">
-                            <span className="text-sm font-medium text-foreground truncate">{server.displayName}</span>
+                            <span className="text-sm font-medium text-foreground truncate">{server.name}</span>
                             {server.supported ? (
                               <CheckCircle className="w-4 h-4 text-green-500 dark:text-green-400 flex-shrink-0" />
                             ) : (
