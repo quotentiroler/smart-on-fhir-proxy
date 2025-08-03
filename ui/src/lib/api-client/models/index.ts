@@ -11,6 +11,8 @@ export * from './GetAdminIdpsCount200Response';
 export * from './GetAdminLaunchContexts200ResponseInner';
 export * from './GetAdminRoles200ResponseInner';
 export * from './GetAdminSmartApps200ResponseInner';
+export * from './GetAuthIdentityProviders200ResponseInner';
+export * from './GetAuthIdps200ResponseInner';
 export * from './GetAuthUserinfo200Response';
 export * from './GetAuthUserinfo200ResponseNameInner';
 export * from './GetFhirServers200Response';

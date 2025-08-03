@@ -21,7 +21,10 @@ export const keycloakPlugin = new Elysia()
         preferred_username: tokenPayload.preferred_username,
         email: tokenPayload.email,
         hasRealmAccess: !!tokenPayload.realm_access,
-        hasResourceAccess: !!tokenPayload.resource_access
+        hasResourceAccess: !!tokenPayload.resource_access,
+        realmRoles: tokenPayload.realm_access?.roles || [],
+        adminUiRoles: tokenPayload.resource_access?.['admin-ui']?.roles || [],
+        realmManagementRoles: tokenPayload.resource_access?.['realm-management']?.roles || []
       })
       
       // Optional: Check if user has admin-related roles
