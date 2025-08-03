@@ -198,8 +198,16 @@ jobs:
             fi
           done
 
-          # Update README version badge
+          # Update README version badge with simplified version
           if [ -f "README.md" ]; then
-            sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z0-9\.-]*\)\?-blue/version-$NEW_VERSION-blue/g" README.md
-            echo "Updated README.md version badge to $NEW_VERSION"
+            # Simplify version for badge (strip build number and SHA)
+            case "${{ inputs.release_type }}" in
+              "alpha") BADGE_VERSION="${BASE_VERSION}-alpha";;
+              "beta") BADGE_VERSION="${BASE_VERSION}-beta";;
+              "production") BADGE_VERSION="${BASE_VERSION}";;
+              *) BADGE_VERSION="$NEW_VERSION";;
+            esac
+
+            sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z0-9\.-]*\)\?-blue/version-$BADGE_VERSION-blue/g" README.md
+            echo "Updated README.md version badge to $BADGE_VERSION"
           fi

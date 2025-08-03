@@ -572,11 +572,17 @@ export function FhirServersManager() {
                           <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                           <span className="text-sm font-semibold text-orange-700 dark:text-orange-300">Security Warning</span>
                         </div>
-                        <p className="text-xs text-orange-700 dark:text-orange-300">
-                          This FHIR server is publicly accessible and can be reached directly, 
-                          bypassing the secure proxy. For proper security, the FHIR server should only be accessible 
-                          through the SMART on FHIR Proxy.
-                        </p>
+                        <div className="text-xs text-orange-700 dark:text-orange-300 space-y-2">
+                          <p>
+                            This FHIR server is publicly accessible and can be reached directly, bypassing the secure proxy.
+                            It should only accept traffic from the SMART on FHIR Proxy.
+                          </p>
+                          <ul className="list-disc pl-5">
+                            <li>TLS everywhere: secure client-to-proxy and proxy-to-FHIR connections.</li>
+                            <li>Lock down the FHIR server to only accept proxy IPs via a private subnet or VPN—avoid relying solely on public-IP ACLs.</li>
+                            <li>Consider mutual TLS (mTLS) between proxy and FHIR server for extra assurance.</li>
+                          </ul>
+                        </div>
                       </div>
                     )}
 
