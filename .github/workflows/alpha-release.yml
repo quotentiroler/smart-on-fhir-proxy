@@ -31,7 +31,6 @@ jobs:
       release_type: 'alpha'
       source_branch: 'develop'
       target_branch: 'develop'
-      version_suffix: 'alpha'
       should_bump_version: true
       is_prerelease: true
       commit_limit: 10
