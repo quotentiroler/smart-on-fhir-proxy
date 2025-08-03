@@ -107,7 +107,7 @@ graph TB
 
    ```bash
    # Start all services with Docker
-   docker-compose up -d
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
    # Install dependencies
    bun install

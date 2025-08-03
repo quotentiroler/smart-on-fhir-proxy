@@ -74,7 +74,12 @@
         ],
         "realm-management": [
           "admin",
-          "realm-admin"
+          "realm-admin",
+          "manage-users",
+          "view-users",
+          "query-users",
+          "manage-clients",
+          "view-clients"
         ]
       }
     },
