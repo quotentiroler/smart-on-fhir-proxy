@@ -166,6 +166,13 @@ jobs:
                 done <<< "$formatted"
                 # Output sections
                 [ -n "$new_features" ] && echo "## 🚀 New Features"$'\n'
+                [ -n "$improvements" ] && echo "## ⚡ Improvements"$'\n'
+                [ -n "$bug_fixes" ] && echo "## 🐛 Bug Fixes"$'\n'
+                [ -n "$tech_updates" ] && echo "## 🔧 Technical Updates"$'\n'
+                [ -n "$security" ] && echo "## 🔒 Security"$'\n'
+                # Print categorized entries
+                echo -e "${new_features}${improvements}${bug_fixes}${tech_updates}${security}"
+              fi
             else
               echo "⚠️ No OpenAI API key provided, using AI commit comments directly" >&2
               # Format the AI comments nicely even without further AI processing
