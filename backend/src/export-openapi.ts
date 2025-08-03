@@ -26,7 +26,9 @@ const exportConfig = {
     clientSecret: process.env.KEYCLOAK_CLIENT_SECRET || 'mock-secret',
   },
   fhir: {
-    serverBases: (process.env.FHIR_SERVER_BASE || 'http://localhost:8081/fhir').split(',').map(s => s.trim()),
+    serverBases: (process.env.FHIR_SERVER_BASE ?? 'http://localhost:8081/fhir')
+      .split(',')
+      .map(s => s.trim()),
   },
   logging: {
     level: 'info' as const,
