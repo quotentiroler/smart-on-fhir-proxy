@@ -211,8 +211,8 @@ jobs:
               *) BADGE_VERSION="$NEW_VERSION";;
             esac
 
-            # Update the version badge - handle both current and new formats
-            sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+[^-]*-blue/version-$BADGE_VERSION-blue/g" README.md
+            # Update the version badge - handle complex version formats with build numbers and SHA
+            sed -i "s/version-[^b]*\(-blue\)/version-$BADGE_VERSION\1/g" README.md
             echo "Updated README.md version badge to $BADGE_VERSION"
           fi
 
