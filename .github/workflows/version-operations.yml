@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       release_type:
-        description: "Type of release (alpha, beta, production) - only for 'update'"
+        description: "Type of release (alpha, beta, RELEASE) - only for 'update'"
         required: false
         type: string
       should_bump_version:
@@ -16,10 +16,6 @@ on:
         required: false
         type: boolean
         default: false
-      version_suffix:
-        description: "Version suffix (alpha, beta, RELEASE) - only for 'update'"
-        required: false
-        type: string
     secrets:
       APP_ID:
         required: false
@@ -36,7 +32,7 @@ on:
         description: "Base version without suffixes"
         value: ${{ jobs.version-ops.outputs.base_version }}
       build_number:
-        description: "Build number for non-production releases"
+        description: "Build number for non-RELEASE releases"
         value: ${{ jobs.version-ops.outputs.build_number }}
       short_sha:
         description: "Short commit SHA"
@@ -85,8 +81,8 @@ jobs:
       - name: Validate inputs
         run: |
           if [ "${{ inputs.operation }}" = "update" ]; then
-            if [ -z "${{ inputs.release_type }}" ] || [ -z "${{ inputs.version_suffix }}" ]; then
-              echo "❌ release_type and version_suffix are required for 'update' operation"
+            if [ -z "${{ inputs.release_type }}" ]; then
+              echo "❌ release_type is required for 'update' operation"
               exit 1
             fi
           fi
@@ -155,8 +151,11 @@ jobs:
           BASE_VERSION="${{ steps.check.outputs.base_version }}"
           CURRENT_VERSION="${{ steps.check.outputs.current_version }}"
           
-          # Generate build info for non-production releases
-          if [ "${{ inputs.release_type }}" != "production" ]; then
+          # Use release_type directly as version suffix
+          VERSION_SUFFIX="${{ inputs.release_type }}"
+          
+          # Generate build info for non-RELEASE releases
+          if [ "${{ inputs.release_type }}" != "RELEASE" ]; then
             SHORT_SHA=$(git rev-parse --short HEAD)
             BUILD_NUMBER=$(date +%Y%m%d%H%M)
             echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
@@ -170,20 +169,20 @@ jobs:
                 # Use our bump script to increment patch version
                 bun run version:bump
                 NEW_BASE=$(node -p "require('./package.json').version")
-                NEW_VERSION="${NEW_BASE}-${{ inputs.version_suffix }}.${BUILD_NUMBER}.${SHORT_SHA}"
+                NEW_VERSION="${NEW_BASE}-${VERSION_SUFFIX}.${BUILD_NUMBER}.${SHORT_SHA}"
               else
-                NEW_VERSION="${BASE_VERSION}-${{ inputs.version_suffix }}.${BUILD_NUMBER}.${SHORT_SHA}"
+                NEW_VERSION="${BASE_VERSION}-${VERSION_SUFFIX}.${BUILD_NUMBER}.${SHORT_SHA}"
               fi
               ;;
             "beta")
               # For beta, keep the same base version but change suffix to beta
-              # This preserves version progression: alpha -> beta -> production
-              NEW_VERSION="${BASE_VERSION}-${{ inputs.version_suffix }}.${BUILD_NUMBER}.${SHORT_SHA}"
+              # This preserves version progression: alpha -> beta -> RELEASE
+              NEW_VERSION="${BASE_VERSION}-${VERSION_SUFFIX}.${BUILD_NUMBER}.${SHORT_SHA}"
               echo "Promoting from current version: $CURRENT_VERSION"
               echo "To beta version: $NEW_VERSION"
               ;;
-            "production")
-              NEW_VERSION="${BASE_VERSION}"
+            "RELEASE")
+              NEW_VERSION="${BASE_VERSION}-${VERSION_SUFFIX}"
               ;;
             *)
               echo "❌ Unknown release type: ${{ inputs.release_type }}"
@@ -204,16 +203,11 @@ jobs:
           # Update README version badge with simplified version
           if [ -f "README.md" ]; then
             # Simplify version for badge (strip build number and SHA)
-            case "${{ inputs.release_type }}" in
-              "alpha") BADGE_VERSION="${BASE_VERSION}-alpha";;
-              "beta") BADGE_VERSION="${BASE_VERSION}-beta";;
-              "production") BADGE_VERSION="${BASE_VERSION}";;
-              *) BADGE_VERSION="$NEW_VERSION";;
-            esac
+            BADGE_VERSION="${BASE_VERSION}-${VERSION_SUFFIX}"
 
             # Update the version badge - handle complex version formats with build numbers and SHA
-            # This regex matches: version-X.X.X.anything-blue and replaces with version-$BADGE_VERSION-blue
-            sed -i "s/v[^-]*\(-blue\)/v$BADGE_VERSION\1/g" README.md
+            # This regex matches: vX.X.X.anything-blue and replaces with v$BADGE_VERSION-blue
+            sed -i "s/v[0-9]\+\.[0-9]\+\.[0-9]\+[^-]*\(-blue\)/v$BADGE_VERSION\1/g" README.md
             echo "Updated README.md version badge to $BADGE_VERSION"
           fi
 
@@ -244,7 +238,7 @@ jobs:
                 "beta")
                   COMMIT_MSG="🔄 Update version to $NEW_VERSION (beta)"
                   ;;
-                "production")
+                "RELEASE")
                   COMMIT_MSG="🔄 Update version to $NEW_VERSION"
                   ;;
                 *)
