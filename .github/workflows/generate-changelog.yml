@@ -118,7 +118,7 @@ jobs:
             fi
             
             echo "📝 Collected commit information with AI comments:" >&2
-            echo "$all_comments"
+            echo "$all_comments" >&2
             
             # Since we already have AI-enhanced content, we can either:
             # 1. Use it directly (since it's already AI-processed)
@@ -130,8 +130,8 @@ jobs:
               # Create JSON payload with proper escaping
               request_data=$(jq -n \
                 --arg model "gpt-4o-mini" \
-                --arg system_content "You are an expert technical writer creating changelog entries for a SMART on FHIR healthcare proxy application. Your audience includes both technical developers and business stakeholders. Create a professional, well-organized changelog that clearly communicates value and impact.\n\nGuidelines:\n- Group changes by category: 🚀 New Features, ⚡ Improvements, 🐛 Bug Fixes, 🔧 Technical Updates, 🔒 Security\n- Write in business-friendly language while maintaining technical accuracy\n- Focus on user benefits and business value\n- Use active voice and clear action verbs\n- Keep each item concise but informative (1-2 lines max)\n- Avoid technical jargon when possible, explain complex concepts simply\n- Highlight any breaking changes or important notices" \
-                --arg user_content "Create a professional changelog from these commit summaries for a SMART on FHIR proxy application. Focus on the business value and user impact of each change:\n\n$all_comments" \
+                --arg system_content "You are an expert technical writer creating changelog entries for a SMART on FHIR Proxy application. Your audience includes both technical developers and business stakeholders. Create a professional, well-organized changelog that clearly communicates value and impact.\n\nGuidelines:\n- Group changes by category: 🚀 New Features, ⚡ Improvements, 🐛 Bug Fixes, 🔧 Technical Updates, 🔒 Security\n- Write in business-friendly language while maintaining technical accuracy\n- Focus on user benefits and business value\n- Use active voice and clear action verbs\n- Keep each item concise but informative (1-2 lines max)\n- Avoid technical jargon when possible, explain complex concepts simply\n- Highlight any breaking changes or important notices" \
+                --arg user_content "Create a professional changelog from these commit summaries for a SMART on FHIR Proxy application. Focus on the business value and user impact of each change:\n\n$all_comments" \
                 '{
                   "model": $model,
                   "messages": [

@@ -59,46 +59,53 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.generate-token.outputs.token }}
 
-      - name: Setup Node.js
+      - name: Setup Node.js and Bun
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+      
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Get current version
         id: current
         run: |
           CURRENT_VERSION=$(node -p "require('./package.json').version")
-          # Remove any existing suffix to get the base version
-          BASE_VERSION=$(echo "$CURRENT_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g' | sed 's/-RELEASE.*//g')
+          # Use our centralized script to get base version
+          BASE_VERSION=$(bun run version:base)
           echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
           echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
           echo "📋 Current version: $CURRENT_VERSION"
           echo "📋 Base version: $BASE_VERSION"
 
-      - name: Calculate new version
+      - name: Calculate and set new version
         id: calculate
         run: |
           if [ -n "${{ inputs.custom_version }}" ]; then
             NEW_VERSION="${{ inputs.custom_version }}"
             echo "🎯 Using custom version: $NEW_VERSION"
+            # Set the custom version using our centralized script
+            bun run version:set "$NEW_VERSION"
           else
-            BASE_VERSION="${{ steps.current.outputs.base_version }}"
-            
+            # Use our centralized version bump scripts
             case "${{ inputs.version_type }}" in
               "minor")
-                # Increment minor version, reset patch to 0
-                NEW_VERSION=$(echo "$BASE_VERSION" | awk -F. '{$2 = $2 + 1; $3 = 0; print}' | sed 's/ /./g')
+                bun run version:bump:minor
+                NEW_VERSION=$(node -p "require('./package.json').version")
+                echo "🚀 Bumped minor version: $NEW_VERSION"
                 ;;
               "major")
-                # Increment major version, reset minor and patch to 0
-                NEW_VERSION=$(echo "$BASE_VERSION" | awk -F. '{$1 = $1 + 1; $2 = 0; $3 = 0; print}' | sed 's/ /./g')
+                bun run version:bump:major
+                NEW_VERSION=$(node -p "require('./package.json').version")
+                echo "🚀 Bumped major version: $NEW_VERSION"
                 ;;
               *)
                 echo "❌ Unknown version type: ${{ inputs.version_type }}"
                 exit 1
                 ;;
             esac
-            echo "🚀 Calculated new version: $NEW_VERSION"
           fi
           
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
@@ -108,15 +115,13 @@ jobs:
         with:
           operation: validate
 
-      - name: Update versions
+      - name: Update README and verify versions
         run: |
           NEW_VERSION="${{ steps.calculate.outputs.new_version }}"
-          echo "📝 Updating all package.json files to version: $NEW_VERSION"
+          echo "📝 Finalizing version update to: $NEW_VERSION"
           
-          # Set the new version in all packages
-          node scripts/version.js set "$NEW_VERSION"
-          # Sync to ensure all packages are consistent
-          npm run version:sync
+          # Verify all versions are consistent using our script
+          bun run version:check
           
           # Update README version badge
           if [ -f "README.md" ]; then

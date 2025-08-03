@@ -1,6 +1,6 @@
 {
   "name": "smart-on-fhir",
-  "version": "0.0.2-beta.202508030909.e49b5c6",
+  "version": "0.0.2-alpha.202508031807.c26cf72",
   "repository": {
     "type": "git",
     "url": "https://github.com/your-org/smart-on-fhir.git"
@@ -9,6 +9,7 @@
     "@eslint/js": "^9.30.0",
     "concurrently": "^9.2.0",
     "eslint": "^9.30.0",
+    "glob": "^11.0.3",
     "globals": "^16.2.0",
     "typescript-eslint": "^8.35.0"
   },
@@ -40,18 +41,19 @@
     "start:backend": "cd backend && bun run start",
     "start:ui": "cd ui && bun run preview",
     "generate": "concurrently \"bun run generate:ui\" \"bun run generate:test\"",
-    "generate:ui": "cd ui && bun run generate",
+    "generate:ui": "cd backend && bun run export-openapi && cd ../ui && bun run generate",
+    "generate:ui:normalized": "bun run generate:ui && git add --renormalize ui/src/lib/api-client/",
     "generate:test": "cd test && bun run generate",
     "validate-api": "concurrently \"bun run validate-api:ui\" \"bun run validate-api:test\"",
     "validate-api:ui": "cd ui && bun run validate-api",
     "validate-api:test": "cd test && bun run validate-api",
-    "test": "cd test && bun run test:all",
-    "test:smart-flows": "cd test && bun run test:smart-flows",
-    "test:backend-services": "cd test && bun run test:backend-services",
-    "test:ehr-launch": "cd test && bun run test:ehr-launch",
-    "test:standalone-launch": "cd test && bun run test:standalone-launch",
-    "test:oauth-security": "cd test && bun run test:oauth-security",
-    "test:smart-admin": "cd test && bun run test:smart-admin",
+    "test": "bun run test:alpha",
+    "test:alpha": "cd testing/alpha && bun run test",
+    "test:beta": "cd testing/beta && bun run test",
+    "test:production": "cd testing/production && bun run test",
+    "test:all": "bun run test:alpha && bun run test:beta && bun run test:production",
+    "test:watch": "cd testing/alpha && bun run test:watch",
+    "test:coverage": "cd testing/alpha && bun run test:coverage",
     "lint": "concurrently \"bun run lint:backend\" \"bun run lint:ui\"",
     "lint:backend": "cd backend && bun run lint",
     "lint:ui": "cd ui && bun run lint",
@@ -70,7 +72,9 @@
     "version:bump:minor": "node scripts/version.js bump minor",
     "version:bump:major": "node scripts/version.js bump major",
     "version:set": "node scripts/version.js set",
-    "precommit": "npm run version:sync"
+    "version:check": "node scripts/version.js check",
+    "version:base": "node scripts/version.js base",
+    "precommit": "bun run version:sync"
   },
   "type": "module",
   "workspaces": [

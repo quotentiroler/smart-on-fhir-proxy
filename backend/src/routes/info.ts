@@ -20,7 +20,6 @@ async function getFHIRServersHealth() {
       
       servers.push({
         name: serverIdentifier,
-        displayName: serverInfo.serverName || 'Unknown FHIR Server',
         url: serverBase,
         status: serverInfo.supported ? 'healthy' : 'degraded',
         accessible: serverInfo.supported,
@@ -32,7 +31,6 @@ async function getFHIRServersHealth() {
       const fallbackIdentifier = `server-${i}`
       servers.push({
         name: fallbackIdentifier,
-        displayName: 'Unknown FHIR Server',
         url: serverBase,
         status: 'unhealthy',
         accessible: false,

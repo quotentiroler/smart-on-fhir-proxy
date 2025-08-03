@@ -3,6 +3,8 @@ name: Alpha Release
 on:
   push:
     branches: [develop]
+    paths-ignore:
+      - 'ui/src/lib/api-client/**'
   workflow_dispatch:
 
 permissions:
@@ -10,9 +12,20 @@ permissions:
   pull-requests: read
 
 jobs:
+  # Alpha releases run unit tests first
+  alpha-testing:
+    name: Alpha Testing
+    if: ${{ !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Alpha release') && !contains(github.event.head_commit.message, '🚀') && !contains(github.event.head_commit.message, 'smart-on-fhir-proxy-releaser') }}
+    uses: ./.github/workflows/testing-strategy.yml
+    with:
+      test_stage: 'alpha'
+      test_scope: 'unit'
+
   alpha-release:
+    name: Alpha Release
     # Only run if the last commit is not a release commit to avoid infinite loops
-    if: ${{ !contains(github.event.head_commit.message, 'Alpha release') && !contains(github.event.head_commit.message, '🚀') }}
+    if: ${{ !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Alpha release') && !contains(github.event.head_commit.message, '🚀') && !contains(github.event.head_commit.message, 'smart-on-fhir-proxy-releaser') }}
+    needs: [alpha-testing]
     uses: ./.github/workflows/release-orchestrator.yml
     with:
       release_type: 'alpha'

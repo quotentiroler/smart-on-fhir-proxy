@@ -51,26 +51,26 @@ dev/* → develop → test → main
 
 ```bash
 # Sync all packages to root version
-npm run version:sync
+bun run version:sync
 
 # Bump patch version (0.0.1 → 0.0.2)
-npm run version:bump
+bun run version:bump
 
 # Bump minor version (0.0.1 → 0.1.0)  
-npm run version:bump:minor
+bun run version:bump:minor
 
 # Bump major version (0.0.1 → 1.0.0)
-npm run version:bump:major
+bun run version:bump:major
 
 # Set specific version
-npm run version:set 1.2.3
+bun run version:set 1.2.3
 ```
 
 ### Setup
 
 ```bash
 # Initial setup (installs dependencies and git hooks)
-npm run setup
+bun run setup
 ```
 
 ## Branch Management
@@ -196,8 +196,8 @@ You can also trigger releases manually via GitHub Actions:
 
 ## Best Practices
 
-1. **Always use the npm scripts** for version management instead of manually editing package.json files
-2. **Run `npm run setup`** after cloning the repository to install git hooks
+1. **Always use the bun scripts** for version management instead of manually editing package.json files
+2. **Run `bun run setup`** after cloning the repository to install git hooks
 3. **Let the automated system handle releases** on the main branch
 4. **Use manual workflow triggers** for urgent releases or specific version bumps
 5. **Check the Actions tab** if a release fails to see detailed logs
@@ -215,8 +215,8 @@ This project follows [Semantic Versioning](https://semver.org/):
 ### Version Inconsistency Error
 ```bash
 # If you see version mismatch errors:
-npm run version:sync
-git add package.json backend/package.json ui/package.json test/package.json
+bun run version:sync
+git add **/package.json
 git commit -m "sync: align package versions"
 ```
 

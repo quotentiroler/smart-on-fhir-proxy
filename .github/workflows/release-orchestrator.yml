@@ -109,6 +109,9 @@ jobs:
       release_type: ${{ inputs.release_type }}
       should_bump_version: ${{ inputs.should_bump_version }}
       version_suffix: ${{ inputs.version_suffix }}
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
 
   # Generate changelog
   changelog:
@@ -123,19 +126,10 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Build and test
-  build:
-    name: Build and Test
+  # Generate API clients with updated version
+  generate-api-clients:
+    name: Generate API Clients
     needs: [version]
-    uses: ./.github/workflows/build-and-test.yml
-    with:
-      run_tests: true
-      fail_on_test_failure: false
-
-  # Commit and tag
-  commit-and-tag:
-    name: Commit and Tag
-    needs: [version, changelog, build]
     runs-on: ubuntu-latest
     
     steps:
@@ -152,76 +146,54 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.generate_token.outputs.token }}
 
+      - name: Pull latest changes
+        run: |
+          git pull origin ${{ inputs.target_branch }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
       - name: Configure git
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
-      - name: Download changelog file (production only)
-        if: inputs.release_type == 'production' && needs.changelog.outputs.changelog_file
+      - name: Install dependencies
         run: |
-          # This would need to be implemented if we want to persist changelog files
-          echo "Production changelog file would be handled here"
+          bun install
+          cd backend && bun install
+          cd ../ui && bun install
 
-      - name: Commit version updates
+      - name: Generate API clients
         run: |
-          # The version management workflow already updated the files, 
-          # but we need to commit them in this context
-          case "${{ inputs.release_type }}" in
-            "alpha")
-              COMMIT_MSG="🚀 Alpha release v${{ needs.version.outputs.new_version }}"
-              ;;
-            "beta")
-              COMMIT_MSG="🧪 Beta release v${{ needs.version.outputs.new_version }}"
-              ;;
-            "production")
-              COMMIT_MSG="🎉 Production release v${{ needs.version.outputs.new_version }}"
-              ;;
-          esac
+          bun run generate:ui:normalized
 
-          # Re-apply version changes (since we're in a fresh checkout)
-          if [ -f "scripts/version.js" ]; then
-            node scripts/version.js set ${{ needs.version.outputs.new_version }}
-            npm run version:sync || echo "version:sync not available"
-          fi
-
-          # Update README badge
-          if [ -f "README.md" ]; then
-            sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z0-9\.-]*\)\?-blue/version-${{ needs.version.outputs.new_version }}-blue/g" README.md
-          fi
-
-          # Add files to commit
-          FILES_TO_ADD="package.json"
-          for file in backend/package.json ui/package.json test/package.json README.md; do
-            if [ -f "$file" ]; then
-              FILES_TO_ADD="$FILES_TO_ADD $file"
-            fi
-          done
-
-          # Add CHANGELOG.md for production releases
-          if [ "${{ inputs.release_type }}" = "production" ] && [ -f "CHANGELOG.md" ]; then
-            FILES_TO_ADD="$FILES_TO_ADD CHANGELOG.md"
-          fi
-
-          git add $FILES_TO_ADD
-          
-          # Check if there are changes to commit
+      - name: Commit generated API clients
+        run: |
+          # Check if there are changes to commit (files should already be staged by generate:ui:normalized)
           if git diff --staged --quiet; then
-            echo "No changes to commit"
+            echo "No API client changes to commit"
           else
-            git commit -m "$COMMIT_MSG"
+            git commit -m "🤖 Update API clients for v${{ needs.version.outputs.new_version }}"
             git push origin ${{ inputs.target_branch }}
           fi
 
-      - name: Create and push tag
-        run: |
-          git tag "v${{ needs.version.outputs.new_version }}"
-          git push origin "v${{ needs.version.outputs.new_version }}"
+
+  # Build and test
+  build:
+    name: Build and Test
+    needs: [version, generate-api-clients]
+    uses: ./.github/workflows/build-and-test.yml
+    with:
+      run_tests: true
+      fail_on_test_failure: false
 
   # Create GitHub release
   release:
     name: Create GitHub Release
-    needs: [version, changelog, commit-and-tag]
+    needs: [version, changelog, generate-api-clients, build]
     uses: ./.github/workflows/create-release.yml
     with:
       release_type: ${{ inputs.release_type }}
@@ -233,3 +205,5 @@ jobs:
       short_sha: ${{ needs.version.outputs.short_sha }}
     secrets:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}

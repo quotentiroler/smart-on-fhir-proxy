@@ -3,6 +3,8 @@ name: Production Release
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'ui/src/lib/api-client/**'
   workflow_dispatch:
 
 permissions:
@@ -43,11 +45,21 @@ jobs:
             echo "should_release=true" >> $GITHUB_OUTPUT
           fi
 
+  # Production releases run full security and compliance testing
+  production-testing:
+    name: Production Testing (Security & Compliance)
+    needs: check-changes
+    if: ${{ needs.check-changes.outputs.should_release == 'true' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Production release') && !contains(github.event.head_commit.message, '🎉') }}
+    uses: ./.github/workflows/testing-strategy.yml
+    with:
+      test_stage: 'production'
+      test_scope: 'all'
+
   production-release:
     name: Production Release
-    needs: check-changes
+    needs: [check-changes, production-testing]
     # Only run if the last commit is not a release commit AND there are non-documentation changes
-    if: ${{ needs.check-changes.outputs.should_release == 'true' && !contains(github.event.head_commit.message, 'Production release') && !contains(github.event.head_commit.message, '🎉') }}
+    if: ${{ needs.check-changes.outputs.should_release == 'true' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Production release') && !contains(github.event.head_commit.message, '🎉') }}
     uses: ./.github/workflows/release-orchestrator.yml
     with:
       release_type: 'production'

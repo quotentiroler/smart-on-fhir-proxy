@@ -20,6 +20,11 @@ on:
         description: "Version suffix (alpha, beta, RELEASE) - only for 'update'"
         required: false
         type: string
+    secrets:
+      APP_ID:
+        required: false
+      APP_PRIVATE_KEY:
+        required: false
     outputs:
       current_version:
         description: "Current version before any changes"
@@ -53,15 +58,29 @@ jobs:
       is_consistent: ${{ steps.check.outputs.is_consistent }}
     
     steps:
+      - name: Generate token (for update operations only)
+        id: generate_token
+        if: inputs.operation == 'update'
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ steps.generate_token.outputs.token || github.token }}
 
-      - name: Setup Node.js
+      - name: Setup Node.js and Bun
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+      
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: Validate inputs
         run: |
@@ -77,41 +96,31 @@ jobs:
         run: |
           echo "Checking version consistency across all package.json files..."
           
-          # Get root version
+          # Get root version using our standard approach
           ROOT_VERSION=$(node -p "require('./package.json').version")
           echo "Root version: $ROOT_VERSION"
           echo "current_version=$ROOT_VERSION" >> $GITHUB_OUTPUT
           
-          # Remove any existing suffix to get the base version
-          BASE_VERSION=$(echo "$ROOT_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g' | sed 's/-RELEASE.*//g')
+          # Get base version using our script
+          BASE_VERSION=$(bun run version:base)
           echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
           
-          # Check all package.json files
-          INCONSISTENT=false
-          
-          for file in backend/package.json ui/package.json test/package.json; do
-            if [ -f "$file" ]; then
-              VERSION=$(node -p "require('./$file').version")
-              echo "$file version: $VERSION"
-              if [ "$VERSION" != "$ROOT_VERSION" ]; then
-                echo "❌ Version mismatch in $file: $VERSION (expected: $ROOT_VERSION)"
-                INCONSISTENT=true
-              fi
-            fi
-          done
-          
-          if [ "$INCONSISTENT" = true ]; then
+          # Use our centralized version script to check consistency
+          if bun run version:check; then
+            echo "is_consistent=true" >> $GITHUB_OUTPUT
+            echo "✅ All versions are consistent!"
+          else
             echo "is_consistent=false" >> $GITHUB_OUTPUT
             if [ "${{ inputs.operation }}" = "validate" ]; then
               echo "❌ Version inconsistency detected!"
-              echo "Run 'npm run version:sync' to fix this."
+              echo "Run 'bun run version:sync' to fix this."
               exit 1
             else
-              echo "⚠️ Version inconsistency detected, but continuing with update operation"
+              echo "⚠️ Version inconsistency detected, will sync automatically"
+              # Auto-sync versions if in update mode
+              bun run version:sync
+              echo "✅ Versions synchronized automatically"
             fi
-          else
-            echo "is_consistent=true" >> $GITHUB_OUTPUT
-            echo "✅ All versions are consistent!"
           fi
 
       - name: Check if version should be bumped (alpha releases only)
@@ -125,7 +134,7 @@ jobs:
           # Get version from main branch
           git fetch origin main
           MAIN_VERSION=$(git show origin/main:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8')).version")
-          MAIN_BASE=$(echo "$MAIN_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g' | sed 's/-RELEASE.*//g')
+          MAIN_BASE=$(echo "$MAIN_VERSION" | sed 's/-.*$//')
 
           echo "current_base=$CURRENT_BASE" >> $GITHUB_OUTPUT
           echo "main_base=$MAIN_BASE" >> $GITHUB_OUTPUT
@@ -158,8 +167,9 @@ jobs:
           case "${{ inputs.release_type }}" in
             "alpha")
               if [ "${{ inputs.should_bump_version }}" = "true" ] && [ "${{ steps.version_check.outputs.should_bump }}" = "true" ]; then
-                # Bump patch version for alpha
-                NEW_BASE=$(echo "$BASE_VERSION" | awk -F. '{$NF = $NF + 1; print}' | sed 's/ /./g')
+                # Use our bump script to increment patch version
+                bun run version:bump
+                NEW_BASE=$(node -p "require('./package.json').version")
                 NEW_VERSION="${NEW_BASE}-${{ inputs.version_suffix }}.${BUILD_NUMBER}.${SHORT_SHA}"
               else
                 NEW_VERSION="${BASE_VERSION}-${{ inputs.version_suffix }}.${BUILD_NUMBER}.${SHORT_SHA}"
@@ -184,22 +194,64 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "Final version: $NEW_VERSION"
 
-          # Set the new version in all packages
-          node scripts/version.js set "$NEW_VERSION"
-          # Sync to ensure all packages are consistent
-          npm run version:sync
+          # Use our centralized version script to set the final version
+          bun run version:set "$NEW_VERSION"
           
-          # Verify versions are now consistent
+          # Verify versions are now consistent using our centralized script
           echo "Verifying version consistency:"
-          for file in package.json backend/package.json ui/package.json test/package.json; do
-            if [ -f "$file" ]; then
-              version=$(node -p "require('./$file').version")
-              echo "$file: $version"
-            fi
-          done
+          bun run version:check
 
-          # Update README version badge
+          # Update README version badge with simplified version
           if [ -f "README.md" ]; then
-            sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z0-9\.-]*\)\?-blue/version-$NEW_VERSION-blue/g" README.md
-            echo "Updated README.md version badge to $NEW_VERSION"
+            # Simplify version for badge (strip build number and SHA)
+            case "${{ inputs.release_type }}" in
+              "alpha") BADGE_VERSION="${BASE_VERSION}-alpha";;
+              "beta") BADGE_VERSION="${BASE_VERSION}-beta";;
+              "production") BADGE_VERSION="${BASE_VERSION}";;
+              *) BADGE_VERSION="$NEW_VERSION";;
+            esac
+
+            sed -i "s/version-[0-9]\+\.[0-9]\+\.[0-9]\+\(-[a-zA-Z0-9\.-]*\)\?-blue/version-$BADGE_VERSION-blue/g" README.md
+            echo "Updated README.md version badge to $BADGE_VERSION"
+          fi
+
+          # Commit the version changes (only for update operations)
+          if [ "${{ inputs.operation }}" = "update" ]; then
+            # Configure git
+            git config --global user.name 'github-actions[bot]'
+            git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+            # Add files to commit
+            FILES_TO_ADD="package.json"
+            for file in backend/package.json ui/package.json testing/alpha/package.json testing/beta/package.json testing/production/package.json README.md; do
+              if [ -f "$file" ]; then
+                FILES_TO_ADD="$FILES_TO_ADD $file"
+              fi
+            done
+
+            git add $FILES_TO_ADD
+            
+            # Check if there are changes to commit
+            if git diff --staged --quiet; then
+              echo "No version changes to commit"
+            else
+              case "${{ inputs.release_type }}" in
+                "alpha")
+                  COMMIT_MSG="🔄 Update version to $NEW_VERSION (alpha)"
+                  ;;
+                "beta")
+                  COMMIT_MSG="🔄 Update version to $NEW_VERSION (beta)"
+                  ;;
+                "production")
+                  COMMIT_MSG="🔄 Update version to $NEW_VERSION"
+                  ;;
+                *)
+                  COMMIT_MSG="🔄 Update version to $NEW_VERSION"
+                  ;;
+              esac
+
+              git commit -m "$COMMIT_MSG"
+              git push origin HEAD
+              echo "✅ Committed version changes: $NEW_VERSION"
+            fi
           fi

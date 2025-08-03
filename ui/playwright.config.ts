@@ -5,6 +5,12 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests',
+  /* Timeout settings for CI */
+  timeout: process.env.CI ? 30 * 1000 : 60 * 1000, // 30s on CI, 60s locally
+  expect: {
+    timeout: process.env.CI ? 10 * 1000 : 20 * 1000, // 10s on CI, 20s locally
+  },
+  
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -22,7 +28,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:4173', // Updated to match preview server
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
     /* Take screenshot on failure */
@@ -33,49 +39,56 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-
-    {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-
-    /* Test against mobile viewports. */
-    {
-      name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
-    },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
-
-    /* Test against branded browsers. */
-    {
-      name: 'Microsoft Edge',
-      use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    },
-    {
-      name: 'Google Chrome',
-      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    },
+    // On CI, only run chromium for speed
+    ...(process.env.CI ? [
+      {
+        name: 'chromium',
+        use: { ...devices['Desktop Chrome'] },
+      }
+    ] : [
+      {
+        name: 'chromium',
+        use: { ...devices['Desktop Chrome'] },
+      },
+      {
+        name: 'firefox',
+        use: { ...devices['Desktop Firefox'] },
+      },
+      {
+        name: 'webkit',
+        use: { ...devices['Desktop Safari'] },
+      },
+      /* Test against mobile viewports. */
+      {
+        name: 'Mobile Chrome',
+        use: { ...devices['Pixel 5'] },
+      },
+      {
+        name: 'Mobile Safari',
+        use: { ...devices['iPhone 12'] },
+      },
+      /* Test against branded browsers. */
+      {
+        name: 'Microsoft Edge',
+        use: { ...devices['Desktop Edge'], channel: 'msedge' },
+      },
+      {
+        name: 'Google Chrome',
+        use: { ...devices['Desktop Chrome'], channel: 'chrome' },
+      },
+    ]),
   ],
 
   /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'bun run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  // Disable web server on CI for faster tests
+  ...(process.env.CI ? {} : {
+    webServer: {
+      command: 'bun run preview',
+      url: 'http://localhost:4173',
+      reuseExistingServer: true,
+      timeout: 60 * 1000,
+    },
+  }),
 
   /* Global setup and teardown */
   globalSetup: './tests/global-setup.ts',
