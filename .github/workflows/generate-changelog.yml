@@ -47,6 +47,7 @@ jobs:
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           set -euo pipefail
           
@@ -118,11 +119,11 @@ jobs:
             # 1. Use it directly (since it's already AI-processed)
             # 2. Or further summarize it with OpenAI for a higher-level overview
             
-            if [ -n "${{ secrets.OPENAI_API_KEY }}" ]; then
+            if [ -n "$OPENAI_API_KEY" ]; then
               echo "🤖 Creating high-level summary from AI comments..." >&2
               changelog_content=$(curl -s -X POST "https://api.openai.com/v1/chat/completions" \
                 -H "Content-Type: application/json" \
-                -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+                -H "Authorization: Bearer $OPENAI_API_KEY" \
                 -d '{
                   "model": "gpt-4o-mini",
                   "messages": [
@@ -143,10 +144,28 @@ jobs:
                 echo "✅ High-level AI summary generated successfully" >&2
                 echo "$changelog_content"
               else
-                echo "⚠️ High-level summary failed, using AI commit comments directly" >&2
-                # Format the AI comments nicely
-                echo "$all_comments" | sed 's/^- \*\*[^*]*\*\*: /- /' | sed 's/Updated files: /📁 Updated: /'
-              fi
+                echo "⚠️ High-level summary failed, generating categorized changelog" >&2
+                # Categorize commit summaries into sections
+                new_features=""
+                improvements=""
+                bug_fixes=""
+                tech_updates=""
+                security=""
+                # Normalize comments list
+                formatted=$(echo "$all_comments" | sed 's/^\- \*\*[^*]*\*\*: /- /')
+                while IFS= read -r line; do
+                  msg="${line#- }"
+                  case "$msg" in
+                    feat*|Feat*) new_features+="- $msg\n";;
+                    fix*|Fix*) bug_fixes+="- $msg\n";;
+                    perf*|Perf*|refactor*|Refactor*) improvements+="- $msg\n";;
+                    chore*|docs*|style*|ci*|test*) tech_updates+="- $msg\n";;
+                    security*|Security*|sec*) security+="- $msg\n";;
+                    *) improvements+="- $msg\n";;
+                  esac
+                done <<< "$formatted"
+                # Output sections
+                [ -n "$new_features" ] && echo "## 🚀 New Features"$'\n'
             else
               echo "⚠️ No OpenAI API key provided, using AI commit comments directly" >&2
               # Format the AI comments nicely even without further AI processing
