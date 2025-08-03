@@ -35,7 +35,7 @@ import { SmartAppsStatistics } from './SmartAppsStatistics';
 import { DynamicClientRegistrationSettings } from '../DynamicClientRegistrationSettings';
 import { useAuth } from '@/stores/authStore';
 import { useAppStore } from '@/stores/appStore';
-import type { SmartApp, ScopeSet, GetAdminSmartApps200ResponseInner } from '@/lib/types/api';
+import type { SmartApp, ScopeSet, GetAdminSmartApps200ResponseInner, SmartAppFormData } from '@/lib/types/api';
 
 // Mock data for SMART on FHIR applications
 const mockApps: SmartApp[] = [
@@ -214,12 +214,23 @@ export function SmartAppsManager() {
     fetchApps();
   }, [apiClients.smartApps]);
 
-  const handleAddApp = (appData: Omit<SmartApp, 'id' | 'status' | 'lastUsed'>) => {
+  const handleAddApp = (appData: SmartAppFormData) => {
+    // Convert form data to SmartApp format for UI display
     const app: SmartApp = {
-      ...appData,
       id: Date.now().toString(),
+      name: appData.name,
+      clientId: appData.clientId,
+      redirectUri: appData.redirectUris?.[0] || '', // Take first redirect URI for UI display
+      scopes: appData.scopes || [],
+      scopeSetId: appData.scopeSetId,
+      customScopes: appData.customScopes || [],
       status: 'active',
       lastUsed: new Date().toISOString().split('T')[0],
+      description: appData.description || '',
+      appType: appData.appType || 'standalone-app',
+      authenticationType: appData.authenticationType || 'symmetric',
+      serverAccessType: appData.serverAccessType || 'all-servers',
+      allowedServerIds: appData.allowedServerIds,
     };
     // Note: When showing mock apps (no real apps from backend), this only updates the UI
     // To persist new apps, they need to be created via the backend API

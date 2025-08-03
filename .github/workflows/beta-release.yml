@@ -1,0 +1,28 @@
+name: Beta Release
+
+on:
+  push:
+    branches: [test]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  beta-release:
+    # Only run if the last commit is not a release commit to avoid infinite loops
+    if: ${{ !contains(github.event.head_commit.message, '🧪 Beta release v') }}
+    uses: ./.github/workflows/release-orchestrator.yml
+    with:
+      release_type: 'beta'
+      source_branch: 'test'
+      target_branch: 'test'
+      version_suffix: 'beta'
+      should_bump_version: false
+      is_prerelease: true
+      commit_limit: 10
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

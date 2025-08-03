@@ -1,0 +1,28 @@
+name: Production Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  production-release:
+    # Only run if the last commit is not a release commit to avoid infinite loops
+    if: ${{ !contains(github.event.head_commit.message, 'Production release') && !contains(github.event.head_commit.message, '🎉') }}
+    uses: ./.github/workflows/release-orchestrator.yml
+    with:
+      release_type: 'production'
+      source_branch: 'main'
+      target_branch: 'main'
+      version_suffix: 'RELEASE'
+      should_bump_version: false
+      is_prerelease: false
+      commit_limit: 20
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
