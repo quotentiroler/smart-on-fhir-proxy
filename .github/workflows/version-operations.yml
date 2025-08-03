@@ -183,7 +183,7 @@ jobs:
               echo "To beta version: $NEW_VERSION"
               ;;
             "production")
-              NEW_VERSION="${BASE_VERSION}"
+              NEW_VERSION="${BASE_VERSION}-${{ inputs.version_suffix }}"
               ;;
             *)
               echo "❌ Unknown release type: ${{ inputs.release_type }}"
@@ -205,9 +205,9 @@ jobs:
           if [ -f "README.md" ]; then
             # Simplify version for badge (strip build number and SHA)
             case "${{ inputs.release_type }}" in
-              "alpha") BADGE_VERSION="${BASE_VERSION}-alpha";;
-              "beta") BADGE_VERSION="${BASE_VERSION}-beta";;
-              "production") BADGE_VERSION="${BASE_VERSION}";;
+              "alpha") BADGE_VERSION="${BASE_VERSION}-${{ inputs.version_suffix }}";;
+              "beta") BADGE_VERSION="${BASE_VERSION}-${{ inputs.version_suffix }}";;
+              "production") BADGE_VERSION="${BASE_VERSION}-${{ inputs.version_suffix }}";;
               *) BADGE_VERSION="$NEW_VERSION";;
             esac
 
