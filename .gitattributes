@@ -1,0 +1,36 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Ensure Windows line endings for Windows-specific files
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Ensure Unix line endings for Unix-specific files
+*.sh text eol=lf
+
+# TypeScript/JavaScript files should use consistent line endings
+*.ts text eol=crlf
+*.js text eol=crlf
+*.json text eol=crlf
+
+# Generated API client files - auto normalize
+ui/src/lib/api-client/**/*.ts text eol=crlf
+
+# Markdown files
+*.md text eol=crlf
+
+# Configuration files
+*.yml text eol=crlf
+*.yaml text eol=crlf
+*.toml text eol=crlf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

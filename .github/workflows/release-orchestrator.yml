@@ -168,14 +168,11 @@ jobs:
 
       - name: Generate API clients
         run: |
-          bun run generate:ui
+          bun run generate:ui:normalized
 
       - name: Commit generated API clients
         run: |
-          # Add generated API client files
-          git add ui/src/lib/api-client/
-          
-          # Check if there are changes to commit
+          # Check if there are changes to commit (files should already be staged by generate:ui:normalized)
           if git diff --staged --quiet; then
             echo "No API client changes to commit"
           else

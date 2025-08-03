@@ -24,11 +24,11 @@ try {
   console.log('✅ Git hooks configured successfully!');
   console.log('');
   console.log('Available version management commands:');
-  console.log('  npm run version:sync        - Sync all package versions to root version');
-  console.log('  npm run version:bump        - Bump patch version (0.0.1 → 0.0.2)');
-  console.log('  npm run version:bump:minor  - Bump minor version (0.0.1 → 0.1.0)');
-  console.log('  npm run version:bump:major  - Bump major version (0.0.1 → 1.0.0)');
-  console.log('  npm run version:set 1.2.3   - Set specific version');
+  console.log('  bun run version:sync        - Sync all package versions to root version');
+  console.log('  bun run version:bump        - Bump patch version (0.0.1 → 0.0.2)');
+  console.log('  bun run version:bump:minor  - Bump minor version (0.0.1 → 0.1.0)');
+  console.log('  bun run version:bump:major  - Bump major version (0.0.1 → 1.0.0)');
+  console.log('  bun run version:set 1.2.3   - Set specific version');
   console.log('');
   console.log('The pre-commit hook will automatically sync versions on every commit.');
   
