@@ -156,9 +156,25 @@ export async function initializeFhirServers(): Promise<void> {
       })
     }
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    logger.fhir.warn('Failed to initialize FHIR server connections', { error: errorMessage })
-    logger.fhir.info('Proxy Server will continue with fallback configuration')
+    const errorDetails = error instanceof Error ? {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    } : String(error)
+    
+    logger.fhir.warn('❌ Failed to initialize FHIR server connections', {
+      error: errorDetails,
+      configuredServers: config.fhir.serverBases,
+      timestamp: new Date().toISOString()
+    })
+    
+    logger.fhir.info('🔍 FHIR server troubleshooting:')
+    config.fhir.serverBases.forEach((serverBase, index) => {
+      logger.fhir.info(`   ${index + 1}. Check if FHIR server is accessible: ${serverBase}`)
+      logger.fhir.info(`      Test metadata endpoint: ${serverBase}/metadata`)
+    })
+    
+    logger.fhir.info('📋 Proxy Server will continue with fallback configuration')
     // Don't throw here - FHIR server initialization failures should not prevent server startup
   }
 }
@@ -182,17 +198,46 @@ export async function initializeServer(): Promise<void> {
     await initializeFhirServers()
     
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    logger.server.error('Failed to initialize server', { error: errorMessage })
+    const errorDetails = error instanceof Error ? {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      cause: error.cause
+    } : String(error)
+    
+    logger.server.error('❌ Server initialization failed', {
+      error: errorDetails,
+      initializationStep: error instanceof Error && error.message.includes('Keycloak') ? 'Keycloak Connection' : 'Unknown',
+      config: {
+        keycloak: {
+          baseUrl: config.keycloak.baseUrl,
+          realm: config.keycloak.realm,
+          jwksUri: config.keycloak.jwksUri
+        },
+        fhir: {
+          serverBases: config.fhir.serverBases
+        }
+      },
+      timestamp: new Date().toISOString()
+    })
     
     // Check if it's a Keycloak-related error
-    if (errorMessage.includes('Keycloak connection verification failed')) {
-      logger.server.error('Keycloak connection failed - server cannot start without proper authentication')
-      process.exit(1) // Exit cleanly instead of throwing
+    if (error instanceof Error && error.message.includes('Keycloak connection verification failed')) {
+      logger.server.error('🔐 Keycloak connection failed - server cannot start without proper authentication')
+      logger.server.error('')
+      logger.server.error('🔍 Keycloak troubleshooting:')
+      logger.server.error(`   1. Check if Keycloak is running at: ${config.keycloak.baseUrl}`)
+      logger.server.error(`   2. Verify realm "${config.keycloak.realm}" exists`)
+      logger.server.error(`   3. Test JWKS endpoint: ${config.keycloak.jwksUri}`)
+      logger.server.error('   4. Check network connectivity and firewall settings')
+      logger.server.error('   5. Verify Keycloak admin console is accessible')
+      logger.server.error('')
+      throw error // Re-throw to trigger main error handler
     }
     
-    // For other errors, log but continue
-    logger.server.warn('Server initialization had issues but will continue')
+    // For other errors, provide context but don't exit
+    logger.server.warn('⚠️  Server initialization had issues but will attempt to continue')
+    logger.server.warn('Some features may not work correctly until issues are resolved')
   }
 }
 

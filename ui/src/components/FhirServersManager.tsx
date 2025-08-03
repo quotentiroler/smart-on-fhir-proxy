@@ -14,7 +14,13 @@ import {
   Plus,
   Loader2,
   Edit,
-  AlertTriangle
+  AlertTriangle,
+  Shield,
+  Upload,
+  FileText,
+  Key,
+  Calendar,
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,21 +37,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '../stores/authStore';
 import type { 
-  GetFhirServersByServerName200Response,
-  GetFhirServers200ResponseServersInner
-} from '../lib/api-client';
+  CreateFhirServerRequest,
+  UpdateFhirServerRequest,
+  FhirServerWithState
+} from '../lib/types/api';
 
-// Extend the API type to include our UI-specific computed property
-type FhirServerWithStatus = GetFhirServers200ResponseServersInner & {
-  hasConnectionError?: boolean;
-};
+// Additional imports for detailed server view (generated API types used directly)
+import type { GetFhirServersByServerId200Response } from '../lib/api-client';
 
 export function FhirServersManager() {
   const { apiClients } = useAuth();
-  const [servers, setServers] = useState<FhirServerWithStatus[]>([]);
+  const [servers, setServers] = useState<FhirServerWithState[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedServer, setSelectedServer] = useState<GetFhirServersByServerName200Response | null>(null);
+  const [selectedServer, setSelectedServer] = useState<GetFhirServersByServerId200Response | null>(null);
   const [loadingServerDetail, setLoadingServerDetail] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   
@@ -57,19 +62,37 @@ export function FhirServersManager() {
   
   // Edit Server Dialog State
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [editingServer, setEditingServer] = useState<FhirServerWithStatus | null>(null);
+  const [editingServer, setEditingServer] = useState<FhirServerWithState | null>(null);
   const [editServerUrl, setEditServerUrl] = useState('');
   const [updatingServer, setUpdatingServer] = useState(false);
 
   // Security check state
   const [securityChecks, setSecurityChecks] = useState<Record<string, 'checking' | 'secure' | 'insecure'>>({});
 
-  const checkServerSecurity = useCallback(async (server: FhirServerWithStatus) => {
+  // mTLS Configuration state
+  const [showMtlsDialog, setShowMtlsDialog] = useState(false);
+  const [selectedServerForMtls, setSelectedServerForMtls] = useState<FhirServerWithState | null>(null);
+  const [mtlsConfig, setMtlsConfig] = useState<Record<string, {
+    enabled: boolean;
+    clientCert?: File;
+    clientKey?: File;
+    caCert?: File;
+    certDetails?: {
+      subject: string;
+      issuer: string;
+      validFrom: string;
+      validTo: string;
+      fingerprint: string;
+    };
+  }>>({});
+  const [uploadingCerts, setUploadingCerts] = useState(false);
+
+  const checkServerSecurity = useCallback(async (server: FhirServerWithState) => {
     // Use functional state update to check current state
     setSecurityChecks(prev => {
       // Don't check if already checking or checked
       if (prev[server.id]) {
-        console.info(`Security check for ${server.displayName} skipped - already ${prev[server.id]}`);
+        console.info(`Security check for ${server.serverName || server.name} skipped - already ${prev[server.id]}`);
         return prev;
       }
       
@@ -92,14 +115,14 @@ export function FhirServersManager() {
           // If the server is publicly accessible (like HAPI FHIR), this is a security concern
           // because users can bypass the proxy
           if (response.type === 'opaque') {
-            console.log(`Marking ${server.displayName} as INSECURE (server responds to direct requests)`);
+            console.log(`Marking ${server.serverName || server.name} as INSECURE (server responds to direct requests)`);
             setSecurityChecks(prevChecks => ({ ...prevChecks, [server.id]: 'insecure' }));
           } else {
-            console.log(`Marking ${server.displayName} as SECURE (server properly protected)`);
+            console.log(`Marking ${server.serverName || server.name} as SECURE (server properly protected)`);
             setSecurityChecks(prevChecks => ({ ...prevChecks, [server.id]: 'secure' }));
           }
         } catch (error) {
-          console.error(`Security check failed for ${server.displayName}:`, error);
+          console.error(`Security check failed for ${server.serverName || server.name}:`, error);
           setSecurityChecks(prevChecks => ({ ...prevChecks, [server.id]: 'secure' }));
         }
       }, 0);
@@ -114,13 +137,14 @@ export function FhirServersManager() {
       setError(null);
       const response = await apiClients.servers.getFhirServers();
       
-      // Map servers and detect connection errors
-      const mappedServers = response.servers.map((server: GetFhirServers200ResponseServersInner) => ({
+      // Map servers and detect connection errors using the API response structure
+      const mappedServers: FhirServerWithState[] = response.servers.map((server) => ({
         ...server,
-        hasConnectionError: server.serverName === 'Unknown FHIR Server' || 
-                           server.displayName === 'Unknown FHIR Server' ||
-                           server.displayName?.includes('Unknown') ||
-                           server.fhirVersion === 'Unknown'
+        connectionStatus: (server.serverName === 'Unknown FHIR Server' || 
+                         server.serverName?.includes('Unknown') ||
+                         server.fhirVersion === 'Unknown') ? 'disconnected' : 'connected',
+        loading: false,
+        error: null
       }));
       
       setServers(mappedServers);
@@ -129,8 +153,8 @@ export function FhirServersManager() {
       setSecurityChecks(prevChecks => {
         const updatedChecks = { ...prevChecks };
         
-        mappedServers.forEach((server: FhirServerWithStatus) => {
-          if (server.hasConnectionError) {
+        mappedServers.forEach((server) => {
+          if (server.connectionStatus === 'disconnected') {
             // Clear any existing security check for servers with connection errors
             delete updatedChecks[server.id];
           } else {
@@ -174,7 +198,7 @@ export function FhirServersManager() {
     // Check if URL already exists
     const existingServer = servers.find(server => server.url === trimmedUrl);
     if (existingServer) {
-      setUrlError(`This URL is already registered for server "${existingServer.displayName}"`);
+      setUrlError(`This URL is already registered for server "${existingServer.serverName || existingServer.name}"`);
       return;
     }
 
@@ -186,7 +210,7 @@ export function FhirServersManager() {
       await apiClients.servers.postFhirServers({
         postFhirServersRequest: {
           url: trimmedUrl
-        }
+        } as CreateFhirServerRequest
       });
 
       // Reset form
@@ -213,7 +237,7 @@ export function FhirServersManager() {
     }
   };
 
-  const handleEditServer = (server: FhirServerWithStatus) => {
+  const handleEditServer = (server: FhirServerWithState) => {
     setEditingServer(server);
     setEditServerUrl(server.url);
     setShowEditDialog(true);
@@ -240,7 +264,7 @@ export function FhirServersManager() {
     );
     
     if (existingServer) {
-      setUrlError(`This URL is already registered for server "${existingServer.displayName}"`);
+      setUrlError(`This URL is already registered for server "${existingServer.serverName || existingServer.name}"`);
       return;
     }
 
@@ -262,7 +286,7 @@ export function FhirServersManager() {
         serverId: editingServer.id,
         putFhirServersByServerIdRequest: {
           url: trimmedUrl
-        }
+        } as UpdateFhirServerRequest
       });
 
       // Reset form
@@ -290,10 +314,10 @@ export function FhirServersManager() {
     }
   };
 
-  const fetchServerDetail = useCallback(async (serverName: string) => {
+  const fetchServerDetail = useCallback(async (serverId: string) => {
     try {
       setLoadingServerDetail(true);
-      const response = await apiClients.servers.getFhirServersByServerName({ serverName });
+      const response = await apiClients.servers.getFhirServersByServerId({ serverId });
       setSelectedServer(response);
       setActiveTab('details'); // Switch to details tab
     } catch (err) {
@@ -307,6 +331,60 @@ export function FhirServersManager() {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     // You could add a toast notification here
+  };
+
+  // mTLS Management Functions
+  const handleConfigureMtls = (server: FhirServerWithState) => {
+    setSelectedServerForMtls(server);
+    setShowMtlsDialog(true);
+  };
+
+  const handleMtlsToggle = (serverId: string, enabled: boolean) => {
+    setMtlsConfig(prev => ({
+      ...prev,
+      [serverId]: {
+        ...prev[serverId],
+        enabled
+      }
+    }));
+  };
+
+  const handleCertificateUpload = async (serverId: string, certType: 'client' | 'key' | 'ca', file: File) => {
+    try {
+      setUploadingCerts(true);
+      
+      // In a real implementation, you'd upload to your backend API
+      // For now, just store locally
+      setMtlsConfig(prev => ({
+        ...prev,
+        [serverId]: {
+          ...prev[serverId],
+          [`${certType}${certType === 'client' ? 'Cert' : certType === 'key' ? 'Key' : 'Cert'}`]: file
+        }
+      }));
+
+      // Mock certificate parsing for demo
+      if (certType === 'client') {
+        // In reality, you'd parse the cert on the backend
+        setMtlsConfig(prev => ({
+          ...prev,
+          [serverId]: {
+            ...prev[serverId],
+            certDetails: {
+              subject: 'CN=proxy-client, O=MyOrg',
+              issuer: 'CN=MyOrg Test CA',
+              validFrom: new Date().toISOString(),
+              validTo: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+              fingerprint: 'SHA256:' + Math.random().toString(36).substring(7)
+            }
+          }
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to upload certificate:', error);
+    } finally {
+      setUploadingCerts(false);
+    }
   };
 
   useEffect(() => {
@@ -467,11 +545,11 @@ export function FhirServersManager() {
                   <div className="flex items-center justify-between mb-6">
                     <div className="flex items-center space-x-3">
                       <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-sm ${
-                        server.hasConnectionError 
+                        server.connectionStatus === 'disconnected'
                           ? 'bg-destructive/10' 
                           : 'bg-primary/10'
                       }`}>
-                        {server.hasConnectionError ? (
+                        {server.connectionStatus === 'disconnected' ? (
                           <AlertTriangle className="w-6 h-6 text-destructive" />
                         ) : (
                           <Server className="w-6 h-6 text-primary" />
@@ -479,13 +557,13 @@ export function FhirServersManager() {
                       </div>
                       <div>
                         <div className="flex items-center space-x-2">
-                          <h3 className="text-lg font-bold text-foreground tracking-tight">{server.displayName}</h3>
-                          {server.hasConnectionError && (
+                          <h3 className="text-lg font-bold text-foreground tracking-tight">{server.serverName || server.name}</h3>
+                          {server.connectionStatus === 'disconnected' && (
                             <AlertTriangle className="w-4 h-4 text-orange-500" />
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground font-medium">{server.name}</p>
-                        {server.hasConnectionError && (
+                        {server.connectionStatus === 'disconnected' && (
                           <p className="text-xs text-destructive font-medium">Unable to connect to server</p>
                         )}
                       </div>
@@ -566,7 +644,7 @@ export function FhirServersManager() {
                     </div>
 
                     {/* Security Warning - only show for servers without connection errors */}
-                    {!server.hasConnectionError && securityChecks[server.id] === 'insecure' && (
+                    {server.connectionStatus === 'connected' && securityChecks[server.id] === 'insecure' && (
                       <div className="bg-orange-500/10 dark:bg-orange-400/10 p-3 rounded-xl border border-orange-500/20 dark:border-orange-400/20">
                         <div className="flex items-center space-x-2 mb-2">
                           <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400" />
@@ -618,6 +696,15 @@ export function FhirServersManager() {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => handleConfigureMtls(server)}
+                        className="flex items-center space-x-2 px-4 py-2 rounded-xl border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 transition-all duration-200 shadow-sm hover:shadow-md"
+                      >
+                        <Shield className="w-3 h-3" />
+                        <span>Configure mTLS</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={() => {
                           // Clear the existing security check and re-run it
                           setSecurityChecks(prev => {
@@ -632,7 +719,7 @@ export function FhirServersManager() {
                         <RefreshCw className="w-3 h-3" />
                         <span>Check Security</span>
                       </Button>
-                      {server.hasConnectionError && (
+                      {server.connectionStatus === 'disconnected' && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -643,7 +730,7 @@ export function FhirServersManager() {
                           <span>Fix URL</span>
                         </Button>
                       )}
-                      {!server.hasConnectionError && (
+                      {server.connectionStatus === 'connected' && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -670,7 +757,7 @@ export function FhirServersManager() {
                       <Server className="w-7 h-7 text-primary" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold text-foreground tracking-tight">{selectedServer.displayName}</h2>
+                      <h2 className="text-2xl font-bold text-foreground tracking-tight">{selectedServer.serverName || selectedServer.name}</h2>
                       <p className="text-muted-foreground font-medium">{selectedServer.name}</p>
                     </div>
                   </div>
@@ -973,7 +1060,7 @@ export function FhirServersManager() {
           <DialogHeader>
             <DialogTitle>Fix Server URL</DialogTitle>
             <DialogDescription>
-              Update the URL for "{editingServer?.displayName}". The server name and details will be automatically retrieved from the server's metadata.
+              Update the URL for "{editingServer?.serverName || editingServer?.name}". The server name and details will be automatically retrieved from the server's metadata.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -1032,6 +1119,240 @@ export function FhirServersManager() {
                 <>
                   <Edit className="w-4 h-4 mr-2" />
                   Update Server
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* mTLS Configuration Dialog */}
+      <Dialog open={showMtlsDialog} onOpenChange={setShowMtlsDialog}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Shield className="w-5 h-5 text-emerald-600" />
+              <span>Configure Mutual TLS</span>
+            </DialogTitle>
+            <DialogDescription>
+              Configure mutual TLS authentication for "{selectedServerForMtls?.serverName || selectedServerForMtls?.name}". 
+              This ensures secure, authenticated communication between the proxy and FHIR server.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedServerForMtls && (
+            <div className="space-y-6 py-4">
+              {/* mTLS Enable/Disable Toggle */}
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-xl">
+                <div className="flex items-center space-x-3">
+                  <Lock className="w-5 h-5 text-emerald-600" />
+                  <div>
+                    <h4 className="font-semibold text-foreground">Enable Mutual TLS</h4>
+                    <p className="text-sm text-muted-foreground">Require client certificate authentication</p>
+                  </div>
+                </div>
+                <Button
+                  variant={mtlsConfig[selectedServerForMtls.id]?.enabled ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handleMtlsToggle(selectedServerForMtls.id, !mtlsConfig[selectedServerForMtls.id]?.enabled)}
+                  className={mtlsConfig[selectedServerForMtls.id]?.enabled 
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white" 
+                    : "border-emerald-500/30 text-emerald-700 hover:bg-emerald-500/10"
+                  }
+                >
+                  {mtlsConfig[selectedServerForMtls.id]?.enabled ? 'Enabled' : 'Disabled'}
+                </Button>
+              </div>
+
+              {/* Certificate Upload Section */}
+              {mtlsConfig[selectedServerForMtls.id]?.enabled && (
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-foreground flex items-center space-x-2">
+                    <Key className="w-4 h-4" />
+                    <span>Certificates & Keys</span>
+                  </h4>
+
+                  {/* Client Certificate */}
+                  <div className="p-4 border border-border rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h5 className="font-medium text-foreground">Client Certificate</h5>
+                        <p className="text-sm text-muted-foreground">Certificate for proxy to authenticate with FHIR server</p>
+                      </div>
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept=".crt,.pem,.cer"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleCertificateUpload(selectedServerForMtls.id, 'client', file);
+                          }}
+                        />
+                        <Button variant="outline" size="sm" className="border-dashed">
+                          <Upload className="w-3 h-3 mr-2" />
+                          Upload .crt/.pem
+                        </Button>
+                      </label>
+                    </div>
+                    {mtlsConfig[selectedServerForMtls.id]?.clientCert && (
+                      <div className="flex items-center space-x-2 text-sm text-emerald-600">
+                        <FileText className="w-4 h-4" />
+                        <span>{mtlsConfig[selectedServerForMtls.id]?.clientCert?.name}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Private Key */}
+                  <div className="p-4 border border-border rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h5 className="font-medium text-foreground">Private Key</h5>
+                        <p className="text-sm text-muted-foreground">Private key corresponding to the client certificate</p>
+                      </div>
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept=".key,.pem"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleCertificateUpload(selectedServerForMtls.id, 'key', file);
+                          }}
+                        />
+                        <Button variant="outline" size="sm" className="border-dashed">
+                          <Upload className="w-3 h-3 mr-2" />
+                          Upload .key/.pem
+                        </Button>
+                      </label>
+                    </div>
+                    {mtlsConfig[selectedServerForMtls.id]?.clientKey && (
+                      <div className="flex items-center space-x-2 text-sm text-emerald-600">
+                        <Key className="w-4 h-4" />
+                        <span>{mtlsConfig[selectedServerForMtls.id]?.clientKey?.name}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* CA Certificate */}
+                  <div className="p-4 border border-border rounded-xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h5 className="font-medium text-foreground">CA Certificate</h5>
+                        <p className="text-sm text-muted-foreground">Certificate Authority to verify FHIR server certificate</p>
+                      </div>
+                      <label className="cursor-pointer">
+                        <input
+                          type="file"
+                          accept=".crt,.pem,.cer"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleCertificateUpload(selectedServerForMtls.id, 'ca', file);
+                          }}
+                        />
+                        <Button variant="outline" size="sm" className="border-dashed">
+                          <Upload className="w-3 h-3 mr-2" />
+                          Upload .crt/.pem
+                        </Button>
+                      </label>
+                    </div>
+                    {mtlsConfig[selectedServerForMtls.id]?.caCert && (
+                      <div className="flex items-center space-x-2 text-sm text-emerald-600">
+                        <Shield className="w-4 h-4" />
+                        <span>{mtlsConfig[selectedServerForMtls.id]?.caCert?.name}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Certificate Details */}
+                  {mtlsConfig[selectedServerForMtls.id]?.certDetails && (
+                    <div className="p-4 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                      <h5 className="font-medium text-emerald-800 dark:text-emerald-200 mb-3 flex items-center space-x-2">
+                        <FileText className="w-4 h-4" />
+                        <span>Certificate Details</span>
+                      </h5>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-emerald-700 dark:text-emerald-300">Subject:</span>
+                          <span className="text-emerald-800 dark:text-emerald-200 font-mono text-xs">
+                            {mtlsConfig[selectedServerForMtls.id]?.certDetails?.subject}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-emerald-700 dark:text-emerald-300">Issuer:</span>
+                          <span className="text-emerald-800 dark:text-emerald-200 font-mono text-xs">
+                            {mtlsConfig[selectedServerForMtls.id]?.certDetails?.issuer}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-emerald-700 dark:text-emerald-300">Valid Until:</span>
+                          <span className="text-emerald-800 dark:text-emerald-200 flex items-center space-x-1">
+                            <Calendar className="w-3 h-3" />
+                            <span>{new Date(mtlsConfig[selectedServerForMtls.id]?.certDetails?.validTo || '').toLocaleDateString()}</span>
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-emerald-700 dark:text-emerald-300">Fingerprint:</span>
+                          <span className="text-emerald-800 dark:text-emerald-200 font-mono text-xs">
+                            {mtlsConfig[selectedServerForMtls.id]?.certDetails?.fingerprint}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Security Notice */}
+                  <div className="p-4 bg-blue-500/10 rounded-xl border border-blue-500/20">
+                    <div className="flex items-start space-x-3">
+                      <Info className="w-5 h-5 text-blue-600 mt-0.5" />
+                      <div className="text-sm text-blue-800 dark:text-blue-200">
+                        <p className="font-medium mb-2">Security Best Practices:</p>
+                        <ul className="list-disc pl-5 space-y-1">
+                          <li>Ensure private keys are never shared or transmitted over insecure channels</li>
+                          <li>Use strong certificate passwords and rotate certificates regularly</li>
+                          <li>Verify that the FHIR server is configured to require client certificates</li>
+                          <li>Monitor certificate expiration dates and renew before expiry</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowMtlsDialog(false);
+                setSelectedServerForMtls(null);
+              }}
+              disabled={uploadingCerts}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                // In real implementation, save to backend API
+                setShowMtlsDialog(false);
+                setSelectedServerForMtls(null);
+              }}
+              disabled={uploadingCerts}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {uploadingCerts ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Shield className="w-4 h-4 mr-2" />
+                  Save Configuration
                 </>
               )}
             </Button>

@@ -3,6 +3,8 @@ name: Production Release
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'ui/src/lib/api-client/**'
   workflow_dispatch:
 
 permissions:

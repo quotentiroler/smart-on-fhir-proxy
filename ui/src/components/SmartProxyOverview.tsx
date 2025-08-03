@@ -82,7 +82,6 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
         servers: Array<{
             id: string;
             name: string;
-            displayName: string;
             url: string;
             fhirVersion: string;
             serverVersion?: string;
@@ -803,7 +802,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                                         <div className="flex-1">
                                             <div className="flex items-center space-x-2">
                                                 <span className="text-foreground font-medium">
-                                                    {server.displayName || server.name}
+                                                    {server.name}
                                                 </span>
                                                 <span className="text-xs bg-muted/80 px-2 py-1 rounded-full font-medium text-muted-foreground">
                                                     {server.fhirVersion}

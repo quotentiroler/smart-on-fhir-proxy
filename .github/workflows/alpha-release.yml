@@ -3,6 +3,8 @@ name: Alpha Release
 on:
   push:
     branches: [develop]
+    paths-ignore:
+      - 'ui/src/lib/api-client/**'
   workflow_dispatch:
 
 permissions:

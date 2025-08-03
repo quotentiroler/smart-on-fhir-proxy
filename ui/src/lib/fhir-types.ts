@@ -24,7 +24,7 @@ export type LinkedResourceType = 'Patient' | 'Practitioner' | 'RelatedPerson';
 export type AssuranceLevel = 'level1' | 'level2' | 'level3' | 'level4';
 
 export interface ServerInfo {
-  displayName: string;
+  serverName: string;
   version: string;
   baseUrl: string;
   fhirVersion?: string;
