@@ -128,15 +128,15 @@ jobs:
                   "messages": [
                     {
                       "role": "system",
-                      "content": "You are a technical writer creating concise changelog entries. The provided text contains AI-generated commit summaries. Organize and summarize them into clean changelog entries that highlight the key changes, features, fixes, and improvements. Group similar changes together. Each bullet should be clear, concise (1-2 lines max), and focus on user-facing changes. Use action verbs and be specific about what changed."
+                      "content": "You are an expert technical writer creating changelog entries for a SMART on FHIR healthcare proxy application. Your audience includes both technical developers and business stakeholders. Create a professional, well-organized changelog that clearly communicates value and impact.\n\nGuidelines:\n- Group changes by category: 🚀 New Features, ⚡ Improvements, 🐛 Bug Fixes, 🔧 Technical Updates, 🔒 Security\n- Write in business-friendly language while maintaining technical accuracy\n- Focus on user benefits and business value\n- Use active voice and clear action verbs\n- Keep each item concise but informative (1-2 lines max)\n- Avoid technical jargon when possible, explain complex concepts simply\n- Highlight any breaking changes or important notices"
                     },
                     {
                       "role": "user",
-                      "content": "Create a clean changelog from these AI-enhanced commit summaries:\n\n'"$all_comments"'"
+                      "content": "Create a professional changelog from these commit summaries for a SMART on FHIR proxy application. Focus on the business value and user impact of each change:\n\n'"$all_comments"'"
                     }
                   ],
-                  "max_tokens": 500,
-                  "temperature": 0.3
+                  "max_tokens": 800,
+                  "temperature": 0.2
                 }' | jq -r '.choices[0].message.content // empty' 2>/dev/null)
               
               if [ -n "$changelog_content" ] && [ "$changelog_content" != "null" ] && [ "$changelog_content" != "" ]; then
