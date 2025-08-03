@@ -144,6 +144,7 @@ jobs:
         if: inputs.operation == 'update'
         run: |
           BASE_VERSION="${{ steps.check.outputs.base_version }}"
+          CURRENT_VERSION="${{ steps.check.outputs.current_version }}"
           
           # Generate build info for non-production releases
           if [ "${{ inputs.release_type }}" != "production" ]; then
@@ -165,7 +166,11 @@ jobs:
               fi
               ;;
             "beta")
+              # For beta, keep the same base version but change suffix to beta
+              # This preserves version progression: alpha -> beta -> production
               NEW_VERSION="${BASE_VERSION}-${{ inputs.version_suffix }}.${BUILD_NUMBER}.${SHORT_SHA}"
+              echo "Promoting from current version: $CURRENT_VERSION"
+              echo "To beta version: $NEW_VERSION"
               ;;
             "production")
               NEW_VERSION="${BASE_VERSION}"
