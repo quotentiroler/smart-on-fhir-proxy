@@ -7,15 +7,40 @@ import { serverRoutes } from './routes/info'
 import { serverDiscoveryRoutes } from './routes/fhir-servers'
 import { oauthMonitoringRoutes } from './routes/oauth-monitoring'
 import { oauthWebSocket } from './routes/oauth-websocket'
-import { config } from './config'
 import { adminRoutes } from './routes/admin'
 import { authRoutes } from './routes/auth'
 import { writeFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 
+// Minimal config for OpenAPI export - provides defaults for required environment variables
+const exportConfig = {
+  name: 'smart-on-fhir-proxy',
+  displayName: 'SMART on FHIR Proxy',
+  version: process.env.npm_package_version || '1.0.0',
+  baseUrl: 'http://localhost:3001',
+  port: 3001,
+  keycloak: {
+    serverUrl: process.env.KEYCLOAK_SERVER_URL || 'http://localhost:8080',
+    realm: process.env.KEYCLOAK_REALM || 'smart-on-fhir',
+    clientId: process.env.KEYCLOAK_CLIENT_ID || 'smart-proxy-admin',
+    clientSecret: process.env.KEYCLOAK_CLIENT_SECRET || 'mock-secret',
+  },
+  fhir: {
+    serverBases: (process.env.FHIR_SERVER_BASE || 'http://localhost:8081/fhir').split(',').map(s => s.trim()),
+  },
+  logging: {
+    level: 'info' as const,
+    oauthMetrics: false,
+  },
+  cors: {
+    allowedOrigins: ['http://localhost:5173', 'http://localhost:3000'],
+  },
+  enableMutualTLS: false,
+}
+
 // Create the same app configuration as the main server
 const app = new Elysia({
-  name: config.name,
+  name: exportConfig.name,
   serve: {
     idleTimeout: 120
   },
@@ -34,8 +59,8 @@ const app = new Elysia({
   .use(swagger({
     documentation: {
       info: {
-        title: config.displayName,
-        version: config.version,
+        title: exportConfig.displayName,
+        version: exportConfig.version,
         description: 'SMART on FHIR Proxy + Healthcare Administration API using Keycloak and Elysia',
       },
       tags: [
@@ -66,7 +91,7 @@ const app = new Elysia({
       },
       servers: [
         {
-          url: config.baseUrl,
+          url: exportConfig.baseUrl,
           description: 'Development server'
         }
       ]
