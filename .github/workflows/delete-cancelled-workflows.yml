@@ -1,0 +1,52 @@
+name: Cleanup Cancelled Workflow Runs
+
+on:
+  schedule:
+    # Runs every 2 days at midnight UTC
+    - cron: '0 0 */2 * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete cancelled and successful version checks
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+
+            // 1) Delete all cancelled runs
+            const cancelled = await github.actions.listWorkflowRunsForRepo({
+              owner, repo,
+              status: 'cancelled',
+              per_page: 100
+            });
+            for (const run of cancelled.data.workflow_runs) {
+              console.log(`Deleting cancelled run ${run.id} (${run.name})`);
+              await github.actions.deleteWorkflowRun({
+                owner,
+                repo,
+                run_id: run.id
+              });
+            }
+
+            // 2) Delete all successful "Version Validation" runs
+            console.log('Looking for successful version‐validation runs to delete…');
+            const completed = await github.actions.listWorkflowRunsForRepo({
+              owner, repo,
+              status: 'completed',
+              per_page: 100
+            });
+            for (const run of completed.data.workflow_runs) {
+              if (run.name === 'Version Validation' && run.conclusion === 'success') {
+                console.log(`Deleting successful version check run ${run.id}`);
+                await github.actions.deleteWorkflowRun({
+                  owner,
+                  repo,
+                  run_id: run.id
