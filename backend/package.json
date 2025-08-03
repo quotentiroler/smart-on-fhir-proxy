@@ -1,13 +1,14 @@
 {
   "name": "smart-proxy",
   "displayName": "SMART on FHIR Proxy",
-  "version": "0.0.2-alpha.202508031307.6bece4b",
+  "version": "0.0.2-alpha.202508031541.6002d6a",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target node",
+    "export-openapi": "mkdir -p dist && bun run src/export-openapi.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -17,16 +18,20 @@
     "@elysiajs/swagger": "^1.3.1",
     "@keycloak/keycloak-admin-client": "^26.2.5",
     "cross-fetch": "^4.1.0",
-    "elysia": "^1.3.5",
+    "elysia": "^1.3.8",
     "jsonwebtoken": "^9.0.2",
-    "jwks-rsa": "^3.2.0"
+    "jwks-rsa": "^3.2.0",
+    "node-fetch": "^3.3.2",
+    "node-forge": "^1.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.30.0",
+    "@types/node-fetch": "^2.6.13",
+    "@types/node-forge": "^1.3.13",
     "bun-types": "latest",
     "eslint": "^9.30.0",
-    "@eslint/js": "^9.30.0",
-    "typescript-eslint": "^8.35.0",
-    "globals": "^16.2.0"
+    "globals": "^16.2.0",
+    "typescript-eslint": "^8.35.0"
   },
   "module": "src/index.js"
 }

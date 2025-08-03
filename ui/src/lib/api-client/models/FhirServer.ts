@@ -24,69 +24,63 @@ import {
 /**
  * 
  * @export
- * @interface GetFhirServers200ResponseServersInner
+ * @interface FhirServer
  */
-export interface GetFhirServers200ResponseServersInner {
+export interface FhirServer {
     /**
-     * Unique server identifier
+     * Server identifier used in URLs
      * @type {string}
-     * @memberof GetFhirServers200ResponseServersInner
+     * @memberof FhirServer
      */
     id: string;
     /**
      * Human-readable server name
      * @type {string}
-     * @memberof GetFhirServers200ResponseServersInner
+     * @memberof FhirServer
      */
     name: string;
     /**
      * Original server URL
      * @type {string}
-     * @memberof GetFhirServers200ResponseServersInner
+     * @memberof FhirServer
      */
     url: string;
     /**
      * FHIR version supported by server
      * @type {string}
-     * @memberof GetFhirServers200ResponseServersInner
+     * @memberof FhirServer
      */
     fhirVersion: string;
     /**
      * Server software version
      * @type {string}
-     * @memberof GetFhirServers200ResponseServersInner
+     * @memberof FhirServer
      */
     serverVersion?: string;
     /**
-     * Server software name from FHIR metadata
+     * Server software name
      * @type {string}
-     * @memberof GetFhirServers200ResponseServersInner
+     * @memberof FhirServer
      */
     serverName?: string;
     /**
      * Whether this server is supported
      * @type {boolean}
-     * @memberof GetFhirServers200ResponseServersInner
+     * @memberof FhirServer
      */
     supported: boolean;
     /**
-     * Error message if server info failed to fetch
-     * @type {string}
-     * @memberof GetFhirServers200ResponseServersInner
-     */
-    error?: string;
-    /**
      * 
      * @type {GetFhirServers200ResponseServersInnerEndpoints}
-     * @memberof GetFhirServers200ResponseServersInner
+     * @memberof FhirServer
      */
     endpoints: GetFhirServers200ResponseServersInnerEndpoints;
 }
 
 /**
- * Check if a given object implements the GetFhirServers200ResponseServersInner interface.
+ * Check if a given object implements the FhirServer interface.
  */
-export function instanceOfGetFhirServers200ResponseServersInner(value: object): value is GetFhirServers200ResponseServersInner {
+export function instanceOfFhirServer(value: object): value is FhirServer {
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('name' in value) || value['name'] === undefined) return false;
     if (!('url' in value) || value['url'] === undefined) return false;
@@ -96,11 +90,11 @@ export function instanceOfGetFhirServers200ResponseServersInner(value: object): 
     return true;
 }
 
-export function GetFhirServers200ResponseServersInnerFromJSON(json: any): GetFhirServers200ResponseServersInner {
-    return GetFhirServers200ResponseServersInnerFromJSONTyped(json, false);
+export function FhirServerFromJSON(json: any): FhirServer {
+    return FhirServerFromJSONTyped(json, false);
 }
 
-export function GetFhirServers200ResponseServersInnerFromJSONTyped(json: any, ignoreDiscriminator: boolean): GetFhirServers200ResponseServersInner {
+export function FhirServerFromJSONTyped(json: any, ignoreDiscriminator: boolean): FhirServer {
     if (json == null) {
         return json;
     }
@@ -113,16 +107,15 @@ export function GetFhirServers200ResponseServersInnerFromJSONTyped(json: any, ig
         'serverVersion': json['serverVersion'] == null ? undefined : json['serverVersion'],
         'serverName': json['serverName'] == null ? undefined : json['serverName'],
         'supported': json['supported'],
-        'error': json['error'] == null ? undefined : json['error'],
         'endpoints': GetFhirServers200ResponseServersInnerEndpointsFromJSON(json['endpoints']),
     };
 }
 
-export function GetFhirServers200ResponseServersInnerToJSON(json: any): GetFhirServers200ResponseServersInner {
-    return GetFhirServers200ResponseServersInnerToJSONTyped(json, false);
+export function FhirServerToJSON(json: any): FhirServer {
+    return FhirServerToJSONTyped(json, false);
 }
 
-export function GetFhirServers200ResponseServersInnerToJSONTyped(value?: GetFhirServers200ResponseServersInner | null, ignoreDiscriminator: boolean = false): any {
+export function FhirServerToJSONTyped(value?: FhirServer | null, ignoreDiscriminator: boolean = false): any {
     if (value == null) {
         return value;
     }
@@ -136,7 +129,6 @@ export function GetFhirServers200ResponseServersInnerToJSONTyped(value?: GetFhir
         'serverVersion': value['serverVersion'],
         'serverName': value['serverName'],
         'supported': value['supported'],
-        'error': value['error'],
         'endpoints': GetFhirServers200ResponseServersInnerEndpointsToJSON(value['endpoints']),
     };
 }

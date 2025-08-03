@@ -3,6 +3,8 @@ name: Beta Release
 on:
   push:
     branches: [test]
+    paths-ignore:
+      - 'ui/src/lib/api-client/**'
   workflow_dispatch:
 
 permissions:
@@ -12,7 +14,7 @@ permissions:
 jobs:
   beta-release:
     # Only run if the last commit is not a release commit to avoid infinite loops
-    if: ${{ !contains(github.event.head_commit.message, '🧪 Beta release v') }}
+    if: ${{ !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, '🧪 Beta release v') }}
     uses: ./.github/workflows/release-orchestrator.yml
     with:
       release_type: 'beta'
