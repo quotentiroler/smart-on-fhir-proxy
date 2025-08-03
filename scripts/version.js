@@ -3,21 +3,50 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { glob } from 'glob';
 
 // Get current directory for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Package.json files to sync
-const packagePaths = [
-  'package.json',
-  'backend/package.json', 
-  'ui/package.json',
-  'test/package.json'
-];
+// Dynamically find all package.json files
+function getPackagePaths() {
+  try {
+    // Find all package.json files, excluding node_modules
+    const allPackages = glob.sync('**/package.json', {
+      ignore: ['**/node_modules/**', '**/dist/**', '**/build/**'],
+      cwd: process.cwd()
+    });
+    
+    // Ensure root package.json is first
+    const rootIndex = allPackages.indexOf('package.json');
+    if (rootIndex > 0) {
+      allPackages.splice(rootIndex, 1);
+      allPackages.unshift('package.json');
+    }
+    
+    return allPackages;
+  } catch (error) {
+    // Fallback to manual list if glob fails
+    console.warn('⚠ Warning: Could not auto-detect package.json files, using fallback list');
+    return [
+      'package.json',
+      'backend/package.json', 
+      'ui/package.json',
+      'testing/alpha/package.json',
+      'testing/beta/package.json',
+      'testing/production/package.json'
+    ];
+  }
+}
 
 function updateVersion(newVersion) {
   console.log(`Updating all packages to version: ${newVersion}`);
+  
+  const packagePaths = getPackagePaths();
+  console.log(`Found ${packagePaths.length} package.json files:`);
+  packagePaths.forEach(p => console.log(`  - ${p}`));
+  console.log('');
   
   packagePaths.forEach(packagePath => {
     if (fs.existsSync(packagePath)) {
@@ -59,6 +88,7 @@ function getBaseVersion(version) {
 
 function checkConsistency() {
   const rootVersion = getCurrentVersion();
+  const packagePaths = getPackagePaths();
   let isConsistent = true;
   
   console.log(`Checking version consistency (root: ${rootVersion})`);

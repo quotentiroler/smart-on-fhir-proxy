@@ -105,22 +105,11 @@ jobs:
           BASE_VERSION=$(bun run version:base)
           echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
           
-          # Use our version script to check consistency
-          # Check all package.json files for version mismatches
-          INCONSISTENT=false
-          
-          for file in backend/package.json ui/package.json test/package.json; do
-            if [ -f "$file" ]; then
-              VERSION=$(node -p "require('./$file').version")
-              echo "$file version: $VERSION"
-              if [ "$VERSION" != "$ROOT_VERSION" ]; then
-                echo "❌ Version mismatch in $file: $VERSION (expected: $ROOT_VERSION)"
-                INCONSISTENT=true
-              fi
-            fi
-          done
-          
-          if [ "$INCONSISTENT" = true ]; then
+          # Use our centralized version script to check consistency
+          if bun run version:check; then
+            echo "is_consistent=true" >> $GITHUB_OUTPUT
+            echo "✅ All versions are consistent!"
+          else
             echo "is_consistent=false" >> $GITHUB_OUTPUT
             if [ "${{ inputs.operation }}" = "validate" ]; then
               echo "❌ Version inconsistency detected!"
@@ -132,9 +121,6 @@ jobs:
               bun run version:sync
               echo "✅ Versions synchronized automatically"
             fi
-          else
-            echo "is_consistent=true" >> $GITHUB_OUTPUT
-            echo "✅ All versions are consistent!"
           fi
 
       - name: Check if version should be bumped (alpha releases only)
@@ -211,14 +197,9 @@ jobs:
           # Use our centralized version script to set the final version
           bun run version:set "$NEW_VERSION"
           
-          # Verify versions are now consistent
+          # Verify versions are now consistent using our centralized script
           echo "Verifying version consistency:"
-          for file in package.json backend/package.json ui/package.json test/package.json; do
-            if [ -f "$file" ]; then
-              version=$(node -p "require('./$file').version")
-              echo "$file: $version"
-            fi
-          done
+          bun run version:check
 
           # Update README version badge with simplified version
           if [ -f "README.md" ]; then
@@ -242,7 +223,7 @@ jobs:
 
             # Add files to commit
             FILES_TO_ADD="package.json"
-            for file in backend/package.json ui/package.json test/package.json README.md; do
+            for file in backend/package.json ui/package.json testing/alpha/package.json testing/beta/package.json testing/production/package.json README.md; do
               if [ -f "$file" ]; then
                 FILES_TO_ADD="$FILES_TO_ADD $file"
               fi
