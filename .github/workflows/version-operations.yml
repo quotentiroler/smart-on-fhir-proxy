@@ -96,16 +96,17 @@ jobs:
         run: |
           echo "Checking version consistency across all package.json files..."
           
-          # Get root version
+          # Get root version using our standard approach
           ROOT_VERSION=$(node -p "require('./package.json').version")
           echo "Root version: $ROOT_VERSION"
           echo "current_version=$ROOT_VERSION" >> $GITHUB_OUTPUT
           
-          # Remove any existing suffix to get the base version
-          BASE_VERSION=$(echo "$ROOT_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g' | sed 's/-RELEASE.*//g')
+          # Get base version using our script
+          BASE_VERSION=$(bun run version:base)
           echo "base_version=$BASE_VERSION" >> $GITHUB_OUTPUT
           
-          # Check all package.json files
+          # Use our version script to check consistency
+          # Check all package.json files for version mismatches
           INCONSISTENT=false
           
           for file in backend/package.json ui/package.json test/package.json; do
@@ -126,7 +127,10 @@ jobs:
               echo "Run 'bun run version:sync' to fix this."
               exit 1
             else
-              echo "⚠️ Version inconsistency detected, but continuing with update operation"
+              echo "⚠️ Version inconsistency detected, will sync automatically"
+              # Auto-sync versions if in update mode
+              bun run version:sync
+              echo "✅ Versions synchronized automatically"
             fi
           else
             echo "is_consistent=true" >> $GITHUB_OUTPUT
@@ -144,7 +148,7 @@ jobs:
           # Get version from main branch
           git fetch origin main
           MAIN_VERSION=$(git show origin/main:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8')).version")
-          MAIN_BASE=$(echo "$MAIN_VERSION" | sed 's/-alpha.*//g' | sed 's/-beta.*//g' | sed 's/-RELEASE.*//g')
+          MAIN_BASE=$(echo "$MAIN_VERSION" | sed 's/-.*$//')
 
           echo "current_base=$CURRENT_BASE" >> $GITHUB_OUTPUT
           echo "main_base=$MAIN_BASE" >> $GITHUB_OUTPUT
@@ -177,8 +181,9 @@ jobs:
           case "${{ inputs.release_type }}" in
             "alpha")
               if [ "${{ inputs.should_bump_version }}" = "true" ] && [ "${{ steps.version_check.outputs.should_bump }}" = "true" ]; then
-                # Bump patch version for alpha
-                NEW_BASE=$(echo "$BASE_VERSION" | awk -F. '{$NF = $NF + 1; print}' | sed 's/ /./g')
+                # Use our bump script to increment patch version
+                bun run version:bump
+                NEW_BASE=$(node -p "require('./package.json').version")
                 NEW_VERSION="${NEW_BASE}-${{ inputs.version_suffix }}.${BUILD_NUMBER}.${SHORT_SHA}"
               else
                 NEW_VERSION="${BASE_VERSION}-${{ inputs.version_suffix }}.${BUILD_NUMBER}.${SHORT_SHA}"
@@ -203,10 +208,8 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "Final version: $NEW_VERSION"
 
-          # Set the new version in all packages
-          node scripts/version.js set "$NEW_VERSION"
-          # Sync to ensure all packages are consistent
-          bun run version:sync
+          # Use our centralized version script to set the final version
+          bun run version:set "$NEW_VERSION"
           
           # Verify versions are now consistent
           echo "Verifying version consistency:"

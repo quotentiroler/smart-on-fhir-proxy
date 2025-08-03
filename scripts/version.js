@@ -37,7 +37,9 @@ function getCurrentVersion() {
 }
 
 function incrementVersion(version, type = 'patch') {
-  const [major, minor, patch] = version.split('.').map(Number);
+  // Remove any pre-release suffixes to get base version
+  const baseVersion = version.replace(/-.*$/, '');
+  const [major, minor, patch] = baseVersion.split('.').map(Number);
   
   switch (type) {
     case 'major':
@@ -48,6 +50,32 @@ function incrementVersion(version, type = 'patch') {
     default:
       return `${major}.${minor}.${patch + 1}`;
   }
+}
+
+function getBaseVersion(version) {
+  // Remove any pre-release suffixes (alpha, beta, etc.)
+  return version.replace(/-.*$/, '');
+}
+
+function checkConsistency() {
+  const rootVersion = getCurrentVersion();
+  let isConsistent = true;
+  
+  console.log(`Checking version consistency (root: ${rootVersion})`);
+  
+  packagePaths.slice(1).forEach(packagePath => {
+    if (fs.existsSync(packagePath)) {
+      const packageContent = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+      if (packageContent.version !== rootVersion) {
+        console.log(`❌ ${packagePath}: ${packageContent.version} (expected: ${rootVersion})`);
+        isConsistent = false;
+      } else {
+        console.log(`✓ ${packagePath}: ${packageContent.version}`);
+      }
+    }
+  });
+  
+  return isConsistent;
 }
 
 // CLI usage
@@ -72,9 +100,25 @@ if (command === 'sync') {
     process.exit(1);
   }
   updateVersion(newVersion);
+} else if (command === 'check') {
+  // Check version consistency
+  const isConsistent = checkConsistency();
+  if (!isConsistent) {
+    console.log('\n❌ Version inconsistency detected. Run "node scripts/version.js sync" to fix.');
+    process.exit(1);
+  } else {
+    console.log('\n✅ All versions are consistent!');
+  }
+} else if (command === 'base') {
+  // Get base version (without pre-release suffixes)
+  const currentVersion = getCurrentVersion();
+  const baseVersion = getBaseVersion(currentVersion);
+  console.log(baseVersion);
 } else {
   console.log('Usage:');
   console.log('  node scripts/version.js sync                 - Sync all packages to root version');
   console.log('  node scripts/version.js bump [major|minor|patch] - Bump version (default: patch)');
   console.log('  node scripts/version.js set <version>       - Set specific version');
+  console.log('  node scripts/version.js check               - Check version consistency');
+  console.log('  node scripts/version.js base                - Get base version (no pre-release suffixes)');
 }

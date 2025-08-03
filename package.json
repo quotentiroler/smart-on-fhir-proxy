@@ -71,7 +71,9 @@
     "version:bump:minor": "node scripts/version.js bump minor",
     "version:bump:major": "node scripts/version.js bump major",
     "version:set": "node scripts/version.js set",
-    "precommit": "npm run version:sync"
+    "version:check": "node scripts/version.js check",
+    "version:base": "node scripts/version.js base",
+    "precommit": "bun run version:sync"
   },
   "type": "module",
   "workspaces": [
