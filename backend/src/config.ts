@@ -33,7 +33,7 @@ export const config = {
   
   fhir: {
     // Support multiple FHIR servers - can be a single URL or comma-separated list
-    serverBases: process.env.FHIR_SERVER_BASE!.split(',').map(s => s.trim()),
+    serverBases: (process.env.FHIR_SERVER_BASE ?? 'http://localhost:8081/fhir').split(',').map(s => s.trim()),
     supportedVersions: process.env.FHIR_SUPPORTED_VERSIONS?.split(',').map(s => s.trim()) || ['R4'],
   },
 
