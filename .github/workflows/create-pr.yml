@@ -193,9 +193,14 @@ jobs:
         id: check-diff
         run: |
           # Now check for differences between develop and test (test branch should exist now)
-          git fetch origin test:test
-          COMMITS_AHEAD=$(git rev-list --count test..develop)
-          COMMITS_BEHIND=$(git rev-list --count develop..test)
+          # Switch back to develop branch first
+          git checkout develop
+          
+          # Fetch test branch without checking it out
+          git fetch origin test
+          
+          COMMITS_AHEAD=$(git rev-list --count origin/test..HEAD)
+          COMMITS_BEHIND=$(git rev-list --count HEAD..origin/test)
           echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
           echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
           echo "Develop is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind test"
