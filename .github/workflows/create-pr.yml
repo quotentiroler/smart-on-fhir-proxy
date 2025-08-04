@@ -29,37 +29,31 @@ jobs:
       - name: Check if branches differ
         id: check-diff
         run: |
-          # Fetch all branches to ensure we have the latest refs
+          # Fetch latest remote branches
           git fetch origin --prune
+          git fetch origin test
+          git fetch origin develop
+
+          # Compare remote/test against local develop (HEAD)
+          COMMITS_AHEAD=$(git rev-list --count origin/test..HEAD)
+          COMMITS_BEHIND=$(git rev-list --count HEAD..origin/test)
           
-          # Check if develop branch exists on remote
-          if git ls-remote --heads origin develop | grep -q "refs/heads/develop"; then
-            echo "Develop branch exists on remote"
-            git fetch origin develop:develop
-            
-            # Check if there are any commits between develop and current branch
-            COMMITS_AHEAD=$(git rev-list --count develop..${{ github.ref_name }})
-            COMMITS_BEHIND=$(git rev-list --count ${{ github.ref_name }}..develop)
-            
-            echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
-            echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
-            echo "Branch ${{ github.ref_name }} is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind develop"
-            
-            # Only create PR if we have commits to contribute
-            if [ "$COMMITS_AHEAD" -gt 0 ]; then
-              echo "has_changes=true" >> $GITHUB_OUTPUT
-            else
-              echo "has_changes=false" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "Develop branch doesn't exist on remote, will create it"
-            echo "commits_ahead=1" >> $GITHUB_OUTPUT
-            echo "commits_behind=0" >> $GITHUB_OUTPUT
+          echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
+          echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
+          echo "Develop is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind test"
+
+          if [ "$COMMITS_AHEAD" -gt 0 ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
           fi
-          
+
           # Count TODOs in the codebase
-          TODO_COUNT=$(grep -r " TODO:" --include="*.ts" --include="*.js" --include="*.tsx" --include="*.jsx" --include="*.vue" --include="*.py" --include="*.java" --include="*.cs" --include="*.go" --include="*.rs" --include="*.cpp" --include="*.c" --include="*.h" . | wc -l || echo "0")
+          TODO_COUNT=$(grep -r " TODO:" \
+            --include="*.ts" --include="*.js" --include="*.tsx" --include="*.jsx" \
+            --include="*.vue" --include="*.py" --include="*.java" --include="*.cs" \
+            --include="*.go" --include="*.rs" --include="*.cpp" --include="*.c" \
+            --include="*.h" . | wc -l || echo "0")
           echo "todo_count=$TODO_COUNT" >> $GITHUB_OUTPUT
           echo "Found $TODO_COUNT TODOs in the codebase"
         env:

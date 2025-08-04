@@ -256,6 +256,7 @@ Each branch automatically triggers appropriate CI/CD workflows with version mana
 
 | Version          | Milestone              | Target Features                           |
 | ---------------- | ---------------------- | ----------------------------------------- |
+| **<0.1.0** | Early Development       | Test deployment, incomplete documentation |
 | **v0.1.0** | SMART 2.2.0 Compliance | Complete specification implementation     |
 | **v0.9.0** | AI Enhancement         | Advanced monitoring, predictive analytics |
 | **v1.0.0** | Production Ready       | Enterprise deployment, full documentation |
