@@ -61,9 +61,14 @@ jobs:
         id: check-diff
         run: |
           # Now check for differences between current dev branch and develop (develop branch should exist now)
-          git fetch origin develop:develop
-          COMMITS_AHEAD=$(git rev-list --count develop..HEAD)
-          COMMITS_BEHIND=$(git rev-list --count HEAD..develop)
+          # Switch back to the original dev branch first
+          git checkout ${{ github.ref_name }}
+          
+          # Fetch develop branch without checking it out
+          git fetch origin develop
+          
+          COMMITS_AHEAD=$(git rev-list --count origin/develop..HEAD)
+          COMMITS_BEHIND=$(git rev-list --count HEAD..origin/develop)
           echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
           echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
           echo "${{ github.ref_name }} is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind develop"
