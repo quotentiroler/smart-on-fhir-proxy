@@ -15,6 +15,7 @@
 
 import * as runtime from '../runtime';
 import type {
+  GetAuthConfig200Response,
   GetAuthIdentityProviders200ResponseInner,
   GetAuthIdps200ResponseInner,
   GetAuthUserinfo200Response,
@@ -26,6 +27,8 @@ import type {
   PostFhirServers401Response,
 } from '../models/index';
 import {
+    GetAuthConfig200ResponseFromJSON,
+    GetAuthConfig200ResponseToJSON,
     GetAuthIdentityProviders200ResponseInnerFromJSON,
     GetAuthIdentityProviders200ResponseInnerToJSON,
     GetAuthIdps200ResponseInnerFromJSON,
@@ -159,6 +162,37 @@ export class AuthenticationApi extends runtime.BaseAPI {
      */
     async getAuthAuthorize(requestParameters: GetAuthAuthorizeRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.getAuthAuthorizeRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Returns the current authentication configuration status
+     * Get authentication configuration
+     */
+    async getAuthConfigRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<GetAuthConfig200Response>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/auth/config`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => GetAuthConfig200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns the current authentication configuration status
+     * Get authentication configuration
+     */
+    async getAuthConfig(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetAuthConfig200Response> {
+        const response = await this.getAuthConfigRaw(initOverrides);
+        return await response.value();
     }
 
     /**

@@ -32,8 +32,10 @@ RUN bun run build
 # Build UI
 WORKDIR /app/ui
 # Create production environment for single-app deployment (empty API URL = relative)
+# Don't require Keycloak configuration at build time
 RUN echo "VITE_API_BASE_URL=" > .env.production
-RUN bun run build
+# Build with correct base path for /webapp serving
+RUN VITE_BASE=/webapp/ bun run build
 
 # Production stage - backend API server with static frontend
 FROM base AS production
@@ -58,4 +60,4 @@ EXPOSE 8445
 
 # Start the backend (which serves the UI static files from /public)
 WORKDIR /app/backend
-CMD ["bun", "run", "start"]
+CMD ["bun", "run", "dist/index.js"]
