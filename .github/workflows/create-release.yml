@@ -124,7 +124,6 @@ jobs:
           # Add the rest of the release notes
           cat >> release-notes.md <<-EOF
 
-          ## Changes
           ${{ inputs.changelog }}
 
           ## Installation
