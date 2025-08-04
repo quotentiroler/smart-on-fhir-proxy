@@ -156,7 +156,8 @@ jobs:
           
           # Extract existing build number from current version (if any)
           EXISTING_BUILD_NUMBER=""
-          if [[ "$CURRENT_VERSION" =~ -[a-zA-Z]+\.([0-9]+)\. ]]; then
+          # Handle both formats: suffix.buildnumber.sha and suffix.buildnumber
+          if [[ "$CURRENT_VERSION" =~ -[a-zA-Z]+\.([0-9]+)(\.|$) ]]; then
             EXISTING_BUILD_NUMBER="${BASH_REMATCH[1]}"
             echo "Found existing build number: $EXISTING_BUILD_NUMBER"
           fi
