@@ -2,7 +2,7 @@
 
 A comprehensive healthcare application platform implementing the complete SMART App Launch Framework 2.2.0 specification with advanced administrative capabilities, AI-powered assistance, and enterprise-grade security.
 
-[![Version](https://img.shields.io/badge/v0.0.4-beta-blue.svg)](https://github.com/quotentiroler/smart-on-fhir-proxy)
+[![Version](https://img.shields.io/badge/v0.0.4-alpha-blue.svg)](https://github.com/quotentiroler/smart-on-fhir-proxy)
 [![SMART App Launch](https://img.shields.io/badge/SMART%20App%20Launch-2.2.0-green.svg)](http://hl7.org/fhir/smart-app-launch/)
 [![FHIR](https://img.shields.io/badge/FHIR-R4%2FR4B-orange.svg)](https://hl7.org/fhir/R4/)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
