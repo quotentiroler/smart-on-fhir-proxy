@@ -1,23 +1,34 @@
 # Use Bun as the base image
-FROM oven/bun:1-alpine AS base
-
-# Set working directory
+FROM oven/bun:slim AS base
 WORKDIR /app
 
-# Copy package files
-COPY package.json bun.lock* ./
+# Build stage
+FROM base AS build
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y build-essential pkg-config python-is-python3
+
+# Copy only backend package files (not root workspace files)
+COPY package.json ./
+# Don't copy root bun.lock since it contains workspace references
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN bun install
 
 # Copy source code
-COPY . .
+COPY src/ ./src/
+COPY tsconfig.json ./
 
-# Build the application (if you have a build step)
-# RUN bun run build
+# Build the application
+RUN bun run build
+
+# Production stage
+FROM base AS production
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./
 
 # Expose the port
 EXPOSE 8445
 
 # Start the application
-CMD ["bun", "run", "src/index.ts"]
+CMD ["bun", "run", "dist/index.js"]
