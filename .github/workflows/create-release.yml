@@ -66,8 +66,18 @@ jobs:
 
       - name: Create and push release tag
         run: |
-          git tag "v${{ inputs.version }}"
-          git push origin "v${{ inputs.version }}"
+          TAG_NAME="v${{ inputs.version }}"
+          
+          # Check if tag already exists locally or remotely
+          if git tag -l "$TAG_NAME" | grep -q "$TAG_NAME"; then
+            echo "⚠️ Tag $TAG_NAME already exists locally"
+          elif git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME"; then
+            echo "⚠️ Tag $TAG_NAME already exists on remote"
+          else
+            echo "✅ Creating new tag: $TAG_NAME"
+            git tag "$TAG_NAME"
+            git push origin "$TAG_NAME"
+          fi
 
       - name: Create GitHub Release
         env:
