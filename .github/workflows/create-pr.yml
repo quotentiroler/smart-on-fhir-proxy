@@ -156,40 +156,23 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check if branches differ
-        id: check-diff
+      - name: Check if test branch exists
+        id: check-branch
         run: |
           git fetch origin --prune
-
+          
           if git ls-remote --heads origin test | grep -q "refs/heads/test"; then
             echo "Test branch exists on remote"
-            git fetch origin test:test
-            COMMITS_AHEAD=$(git rev-list --count test..develop)
-            COMMITS_BEHIND=$(git rev-list --count develop..test)
-            echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
-            echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
-            if [ "$COMMITS_AHEAD" -gt 0 ]; then
-              echo "has_changes=true" >> $GITHUB_OUTPUT
-            else
-              echo "has_changes=false" >> $GITHUB_OUTPUT
-            fi
+            echo "needs_branch_creation=false" >> $GITHUB_OUTPUT
           else
-            echo "Test branch doesn't exist → first‐time create only"
-            echo "commits_ahead=0" >> $GITHUB_OUTPUT
-            echo "commits_behind=0" >> $GITHUB_OUTPUT
-            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "Test branch doesn't exist → needs creation"
             echo "needs_branch_creation=true" >> $GITHUB_OUTPUT
           fi
-          
-          # Count TODOs in the codebase
-          TODO_COUNT=$(grep -r " TODO:" --include="*.ts" --include="*.js" --include="*.tsx" --include="*.jsx" --include="*.vue" --include="*.py" --include="*.java" --include="*.cs" --include="*.go" --include="*.rs" --include="*.cpp" --include="*.c" --include="*.h" . | wc -l || echo "0")
-          echo "todo_count=$TODO_COUNT" >> $GITHUB_OUTPUT
-          echo "Found $TODO_COUNT TODOs in the codebase"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create test branch if it doesn't exist
-        if: steps.check-diff.outputs.needs_branch_creation == 'true' && steps.check-pr.outputs.pr_exists == '0'
+        if: steps.check-branch.outputs.needs_branch_creation == 'true' && steps.check-pr.outputs.pr_exists == '0'
         run: |
           # Try to create test branch from main, fallback to develop if main doesn't exist
           if git ls-remote --heads origin main | grep -q "refs/heads/main"; then
@@ -201,6 +184,30 @@ jobs:
             git checkout -b test develop
           fi
           git push origin test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if branches differ
+        id: check-diff
+        run: |
+          # Now check for differences between develop and test (test branch should exist now)
+          git fetch origin test:test
+          COMMITS_AHEAD=$(git rev-list --count test..develop)
+          COMMITS_BEHIND=$(git rev-list --count develop..test)
+          echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
+          echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
+          echo "Develop is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind test"
+          
+          if [ "$COMMITS_AHEAD" -gt 0 ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+          
+          # Count TODOs in the codebase
+          TODO_COUNT=$(grep -r " TODO:" --include="*.ts" --include="*.js" --include="*.tsx" --include="*.jsx" --include="*.vue" --include="*.py" --include="*.java" --include="*.cs" --include="*.go" --include="*.rs" --include="*.cpp" --include="*.c" --include="*.h" . | wc -l || echo "0")
+          echo "todo_count=$TODO_COUNT" >> $GITHUB_OUTPUT
+          echo "Found $TODO_COUNT TODOs in the codebase"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
