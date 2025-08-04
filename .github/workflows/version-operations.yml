@@ -37,6 +37,9 @@ on:
       short_sha:
         description: "Short commit SHA"
         value: ${{ jobs.version-ops.outputs.short_sha }}
+      release_sha:
+        description: "Release SHA for revert capability"
+        value: ${{ jobs.version-ops.outputs.release_sha }}
       is_consistent:
         description: "Whether versions are consistent across packages"
         value: ${{ jobs.version-ops.outputs.is_consistent }}
@@ -51,6 +54,7 @@ jobs:
       base_version: ${{ steps.check.outputs.base_version }}
       build_number: ${{ steps.update.outputs.build_number }}
       short_sha: ${{ steps.update.outputs.short_sha }}
+      release_sha: ${{ steps.update.outputs.release_sha }}
       is_consistent: ${{ steps.check.outputs.is_consistent }}
     
     steps:
@@ -154,12 +158,17 @@ jobs:
           # Use release_type directly as version suffix
           VERSION_SUFFIX="${{ inputs.release_type }}"
           
-          # Extract existing build number from current version (if any)
+          # Extract existing build number and SHA from current version (if any)
           EXISTING_BUILD_NUMBER=""
+          EXISTING_SHA=""
           # Handle both formats: suffix.buildnumber.sha and suffix.buildnumber
-          if [[ "$CURRENT_VERSION" =~ -[a-zA-Z]+\.([0-9]+)(\.|$) ]]; then
+          if [[ "$CURRENT_VERSION" =~ -[a-zA-Z]+\.([0-9]+)\.([a-f0-9]+)$ ]]; then
             EXISTING_BUILD_NUMBER="${BASH_REMATCH[1]}"
-            echo "Found existing build number: $EXISTING_BUILD_NUMBER"
+            EXISTING_SHA="${BASH_REMATCH[2]}"
+            echo "Found existing build number: $EXISTING_BUILD_NUMBER and SHA: $EXISTING_SHA"
+          elif [[ "$CURRENT_VERSION" =~ -[a-zA-Z]+\.([0-9]+)$ ]]; then
+            EXISTING_BUILD_NUMBER="${BASH_REMATCH[1]}"
+            echo "Found existing build number: $EXISTING_BUILD_NUMBER (no SHA)"
           fi
           
           # Generate build info
@@ -167,18 +176,32 @@ jobs:
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           
           # Build number logic:
-          # - Alpha: Generate new build number
-          # - Beta/RELEASE: Inherit from existing version
+          # - Alpha: Generate new build number and use current SHA
+          # - Beta/RELEASE: Inherit build number and SHA from existing version
           case "${{ inputs.release_type }}" in
             "alpha")
               BUILD_NUMBER=$(date +%Y%m%d%H%M)
+              # For alpha, use current commit SHA
+              RELEASE_SHA="$SHORT_SHA"
               echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+              echo "release_sha=$RELEASE_SHA" >> $GITHUB_OUTPUT
               ;;
             "beta"|"RELEASE")
               if [ -n "$EXISTING_BUILD_NUMBER" ]; then
                 BUILD_NUMBER="$EXISTING_BUILD_NUMBER"
                 echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
                 echo "Inheriting build number: $BUILD_NUMBER"
+                
+                # For beta/RELEASE, preserve the original alpha SHA for revert capability
+                if [ -n "$EXISTING_SHA" ]; then
+                  RELEASE_SHA="$EXISTING_SHA"
+                  echo "release_sha=$RELEASE_SHA" >> $GITHUB_OUTPUT
+                  echo "Inheriting release SHA: $RELEASE_SHA"
+                else
+                  echo "❌ No existing SHA found in version: $CURRENT_VERSION"
+                  echo "Beta and RELEASE builds require an existing SHA from alpha for revert capability"
+                  exit 1
+                fi
               else
                 echo "❌ No existing build number found in version: $CURRENT_VERSION"
                 echo "Beta and RELEASE builds require an existing build number from alpha"
@@ -194,20 +217,20 @@ jobs:
                 # Use our bump script to increment patch version
                 bun run version:bump
                 NEW_BASE=$(node -p "require('./package.json').version")
-                NEW_VERSION="${NEW_BASE}-${VERSION_SUFFIX}.${BUILD_NUMBER}.${SHORT_SHA}"
+                NEW_VERSION="${NEW_BASE}-${VERSION_SUFFIX}.${BUILD_NUMBER}.${RELEASE_SHA}"
               else
-                NEW_VERSION="${BASE_VERSION}-${VERSION_SUFFIX}.${BUILD_NUMBER}.${SHORT_SHA}"
+                NEW_VERSION="${BASE_VERSION}-${VERSION_SUFFIX}.${BUILD_NUMBER}.${RELEASE_SHA}"
               fi
               ;;
             "beta")
               # For beta, keep the same base version but change suffix to beta
               # This preserves version progression: alpha -> beta -> RELEASE
-              NEW_VERSION="${BASE_VERSION}-${VERSION_SUFFIX}.${BUILD_NUMBER}.${SHORT_SHA}"
+              NEW_VERSION="${BASE_VERSION}-${VERSION_SUFFIX}.${BUILD_NUMBER}.${RELEASE_SHA}"
               echo "Promoting from current version: $CURRENT_VERSION"
               echo "To beta version: $NEW_VERSION"
               ;;
             "RELEASE")
-              NEW_VERSION="${BASE_VERSION}-${VERSION_SUFFIX}.${BUILD_NUMBER}"
+              NEW_VERSION="${BASE_VERSION}-${VERSION_SUFFIX}.${BUILD_NUMBER}.${RELEASE_SHA}"
               ;;
             *)
               echo "❌ Unknown release type: ${{ inputs.release_type }}"

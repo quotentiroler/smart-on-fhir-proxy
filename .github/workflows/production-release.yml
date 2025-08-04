@@ -72,3 +72,114 @@ jobs:
       APP_ID: ${{ secrets.APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+  # Revert changes if production release fails
+  revert-on-failure:
+    name: Revert Changes on Failure
+    runs-on: ubuntu-latest
+    needs: [production-release]
+    if: ${{ failure() && needs.production-release.result == 'failure' }}
+    
+    steps:
+      - name: Generate token
+        id: generate_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Configure git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Check for version update commits to revert
+        id: check_commits
+        run: |
+          # Extract the release SHA from the current version for precise revert
+          CURRENT_VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "")
+          RELEASE_SHA=""
+          
+          if [[ "$CURRENT_VERSION" =~ -[a-zA-Z]+\.[0-9]+\.([a-f0-9]+)$ ]]; then
+            RELEASE_SHA="${BASH_REMATCH[1]}"
+            echo "Found release SHA in version: $RELEASE_SHA"
+            echo "revert_needed=true" >> $GITHUB_OUTPUT
+            echo "revert_to_sha=$RELEASE_SHA" >> $GITHUB_OUTPUT
+            echo "Will revert to commit: $RELEASE_SHA"
+          else
+            echo "❌ No release SHA found in version: $CURRENT_VERSION"
+            echo "Cannot perform automatic revert - manual intervention required"
+            echo "revert_needed=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Revert to pre-release state
+        if: steps.check_commits.outputs.revert_needed == 'true'
+        run: |
+          REVERT_TO_SHA="${{ steps.check_commits.outputs.revert_to_sha }}"
+          
+          echo "🚨 Production release failed - reverting main branch back to $REVERT_TO_SHA"
+          echo "This will restore the repository to the state when the original alpha was created"
+          
+          # Reset main branch back to the release SHA
+          git reset --hard "$REVERT_TO_SHA"
+          
+          # Force push the revert (this is safe for main branch cleanup)
+          git push origin main --force
+          
+          echo "✅ Successfully reverted main branch back to release commit $REVERT_TO_SHA"
+          
+          # Create an issue to track the failed release
+          gh issue create \
+            --title "🚨 Production Release Failed - Main Branch Reverted" \
+            --body "**Production release pipeline failed and main branch has been automatically reverted.**
+
+          **Details:**
+          - Reverted back to commit: \`$REVERT_TO_SHA\`
+          - This restores the repository to the state when the original alpha release was created
+          - Failed workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          - Timestamp: $(date -u)
+
+          **Next Steps:**
+          1. Investigate the release failure in the workflow logs
+          2. Fix any issues that caused the release to fail
+          3. Re-run the production release when ready
+
+          **Note:** All version updates and API client changes since the alpha release have been reverted." \
+            --label "bug,release-failure,high-priority"
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+
+      - name: Notify failure without revert
+        if: steps.check_commits.outputs.revert_needed == 'false'
+        run: |
+          echo "⚠️ Production release failed, but cannot perform automatic revert"
+          echo "Release SHA not found in version format - manual reset required"
+          
+          # Create an issue for manual intervention
+          gh issue create \
+            --title "🚨 Production Release Failed - Manual Reset Required" \
+            --body "**Production release pipeline failed and automatic revert is not possible.**
+
+          **Details:**
+          - Current version: \`$(node -p "require('./package.json').version" 2>/dev/null || echo "unknown")\`
+          - Failed workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          - Timestamp: $(date -u)
+
+          **Action Required:**
+          The version format does not contain a release SHA for automatic revert. 
+          Manual investigation and reset of the main branch may be required.
+
+          **Next Steps:**
+          1. Investigate the release failure in the workflow logs
+          2. Manually reset main branch to a known good state if needed
+          3. Fix any issues that caused the release to fail
+          4. Re-run the production release when ready" \
+            --label "bug,release-failure,high-priority,manual-intervention"
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}

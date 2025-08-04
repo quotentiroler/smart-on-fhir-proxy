@@ -200,7 +200,6 @@ jobs:
 
           ## [v${{ inputs.version }}] - $(date +%Y-%m-%d)
 
-          ### Changes
           $CHANGELOG
 
           EOF
