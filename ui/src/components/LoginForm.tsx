@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { createApiClients } from '../lib/apiClient';
+import type { GetAuthIdentityProviders200ResponseInner } from '../lib/api-client/models';
 import { 
   Heart, 
   Shield, 
@@ -17,12 +18,7 @@ import {
 export function LoginForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [availableIdps, setAvailableIdps] = useState<Array<{
-    alias: string;
-    displayName?: string;
-    providerId: string;
-    enabled?: boolean;
-  }>>([]);
+  const [availableIdps, setAvailableIdps] = useState<GetAuthIdentityProviders200ResponseInner[]>([]);
   const [loadingIdps, setLoadingIdps] = useState(true);
   const { initiateLogin, exchangeCodeForToken } = useAuthStore();
 
@@ -31,14 +27,14 @@ export function LoginForm() {
     try {
       setLoadingIdps(true);
       const apiClients = createApiClients(); // No token needed for public IdP list
-      const idps = await apiClients.identityProviders.getAdminIdps();
+      const idps = await apiClients.auth.getAuthIdentityProviders();
       
       // Filter to only show enabled identity providers
-      const enabledIdps = idps.filter(idp => idp.enabled !== false);
+      const enabledIdps = idps.filter((idp: GetAuthIdentityProviders200ResponseInner) => idp.enabled !== false);
       setAvailableIdps(enabledIdps);
       
       if (enabledIdps.length > 0) {
-        console.log(`Found ${enabledIdps.length} available identity providers:`, enabledIdps.map(idp => idp.displayName || idp.alias));
+        console.log(`Found ${enabledIdps.length} available identity providers:`, enabledIdps.map((idp: GetAuthIdentityProviders200ResponseInner) => idp.displayName || idp.alias));
       }
     } catch (error) {
       console.warn('Could not fetch identity providers (this is normal for public access):', error);

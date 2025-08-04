@@ -69,8 +69,6 @@ export const handleApiError = (error: unknown) => {
       }
     }
   }
-
-  console.log('No authentication error detected, rethrowing error');
   throw error;
 };
 

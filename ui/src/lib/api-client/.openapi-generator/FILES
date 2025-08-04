@@ -22,6 +22,8 @@ models/GetAdminIdpsCount200Response.ts
 models/GetAdminLaunchContexts200ResponseInner.ts
 models/GetAdminRoles200ResponseInner.ts
 models/GetAdminSmartApps200ResponseInner.ts
+models/GetAuthIdentityProviders200ResponseInner.ts
+models/GetAuthIdps200ResponseInner.ts
 models/GetAuthUserinfo200Response.ts
 models/GetAuthUserinfo200ResponseNameInner.ts
 models/GetFhirServers200Response.ts

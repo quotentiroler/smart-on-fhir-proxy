@@ -5,6 +5,7 @@ import { validateToken } from '../../lib/auth'
 import { getAllServers, ensureServersInitialized } from '../../lib/fhir-server-store'
 import { logger } from '../../lib/logger'
 import { oauthMetricsLogger } from '../../lib/oauth-metrics-logger'
+import KcAdminClient from '@keycloak/keycloak-admin-client'
 
 interface TokenPayload {
   sub?: string
@@ -45,13 +46,13 @@ async function generateAuthorizationDetailsFromToken(
   try {
     // Ensure servers are initialized
     await ensureServersInitialized()
-    
+
     // Get all servers from the store
     const serverInfos = await getAllServers()
-    
+
     // Generate authorization details based on available FHIR servers
     const authDetails: AuthorizationDetail[] = []
-    
+
     // Create authorization details for each configured FHIR server
     for (const serverInfo of serverInfos) {
       const serverDetail: AuthorizationDetail = {
@@ -88,16 +89,16 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
   // redirect into Keycloak's /auth endpoint
   .get('/authorize', ({ query, redirect }) => {
     const url = new URL(
-      `${config.keycloak.baseUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/auth`
+      `${config.keycloak.publicUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/auth`
     )
-    
+
     // Add all query parameters to the Keycloak URL
     Object.entries(query).forEach(([k, v]) => {
       if (v !== undefined && v !== null) {
         url.searchParams.set(k, v as string)
       }
     })
-    
+
     return redirect(url.href)
   }, {
     query: t.Object({
@@ -125,24 +126,24 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
     const clientId = query.client_id || 'admin-ui'
     const redirectUri = query.redirect_uri || `${config.baseUrl}/`
     const scope = query.scope || 'openid profile email'
-    
+
     const url = new URL(
-      `${config.keycloak.baseUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/auth`
+      `${config.keycloak.publicUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/auth`
     )
-    
+
     url.searchParams.set('response_type', 'code')
     url.searchParams.set('client_id', clientId)
     url.searchParams.set('redirect_uri', redirectUri)
     url.searchParams.set('scope', scope)
     url.searchParams.set('state', state)
-    
+
     // Add any additional parameters passed through
     Object.entries(query).forEach(([k, v]) => {
       if (!['state', 'client_id', 'redirect_uri', 'scope'].includes(k)) {
         url.searchParams.set(k, v as string)
       }
     })
-    
+
     return redirect(url.href)
   }, {
     query: t.Object({
@@ -165,42 +166,42 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
   // Logout endpoint - proxy to Keycloak logout
   .get('/logout', ({ query, redirect }) => {
     logger.auth.debug('Logout endpoint called', { query })
-    
+
     const postLogoutRedirectUri = query.post_logout_redirect_uri || `${config.baseUrl}/`
-    
+
     const url = new URL(
-      `${config.keycloak.baseUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/logout`
+      `${config.keycloak.publicUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/logout`
     )
-    
+
     if (postLogoutRedirectUri) {
       url.searchParams.set('post_logout_redirect_uri', postLogoutRedirectUri)
     }
-    
+
     // Only pass valid id_token_hint if present and looks like a JWT
     if (query.id_token_hint) {
       // Basic validation: JWTs have 3 parts separated by dots
-      const isValidJwtFormat = typeof query.id_token_hint === 'string' && 
-                              query.id_token_hint.split('.').length === 3 &&
-                              query.id_token_hint.length > 50 // Reasonable minimum length
-      
+      const isValidJwtFormat = typeof query.id_token_hint === 'string' &&
+        query.id_token_hint.split('.').length === 3 &&
+        query.id_token_hint.length > 50 // Reasonable minimum length
+
       if (isValidJwtFormat) {
         url.searchParams.set('id_token_hint', query.id_token_hint)
         logger.auth.debug('Added valid id_token_hint to logout URL')
       } else {
-        logger.auth.warn('Invalid id_token_hint format, skipping', { 
+        logger.auth.warn('Invalid id_token_hint format, skipping', {
           hintLength: query.id_token_hint?.length,
-          hintParts: query.id_token_hint?.split?.('.')?.length 
+          hintParts: query.id_token_hint?.split?.('.')?.length
         })
       }
     }
-    
+
     // Add other safe parameters (excluding id_token_hint which we handled above)
     Object.entries(query).forEach(([k, v]) => {
       if (k !== 'post_logout_redirect_uri' && k !== 'id_token_hint' && k === 'client_id') {
         url.searchParams.set(k, v as string)
       }
     })
-    
+
     logger.auth.debug('Redirecting to Keycloak logout URL', { url: url.href })
     return redirect(url.href)
   }, {
@@ -217,20 +218,73 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
     }
   })
 
+  // Public identity providers endpoint - doesn't require authentication
+  .get('/identity-providers', async () => {
+    try {
+      // Use Keycloak's public endpoint to get realm info which includes identity providers
+      // This doesn't require admin authentication
+      const realmUrl = `${config.keycloak.publicUrl}/realms/${config.keycloak.realm}`
+
+      logger.auth.debug('Fetching realm info from public endpoint', { realmUrl })
+
+      const response = await fetch(realmUrl)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch realm info: ${response.status} ${response.statusText}`)
+      }
+
+      const realmInfo = await response.json()
+
+      // Extract identity providers from realm info
+      const identityProviders = realmInfo.identityProviders || []
+
+      // Return only enabled providers with minimal information for public consumption
+      const enabledProviders = identityProviders
+        .filter((provider: { enabled?: boolean }) => provider.enabled !== false)
+        .map((provider: { alias?: string; providerId?: string; displayName?: string; enabled?: boolean }) => ({
+          alias: provider.alias ?? '',
+          providerId: provider.providerId ?? '',
+          displayName: provider.displayName ?? provider.alias ?? '',
+          enabled: provider.enabled ?? false
+        }))
+
+      logger.auth.debug(`Returning ${enabledProviders.length} public identity providers`)
+      return enabledProviders
+    } catch (error) {
+      logger.auth.error('Failed to fetch public identity providers', { error })
+      // Return empty array on error - this is a public endpoint so we don't want to expose errors
+      return []
+    }
+  }, {
+    response: {
+      200: t.Array(t.Object({
+        alias: t.String({ description: 'Provider alias' }),
+        providerId: t.String({ description: 'Provider type' }),
+        displayName: t.String({ description: 'Display name' }),
+        enabled: t.Boolean({ description: 'Whether provider is enabled' })
+      }))
+    },
+    detail: {
+      summary: 'Get Public Identity Providers',
+      description: 'Get list of enabled identity providers for login page (public endpoint)',
+      tags: ['authentication'],
+      response: { 200: { description: 'List of enabled identity providers.' } }
+    }
+  })
+
   // proxy token request
   .post('/token', async ({ body, set, headers }) => {
     const startTime = Date.now();
     const kcUrl = `${config.keycloak.baseUrl}/realms/${config.keycloak.realm}/protocol/openid-connect/token`
-    logger.auth.debug('Token endpoint request received', { 
+    logger.auth.debug('Token endpoint request received', {
       keycloakUrl: kcUrl,
       bodyKeys: Object.keys(body as Record<string, unknown>)
     })
-    
+
     try {
       // Convert the parsed body back to form data with proper OAuth2 field names
       const formData = new URLSearchParams()
       const bodyObj = body as Record<string, string | undefined>
-      
+
       // Handle both camelCase and snake_case field names for OAuth2 standard field names
       if (bodyObj.grant_type || bodyObj.grantType) formData.append('grant_type', bodyObj.grant_type || bodyObj.grantType!)
       if (bodyObj.code) formData.append('code', bodyObj.code)
@@ -241,39 +295,39 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
       if (bodyObj.refresh_token || bodyObj.refreshToken) formData.append('refresh_token', bodyObj.refresh_token || bodyObj.refreshToken!)
       if (bodyObj.scope) formData.append('scope', bodyObj.scope)
       if (bodyObj.audience) formData.append('audience', bodyObj.audience)
-      
+
       // Handle password grant fields
       if (bodyObj.username) formData.append('username', bodyObj.username)
       if (bodyObj.password) formData.append('password', bodyObj.password)
-      
+
       // Handle Backend Services (client_credentials with JWT authentication)
       if (bodyObj.client_assertion_type) formData.append('client_assertion_type', bodyObj.client_assertion_type)
       if (bodyObj.client_assertion) formData.append('client_assertion', bodyObj.client_assertion)
-      
+
       const rawBody = formData.toString()
-      logger.auth.debug('Sending form data to Keycloak', { 
+      logger.auth.debug('Sending form data to Keycloak', {
         formFields: Array.from(formData.keys())
       })
-      
+
       const resp = await fetch(kcUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: rawBody
       })
-      
+
       const responseTime = Date.now() - startTime;
       const data = await resp.json()
-      logger.auth.debug('Keycloak response received', { 
+      logger.auth.debug('Keycloak response received', {
         status: resp.status,
         hasAccessToken: !!data.access_token,
         error: data.error
       })
-      
+
       // Log OAuth event
       const clientId = bodyObj.client_id || bodyObj.clientId || 'unknown';
       const grantType = bodyObj.grant_type || bodyObj.grantType || 'unknown';
       const scopes = bodyObj.scope ? bodyObj.scope.split(' ') : [];
-      
+
       try {
         await oauthMetricsLogger.logEvent({
           type: 'token',
@@ -302,65 +356,65 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
       } catch (logError) {
         logger.auth.error('Failed to log OAuth event', { logError });
       }
-      
+
       // Set the proper HTTP status code from Keycloak response
       set.status = resp.status
-      
+
       // If there's an error, return it with the proper status code
       if (data.error) {
-        logger.auth.warn('OAuth2 error from Keycloak', { 
-          error: data.error, 
+        logger.auth.warn('OAuth2 error from Keycloak', {
+          error: data.error,
           description: data.error_description,
-          status: resp.status 
+          status: resp.status
         })
         return data
       }
-      
+
       // If token request was successful, add SMART launch context from token claims
       if (data.access_token && resp.status === 200) {
         try {
           const tokenPayload = await validateToken(data.access_token)
-          
+
           // Add SMART launch context parameters from token claims (if available)
           // This requires proper Keycloak configuration with protocol mappers
           if (tokenPayload.smart_patient) {
             data.patient = tokenPayload.smart_patient
           }
-          
+
           if (tokenPayload.smart_encounter) {
             data.encounter = tokenPayload.smart_encounter
           }
-          
+
           if (tokenPayload.smart_fhir_user) {
             data.fhirUser = tokenPayload.smart_fhir_user
           }
-          
+
           if (tokenPayload.smart_fhir_context) {
             try {
-              data.fhirContext = typeof tokenPayload.smart_fhir_context === 'string' 
+              data.fhirContext = typeof tokenPayload.smart_fhir_context === 'string'
                 ? JSON.parse(tokenPayload.smart_fhir_context)
                 : tokenPayload.smart_fhir_context
             } catch {
               // If parse fails, don't include invalid fhirContext
             }
           }
-          
+
           if (tokenPayload.smart_intent) {
             data.intent = tokenPayload.smart_intent
           }
-          
+
           if (tokenPayload.smart_style_url) {
             data.smart_style_url = tokenPayload.smart_style_url
           }
-          
+
           if (tokenPayload.smart_tenant) {
             data.tenant = tokenPayload.smart_tenant
           }
-          
+
           if (tokenPayload.smart_need_patient_banner) {
             data.need_patient_banner = tokenPayload.smart_need_patient_banner === 'true' || tokenPayload.smart_need_patient_banner === true
           }
-          
+
           // Add authorization_details for multiple FHIR servers support (RFC 9396)
           // Generate based on configured FHIR servers and token claims
           const generatedDetails = await generateAuthorizationDetailsFromToken(tokenPayload)
@@ -372,7 +426,7 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
           // Continue without launch context rather than failing the entire request
         }
       }
-      
+
       return data
     } catch (error) {
       logger.auth.error('Token endpoint error', { error })
@@ -380,75 +434,75 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
       return { error: 'internal_server_error', error_description: 'Failed to process token request' }
     }
   },
-  {
-    body: t.Object({
-      grant_type: t.String({ description: 'OAuth grant type (e.g., authorization_code, client_credentials, password)' }),
-      code: t.Optional(t.String({ description: 'Authorization code for exchange' })),
-      redirect_uri: t.Optional(t.String({ description: 'Redirect URI for authorization code flow' })),
-      client_id: t.Optional(t.String({ description: 'OAuth client ID' })),
-      client_secret: t.Optional(t.String({ description: 'OAuth client secret' })),
-      code_verifier: t.Optional(t.String({ description: 'PKCE code verifier for security' })),
-      refresh_token: t.Optional(t.String({ description: 'Refresh token for refresh_token grant' })),
-      scope: t.Optional(t.String({ description: 'Requested scopes' })),
-      audience: t.Optional(t.String({ description: 'Audience for the token request' })),
-      // Password grant fields
-      username: t.Optional(t.String({ description: 'Username for password grant' })),
-      password: t.Optional(t.String({ description: 'Password for password grant' })),
-      // Backend Services (SMART on FHIR) fields
-      client_assertion_type: t.Optional(t.String({ description: 'Client assertion type for JWT authentication' })),
-      client_assertion: t.Optional(t.String({ description: 'Client assertion JWT for Backend Services authentication' }))
-    }),
-    response: t.Object({
-      access_token: t.Optional(t.String({ description: 'JWT access token' })),
-      token_type: t.Optional(t.String({ description: 'Token type (Bearer)' })),
-      expires_in: t.Optional(t.Number({ description: 'Token expiration time in seconds' })),
-      refresh_token: t.Optional(t.String({ description: 'Refresh token' })),
-      refresh_expires_in: t.Optional(t.Number({ description: 'Refresh token expiration time in seconds' })),
-      id_token: t.Optional(t.String({ description: 'OpenID Connect ID token' })),
-      scope: t.Optional(t.String({ description: 'Granted scopes' })),
-      session_state: t.Optional(t.String({ description: 'Keycloak session state' })),
-      'not-before-policy': t.Optional(t.Number({ description: 'Not before policy timestamp' })),
-      // SMART on FHIR launch context parameters (per SMART App Launch 2.2.0)
-      patient: t.Optional(t.String({ description: 'Patient in context (e.g., Patient/123)' })),
-      encounter: t.Optional(t.String({ description: 'Encounter in context (e.g., Encounter/456)' })),
-      fhirUser: t.Optional(t.String({ description: 'FHIR user resource (e.g., Practitioner/789)' })),
-      fhirContext: t.Optional(t.Array(t.Object({
-        reference: t.Optional(t.String({ description: 'FHIR resource reference' })),
-        canonical: t.Optional(t.String({ description: 'Canonical URL' })),
-        identifier: t.Optional(t.Object({}, { description: 'FHIR Identifier' })),
-        type: t.Optional(t.String({ description: 'FHIR resource type' })),
-        role: t.Optional(t.String({ description: 'Role URI' }))
-      }), { description: 'Additional FHIR resources in context' })),
-      intent: t.Optional(t.String({ description: 'Launch intent (e.g., reconcile-medications)' })),
-      smart_style_url: t.Optional(t.String({ description: 'URL to CSS stylesheet for styling' })),
-      tenant: t.Optional(t.String({ description: 'Tenant identifier' })),
-      need_patient_banner: t.Optional(t.Boolean({ description: 'Whether patient banner is required' })),
-      // Authorization details for multiple FHIR servers (RFC 9396)
-      authorization_details: t.Optional(t.Array(t.Object({
-        type: t.String({ description: 'Authorization details type (smart_on_fhir)' }),
-        locations: t.Array(t.String({ description: 'Array of FHIR base URLs where token can be used' })),
-        fhirVersions: t.Array(t.String({ description: 'Array of FHIR version codes (e.g., 4.0.1, 1.0.2)' })),
-        scope: t.Optional(t.String({ description: 'Space-separated SMART scopes for these locations' })),
-        patient: t.Optional(t.String({ description: 'Patient context for these locations' })),
-        encounter: t.Optional(t.String({ description: 'Encounter context for these locations' })),
+    {
+      body: t.Object({
+        grant_type: t.String({ description: 'OAuth grant type (e.g., authorization_code, client_credentials, password)' }),
+        code: t.Optional(t.String({ description: 'Authorization code for exchange' })),
+        redirect_uri: t.Optional(t.String({ description: 'Redirect URI for authorization code flow' })),
+        client_id: t.Optional(t.String({ description: 'OAuth client ID' })),
+        client_secret: t.Optional(t.String({ description: 'OAuth client secret' })),
+        code_verifier: t.Optional(t.String({ description: 'PKCE code verifier for security' })),
+        refresh_token: t.Optional(t.String({ description: 'Refresh token for refresh_token grant' })),
+        scope: t.Optional(t.String({ description: 'Requested scopes' })),
+        audience: t.Optional(t.String({ description: 'Audience for the token request' })),
+        // Password grant fields
+        username: t.Optional(t.String({ description: 'Username for password grant' })),
+        password: t.Optional(t.String({ description: 'Password for password grant' })),
+        // Backend Services (SMART on FHIR) fields
+        client_assertion_type: t.Optional(t.String({ description: 'Client assertion type for JWT authentication' })),
+        client_assertion: t.Optional(t.String({ description: 'Client assertion JWT for Backend Services authentication' }))
+      }),
+      response: t.Object({
+        access_token: t.Optional(t.String({ description: 'JWT access token' })),
+        token_type: t.Optional(t.String({ description: 'Token type (Bearer)' })),
+        expires_in: t.Optional(t.Number({ description: 'Token expiration time in seconds' })),
+        refresh_token: t.Optional(t.String({ description: 'Refresh token' })),
+        refresh_expires_in: t.Optional(t.Number({ description: 'Refresh token expiration time in seconds' })),
+        id_token: t.Optional(t.String({ description: 'OpenID Connect ID token' })),
+        scope: t.Optional(t.String({ description: 'Granted scopes' })),
+        session_state: t.Optional(t.String({ description: 'Keycloak session state' })),
+        'not-before-policy': t.Optional(t.Number({ description: 'Not before policy timestamp' })),
+        // SMART on FHIR launch context parameters (per SMART App Launch 2.2.0)
+        patient: t.Optional(t.String({ description: 'Patient in context (e.g., Patient/123)' })),
+        encounter: t.Optional(t.String({ description: 'Encounter in context (e.g., Encounter/456)' })),
+        fhirUser: t.Optional(t.String({ description: 'FHIR user resource (e.g., Practitioner/789)' })),
         fhirContext: t.Optional(t.Array(t.Object({
           reference: t.Optional(t.String({ description: 'FHIR resource reference' })),
           canonical: t.Optional(t.String({ description: 'Canonical URL' })),
           identifier: t.Optional(t.Object({}, { description: 'FHIR Identifier' })),
           type: t.Optional(t.String({ description: 'FHIR resource type' })),
           role: t.Optional(t.String({ description: 'Role URI' }))
-        }), { description: 'FHIR context for these locations' }))
-      }), { description: 'Authorization details for multiple FHIR servers' })),
-      error: t.Optional(t.String({ description: 'Error code if request failed' })),
-      error_description: t.Optional(t.String({ description: 'Error description if request failed' }))
-    }),
-    detail: {
-      summary: 'OAuth Token Exchange',
-      description: 'Exchange authorization code for access token with SMART launch context and authorization details for multiple FHIR servers',
-      tags: ['authentication'],
-      response: { 200: { description: 'OAuth token response with access token, SMART launch context parameters, and authorization details for multiple FHIR servers.' } }
-    }
-  })
+        }), { description: 'Additional FHIR resources in context' })),
+        intent: t.Optional(t.String({ description: 'Launch intent (e.g., reconcile-medications)' })),
+        smart_style_url: t.Optional(t.String({ description: 'URL to CSS stylesheet for styling' })),
+        tenant: t.Optional(t.String({ description: 'Tenant identifier' })),
+        need_patient_banner: t.Optional(t.Boolean({ description: 'Whether patient banner is required' })),
+        // Authorization details for multiple FHIR servers (RFC 9396)
+        authorization_details: t.Optional(t.Array(t.Object({
+          type: t.String({ description: 'Authorization details type (smart_on_fhir)' }),
+          locations: t.Array(t.String({ description: 'Array of FHIR base URLs where token can be used' })),
+          fhirVersions: t.Array(t.String({ description: 'Array of FHIR version codes (e.g., 4.0.1, 1.0.2)' })),
+          scope: t.Optional(t.String({ description: 'Space-separated SMART scopes for these locations' })),
+          patient: t.Optional(t.String({ description: 'Patient context for these locations' })),
+          encounter: t.Optional(t.String({ description: 'Encounter context for these locations' })),
+          fhirContext: t.Optional(t.Array(t.Object({
+            reference: t.Optional(t.String({ description: 'FHIR resource reference' })),
+            canonical: t.Optional(t.String({ description: 'Canonical URL' })),
+            identifier: t.Optional(t.Object({}, { description: 'FHIR Identifier' })),
+            type: t.Optional(t.String({ description: 'FHIR resource type' })),
+            role: t.Optional(t.String({ description: 'Role URI' }))
+          }), { description: 'FHIR context for these locations' }))
+        }), { description: 'Authorization details for multiple FHIR servers' })),
+        error: t.Optional(t.String({ description: 'Error code if request failed' })),
+        error_description: t.Optional(t.String({ description: 'Error description if request failed' }))
+      }),
+      detail: {
+        summary: 'OAuth Token Exchange',
+        description: 'Exchange authorization code for access token with SMART launch context and authorization details for multiple FHIR servers',
+        tags: ['authentication'],
+        response: { 200: { description: 'OAuth token response with access token, SMART launch context parameters, and authorization details for multiple FHIR servers.' } }
+      }
+    })
 
   // proxy introspection
   .post('/introspect', async ({ body }) => {
@@ -481,6 +535,57 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
     }
   })
 
+  // Public endpoint to get available identity providers (no auth required)
+  .get('/idps', async () => {
+    try {
+      // Create Keycloak admin client
+      const kcAdminClient = new KcAdminClient({
+        baseUrl: config.keycloak.baseUrl,
+        realmName: config.keycloak.realm
+      })
+
+      // Authenticate with admin credentials (for internal API calls)
+      await kcAdminClient.auth({
+        grantType: 'client_credentials',
+        clientId: 'admin-cli'
+      })
+
+      // Get identity providers
+      const idps = await kcAdminClient.identityProviders.find()
+
+      // Filter and format for public consumption
+      const publicIdps = idps
+        .filter(idp => idp.enabled !== false && idp.alias && idp.providerId)
+        .map(idp => ({
+          alias: idp.alias!,
+          displayName: idp.displayName || idp.alias!,
+          providerId: idp.providerId!,
+          enabled: idp.enabled
+        }))
+
+      return publicIdps
+    } catch (error) {
+      logger.auth.warn('Failed to fetch identity providers', { error })
+      // Return empty array instead of error to avoid breaking the UI
+      return []
+    }
+  }, {
+    response: {
+      200: t.Array(t.Object({
+        alias: t.String({ description: 'Identity provider alias' }),
+        displayName: t.String({ description: 'Display name' }),
+        providerId: t.String({ description: 'Provider type (oidc, saml, etc.)' }),
+        enabled: t.Optional(t.Boolean({ description: 'Whether the provider is enabled' }))
+      }))
+    },
+    detail: {
+      summary: 'Get Available Identity Providers',
+      description: 'Get list of available identity providers for authentication (public endpoint)',
+      tags: ['authentication'],
+      response: { 200: { description: 'List of available identity providers.' } }
+    }
+  })
+
   // Get current user info from token
   .get('/userinfo', async ({ headers, set }) => {
     if (!headers.authorization) {
@@ -489,23 +594,23 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
     }
 
     const token = headers.authorization.replace('Bearer ', '')
-    
+
     try {
       // Validate the token and extract user info
       const payload = await validateToken(token)
-      
+
       // Create a user profile from token claims
-      const displayName = payload.name || 
+      const displayName = payload.name ||
         (payload.given_name && payload.family_name ? `${payload.given_name} ${payload.family_name}` : '') ||
-        payload.given_name || 
-        payload.preferred_username || 
-        payload.email || 
+        payload.given_name ||
+        payload.preferred_username ||
+        payload.email ||
         'User'
-      
+
       const profile = {
         id: payload.sub || '',
         fhirUser: payload.smart_fhir_user || '',
-        name: [{ 
+        name: [{
           text: displayName
         }],
         username: payload.preferred_username || '',
@@ -514,7 +619,7 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
         lastName: payload.family_name,
         roles: payload.realm_access?.roles || []
       }
-      
+
       return profile
     } catch {
       set.status = 401
