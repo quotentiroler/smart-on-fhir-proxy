@@ -331,19 +331,24 @@ jobs:
           
           # Get releases matching the pattern, sorted by creation date (newest first)
           echo "Looking for $RELEASE_PATTERN releases to clean up..."
-          RELEASES_TO_DELETE=$(gh release list --limit 100 | grep "$RELEASE_PATTERN" | tail -n +$((KEEP_COUNT + 1)) | cut -f1)
+          
+          # Get all releases and extract just the tag names (first column)
+          ALL_RELEASES=$(gh release list --limit 100 | cut -f3)
+          
+          # Filter for releases matching our pattern and get tags to delete
+          RELEASES_TO_DELETE=$(echo "$ALL_RELEASES" | grep "$RELEASE_PATTERN" | tail -n +$((KEEP_COUNT + 1)))
           
           if [ -z "$RELEASES_TO_DELETE" ]; then
             echo "No old $RELEASE_PATTERN releases found to delete"
           else
-            echo "Found releases to delete:"
+            echo "Found release tags to delete:"
             echo "$RELEASES_TO_DELETE"
             
             # Delete each old release
             echo "$RELEASES_TO_DELETE" | while read -r release_tag; do
               if [ -n "$release_tag" ]; then
                 echo "Deleting release: $release_tag"
-                gh release delete "$release_tag" --yes || echo "Failed to delete $release_tag"
+                gh release delete "$release_tag" --yes || echo "Failed to delete release $release_tag"
                 
                 # Also delete the git tag
                 echo "Deleting tag: $release_tag"
