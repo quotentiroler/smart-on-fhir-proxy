@@ -2,10 +2,25 @@ import { config } from './config'
 import { logger } from './lib/logger'
 import { ensureServersInitialized, getAllServers } from './lib/fhir-server-store'
 
+// Global state to track Keycloak connectivity
+let keycloakAccessible = false
+
+/**
+ * Get the current Keycloak accessibility status
+ */
+export function isKeycloakAccessible(): boolean {
+  return keycloakAccessible && config.keycloak.isConfigured
+}
+
 /**
  * Check Keycloak connection health with retry logic
  */
 export async function checkKeycloakConnection(): Promise<void> {
+  // Check if Keycloak is configured
+  if (!config.keycloak.isConfigured || !config.keycloak.jwksUri) {
+    throw new Error('Keycloak connection verification failed: Not configured')
+  }
+
   const maxRetries = 3;
   const retryInterval = 10000; // 10 seconds
   
@@ -80,6 +95,7 @@ export async function checkKeycloakConnection(): Promise<void> {
       }
       
       // If we reach here, the connection was successful
+      keycloakAccessible = true
       return;
       
     } catch (error) {
@@ -186,13 +202,19 @@ export async function initializeServer(): Promise<void> {
   logger.server.info('Starting SMART on FHIR Proxy...')
 
   try {
-    logger.keycloak.info('Initializing Keycloak connection...')
-    logger.keycloak.info(`Keycloak Server: ${config.keycloak.baseUrl}`)
-    logger.keycloak.info(`Realm: ${config.keycloak.realm}`)
-    logger.keycloak.info(`JWKS URI: ${config.keycloak.jwksUri}`)
-    
-    // Check Keycloak connection before proceeding
-    await checkKeycloakConnection()
+    // Check if Keycloak is configured
+    if (config.keycloak.isConfigured) {
+      logger.keycloak.info('Initializing Keycloak connection...')
+      logger.keycloak.info(`Keycloak Server: ${config.keycloak.baseUrl}`)
+      logger.keycloak.info(`Realm: ${config.keycloak.realm}`)
+      logger.keycloak.info(`JWKS URI: ${config.keycloak.jwksUri}`)
+      
+      // Check Keycloak connection before proceeding
+      await checkKeycloakConnection()
+    } else {
+      logger.keycloak.warn('Keycloak not configured - authentication features will be limited')
+      logger.keycloak.warn('Configure Keycloak settings in the admin UI to enable full functionality')
+    }
     
     // Initialize FHIR servers
     await initializeFhirServers()
@@ -205,39 +227,41 @@ export async function initializeServer(): Promise<void> {
       cause: error.cause
     } : String(error)
     
-    logger.server.error('❌ Server initialization failed', {
-      error: errorDetails,
-      initializationStep: error instanceof Error && error.message.includes('Keycloak') ? 'Keycloak Connection' : 'Unknown',
-      config: {
-        keycloak: {
-          baseUrl: config.keycloak.baseUrl,
-          realm: config.keycloak.realm,
-          jwksUri: config.keycloak.jwksUri
-        },
-        fhir: {
-          serverBases: config.fhir.serverBases
-        }
-      },
-      timestamp: new Date().toISOString()
-    })
-    
     // Check if it's a Keycloak-related error
     if (error instanceof Error && error.message.includes('Keycloak connection verification failed')) {
-      logger.server.error('🔐 Keycloak connection failed - server cannot start without proper authentication')
-      logger.server.error('')
-      logger.server.error('🔍 Keycloak troubleshooting:')
-      logger.server.error(`   1. Check if Keycloak is running at: ${config.keycloak.baseUrl}`)
-      logger.server.error(`   2. Verify realm "${config.keycloak.realm}" exists`)
-      logger.server.error(`   3. Test JWKS endpoint: ${config.keycloak.jwksUri}`)
-      logger.server.error('   4. Check network connectivity and firewall settings')
-      logger.server.error('   5. Verify Keycloak admin console is accessible')
-      logger.server.error('')
-      throw error // Re-throw to trigger main error handler
+      logger.server.warn('🔐 Keycloak connection failed - server will start with limited authentication')
+      logger.server.warn('')
+      logger.server.warn('🔍 Keycloak troubleshooting:')
+      logger.server.warn(`   1. Check if Keycloak is running at: ${config.keycloak.baseUrl}`)
+      logger.server.warn(`   2. Verify realm "${config.keycloak.realm}" exists`)
+      logger.server.warn(`   3. Test JWKS endpoint: ${config.keycloak.jwksUri}`)
+      logger.server.warn('   4. Check network connectivity and firewall settings')
+      logger.server.warn('   5. Verify Keycloak admin console is accessible')
+      logger.server.warn('   6. Configure Keycloak in the admin UI once the server is running')
+      logger.server.warn('')
+      // Continue server startup even with Keycloak issues
+    } else {
+      logger.server.error('❌ Server initialization failed', {
+        error: errorDetails,
+        initializationStep: 'Unknown',
+        config: {
+          keycloak: {
+            isConfigured: config.keycloak.isConfigured,
+            baseUrl: config.keycloak.baseUrl,
+            realm: config.keycloak.realm,
+            jwksUri: config.keycloak.jwksUri
+          },
+          fhir: {
+            serverBases: config.fhir.serverBases
+          }
+        },
+        timestamp: new Date().toISOString()
+      })
+      
+      // For non-Keycloak errors, provide context but continue
+      logger.server.warn('⚠️  Server initialization had issues but will attempt to continue')
+      logger.server.warn('Some features may not work correctly until issues are resolved')
     }
-    
-    // For other errors, provide context but don't exit
-    logger.server.warn('⚠️  Server initialization had issues but will attempt to continue')
-    logger.server.warn('Some features may not work correctly until issues are resolved')
   }
 }
 

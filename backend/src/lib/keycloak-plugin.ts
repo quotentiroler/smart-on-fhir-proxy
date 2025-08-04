@@ -2,7 +2,8 @@ import { Elysia } from 'elysia'
 import KcAdminClient from '@keycloak/keycloak-admin-client'
 import { validateToken } from './auth'
 import { logger } from './logger'
-import { AuthenticationError } from './admin-utils'
+import { AuthenticationError, ConfigurationError } from './admin-utils'
+import { config } from '../config'
 
 /**
  * Plugin that adds Keycloak admin client decorator
@@ -12,6 +13,11 @@ import { AuthenticationError } from './admin-utils'
 export const keycloakPlugin = new Elysia()
   .decorate('getAdmin', async (userToken: string) => {
     try {
+      // Check if Keycloak is configured
+      if (!config.keycloak.isConfigured) {
+        throw new ConfigurationError('Keycloak is not configured. Please configure Keycloak settings in the admin UI.')
+      }
+
       logger.auth.debug('Keycloak plugin: Starting admin client creation', { tokenLength: userToken.length })
       logger.auth.debug('Validating user token for admin operations')
       // Validate the user's token and get payload
@@ -75,8 +81,8 @@ export const keycloakPlugin = new Elysia()
       // Create admin client with user's token
       logger.auth.debug('Creating Keycloak admin client...')
       const kcAdminClient = new KcAdminClient({
-        baseUrl: process.env.KEYCLOAK_BASE_URL!,
-        realmName: process.env.KEYCLOAK_REALM!,
+        baseUrl: config.keycloak.baseUrl!,
+        realmName: config.keycloak.realm!,
       })
 
       // Use the user's token for admin operations
@@ -92,8 +98,8 @@ export const keycloakPlugin = new Elysia()
     } catch (error) {
       logger.auth.error('Error in keycloak plugin', { error })
       
-      // Re-throw authentication errors to preserve their type
-      if (error instanceof AuthenticationError) {
+      // Re-throw configuration and authentication errors to preserve their type
+      if (error instanceof ConfigurationError || error instanceof AuthenticationError) {
         throw error
       }
       
