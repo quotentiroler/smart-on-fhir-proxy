@@ -26,21 +26,48 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check if develop branch exists
+        id: check-branch
+        run: |
+          git fetch origin --prune
+          
+          if git ls-remote --heads origin develop | grep -q "refs/heads/develop"; then
+            echo "Develop branch exists on remote"
+            echo "needs_branch_creation=false" >> $GITHUB_OUTPUT
+          else
+            echo "Develop branch doesn't exist → needs creation"
+            echo "needs_branch_creation=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create develop branch if it doesn't exist
+        if: steps.check-branch.outputs.needs_branch_creation == 'true' && steps.check-pr.outputs.pr_exists == '0'
+        run: |
+          # Try to create develop branch from main, fallback to current branch if main doesn't exist
+          if git ls-remote --heads origin main | grep -q "refs/heads/main"; then
+            git fetch origin main:main
+            git checkout -b develop main
+            echo "Created develop branch from main"
+          else
+            echo "Main branch doesn't exist, creating develop from current branch"
+            git checkout -b develop
+          fi
+          git push origin develop
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Check if branches differ
         id: check-diff
         run: |
-          # Fetch latest remote branches
-          git fetch origin --prune
-          git fetch origin develop
-
-          # Compare current dev branch (HEAD) against develop
-          COMMITS_AHEAD=$(git rev-list --count origin/develop..HEAD)
-          COMMITS_BEHIND=$(git rev-list --count HEAD..origin/develop)
-          
+          # Now check for differences between current dev branch and develop (develop branch should exist now)
+          git fetch origin develop:develop
+          COMMITS_AHEAD=$(git rev-list --count develop..HEAD)
+          COMMITS_BEHIND=$(git rev-list --count HEAD..develop)
           echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
           echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
           echo "${{ github.ref_name }} is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind develop"
-
+          
           if [ "$COMMITS_AHEAD" -gt 0 ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
@@ -57,29 +84,6 @@ jobs:
           echo "Found $TODO_COUNT TODOs in the codebase"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create develop branch if it doesn't exist
-        if: steps.check-diff.outputs.has_changes == 'true' && steps.check-pr.outputs.pr_exists == '0'
-        run: |
-          # Check if develop branch exists on remote
-          if ! git ls-remote --heads origin develop | grep -q "refs/heads/develop"; then
-            echo "Creating develop branch from main (or current branch if main doesn't exist)"
-            
-            # Try to create develop branch from main, fallback to current branch
-            if git ls-remote --heads origin main | grep -q "refs/heads/main"; then
-              git fetch origin main:main
-              git checkout -b develop main
-            else
-              echo "Main branch doesn't exist, creating develop from current branch"
-              git checkout -b develop
-            fi
-            
-            git push origin develop
-            echo "Created develop branch"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Create Pull Request
         if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'true'
         run: |
