@@ -191,7 +191,15 @@ jobs:
       - name: Create test branch if it doesn't exist
         if: steps.check-diff.outputs.needs_branch_creation == 'true' && steps.check-pr.outputs.pr_exists == '0'
         run: |
-          git checkout -b test develop
+          # Try to create test branch from main, fallback to develop if main doesn't exist
+          if git ls-remote --heads origin main | grep -q "refs/heads/main"; then
+            git fetch origin main:main
+            git checkout -b test main
+            echo "Created test branch from main"
+          else
+            echo "Main branch doesn't exist, creating test from develop"
+            git checkout -b test develop
+          fi
           git push origin test
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
