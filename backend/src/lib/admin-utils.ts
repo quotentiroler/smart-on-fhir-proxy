@@ -46,6 +46,16 @@ export class AuthenticationError extends Error {
 }
 
 /**
+ * Custom error class for configuration-related errors
+ */
+export class ConfigurationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ConfigurationError';
+  }
+}
+
+/**
  * Get admin client with proper error handling
  * @param getAdmin Admin client factory function
  * @param token Bearer token

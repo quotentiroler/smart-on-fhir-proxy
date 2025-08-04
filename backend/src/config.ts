@@ -21,13 +21,19 @@ export const config = {
   version: packageJson.version,
   
   keycloak: {
-    baseUrl: process.env.KEYCLOAK_BASE_URL!,
-    realm: process.env.KEYCLOAK_REALM!,
+    baseUrl: process.env.KEYCLOAK_BASE_URL || null,
+    realm: process.env.KEYCLOAK_REALM || null,
     // Note: clientId and clientSecret no longer needed for admin API
     // We use the user's token directly
     
+    // Check if Keycloak is configured
+    get isConfigured() {
+      return !!(this.baseUrl && this.realm)
+    },
+    
     // Public URL for browser redirects (defaults to baseUrl if not specified)
     get publicUrl() {   
+      if (!this.baseUrl) return null
       const domain = process.env.KEYCLOAK_DOMAIN || 'localhost'
       // Use regex to replace the hostname in the URL, preserving protocol and port
       return this.baseUrl.replace(/\/\/([^:/]+)(:[0-9]+)?/, `//${domain}$2`)
@@ -35,6 +41,7 @@ export const config = {
     
     // Dynamically construct JWKS URI from base URL and realm
     get jwksUri() {
+      if (!this.baseUrl || !this.realm) return null
       return `${this.baseUrl}/realms/${this.realm}/protocol/openid-connect/certs`
     },
   },

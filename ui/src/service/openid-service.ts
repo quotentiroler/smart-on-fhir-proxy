@@ -32,6 +32,17 @@ class OpenIDService {
   }
 
   async getAuthorizationUrl(idpHint?: string): Promise<{ url: string; codeVerifier: string; state: string }> {
+    // Check if authentication is configured
+    try {
+      const authConfig = await this.authApi.getAuthConfig();
+      if (!authConfig.keycloak.isConfigured) {
+        throw new Error('Authentication is not configured. Please contact your administrator.');
+      }
+    } catch (error) {
+      console.error('Failed to check auth configuration:', error);
+      throw new Error('Unable to verify authentication configuration. Please try again later.');
+    }
+
     // Generate PKCE parameters
     const codeVerifier = this.generateCodeVerifier();
     const codeChallenge = await this.generateCodeChallenge(codeVerifier);
@@ -173,6 +184,16 @@ class OpenIDService {
     }
     
     return logoutUrl.href;
+  }
+
+  async isAuthenticationAvailable(): Promise<boolean> {
+    try {
+      const authConfig = await this.authApi.getAuthConfig();
+      return authConfig.keycloak.isConfigured;
+    } catch (error) {
+      console.error('Failed to check auth configuration:', error);
+      return false;
+    }
   }
 
   // Helper methods for PKCE

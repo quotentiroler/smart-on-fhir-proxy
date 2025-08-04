@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { createApiClients } from '../lib/apiClient';
+import { openidService } from '../service/openid-service';
 import type { GetAuthIdentityProviders200ResponseInner } from '../lib/api-client/models';
 import { 
   Heart, 
@@ -12,7 +13,8 @@ import {
   Globe,
   Building2,
   Users,
-  ArrowRight
+  ArrowRight,
+  AlertTriangle
 } from 'lucide-react';
 
 export function LoginForm() {
@@ -20,7 +22,23 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [availableIdps, setAvailableIdps] = useState<GetAuthIdentityProviders200ResponseInner[]>([]);
   const [loadingIdps, setLoadingIdps] = useState(true);
+  const [authAvailable, setAuthAvailable] = useState<boolean | null>(null);
   const { initiateLogin, exchangeCodeForToken } = useAuthStore();
+
+  // Check if authentication is configured
+  const checkAuthAvailability = useCallback(async () => {
+    try {
+      const available = await openidService.isAuthenticationAvailable();
+      setAuthAvailable(available);
+      if (!available) {
+        setError('Authentication is not configured. Please contact your administrator.');
+      }
+    } catch (error) {
+      console.error('Failed to check auth availability:', error);
+      setAuthAvailable(false);
+      setError('Unable to verify authentication configuration. Please try again later.');
+    }
+  }, []);
 
   // Fetch available identity providers
   const fetchAvailableIdps = useCallback(async () => {
@@ -45,10 +63,11 @@ export function LoginForm() {
     }
   }, []);
 
-  // Load IdPs on component mount
+  // Load IdPs and check auth availability on component mount
   useEffect(() => {
+    checkAuthAvailability();
     fetchAvailableIdps();
-  }, [fetchAvailableIdps]);
+  }, [checkAuthAvailability, fetchAvailableIdps]);
 
   const handleCodeExchange = useCallback(async (code: string, state: string) => {
     setLoading(true);
@@ -108,6 +127,12 @@ export function LoginForm() {
   }, [handleCodeExchange]);
 
   const handleLogin = async (idpAlias?: string) => {
+    // Check if authentication is available before proceeding
+    if (authAvailable === false) {
+      setError('Authentication is not configured. Please contact your administrator.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     
@@ -176,10 +201,27 @@ export function LoginForm() {
               )}
 
               {/* Loading state for IdPs */}
-              {loadingIdps ? (
+              {loadingIdps || authAvailable === null ? (
                 <div className="text-center py-4">
                   <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-gray-400" />
                   <p className="text-sm text-gray-500">Loading authentication options...</p>
+                </div>
+              ) : authAvailable === false ? (
+                /* Authentication not configured */
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <AlertTriangle className="w-8 h-8 text-yellow-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Authentication Not Configured</h3>
+                  <p className="text-gray-600 mb-4">
+                    The authentication system is not configured on this server.
+                  </p>
+                  <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-left">
+                    <p className="text-sm text-yellow-800">
+                      <strong>For administrators:</strong> Please configure Keycloak authentication 
+                      by setting the required environment variables and restarting the service.
+                    </p>
+                  </div>
                 </div>
               ) : (
                 <>
