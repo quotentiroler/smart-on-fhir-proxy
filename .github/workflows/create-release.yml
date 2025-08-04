@@ -73,89 +73,55 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          # Create release notes content based on release type
+          # Set release type specific content
           case "${{ inputs.release_type }}" in
             "alpha")
-              cat > release-notes.md << 'EOF'
-          # SMART on FHIR Proxy v${{ inputs.version }} (Alpha)
-
-          ⚠️ **This is an alpha release** - Use with caution in development environments only.
-
-          **Build Info:**
-          - Build Number: ${{ inputs.build_number }}
-          - Commit: ${{ inputs.short_sha }}
-          - Built from: `${{ inputs.source_branch }}` branch
-
-          ## Changes
-          ${{ inputs.changelog }}
-
-          ## Components
-          - **Backend**: SMART on FHIR Proxy Server
-          - **UI**: Administration Interface  
-          - **Test Suite**: Comprehensive FHIR compliance tests
-
-          ## Installation
-          ```bash
-          git clone https://github.com/${{ github.repository }}.git
-          cd smart-on-fhir-proxy
-          git checkout v${{ inputs.version }}
-          ```
-
-          See the [README](README.md) for setup instructions.
-          EOF
+              TITLE_SUFFIX=" (Alpha)"
+              WARNING="⚠️ **This is an alpha release** - Use with caution in development environments only."
               ;;
             "beta")
-              cat > release-notes.md << 'EOF'
-          # SMART on FHIR Proxy v${{ inputs.version }} (Beta)
-
-          🧪 **This is a beta release** - Suitable for testing and staging environments.
-
-          **Build Info:**
-          - Build Number: ${{ inputs.build_number }}
-          - Commit: ${{ inputs.short_sha }}
-          - Built from: `${{ inputs.source_branch }}` branch
-
-          ## Changes
-          ${{ inputs.changelog }}
-
-          ## Components
-          - **Backend**: SMART on FHIR Proxy Server
-          - **UI**: Administration Interface  
-          - **Test Suite**: Comprehensive FHIR compliance tests
-
-          ## Installation
-          ```bash
-          git clone https://github.com/${{ github.repository }}.git
-          cd smart-on-fhir-proxy
-          git checkout v${{ inputs.version }}
-          ```
-
-          See the [README](README.md) for setup instructions.
-          EOF
+              TITLE_SUFFIX=" (Beta)"
+              WARNING="🧪 **This is a beta release** - Suitable for testing and staging environments."
               ;;
-            "production")
-              cat > release-notes.md << 'EOF'
-          # SMART on FHIR Proxy v${{ inputs.version }}
-
-          ## Changes
-          ${{ inputs.changelog }}
-
-          ## Components
-          - **Backend**: SMART on FHIR Proxy Server
-          - **UI**: Administration Interface  
-          - **Test Suite**: Comprehensive FHIR compliance tests
-
-          ## Installation
-          ```bash
-          git clone https://github.com/${{ github.repository }}.git
-          cd smart-on-fhir-proxy
-          git checkout v${{ inputs.version }}
-          ```
-
-          See the [README](README.md) for setup instructions.
-          EOF
+            "production"|"RELEASE")
+              TITLE_SUFFIX=""
+              WARNING=""
+              ;;
+            *)
+              TITLE_SUFFIX=""
+              WARNING="**Release Type:** ${{ inputs.release_type }}"
               ;;
           esac
+
+          # Create release notes with shared content
+          cat > release-notes.md << EOF
+          # SMART on FHIR Proxy v${{ inputs.version }}${TITLE_SUFFIX}
+
+          ${WARNING}
+
+          $( [[ "${{ inputs.release_type }}" != "production" && "${{ inputs.release_type }}" != "RELEASE" ]] && echo "**Build Info:**
+          - Build Number: ${{ inputs.build_number }}
+          - Commit: ${{ inputs.short_sha }}
+          - Built from: \`${{ inputs.source_branch }}\` branch" )
+
+          ## Changes
+          ${{ inputs.changelog }}
+
+          ## Installation
+          \`\`\`bash
+          git clone https://github.com/${{ github.repository }}.git
+          cd smart-on-fhir-proxy
+          git checkout v${{ inputs.version }}
+          \`\`\`
+
+          See the [README](README.md) for setup instructions.
+          EOF
+
+          # Verify the release notes file was created
+          if [ ! -f release-notes.md ]; then
+            echo "Error: release-notes.md was not created"
+            exit 1
+          fi
 
           # Create the release
           gh release create "v${{ inputs.version }}" \

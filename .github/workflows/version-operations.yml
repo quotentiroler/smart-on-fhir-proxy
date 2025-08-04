@@ -229,9 +229,8 @@ jobs:
             # Simplify version for badge (strip build number and SHA)
             BADGE_VERSION="${BASE_VERSION}-${VERSION_SUFFIX}"
 
-            # Update the version badge - handle complex version formats with build numbers and SHA
-            # This regex matches: vX.X.X.anything-blue and replaces with v$BADGE_VERSION-blue
-            sed -i "s/v[0-9]\+\.[0-9]\+\.[0-9]\+[^-]*\(-blue\)/v$BADGE_VERSION\1/g" README.md
+            # Update the version badge in readme using sed
+            sed -i "s/\[\!\[Version\](https:\/\/img\.shields\.io\/badge\/v[^-]*-[^-]*-blue\.svg)\]/[![Version](https:\/\/img.shields.io\/badge\/v${BADGE_VERSION}-blue.svg)]/g" README.md
             echo "Updated README.md version badge to $BADGE_VERSION"
           fi
 
