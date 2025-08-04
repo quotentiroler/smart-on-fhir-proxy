@@ -31,16 +31,15 @@ jobs:
         run: |
           # Fetch latest remote branches
           git fetch origin --prune
-          git fetch origin test
           git fetch origin develop
 
-          # Compare remote/test against local develop (HEAD)
-          COMMITS_AHEAD=$(git rev-list --count origin/test..HEAD)
-          COMMITS_BEHIND=$(git rev-list --count HEAD..origin/test)
+          # Compare current dev branch (HEAD) against develop
+          COMMITS_AHEAD=$(git rev-list --count origin/develop..HEAD)
+          COMMITS_BEHIND=$(git rev-list --count HEAD..origin/develop)
           
           echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
           echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
-          echo "Develop is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind test"
+          echo "${{ github.ref_name }} is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind develop"
 
           if [ "$COMMITS_AHEAD" -gt 0 ]; then
             echo "has_changes=true" >> $GITHUB_OUTPUT
