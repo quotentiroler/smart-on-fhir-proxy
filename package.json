@@ -1,6 +1,6 @@
 {
   "name": "smart-on-fhir",
-  "version": "0.0.3-alpha.202508040950.337e2dc",
+  "version": "0.0.3-beta.202508040950.337e2dc",
   "repository": {
     "type": "git",
     "url": "https://github.com/your-org/smart-on-fhir.git"
