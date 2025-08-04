@@ -104,15 +104,25 @@ jobs:
           esac
 
           # Create release notes with shared content
-          cat > release-notes.md << EOF
+          cat > release-notes.md <<-EOF
           # SMART on FHIR Proxy v${{ inputs.version }}${TITLE_SUFFIX}
 
           ${WARNING}
+          EOF
 
-          $( [[ "${{ inputs.release_type }}" != "production" && "${{ inputs.release_type }}" != "RELEASE" ]] && echo "**Build Info:**
+          # Add build info for non-production releases
+          if [[ "${{ inputs.release_type }}" != "production" && "${{ inputs.release_type }}" != "RELEASE" ]]; then
+            cat >> release-notes.md <<-EOF
+
+          **Build Info:**
           - Build Number: ${{ inputs.build_number }}
           - Commit: ${{ inputs.short_sha }}
-          - Built from: \`${{ inputs.source_branch }}\` branch" )
+          - Built from: \`${{ inputs.source_branch }}\`
+          EOF
+          fi
+
+          # Add the rest of the release notes
+          cat >> release-notes.md <<-EOF
 
           ## Changes
           ${{ inputs.changelog }}
@@ -133,8 +143,14 @@ jobs:
             exit 1
           fi
 
+          # Build up the --prerelease flag in pure shell
+          EXTRA_ARGS=""
+          if [ "${{ inputs.is_prerelease }}" = "true" ]; then
+            EXTRA_ARGS="--prerelease"
+          fi
+
           # Create the release
           gh release create "v${{ inputs.version }}" \
             --title "v${{ inputs.version }}" \
             --notes-file release-notes.md \
-            ${{ inputs.is_prerelease == true && '--prerelease' || '' }}
+            $EXTRA_ARGS

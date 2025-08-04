@@ -66,10 +66,11 @@ jobs:
             for sha in $commit_shas; do
               if git cat-file -e "$sha" 2>/dev/null; then
                 commit_msg=$(git log --format="%s" -n 1 "$sha" 2>/dev/null || echo "")
-                echo "Processing commit $sha: $commit_msg" >&2
+                commit_timestamp=$(git log --format="%ad" --date=format:"%Y-%m-%d %H:%M:%S" -n 1 "$sha" 2>/dev/null || echo "")
+                echo "Processing commit $sha: $commit_msg ($commit_timestamp)" >&2
                 
-                # Build simple commit list for display
-                commit_list="${commit_list}- **${sha:0:7}**: $commit_msg"$'\n'
+                # Build simple commit list for display with timestamp
+                commit_list="${commit_list}- **${sha:0:7}** ($commit_timestamp): $commit_msg"$'\n'
                 
                 # Try to get AI-generated commit comments via GitHub API
                 ai_comment=""
@@ -105,8 +106,8 @@ jobs:
                   fi
                 fi
                 
-                # Build detailed comments for AI processing (but not for display)
-                all_comments="${all_comments}- **${sha:0:7}**: $full_comment"$'\n'
+                # Build detailed comments for AI processing (with timestamp for context)
+                all_comments="${all_comments}- **${sha:0:7}** ($commit_timestamp): $full_comment"$'\n'
               else
                 echo "⚠️ Commit $sha not found"
               fi
@@ -199,7 +200,6 @@ jobs:
 
           ## [v${{ inputs.version }}] - $(date +%Y-%m-%d)
 
-          ### Changes
           $CHANGELOG
 
           EOF

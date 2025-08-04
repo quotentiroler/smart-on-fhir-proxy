@@ -2,7 +2,7 @@
 
 A comprehensive healthcare application platform implementing the complete SMART App Launch Framework 2.2.0 specification with advanced administrative capabilities, AI-powered assistance, and enterprise-grade security.
 
-[![Version](https://img.shields.io/badge/v0.0.2-RELEASE-blue.svg)](https://github.com/quotentiroler/smart-on-fhir-proxy)
+[![Version](https://img.shields.io/badge/v0.0.3-alpha-blue.svg)](https://github.com/quotentiroler/smart-on-fhir-proxy)
 [![SMART App Launch](https://img.shields.io/badge/SMART%20App%20Launch-2.2.0-green.svg)](http://hl7.org/fhir/smart-app-launch/)
 [![FHIR](https://img.shields.io/badge/FHIR-R4%2FR4B-orange.svg)](https://hl7.org/fhir/R4/)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
@@ -256,8 +256,9 @@ Each branch automatically triggers appropriate CI/CD workflows with version mana
 
 | Version          | Milestone              | Target Features                           |
 | ---------------- | ---------------------- | ----------------------------------------- |
-| **v0.0.8** | SMART 2.2.0 Compliance | Complete specification implementation     |
-| **v0.9.x** | AI Enhancement         | Advanced monitoring, predictive analytics |
+| **<0.1.0** | Early Development       | Test deployment, incomplete documentation |
+| **v0.1.0** | SMART 2.2.0 Compliance | Complete specification implementation     |
+| **v0.9.0** | AI Enhancement         | Advanced monitoring, predictive analytics |
 | **v1.0.0** | Production Ready       | Enterprise deployment, full documentation |
 
 **[📖 View Complete Roadmap](ROADMAP.md)**
