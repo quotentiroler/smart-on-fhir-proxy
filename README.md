@@ -107,7 +107,7 @@ graph TB
 
    ```bash
    # Start all services with Docker
-   docker-compose up -d
+   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
    # Install dependencies
    bun install
@@ -353,10 +353,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### Getting Help
 
-- **AI Assistant**: Use the built-in AI assistant for immediate help
-- **Documentation**: Check our comprehensive [documentation](docs/)
-- **Issues**: Report bugs and request features on GitHub
-- **Discussions**: Join community discussions
+- **🤖 AI Assistant**: Use the built-in AI assistant for immediate help
+- **💬 Discord Community**: Join our active community at [https://discord.gg/FshSApM7](https://discord.gg/FshSApM7)
+- **📚 Documentation**: Check our comprehensive [documentation](docs/)
+- **🐛 Issues**: Report bugs and request features on GitHub
+- **💡 Discussions**: Join community discussions and share your healthcare interoperability challenges
 
 ### Professional Support
 

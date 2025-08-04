@@ -154,13 +154,37 @@ jobs:
           # Use release_type directly as version suffix
           VERSION_SUFFIX="${{ inputs.release_type }}"
           
-          # Generate build info for non-RELEASE releases
-          if [ "${{ inputs.release_type }}" != "RELEASE" ]; then
-            SHORT_SHA=$(git rev-parse --short HEAD)
-            BUILD_NUMBER=$(date +%Y%m%d%H%M)
-            echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
-            echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+          # Extract existing build number from current version (if any)
+          EXISTING_BUILD_NUMBER=""
+          if [[ "$CURRENT_VERSION" =~ -[a-zA-Z]+\.([0-9]+)\. ]]; then
+            EXISTING_BUILD_NUMBER="${BASH_REMATCH[1]}"
+            echo "Found existing build number: $EXISTING_BUILD_NUMBER"
           fi
+          
+          # Generate build info
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          
+          # Build number logic:
+          # - Alpha: Generate new build number
+          # - Beta/RELEASE: Inherit from existing version
+          case "${{ inputs.release_type }}" in
+            "alpha")
+              BUILD_NUMBER=$(date +%Y%m%d%H%M)
+              echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+              ;;
+            "beta"|"RELEASE")
+              if [ -n "$EXISTING_BUILD_NUMBER" ]; then
+                BUILD_NUMBER="$EXISTING_BUILD_NUMBER"
+                echo "build_number=$BUILD_NUMBER" >> $GITHUB_OUTPUT
+                echo "Inheriting build number: $BUILD_NUMBER"
+              else
+                echo "❌ No existing build number found in version: $CURRENT_VERSION"
+                echo "Beta and RELEASE builds require an existing build number from alpha"
+                exit 1
+              fi
+              ;;
+          esac
 
           # Determine new version based on release type and bump requirements
           case "${{ inputs.release_type }}" in
@@ -182,7 +206,7 @@ jobs:
               echo "To beta version: $NEW_VERSION"
               ;;
             "RELEASE")
-              NEW_VERSION="${BASE_VERSION}-${VERSION_SUFFIX}"
+              NEW_VERSION="${BASE_VERSION}-${VERSION_SUFFIX}.${BUILD_NUMBER}"
               ;;
             *)
               echo "❌ Unknown release type: ${{ inputs.release_type }}"

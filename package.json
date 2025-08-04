@@ -1,6 +1,6 @@
 {
   "name": "smart-on-fhir",
-  "version": "0.0.2-beta.202508032024.298b971",
+  "version": "0.0.2-alpha.202508040019.b90f714",
   "repository": {
     "type": "git",
     "url": "https://github.com/your-org/smart-on-fhir.git"
@@ -40,13 +40,15 @@
     "start": "concurrently \"bun run start:backend\" \"bun run start:ui\"",
     "start:backend": "cd backend && bun run start",
     "start:ui": "cd ui && bun run preview",
+    "normalize": "git add --renormalize .",
+    "normalize:api": "cd ui && git add --renormalize src/lib/api-client/",
     "generate": "concurrently \"bun run generate:ui\" \"bun run generate:test\"",
     "generate:ui": "cd backend && bun run export-openapi && cd ../ui && bun run generate",
     "generate:ui:normalized": "bun run generate:ui && git add --renormalize ui/src/lib/api-client/",
-    "generate:test": "cd test && bun run generate",
+    "generate:test": "cd testing && bun run generate",
     "validate-api": "concurrently \"bun run validate-api:ui\" \"bun run validate-api:test\"",
     "validate-api:ui": "cd ui && bun run validate-api",
-    "validate-api:test": "cd test && bun run validate-api",
+    "validate-api:test": "cd testing && bun run validate-api",
     "test": "bun run test:alpha",
     "test:alpha": "cd testing/alpha && bun run test",
     "test:beta": "cd testing/beta && bun run test",

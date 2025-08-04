@@ -31,4 +31,4 @@ RUN bun install --production --frozen-lockfile
 EXPOSE 3000
 
 # Start the application
-CMD ["bun", "run", "preview"]
+CMD ["bun", "run", "preview", "--port", "3000", "--host"]
