@@ -108,17 +108,21 @@ jobs:
           # SMART on FHIR Proxy v${{ inputs.version }}${TITLE_SUFFIX}
 
           ${WARNING}
+          EOF
 
-          $( 
-            if [[ "${{ inputs.release_type }}" != "production" && "${{ inputs.release_type }}" != "RELEASE" ]]; then
-              cat <<-INNER
-              **Build Info:**
-              - Build Number: ${{ inputs.build_number }}
-              - Commit: ${{ inputs.short_sha }}
-              - Built from: \`${{ inputs.source_branch }}\`
-              INNER
-            fi
-          )
+          # Add build info for non-production releases
+          if [[ "${{ inputs.release_type }}" != "production" && "${{ inputs.release_type }}" != "RELEASE" ]]; then
+            cat >> release-notes.md <<-EOF
+
+          **Build Info:**
+          - Build Number: ${{ inputs.build_number }}
+          - Commit: ${{ inputs.short_sha }}
+          - Built from: \`${{ inputs.source_branch }}\`
+          EOF
+          fi
+
+          # Add the rest of the release notes
+          cat >> release-notes.md <<-EOF
 
           ## Changes
           ${{ inputs.changelog }}
