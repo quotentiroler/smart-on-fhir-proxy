@@ -1,13 +1,18 @@
 import jwt, { JwtPayload } from 'jsonwebtoken'
 import jwksClient from 'jwks-rsa'
 import { config } from '../config'
-import { AuthenticationError } from './admin-utils'
+import { AuthenticationError, ConfigurationError } from './admin-utils'
 import { logger } from './logger'
 
-const jwks = jwksClient({ jwksUri: config.keycloak.jwksUri })
+// Only initialize JWKS client if Keycloak is configured
+const jwks = config.keycloak.jwksUri ? jwksClient({ jwksUri: config.keycloak.jwksUri }) : null
 
 async function getKey(header: jwt.JwtHeader) {
   try {
+    if (!jwks) {
+      throw new ConfigurationError('Keycloak is not configured - cannot validate tokens')
+    }
+    
     logger.auth.debug('Fetching signing key', { kid: header.kid, alg: header.alg })
     const key = await jwks.getSigningKey(header.kid!)
     logger.auth.debug('Successfully fetched signing key')
