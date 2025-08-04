@@ -25,6 +25,14 @@ export const config = {
     realm: process.env.KEYCLOAK_REALM!,
     // Note: clientId and clientSecret no longer needed for admin API
     // We use the user's token directly
+    
+    // Public URL for browser redirects (defaults to baseUrl if not specified)
+    get publicUrl() {   
+      const domain = process.env.KEYCLOAK_DOMAIN || 'localhost'
+      // Use regex to replace the hostname in the URL, preserving protocol and port
+      return this.baseUrl.replace(/\/\/([^:/]+)(:[0-9]+)?/, `//${domain}$2`)
+    },
+    
     // Dynamically construct JWKS URI from base URL and realm
     get jwksUri() {
       return `${this.baseUrl}/realms/${this.realm}/protocol/openid-connect/certs`
@@ -33,7 +41,7 @@ export const config = {
   
   fhir: {
     // Support multiple FHIR servers - can be a single URL or comma-separated list
-    serverBases: process.env.FHIR_SERVER_BASE!.split(',').map(s => s.trim()),
+    serverBases: (process.env.FHIR_SERVER_BASE ?? 'http://localhost:8081/fhir').split(',').map(s => s.trim()),
     supportedVersions: process.env.FHIR_SUPPORTED_VERSIONS?.split(',').map(s => s.trim()) || ['R4'],
   },
 

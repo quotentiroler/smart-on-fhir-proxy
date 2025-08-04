@@ -57,45 +57,6 @@ services:
       timeout: 5s
       retries: 5
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: smart-on-fhir-backend
-    environment:
-      NODE_ENV: production
-      PORT: 8445
-      BASE_URL: http://localhost:8445
-      KEYCLOAK_BASE_URL: http://keycloak:8080
-      KEYCLOAK_REALM: smart-on-fhir
-      KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/smart-on-fhir/protocol/openid-connect/certs
-      FHIR_SERVER_BASE: https://hapi.fhir.org/baseR4
-    ports:
-      - "8445:8445"
-    depends_on:
-      keycloak:
-        condition: service_healthy
-    networks:
-      - smart-on-fhir
-    profiles:
-      - production
-
-  frontend:
-    build:
-      context: ./ui
-      dockerfile: Dockerfile
-    container_name: smart-on-fhir-frontend
-    environment:
-      VITE_API_BASE_URL: http://localhost:8445
-    ports:
-      - "3000:3000"
-    depends_on:
-      - backend
-    networks:
-      - smart-on-fhir
-    profiles:
-      - production
-
 volumes:
   postgres_data:
     name: smart-on-fhir-postgres-data

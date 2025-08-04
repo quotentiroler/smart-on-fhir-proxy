@@ -10,7 +10,7 @@ export default tseslint.config(
       'node_modules/**',
       'backend/dist/**',
       'ui/dist/**',
-      'ui/src/lib/api-client/**', // Generated API client
+      '**/lib/api-client/**',
       '**/*.generated.*',
       'coverage/**'
     ] 

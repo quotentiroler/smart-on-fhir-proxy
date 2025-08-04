@@ -1,0 +1,345 @@
+name: Auto PR Creation
+
+on:
+  push:
+    branches:
+      - "dev/*"
+      - "develop"
+      - "test"
+
+jobs:
+  pr-to-develop:
+    name: Create/Update PR from dev/* → develop
+    if: startsWith(github.ref, 'refs/heads/dev/') && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'smart-on-fhir-proxy-releaser')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if PR already exists
+        id: check-pr
+        run: |
+          PR_EXISTS=$(gh pr list --base develop --head ${{ github.ref_name }} --state open --json number --jq length)
+          echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if branches differ
+        id: check-diff
+        run: |
+          # Fetch all branches to ensure we have the latest refs
+          git fetch origin --prune
+          
+          # Check if develop branch exists on remote
+          if git ls-remote --heads origin develop | grep -q "refs/heads/develop"; then
+            echo "Develop branch exists on remote"
+            git fetch origin develop:develop
+            
+            # Check if there are any commits between develop and current branch
+            COMMITS_AHEAD=$(git rev-list --count develop..${{ github.ref_name }})
+            COMMITS_BEHIND=$(git rev-list --count ${{ github.ref_name }}..develop)
+            
+            echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
+            echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
+            echo "Branch ${{ github.ref_name }} is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind develop"
+            
+            # Only create PR if we have commits to contribute
+            if [ "$COMMITS_AHEAD" -gt 0 ]; then
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+            else
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "Develop branch doesn't exist on remote, will create it"
+            echo "commits_ahead=1" >> $GITHUB_OUTPUT
+            echo "commits_behind=0" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+          
+          # Count TODOs in the codebase
+          TODO_COUNT=$(grep -r " TODO:" --include="*.ts" --include="*.js" --include="*.tsx" --include="*.jsx" --include="*.vue" --include="*.py" --include="*.java" --include="*.cs" --include="*.go" --include="*.rs" --include="*.cpp" --include="*.c" --include="*.h" . | wc -l || echo "0")
+          echo "todo_count=$TODO_COUNT" >> $GITHUB_OUTPUT
+          echo "Found $TODO_COUNT TODOs in the codebase"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create develop branch if it doesn't exist
+        if: steps.check-diff.outputs.has_changes == 'true' && steps.check-pr.outputs.pr_exists == '0'
+        run: |
+          # Check if develop branch exists on remote
+          if ! git ls-remote --heads origin develop | grep -q "refs/heads/develop"; then
+            echo "Creating develop branch from main (or current branch if main doesn't exist)"
+            
+            # Try to create develop branch from main, fallback to current branch
+            if git ls-remote --heads origin main | grep -q "refs/heads/main"; then
+              git fetch origin main:main
+              git checkout -b develop main
+            else
+              echo "Main branch doesn't exist, creating develop from current branch"
+              git checkout -b develop
+            fi
+            
+            git push origin develop
+            echo "Created develop branch"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Pull Request
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'true'
+        run: |
+          gh pr create \
+            --base develop \
+            --head ${{ github.ref_name }} \
+            --title "🔄 Auto-PR: Merge \`${{ github.ref_name }}\` → \`develop\`" \
+            --body "**Automated Pull Request** 🤖
+
+          This PR was automatically created to merge changes from \`${{ github.ref_name }}\` into \`develop\`.
+          
+          **Changes:**
+          - Commits ahead of develop: ${{ steps.check-diff.outputs.commits_ahead }}
+          - Commits behind develop: ${{ steps.check-diff.outputs.commits_behind }}
+          - TODOs remaining in codebase: ${{ steps.check-diff.outputs.todo_count }}
+          
+          **Review:** Please review the changes before merging."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip PR creation - no changes
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'false'
+        run: |
+          echo "⏭️ Skipping PR creation - no new commits in ${{ github.ref_name }} compared to develop"
+
+      - name: Update existing PR
+        if: steps.check-pr.outputs.pr_exists != '0'
+        run: |
+          echo "PR from ${{ github.ref_name }} to develop already exists. Updating with latest info..."
+          
+          # Get the PR number
+          PR_NUMBER=$(gh pr list --base develop --head ${{ github.ref_name }} --state open --json number --jq '.[0].number')
+          
+          # Update PR body with current stats
+          gh pr edit $PR_NUMBER --body "**Automated Pull Request** 🤖
+
+          This PR was automatically created to merge changes from \`${{ github.ref_name }}\` into \`develop\`.
+          
+          **Changes:**
+          - Commits ahead of develop: ${{ steps.check-diff.outputs.commits_ahead }}
+          - Commits behind develop: ${{ steps.check-diff.outputs.commits_behind }}
+          - TODOs remaining in codebase: ${{ steps.check-diff.outputs.todo_count }}
+          
+          **Review:** Please review the changes before merging.
+          
+          _Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_"
+          
+          echo "Updated PR #$PR_NUMBER with latest commit and TODO counts"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pr-to-test:
+    name: Create/Update PR from develop → test
+    if: github.ref == 'refs/heads/develop' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'smart-on-fhir-proxy-releaser')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if PR already exists
+        id: check-pr
+        run: |
+          PR_EXISTS=$(gh pr list --base test --head develop --state open --json number --jq length)
+          echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if branches differ
+        id: check-diff
+        run: |
+          git fetch origin --prune
+
+          if git ls-remote --heads origin test | grep -q "refs/heads/test"; then
+            echo "Test branch exists on remote"
+            git fetch origin test:test
+            COMMITS_AHEAD=$(git rev-list --count test..develop)
+            COMMITS_BEHIND=$(git rev-list --count develop..test)
+            echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
+            echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
+            if [ "$COMMITS_AHEAD" -gt 0 ]; then
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+            else
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "Test branch doesn't exist → first‐time create only"
+            echo "commits_ahead=0" >> $GITHUB_OUTPUT
+            echo "commits_behind=0" >> $GITHUB_OUTPUT
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "needs_branch_creation=true" >> $GITHUB_OUTPUT
+          fi
+          
+          # Count TODOs in the codebase
+          TODO_COUNT=$(grep -r " TODO:" --include="*.ts" --include="*.js" --include="*.tsx" --include="*.jsx" --include="*.vue" --include="*.py" --include="*.java" --include="*.cs" --include="*.go" --include="*.rs" --include="*.cpp" --include="*.c" --include="*.h" . | wc -l || echo "0")
+          echo "todo_count=$TODO_COUNT" >> $GITHUB_OUTPUT
+          echo "Found $TODO_COUNT TODOs in the codebase"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create test branch if it doesn't exist
+        if: steps.check-diff.outputs.needs_branch_creation == 'true' && steps.check-pr.outputs.pr_exists == '0'
+        run: |
+          git checkout -b test develop
+          git push origin test
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Pull Request
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'true'
+        run: |
+          gh pr create \
+            --base test \
+            --head develop \
+            --title "🧪 Auto-PR: Merge \`develop\` → \`test\`" \
+            --body "**Automated Pull Request** 🤖  
+            
+            Commits ahead of test: ${{ steps.check-diff.outputs.commits_ahead }}
+            Commits behind test: ${{ steps.check-diff.outputs.commits_behind }}
+            TODOs remaining in codebase: ${{ steps.check-diff.outputs.todo_count }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip PR creation – no changes
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'false'
+        run: echo "⏭️ No new commits in develop compared to test"
+
+      - name: Update existing PR
+        if: steps.check-pr.outputs.pr_exists != '0'
+        run: |
+          echo "PR from develop to test already exists. Updating with latest info..."
+          
+          # Get the PR number
+          PR_NUMBER=$(gh pr list --base test --head develop --state open --json number --jq '.[0].number')
+          
+          # Update PR body with current stats
+          gh pr edit $PR_NUMBER --body "**Automated Pull Request** 🤖  
+            
+            Commits ahead of test: ${{ steps.check-diff.outputs.commits_ahead }}
+            Commits behind test: ${{ steps.check-diff.outputs.commits_behind }}
+            TODOs remaining in codebase: ${{ steps.check-diff.outputs.todo_count }}
+            
+            _Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_"
+          
+          echo "Updated PR #$PR_NUMBER with latest commit and TODO counts"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pr-to-main:
+    name: Create/Update PR from test → main
+    if: github.ref == 'refs/heads/test' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'smart-on-fhir-proxy-releaser')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if PR already exists
+        id: check-pr
+        run: |
+          PR_EXISTS=$(gh pr list --base main --head test --state open --json number --jq length)
+          echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if branches differ
+        id: check-diff
+        run: |
+          # Fetch all branches to ensure we have the latest refs
+          git fetch origin --prune
+          
+          # Check if main branch exists on remote
+          if git ls-remote --heads origin main | grep -q "refs/heads/main"; then
+            echo "Main branch exists on remote"
+            git fetch origin main:main
+            
+            # Check if there are any commits between main and test
+            COMMITS_AHEAD=$(git rev-list --count main..test)
+            COMMITS_BEHIND=$(git rev-list --count test..main)
+            
+            echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
+            echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
+            echo "Branch test is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind main"
+            
+            # Only create PR if we have commits to contribute
+            if [ "$COMMITS_AHEAD" -gt 0 ]; then
+              echo "has_changes=true" >> $GITHUB_OUTPUT
+            else
+              echo "has_changes=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "Main branch doesn't exist on remote, this will be the first PR to create main"
+            echo "commits_ahead=1" >> $GITHUB_OUTPUT
+            echo "commits_behind=0" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+          
+          # Count TODOs in the codebase
+          TODO_COUNT=$(grep -r " TODO:" --include="*.ts" --include="*.js" --include="*.tsx" --include="*.jsx" --include="*.vue" --include="*.py" --include="*.java" --include="*.cs" --include="*.go" --include="*.rs" --include="*.cpp" --include="*.c" --include="*.h" . | wc -l || echo "0")
+          echo "todo_count=$TODO_COUNT" >> $GITHUB_OUTPUT
+          echo "Found $TODO_COUNT TODOs in the codebase"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Pull Request
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'true'
+        run: |
+          gh pr create \
+            --base main \
+            --head test \
+            --title "🚀 Auto-PR: Merge \`test\` → \`main\`" \
+            --body "**Automated Pull Request** 🤖
+
+          This PR was automatically created to merge changes from \`test\` into \`main\`.
+          
+          **Changes:**
+          - Commits ahead of main: ${{ steps.check-diff.outputs.commits_ahead }}
+          - Commits behind main: ${{ steps.check-diff.outputs.commits_behind }}
+          - TODOs remaining in codebase: ${{ steps.check-diff.outputs.todo_count }}
+          
+          **Review:** Please review the changes before merging."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Skip PR creation - no changes
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'false'
+        run: |
+          echo "⏭️ Skipping PR creation - no new commits in test compared to main"
+
+      - name: Update existing PR
+        if: steps.check-pr.outputs.pr_exists != '0'
+        run: |
+          echo "PR from test to main already exists. Updating with latest info..."
+          
+          # Get the PR number
+          PR_NUMBER=$(gh pr list --base main --head test --state open --json number --jq '.[0].number')
+          
+          # Update PR body with current stats
+          gh pr edit $PR_NUMBER --body "**Automated Pull Request** 🤖
+
+          This PR was automatically created to merge changes from \`test\` into \`main\`.
+          
+          **Changes:**
+          - Commits ahead of main: ${{ steps.check-diff.outputs.commits_ahead }}
+          - Commits behind main: ${{ steps.check-diff.outputs.commits_behind }}
+          - TODOs remaining in codebase: ${{ steps.check-diff.outputs.todo_count }}
+          
+          **Review:** Please review the changes before merging.
+          
+          _Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_"
+          
+          echo "Updated PR #$PR_NUMBER with latest commit and TODO counts"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

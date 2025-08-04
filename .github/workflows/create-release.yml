@@ -1,0 +1,164 @@
+name: Create GitHub Release
+
+on:
+  workflow_call:
+    inputs:
+      release_type:
+        description: "Type of release (alpha, beta, production)"
+        required: true
+        type: string
+      version:
+        description: "Version number for this release"
+        required: true
+        type: string
+      changelog:
+        description: "Changelog content for the release"
+        required: true
+        type: string
+      source_branch:
+        description: "Source branch for the release"
+        required: true
+        type: string
+      is_prerelease:
+        description: "Whether this is a prerelease"
+        required: false
+        type: boolean
+        default: false
+      build_number:
+        description: "Build number (for non-production releases)"
+        required: false
+        type: string
+      short_sha:
+        description: "Short commit SHA (for non-production releases)"
+        required: false
+        type: string
+    secrets:
+      GH_TOKEN:
+        required: true
+      APP_ID:
+        required: true
+      APP_PRIVATE_KEY:
+        required: true
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Generate token
+        id: generate_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Configure git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Create and push release tag
+        run: |
+          git tag "v${{ inputs.version }}"
+          git push origin "v${{ inputs.version }}"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # Create release notes content based on release type
+          case "${{ inputs.release_type }}" in
+            "alpha")
+              cat > release-notes.md << 'EOF'
+          # SMART on FHIR Proxy v${{ inputs.version }} (Alpha)
+
+          ⚠️ **This is an alpha release** - Use with caution in development environments only.
+
+          **Build Info:**
+          - Build Number: ${{ inputs.build_number }}
+          - Commit: ${{ inputs.short_sha }}
+          - Built from: `${{ inputs.source_branch }}` branch
+
+          ## Changes
+          ${{ inputs.changelog }}
+
+          ## Components
+          - **Backend**: SMART on FHIR Proxy Server
+          - **UI**: Administration Interface  
+          - **Test Suite**: Comprehensive FHIR compliance tests
+
+          ## Installation
+          ```bash
+          git clone https://github.com/${{ github.repository }}.git
+          cd smart-on-fhir-proxy
+          git checkout v${{ inputs.version }}
+          ```
+
+          See the [README](README.md) for setup instructions.
+          EOF
+              ;;
+            "beta")
+              cat > release-notes.md << 'EOF'
+          # SMART on FHIR Proxy v${{ inputs.version }} (Beta)
+
+          🧪 **This is a beta release** - Suitable for testing and staging environments.
+
+          **Build Info:**
+          - Build Number: ${{ inputs.build_number }}
+          - Commit: ${{ inputs.short_sha }}
+          - Built from: `${{ inputs.source_branch }}` branch
+
+          ## Changes
+          ${{ inputs.changelog }}
+
+          ## Components
+          - **Backend**: SMART on FHIR Proxy Server
+          - **UI**: Administration Interface  
+          - **Test Suite**: Comprehensive FHIR compliance tests
+
+          ## Installation
+          ```bash
+          git clone https://github.com/${{ github.repository }}.git
+          cd smart-on-fhir-proxy
+          git checkout v${{ inputs.version }}
+          ```
+
+          See the [README](README.md) for setup instructions.
+          EOF
+              ;;
+            "production")
+              cat > release-notes.md << 'EOF'
+          # SMART on FHIR Proxy v${{ inputs.version }}
+
+          ## Changes
+          ${{ inputs.changelog }}
+
+          ## Components
+          - **Backend**: SMART on FHIR Proxy Server
+          - **UI**: Administration Interface  
+          - **Test Suite**: Comprehensive FHIR compliance tests
+
+          ## Installation
+          ```bash
+          git clone https://github.com/${{ github.repository }}.git
+          cd smart-on-fhir-proxy
+          git checkout v${{ inputs.version }}
+          ```
+
+          See the [README](README.md) for setup instructions.
+          EOF
+              ;;
+          esac
+
+          # Create the release
+          gh release create "v${{ inputs.version }}" \
+            --title "v${{ inputs.version }}" \
+            --notes-file release-notes.md \
+            ${{ inputs.is_prerelease == true && '--prerelease' || '' }}

@@ -1,5 +1,5 @@
 import { SmartAppsManager } from './SmartAppsManager/SmartAppsManager';
-import { FhirServersManager } from './FhirServersManager';
+import { FhirServersManager } from './FhirServersManager/FhirServersManager';
 import { ScopeManager } from './ScopeManager';
 import { LaunchContextManager } from './LaunchContextManager';
 import { SmartProxyOverview } from './SmartProxyOverview';

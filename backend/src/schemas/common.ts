@@ -169,3 +169,80 @@ export const ServerContextAssociation = t.Object({
   customParameters: t.Optional(t.Record(t.String(), t.String({ description: 'Server-specific launch parameters' }))),
   createdAt: t.Optional(t.String({ description: 'Association creation timestamp' }))
 })
+
+// FHIR Server response schemas for clean OpenAPI generation
+export const FhirServerResponse = t.Object({
+  id: t.String({ description: 'Server identifier used in URLs' }),
+  name: t.String({ description: 'Human-readable server name' }),
+  url: t.String({ description: 'Original server URL' }),
+  fhirVersion: t.String({ description: 'FHIR version supported by server' }),
+  serverVersion: t.Optional(t.String({ description: 'Server software version' })),
+  serverName: t.Optional(t.String({ description: 'Server software name' })),
+  supported: t.Boolean({ description: 'Whether this server is supported' }),
+  endpoints: t.Object({
+    base: t.String({ description: 'Base FHIR endpoint URL' }),
+    smartConfig: t.String({ description: 'SMART configuration endpoint URL' }),
+    metadata: t.String({ description: 'FHIR metadata endpoint URL' })
+  })
+}, { title: 'FhirServer' })
+
+export const FhirServerListResponse = t.Object({
+  totalServers: t.Number({ description: 'Total number of configured FHIR servers' }),
+  servers: t.Array(t.Object({
+    id: t.String({ description: 'Unique server identifier' }),
+    name: t.String({ description: 'Human-readable server name' }),
+    url: t.String({ description: 'Original server URL' }),
+    fhirVersion: t.String({ description: 'FHIR version supported by server' }),
+    serverVersion: t.Optional(t.String({ description: 'Server software version' })),
+    serverName: t.Optional(t.String({ description: 'Server software name from FHIR metadata' })),
+    supported: t.Boolean({ description: 'Whether this server is supported' }),
+    error: t.Optional(t.String({ description: 'Error message if server info failed to fetch' })),
+    endpoints: t.Object({
+      base: t.String({ description: 'Base FHIR endpoint URL' }),
+      smartConfig: t.String({ description: 'SMART configuration endpoint URL' }),
+      metadata: t.String({ description: 'FHIR metadata endpoint URL' })
+    })
+  }))
+}, { title: 'FhirServerList' })
+
+export const MtlsConfigResponse = t.Object({
+  enabled: t.Boolean({ description: 'Whether mTLS is enabled for this server' }),
+  hasCertificates: t.Object({
+    clientCert: t.Boolean({ description: 'Whether client certificate is uploaded' }),
+    clientKey: t.Boolean({ description: 'Whether client private key is uploaded' }),
+    caCert: t.Boolean({ description: 'Whether CA certificate is uploaded' })
+  }),
+  certDetails: t.Optional(t.Object({
+    subject: t.String({ description: 'Certificate subject' }),
+    issuer: t.String({ description: 'Certificate issuer' }),
+    validFrom: t.String({ description: 'Certificate valid from date' }),
+    validTo: t.String({ description: 'Certificate valid to date' }),
+    fingerprint: t.String({ description: 'Certificate fingerprint' })
+  }))
+}, { title: 'MtlsConfig' })
+
+export const CertificateUploadResponse = t.Object({
+  success: t.Boolean({ description: 'Whether the upload was successful' }),
+  message: t.String({ description: 'Success message' }),
+  certDetails: t.Optional(t.Object({
+    subject: t.String({ description: 'Certificate subject' }),
+    issuer: t.String({ description: 'Certificate issuer' }),
+    validFrom: t.String({ description: 'Certificate valid from date' }),
+    validTo: t.String({ description: 'Certificate valid to date' }),
+    fingerprint: t.String({ description: 'Certificate fingerprint' })
+  }))
+}, { title: 'CertificateUpload' })
+
+export const FhirServerInfoResponse = t.Object({
+  name: t.String({ description: 'Human-readable server name' }),
+  url: t.String({ description: 'Original server URL' }),
+  fhirVersion: t.String({ description: 'FHIR version supported by server' }),
+  serverVersion: t.Optional(t.String({ description: 'Server software version' })),
+  serverName: t.Optional(t.String({ description: 'Server software name from FHIR metadata' })),
+  supported: t.Boolean({ description: 'Whether this server is supported' }),
+  endpoints: t.Object({
+    base: t.String({ description: 'Base FHIR endpoint URL' }),
+    smartConfig: t.String({ description: 'SMART configuration endpoint URL' }),
+    metadata: t.String({ description: 'FHIR metadata endpoint URL' })
+  })
+}, { title: 'FhirServerInfo' })

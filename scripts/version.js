@@ -1,18 +1,76 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
-// Package.json files to sync
-const packagePaths = [
-  'package.json',
-  'backend/package.json', 
-  'ui/package.json',
-  'test/package.json'
-];
+// Get current directory for ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Recursively find all package.json files using built-in modules
+function findPackageFiles(dir = process.cwd(), found = []) {
+  try {
+    const items = fs.readdirSync(dir);
+    
+    for (const item of items) {
+      const fullPath = path.join(dir, item);
+      const stat = fs.statSync(fullPath);
+      
+      if (stat.isDirectory()) {
+        // Skip node_modules, dist, build directories
+        if (!['node_modules', 'dist', 'build', '.git'].includes(item)) {
+          findPackageFiles(fullPath, found);
+        }
+      } else if (item === 'package.json') {
+        // Convert to relative path from process.cwd()
+        const relativePath = path.relative(process.cwd(), fullPath);
+        found.push(relativePath || 'package.json');
+      }
+    }
+    
+    return found;
+  } catch (error) {
+    console.warn(`Warning: Could not read directory ${dir}:`, error.message);
+    return found;
+  }
+}
+
+// Dynamically find all package.json files
+function getPackagePaths() {
+  try {
+    const allPackages = findPackageFiles();
+    
+    // Ensure root package.json is first
+    const rootIndex = allPackages.indexOf('package.json');
+    if (rootIndex > 0) {
+      allPackages.splice(rootIndex, 1);
+      allPackages.unshift('package.json');
+    }
+    
+    return allPackages;
+  } catch (error) {
+    // Fallback to manual list if finding fails
+    console.warn('⚠ Warning: Could not auto-detect package.json files, using fallback list');
+    return [
+      'package.json',
+      'backend/package.json', 
+      'ui/package.json',
+      'testing/package.json',
+      'testing/alpha/package.json',
+      'testing/beta/package.json',
+      'testing/production/package.json'
+    ];
+  }
+}
 
 function updateVersion(newVersion) {
   console.log(`Updating all packages to version: ${newVersion}`);
+  
+  const packagePaths = getPackagePaths();
+  console.log(`Found ${packagePaths.length} package.json files:`);
+  packagePaths.forEach(p => console.log(`  - ${p}`));
+  console.log('');
   
   packagePaths.forEach(packagePath => {
     if (fs.existsSync(packagePath)) {
@@ -32,7 +90,9 @@ function getCurrentVersion() {
 }
 
 function incrementVersion(version, type = 'patch') {
-  const [major, minor, patch] = version.split('.').map(Number);
+  // Remove any pre-release suffixes to get base version
+  const baseVersion = version.replace(/-.*$/, '');
+  const [major, minor, patch] = baseVersion.split('.').map(Number);
   
   switch (type) {
     case 'major':
@@ -43,6 +103,33 @@ function incrementVersion(version, type = 'patch') {
     default:
       return `${major}.${minor}.${patch + 1}`;
   }
+}
+
+function getBaseVersion(version) {
+  // Remove any pre-release suffixes (alpha, beta, etc.)
+  return version.replace(/-.*$/, '');
+}
+
+function checkConsistency() {
+  const rootVersion = getCurrentVersion();
+  const packagePaths = getPackagePaths();
+  let isConsistent = true;
+  
+  console.log(`Checking version consistency (root: ${rootVersion})`);
+  
+  packagePaths.slice(1).forEach(packagePath => {
+    if (fs.existsSync(packagePath)) {
+      const packageContent = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+      if (packageContent.version !== rootVersion) {
+        console.log(`❌ ${packagePath}: ${packageContent.version} (expected: ${rootVersion})`);
+        isConsistent = false;
+      } else {
+        console.log(`✓ ${packagePath}: ${packageContent.version}`);
+      }
+    }
+  });
+  
+  return isConsistent;
 }
 
 // CLI usage
@@ -67,9 +154,25 @@ if (command === 'sync') {
     process.exit(1);
   }
   updateVersion(newVersion);
+} else if (command === 'check') {
+  // Check version consistency
+  const isConsistent = checkConsistency();
+  if (!isConsistent) {
+    console.log('\n❌ Version inconsistency detected. Run "node scripts/version.js sync" to fix.');
+    process.exit(1);
+  } else {
+    console.log('\n✅ All versions are consistent!');
+  }
+} else if (command === 'base') {
+  // Get base version (without pre-release suffixes)
+  const currentVersion = getCurrentVersion();
+  const baseVersion = getBaseVersion(currentVersion);
+  console.log(baseVersion);
 } else {
   console.log('Usage:');
   console.log('  node scripts/version.js sync                 - Sync all packages to root version');
   console.log('  node scripts/version.js bump [major|minor|patch] - Bump version (default: patch)');
   console.log('  node scripts/version.js set <version>       - Set specific version');
+  console.log('  node scripts/version.js check               - Check version consistency');
+  console.log('  node scripts/version.js base                - Get base version (no pre-release suffixes)');
 }

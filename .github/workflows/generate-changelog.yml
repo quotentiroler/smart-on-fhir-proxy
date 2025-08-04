@@ -1,0 +1,212 @@
+name: Generate Changelog
+
+on:
+  workflow_call:
+    inputs:
+      commit_shas:
+        description: "Comma-separated list of commit SHAs to include in changelog"
+        required: true
+        type: string
+      release_type:
+        description: "Type of release (alpha, beta, production)"
+        required: true
+        type: string
+      version:
+        description: "Version number for this release"
+        required: true
+        type: string
+    outputs:
+      changelog:
+        description: "Generated changelog content"
+        value: ${{ jobs.generate.outputs.changelog }}
+      changelog_file:
+        description: "Path to generated changelog file (for production releases)"
+        value: ${{ jobs.generate.outputs.changelog_file }}
+    secrets:
+      OPENAI_API_KEY:
+        required: false
+      GH_TOKEN:
+        required: true
+
+jobs:
+  generate:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    outputs:
+      changelog: ${{ steps.generate.outputs.changelog }}
+      changelog_file: ${{ steps.generate.outputs.changelog_file }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog content
+        id: generate
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          
+          # Parse commit SHAs
+          IFS=',' read -ra SHAS <<< "${{ inputs.commit_shas }}"
+          
+          # Function to get AI summary from commit comments
+          get_ai_summary() {
+            local commit_shas="$1"
+            local all_comments=""
+            local commit_list=""
+            
+            echo "🔍 Processing commits for changelog..." >&2
+            
+            # Collect commit information and their AI comments
+            for sha in $commit_shas; do
+              if git cat-file -e "$sha" 2>/dev/null; then
+                commit_msg=$(git log --format="%s" -n 1 "$sha" 2>/dev/null || echo "")
+                echo "Processing commit $sha: $commit_msg" >&2
+                
+                # Build simple commit list for display
+                commit_list="${commit_list}- **${sha:0:7}**: $commit_msg"$'\n'
+                
+                # Try to get AI-generated commit comments via GitHub API
+                ai_comment=""
+                if [ -n "$GITHUB_TOKEN" ]; then
+                  echo "🤖 Fetching AI comment for commit $sha..." >&2
+                  api_comments=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+                    -H "Accept: application/vnd.github+json" \
+                    "https://api.github.com/repos/${{ github.repository }}/commits/$sha/comments" \
+                    | jq -r '.[].body // empty' 2>/dev/null)
+                  
+                  if [ -n "$api_comments" ] && [ "$api_comments" != "null" ] && [ "$api_comments" != "" ]; then
+                    ai_comment="$api_comments"
+                    echo "✅ Found AI comment for $sha" >&2
+                  else
+                    echo "⚠️ No AI comment found for $sha" >&2
+                  fi
+                fi
+                
+                # Use AI comment if available for AI processing, otherwise enhance commit message
+                if [ -n "$ai_comment" ]; then
+                  full_comment="$ai_comment"
+                else
+                  # Fallback: enhance commit message with file changes
+                  if [ "$commit_msg" = "update" ] || [ "$commit_msg" = "Update" ] || [ -z "$commit_msg" ]; then
+                    files_changed=$(git diff-tree --no-commit-id --name-only -r "$sha" 2>/dev/null | head -5 | tr '\n' ', ' | sed 's/,$//')
+                    if [ -n "$files_changed" ]; then
+                      full_comment="Updated files: $files_changed"
+                    else
+                      full_comment="Minor updates and improvements"
+                    fi
+                  else
+                    full_comment="$commit_msg"
+                  fi
+                fi
+                
+                # Build detailed comments for AI processing (but not for display)
+                all_comments="${all_comments}- **${sha:0:7}**: $full_comment"$'\n'
+              else
+                echo "⚠️ Commit $sha not found"
+              fi
+            done
+            
+            if [ -z "$all_comments" ]; then
+              echo "- Minor updates and improvements"
+              return
+            fi
+            
+            echo "📝 Collected commit information with AI comments:" >&2
+            echo "$all_comments" >&2
+            
+            # Since we already have AI-enhanced content, we can either:
+            # 1. Use it directly (since it's already AI-processed)
+            # 2. Or further summarize it with OpenAI for a higher-level overview
+            
+            if [ -n "$OPENAI_API_KEY" ]; then
+              echo "🤖 Creating high-level summary from AI comments..." >&2
+              
+              # Create JSON payload with proper escaping
+              request_data=$(jq -n \
+                --arg model "gpt-4o-mini" \
+                --arg system_content "You are an expert technical writer creating changelog entries for a SMART on FHIR Proxy application. Your audience includes both technical developers and business stakeholders. Create a professional, well-organized changelog that clearly communicates value and impact.\n\nGuidelines:\n- Group changes by category: 🚀 New Features, ⚡ Improvements, 🐛 Bug Fixes, 🔧 Technical Updates, 🔒 Security\n- Write in business-friendly language while maintaining technical accuracy\n- Focus on user benefits and business value\n- Use active voice and clear action verbs\n- Keep each item concise but informative (1-2 lines max)\n- Avoid technical jargon when possible, explain complex concepts simply\n- Highlight any breaking changes or important notices" \
+                --arg user_content "Create a professional changelog from these commit summaries for a SMART on FHIR Proxy application. Focus on the business value and user impact of each change:\n\n$all_comments" \
+                '{
+                  "model": $model,
+                  "messages": [
+                    {"role": "system", "content": $system_content},
+                    {"role": "user", "content": $user_content}
+                  ],
+                  "max_tokens": 800,
+                  "temperature": 0.2
+                }')
+              
+              # Make API call with detailed error reporting
+              api_response=$(curl -s -w "\n%{http_code}" -X POST "https://api.openai.com/v1/chat/completions" \
+                -H "Content-Type: application/json" \
+                -H "Authorization: Bearer $OPENAI_API_KEY" \
+                -d "$request_data" 2>&1)
+              
+              # Parse response and status code
+              http_code=$(echo "$api_response" | tail -n1)
+              response_body=$(echo "$api_response" | head -n -1)
+              
+              echo "🔍 OpenAI API HTTP Status: $http_code" >&2
+              
+              if [ "$http_code" = "200" ]; then
+                changelog_content=$(echo "$response_body" | jq -r '.choices[0].message.content // empty' 2>/dev/null)
+                if [ -n "$changelog_content" ] && [ "$changelog_content" != "null" ] && [ "$changelog_content" != "" ]; then
+                  echo "✅ High-level AI summary generated successfully" >&2
+                  # Output AI summary first, then commit list
+                  echo "$changelog_content"
+                  echo ""
+                  echo "## Commit Details"
+                  echo "$commit_list"
+                  return
+                else
+                  echo "⚠️ Failed to extract content from API response" >&2
+                  echo "Raw response: $response_body" >&2
+                  # Fall through to simple commit list
+                fi
+              else
+                echo "⚠️ OpenAI API call failed with status $http_code" >&2
+                echo "Error response: $response_body" >&2
+                # Fall through to simple commit list
+              fi
+              
+              # If we reach here, AI summary failed - show simple commit list only
+              if [ -z "$changelog_content" ] || [ "$changelog_content" = "null" ] || [ "$changelog_content" = "" ]; then
+                echo "OpenAI summarization failed, showing commit list" >&2
+                echo "## Commit Details"
+                echo "$commit_list"
+              fi
+            else
+              echo "⚠️ No OpenAI API key provided, showing commit list" >&2
+              echo "## Commit Details"
+              echo "$commit_list"
+            fi
+          }
+          
+          # Generate the changelog
+          CHANGELOG=$(get_ai_summary "${SHAS[*]}")
+          
+          # Create changelog file for production releases
+          if [ "${{ inputs.release_type }}" = "production" ]; then
+            CHANGELOG_FILE="CHANGELOG-${{ inputs.version }}.md"
+            cat > "$CHANGELOG_FILE" << EOF
+          # Changelog
+
+          ## [v${{ inputs.version }}] - $(date +%Y-%m-%d)
+
+          ### Changes
+          $CHANGELOG
+
+          EOF
+            echo "changelog_file=$CHANGELOG_FILE" >> $GITHUB_OUTPUT
+          fi
+          
+          # Output the changelog
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
