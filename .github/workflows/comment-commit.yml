@@ -18,13 +18,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js with AI tools
+        uses: ./.github/actions/setup-node-ai
         with:
-          node-version: "22"
-
-      - name: Install dependencies
-        run: npm install openai @octokit/rest
+          checkout: 'false'  # Skip checkout since we already did it
+          fetch-depth: 0
 
       - name: Comment on HEAD commit via ChatGPT
         env:
@@ -83,7 +81,7 @@ jobs:
               model: process.env.OPENAI_MODEL,
               messages: [
                 { role: "system", content: "You are a concise code diff explainer." },
-                { role: "user", content: `Review this git diff and give me a short summary:\n\n${diff}` }
+                { role: "user", content: `Review this git diff and give me a short but technically accurate summary:\n\n${diff}` }
               ]
             });
             const comment = res.choices.map(c => c.message.content).join("\n\n---\n\n");

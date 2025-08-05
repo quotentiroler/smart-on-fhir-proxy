@@ -2,7 +2,7 @@ import { Elysia } from 'elysia'
 import { oauthRoutes } from './oauth'
 import { clientRegistrationRoutes } from './client-registration'
 import { config } from '../../config'
-import { isKeycloakAccessible } from '../../init'
+import { checkKeycloakConnection, isKeycloakAccessible } from '../../init'
 import { t } from 'elysia'
 
 /**
@@ -10,6 +10,15 @@ import { t } from 'elysia'
  */
 export const authRoutes = new Elysia({ prefix: '/auth', tags: ['authentication'] })
   .get('/config', async () => {
+    // Test Keycloak connection and update global state
+    try {
+      await checkKeycloakConnection(1);
+    } catch (error) {
+      // checkKeycloakConnection() throws on failure, but we want to continue
+      // and return the current state (which will be false)
+      console.warn('Keycloak connection check failed:', error);
+    }
+    
     const keycloakAvailable = isKeycloakAccessible()
     return {
       keycloak: {

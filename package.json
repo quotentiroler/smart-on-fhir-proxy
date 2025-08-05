@@ -1,6 +1,6 @@
 {
   "name": "smart-on-fhir",
-  "version": "0.0.4-RELEASE.202508041303.fa7ecc7",
+  "version": "0.0.5-beta.202508051828.9834aee",
   "repository": {
     "type": "git",
     "url": "https://github.com/your-org/smart-on-fhir.git"
@@ -28,7 +28,7 @@
     "react",
     "typescript"
   ],
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "private": true,
   "scripts": {
     "dev": "concurrently \"bun run dev:backend\" \"bun run dev:ui\"",

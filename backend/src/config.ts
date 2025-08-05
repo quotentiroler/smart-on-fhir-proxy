@@ -21,10 +21,22 @@ export const config = {
   version: packageJson.version,
   
   keycloak: {
-    baseUrl: process.env.KEYCLOAK_BASE_URL || null,
-    realm: process.env.KEYCLOAK_REALM || null,
-    // Note: clientId and clientSecret no longer needed for admin API
-    // We use the user's token directly
+    // Dynamic getters that read from process.env for real-time updates
+    get baseUrl() {
+      return process.env.KEYCLOAK_BASE_URL || null
+    },
+    
+    get realm() {
+      return process.env.KEYCLOAK_REALM || null
+    },
+    
+    get adminClientId() {
+      return process.env.KEYCLOAK_ADMIN_CLIENT_ID || null
+    },
+    
+    get adminClientSecret() {
+      return process.env.KEYCLOAK_ADMIN_CLIENT_SECRET || null
+    },
     
     // Check if Keycloak is configured
     get isConfigured() {

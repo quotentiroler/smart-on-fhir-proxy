@@ -41,11 +41,14 @@ import type {
     PostAuthRegisterRequest,
     PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response,
     PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseServerInfo,
+    GetFhirServers200Response,
+    GetAdminKeycloakConfigStatus200Response,
+    GetMonitoringOauthEvents200Response,
+    GetFhirServersByServerId200Response,
 } from '../api-client';
 
 export type {
     // Smart Apps - API Models
-    GetAdminSmartApps200ResponseInner,
     PostAdminSmartAppsRequest as CreateSmartAppRequest,
     PutAdminSmartAppsByClientIdRequest as UpdateSmartAppRequest,
     
@@ -71,6 +74,7 @@ export type {
     GetMonitoringOauthAnalytics200ResponseTopClientsInner as TopClient,
     GetMonitoringOauthAnalytics200ResponseHourlyStatsInner as HourlyStats,
     GetMonitoringOauthEvents200ResponseEventsInnerFhirContext as OAuthEventFhirContext,
+    GetMonitoringOauthEvents200Response as OAuthEventsListResponse,
     
     // System Health
     GetStatus200Response as SystemStatus,
@@ -105,29 +109,32 @@ export type {
     // FHIR Proxy & Cache
     PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response as CacheRefreshResponse,
     PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseServerInfo as CacheServerInfo,
+    
+    // FHIR Server Management
+    GetFhirServers200Response as FhirServersListResponse,
+    GetFhirServersByServerId200Response as FhirServerDetailsResponse,
+    
+    // Keycloak Configuration
+    GetAdminKeycloakConfigStatus200Response as KeycloakConfigurationStatus,
 };
 
 // UI Models - these extend the API models with UI-specific properties
 export type AuthenticationType = 'symmetric' | 'asymmetric' | 'none';
 export type SmartAppType = 'standalone-app' | 'backend-service' | 'ehr-launch' | 'agent';
 
-// TODO: dont use custom interfaces for backend models, use or inherit the existing generated API models instead
 // SMART Application UI Model (extends API model with UI-specific fields)
-export interface SmartApp {
-    id: string;
-    name: string;
-    clientId: string;
-    redirectUri: string; // UI uses single string, API uses redirectUris array
-    scopes: string[];
-    scopeSetId?: string;
-    customScopes: string[];
-    status: 'active' | 'inactive';
-    lastUsed: string;
-    description?: string;
-    appType: 'standalone-app' | 'backend-service' | 'ehr-launch' | 'agent';
-    authenticationType: 'symmetric' | 'asymmetric' | 'none';
-    serverAccessType: 'all-servers' | 'selected-servers' | 'user-person-servers';
-    allowedServerIds?: string[];
+export interface SmartApp extends GetAdminSmartApps200ResponseInner {
+    // UI-specific computed/helper fields that extend the API model
+    scopeSetId?: string; // UI helper for scope management
+    status?: 'active' | 'inactive'; // Derived from enabled boolean (computed property)
+    lastUsed?: string; // UI tracking field
+    appType?: 'standalone-app' | 'backend-service' | 'ehr-launch' | 'agent'; // UI classification
+    authenticationType?: 'symmetric' | 'asymmetric' | 'none'; // UI helper derived from clientAuthenticatorType
+    serverAccessType?: 'all-servers' | 'selected-servers' | 'user-person-servers'; // UI helper
+    allowedServerIds?: string[]; // UI helper for server access control
+    
+    // UI computed properties (derived from API fields):
+    // - status: derive from enabled boolean
 }
 
 // Extended types for UI state management
@@ -148,6 +155,18 @@ export interface FhirServerWithState extends Omit<GetFhirServers200ResponseServe
 }
 
 export interface OAuthAnalyticsWithState extends GetMonitoringOauthAnalytics200Response {
+    loading?: boolean;
+    error?: string | null;
+}
+
+// Keycloak Configuration with UI state
+export interface KeycloakConfigurationWithState extends GetAdminKeycloakConfigStatus200Response {
+    loading?: boolean;
+    error?: string | null;
+}
+
+// FHIR Servers List with UI state
+export interface FhirServersListWithState extends GetFhirServers200Response {
     loading?: boolean;
     error?: string | null;
 }
@@ -173,7 +192,6 @@ export interface FhirPersonAssociation {
 export interface SmartAppFormData extends PostAdminSmartAppsRequest {
     // UI-specific fields for better UX - these get merged/converted at submission
     scopeSetId?: string; // UI helper for scope management
-    customScopes?: string[]; // UI helper for custom scopes
     appType?: 'backend-service' | 'standalone-app' | 'ehr-launch' | 'agent'; // UI classification
     authenticationType?: 'asymmetric' | 'symmetric' | 'none'; // UI helper
     serverAccessType?: 'all-servers' | 'selected-servers' | 'user-person-servers'; // UI helper

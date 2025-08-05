@@ -5,7 +5,6 @@ import { validateToken } from '../../lib/auth'
 import { getAllServers, ensureServersInitialized } from '../../lib/fhir-server-store'
 import { logger } from '../../lib/logger'
 import { oauthMetricsLogger } from '../../lib/oauth-metrics-logger'
-import KcAdminClient from '@keycloak/keycloak-admin-client'
 
 interface TokenPayload {
   sub?: string
@@ -532,57 +531,6 @@ export const oauthRoutes = new Elysia({ tags: ['authentication'] })
       description: 'Validate and get information about an access token',
       tags: ['authentication'],
       response: { 200: { description: 'Token introspection response.' } }
-    }
-  })
-
-  // Public endpoint to get available identity providers (no auth required)
-  .get('/idps', async () => {
-    try {
-      // Create Keycloak admin client
-      const kcAdminClient = new KcAdminClient({
-        baseUrl: config.keycloak.baseUrl,
-        realmName: config.keycloak.realm
-      })
-
-      // Authenticate with admin credentials (for internal API calls)
-      await kcAdminClient.auth({
-        grantType: 'client_credentials',
-        clientId: 'admin-cli'
-      })
-
-      // Get identity providers
-      const idps = await kcAdminClient.identityProviders.find()
-
-      // Filter and format for public consumption
-      const publicIdps = idps
-        .filter(idp => idp.enabled !== false && idp.alias && idp.providerId)
-        .map(idp => ({
-          alias: idp.alias!,
-          displayName: idp.displayName || idp.alias!,
-          providerId: idp.providerId!,
-          enabled: idp.enabled
-        }))
-
-      return publicIdps
-    } catch (error) {
-      logger.auth.warn('Failed to fetch identity providers', { error })
-      // Return empty array instead of error to avoid breaking the UI
-      return []
-    }
-  }, {
-    response: {
-      200: t.Array(t.Object({
-        alias: t.String({ description: 'Identity provider alias' }),
-        displayName: t.String({ description: 'Display name' }),
-        providerId: t.String({ description: 'Provider type (oidc, saml, etc.)' }),
-        enabled: t.Optional(t.Boolean({ description: 'Whether the provider is enabled' }))
-      }))
-    },
-    detail: {
-      summary: 'Get Available Identity Providers',
-      description: 'Get list of available identity providers for authentication (public endpoint)',
-      tags: ['authentication'],
-      response: { 200: { description: 'List of available identity providers.' } }
     }
   })
 
