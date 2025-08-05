@@ -28,52 +28,99 @@ The SMART on FHIR Proxy is an Open Source solution for managing healthcare appli
 
 ```mermaid
 graph TB
-    subgraph "Client Layer"
-        A[Admin UI]
-        B[SMART Apps<br/>Web & Mobile]
+    subgraph "External Clients"
+        A["Admin UI<br/>React + Vite"]
+        B["SMART Apps<br/>Web & Mobile"]
+        C["Healthcare Systems<br/>EHR Integration"]
     end
   
-    subgraph "Platform Core"
-        D[Backend API]
-        E[OAuth Server]
-        F[FHIR Proxy]
-        G[WebSocket Server]
+    subgraph "API Gateway & Core Platform"
+        D["SMART on FHIR Proxy<br/>Node.js + TypeScript"]
+        E["OAuth 2.0 Endpoints<br/>SMART App Launch 2.2.0"]
+        F["WebSocket Server<br/>Real-time Events"]
+        G["Discovery Endpoints<br/>FHIR Capability"]
     end
   
-    subgraph "Identity & Database"
-        H[Keycloak]
-        J[PostgreSQL]
+    subgraph "Identity & Security Layer"
+        H["Keycloak<br/>Identity Provider"]
+        I["PostgreSQL<br/>User & Config Data"]
+        J["SAML/OIDC<br/>Enterprise SSO"]
     end
   
-    subgraph "Protected FHIR Resources"
-        I[FHIR Servers]
+    subgraph "FHIR Ecosystem"
+        K["FHIR Servers<br/>R4/R4B Compliant"]
+        L["FHIR Resources<br/>Patient, Practitioner"]
+        M["Protected Resources<br/>Authorization Required"]
     end
   
-    subgraph "AI & Monitoring"
-        K[Real-time Analytics]
-        L[AI Assistant]
+    subgraph "AI & Intelligence"
+        N["AI Assistant<br/>OpenAI GPT-4o-mini"]
+        O["Real-time Analytics<br/>OAuth Monitoring"]
+        P["RAG System<br/>Documentation Knowledge"]
+        Q["Predictive Insights<br/>Usage Patterns"]
     end
   
-    %% Client connections
-    A --> D
-    A --> G
-    B --> F
+    subgraph "DevOps & Monitoring"
+        R["Docker Containers<br/>Microservices"]
+        S["CI/CD Pipeline<br/>GitHub Actions"]
+        T["Health Monitoring<br/>System Metrics"]
+        U["Audit Logging<br/>Compliance Tracking"]
+    end
   
-    %% Platform Core connections
+    %% Client Layer Connections
+    A -->|HTTPS/WSS| D
+    A -->|WebSocket| F
+    B -->|OAuth Flow| E
+    B -->|FHIR API| D
+    C -->|SMART Launch| E
+  
+    %% Platform Core Connections
     D --> E
     D --> F
     D --> G
+    E -->|Token Validation| H
+    F -->|Live Events| O
   
-    %% Identity & Authentication connections
-    E --> H
+    %% Identity & Security
+    D -->|Authentication| H
+    H --> I
     H --> J
+    E -->|User Context| H
   
-    %% Protected FHIR Resources connections
-    F --> I
+    %% FHIR Ecosystem
+    D -->|Proxy Requests| K
+    K --> L
+    K -->|Access Control| M
+    E -->|Scope Validation| M
   
-    %% AI & Monitoring connections
-    G --> K
-    D --> L
+    %% AI & Intelligence
+    D -->|Context Data| N
+    F -->|Event Stream| O
+    N --> P
+    O -->|Analytics| Q
+    N -->|Smart Responses| A
+  
+    %% DevOps & Operations
+    D -->|Logs| U
+    H -->|Audit Trail| U
+    R -->|Container Health| T
+    S -->|Deployment| R
+    T -->|Metrics| O
+  
+    %% Styling
+    classDef client fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef platform fill:#f3e5f5,stroke:#4a148c,stroke-width:2px
+    classDef security fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    classDef fhir fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px
+    classDef ai fill:#fce4ec,stroke:#880e4f,stroke-width:2px
+    classDef devops fill:#f1f8e9,stroke:#33691e,stroke-width:2px
+  
+    class A,B,C client
+    class D,E,F,G platform
+    class H,I,J security
+    class K,L,M fhir
+    class N,O,P,Q ai
+    class R,S,T,U devops
 ```
 
 ### Technology Stack
