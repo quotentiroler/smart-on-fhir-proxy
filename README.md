@@ -1,8 +1,8 @@
-# SMART on FHIR Platform
+# SMART on FHIR Proxy
 
 A comprehensive healthcare application platform implementing the complete SMART App Launch Framework 2.2.0 specification with advanced administrative capabilities, AI-powered assistance, and enterprise-grade security.
 
-[![Version](https://img.shields.io/badge/v0.0.4-RELEASE-blue.svg)](https://github.com/quotentiroler/smart-on-fhir-proxy)
+[![Version](https://img.shields.io/badge/v0.0.5-alpha-blue.svg)](https://github.com/quotentiroler/smart-on-fhir-proxy)
 [![SMART App Launch](https://img.shields.io/badge/SMART%20App%20Launch-2.2.0-green.svg)](http://hl7.org/fhir/smart-app-launch/)
 [![FHIR](https://img.shields.io/badge/FHIR-R4%2FR4B-orange.svg)](https://hl7.org/fhir/R4/)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
@@ -10,7 +10,7 @@ A comprehensive healthcare application platform implementing the complete SMART 
 
 ## 🏥 Overview
 
-The SMART on FHIR Platform is a complete enterprise solution for managing healthcare applications, users, and FHIR servers in compliance with the SMART App Launch framework. It provides secure OAuth 2.0 flows, comprehensive user management, real-time monitoring, and an AI-powered administrative assistant.
+The SMART on FHIR Proxy is an Open Source solution for managing healthcare applications, users, and FHIR servers in compliance with the SMART App Launch framework. It provides secure OAuth 2.0 flows, comprehensive user management, real-time monitoring, and an AI-powered administrative assistant.
 
 ### Key Features
 
@@ -256,7 +256,7 @@ Each branch automatically triggers appropriate CI/CD workflows with version mana
 
 | Version          | Milestone              | Target Features                           |
 | ---------------- | ---------------------- | ----------------------------------------- |
-| **<0.1.0** | Early Development       | Test deployment, incomplete documentation |
+| **<0.1.0** | Early Development      | Test deployment, incomplete documentation |
 | **v0.1.0** | SMART 2.2.0 Compliance | Complete specification implementation     |
 | **v0.9.0** | AI Enhancement         | Advanced monitoring, predictive analytics |
 | **v1.0.0** | Production Ready       | Enterprise deployment, full documentation |
@@ -348,7 +348,21 @@ We welcome contributions! Please see our contributing guidelines and:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is available under **dual licensing**:
+
+### 🔓 Open Source - AGPL v3
+
+For open source projects, research, and non-commercial use:
+
+- Free to use and modify
+- Must share source code when deploying as web service
+- All modifications must remain open source
+
+### 💼 Commercial License
+
+For commercial use and proprietary applications:
+
+📋 **[Learn more about dual licensing](LICENSE-DUAL.md)**
 
 ## 🆘 Support
 

@@ -15,14 +15,14 @@ export function isKeycloakAccessible(): boolean {
 /**
  * Check Keycloak connection health with retry logic
  */
-export async function checkKeycloakConnection(): Promise<void> {
+export async function checkKeycloakConnection(retries?: number, interval?: number): Promise<void> {
   // Check if Keycloak is configured
   if (!config.keycloak.isConfigured || !config.keycloak.jwksUri) {
     throw new Error('Keycloak connection verification failed: Not configured')
   }
 
-  const maxRetries = 3;
-  const retryInterval = 10000; // 10 seconds
+  const maxRetries = retries ?? 3; // Default to 3 retries if not specified
+  const retryInterval = interval ?? 5000; // Default to 5 seconds if not specified
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {

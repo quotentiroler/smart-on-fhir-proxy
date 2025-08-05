@@ -23,15 +23,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun with version scripts
+        uses: ./.github/actions/setup-bun-version
         with:
-          node-version: "22"
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+          checkout: 'false'  # Skip checkout since we already did it
 
       - name: Build backend
         run: |

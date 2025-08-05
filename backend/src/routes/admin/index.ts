@@ -6,6 +6,7 @@ import { launchContextRoutes } from './launch-contexts'
 import { identityProvidersRoutes } from './identity-providers'
 import { smartConfigAdminRoutes } from './smart-config'
 import { clientRegistrationSettingsRoutes } from './client-registration-settings'
+import { keycloakConfigRoutes } from './keycloak-config'
 
 /**
  * Admin routes aggregator - combines all admin functionality
@@ -23,3 +24,4 @@ export const adminRoutes = new Elysia({ prefix: '/admin' })
   .use(identityProvidersRoutes)
   .use(smartConfigAdminRoutes)
   .use(clientRegistrationSettingsRoutes)
+  .use(keycloakConfigRoutes)

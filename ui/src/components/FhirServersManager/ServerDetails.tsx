@@ -10,13 +10,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import type { GetFhirServersByServerId200Response } from '../../lib/api-client';
+import type { FhirServerDetailsResponse } from '@/lib/types/api';
 
-interface ServerDetailsProps {
-  server: GetFhirServersByServerId200Response;
-}
-
-export function ServerDetails({ server }: ServerDetailsProps) {
+export function ServerDetails(server: FhirServerDetailsResponse) {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
     // You could add a toast notification here
@@ -163,7 +159,7 @@ export function ServerDetails({ server }: ServerDetailsProps) {
               </div>
             </div>
             <p className="text-destructive/70 text-sm">
-              This server cannot be reached or does not respond with valid FHIR metadata. 
+              This server cannot be reached or does not respond with valid FHIR metadata.
               API endpoints and advanced features are not available for this server.
             </p>
           </div>

@@ -21,6 +21,10 @@ on:
         type: string
         default: 'develop'
 
+concurrency:
+  group: releases
+  cancel-in-progress: false
+
 jobs:
   manual-version-bump:
     name: Manual Version Bump
@@ -59,15 +63,13 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.generate-token.outputs.token }}
 
-      - name: Setup Node.js and Bun
-        uses: actions/setup-node@v4
+      - name: Setup Bun with version scripts
+        uses: ./.github/actions/setup-bun-version
         with:
-          node-version: "22"
-      
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
+          checkout: 'false'  # Skip checkout since we already did it
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+          token: ${{ steps.generate-token.outputs.token }}
 
       - name: Get current version
         id: current

@@ -33,25 +33,31 @@ export interface LoggerConfig {
 }
 
 // Default configuration
-const defaultConfig: LoggerConfig = {
-  level: process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG,
-  format: process.env.NODE_ENV === 'production' ? 'json' : 'pretty',
-  enableColors: process.env.NODE_ENV !== 'production',
-  enableTimestamp: true,
-  categories: {
-    'server': LogLevel.INFO,
-    'keycloak': LogLevel.INFO,
-    'fhir': LogLevel.INFO,
-    'auth': LogLevel.INFO,
-    'admin': LogLevel.DEBUG,
-    'routes': LogLevel.DEBUG,
-    'database': LogLevel.WARN,
-    'security': LogLevel.WARN,
-    'performance': LogLevel.INFO,
-    'sse': LogLevel.INFO,
-    'ws': LogLevel.INFO
-  }
+const getDefaultConfig = (): LoggerConfig => {
+  const baseLevel = process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG;
+  
+  return {
+    level: baseLevel,
+    format: process.env.NODE_ENV === 'production' ? 'json' : 'pretty',
+    enableColors: process.env.NODE_ENV !== 'production',
+    enableTimestamp: true,
+    categories: {
+      'server': Math.max(LogLevel.INFO, baseLevel),
+      'keycloak': Math.max(LogLevel.INFO, baseLevel),
+      'fhir': Math.max(LogLevel.INFO, baseLevel),
+      'auth': Math.max(LogLevel.INFO, baseLevel),
+      'admin': Math.max(LogLevel.DEBUG, baseLevel),
+      'routes': Math.max(LogLevel.DEBUG, baseLevel),
+      'database': Math.max(LogLevel.WARN, baseLevel),
+      'security': Math.max(LogLevel.WARN, baseLevel),
+      'performance': Math.max(LogLevel.INFO, baseLevel),
+      'sse': Math.max(LogLevel.INFO, baseLevel),
+      'ws': Math.max(LogLevel.INFO, baseLevel)
+    }
+  };
 };
+
+const defaultConfig = getDefaultConfig();
 
 class Logger {
   private config: LoggerConfig;

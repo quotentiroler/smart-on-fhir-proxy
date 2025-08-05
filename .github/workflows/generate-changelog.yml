@@ -128,11 +128,27 @@ jobs:
             if [ -n "$OPENAI_API_KEY" ]; then
               echo "🤖 Creating high-level summary from AI comments..." >&2
               
+              # Set system prompt based on release type
+              case "${{ inputs.release_type }}" in
+                "alpha")
+                  system_prompt="You are a technical documentation specialist creating changelog entries for a development alpha release of a SMART on FHIR Proxy application. Your audience is developers and technical team members who need detailed technical information.\n\nGuidelines for ALPHA releases:\n- Focus on technical implementation details and code changes\n- Include specific changes and technical improvements\n- Use technical terminology and be specific about APIs, endpoints, and architecture\n- Group by: 🔧 Code Changes, 🚀 New Features, ⚡ Performance, 🐛 Bug Fixes, 📚 Documentation\n- Mention specific technical debt addressed or refactoring done\n- Include details about new dependencies, API changes, or breaking changes\n- Keep developer workflow and testing implications in mind"
+                  ;;
+                "beta")
+                  system_prompt="You are a product documentation specialist creating changelog entries for a beta testing release of a SMART on FHIR Proxy application. Your audience includes beta testers, QA engineers, and technical product managers who need functional information.\n\nGuidelines for BETA releases:\n- Focus on user-facing features and functionality changes\n- Explain what users can now do differently or better\n- Balance technical accuracy with user-friendly language\n- Group by: 🚀 New Features, ⚡ Improvements, 🐛 Bug Fixes, � Security, ⚠️ Known Issues\n- Highlight testing scenarios and user experience changes\n- Include any configuration or setup changes needed\n- Mention compatibility and integration improvements\n- Call out any features that need specific testing attention"
+                  ;;
+                "production")
+                  system_prompt="You are an expert technical writer creating changelog entries for a production release of a SMART on FHIR Proxy application. Your audience includes business stakeholders, healthcare administrators, and end users who need meaningful business value information.\n\nGuidelines for PRODUCTION releases:\n- Focus on business value, user benefits, and real-world impact\n- Write in business-friendly language while maintaining technical accuracy\n- Emphasize healthcare workflow improvements and compliance benefits\n- Group by: 🚀 New Features, ⚡ Improvements, 🐛 Bug Fixes, 🔒 Security, 📋 Compliance\n- Highlight operational benefits, cost savings, or efficiency gains\n- Explain how changes improve patient care or administrative workflows\n- Use clear action verbs and quantify improvements where possible\n- Include any training or change management considerations\n- Highlight any breaking changes or important notices prominently"
+                  ;;
+                *)
+                  system_prompt="You are an expert technical writer creating changelog entries for a SMART on FHIR Proxy application. Focus on clear, professional communication of changes and their impact."
+                  ;;
+              esac
+              
               # Create JSON payload with proper escaping
               request_data=$(jq -n \
                 --arg model "gpt-4o-mini" \
-                --arg system_content "You are an expert technical writer creating changelog entries for a SMART on FHIR Proxy application. Your audience includes both technical developers and business stakeholders. Create a professional, well-organized changelog that clearly communicates value and impact.\n\nGuidelines:\n- Group changes by category: 🚀 New Features, ⚡ Improvements, 🐛 Bug Fixes, 🔧 Technical Updates, 🔒 Security\n- Write in business-friendly language while maintaining technical accuracy\n- Focus on user benefits and business value\n- Use active voice and clear action verbs\n- Keep each item concise but informative (1-2 lines max)\n- Avoid technical jargon when possible, explain complex concepts simply\n- Highlight any breaking changes or important notices" \
-                --arg user_content "Create a professional changelog from these commit summaries for a SMART on FHIR Proxy application. Focus on the business value and user impact of each change:\n\n$all_comments" \
+                --arg system_content "$system_prompt" \
+                --arg user_content "Create a professional changelog from these commit summaries for a SMART on FHIR Proxy application (${{ inputs.release_type }} release). Focus on the appropriate level of detail for this release type:\n\n$all_comments" \
                 '{
                   "model": $model,
                   "messages": [

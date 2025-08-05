@@ -54,7 +54,7 @@ async function getServiceAccountAdmin(): Promise<KcAdminClient> {
   // This should use a dedicated service account for client registration
   await admin.auth({
     grantType: 'client_credentials',
-    clientId: process.env.KEYCLOAK_ADMIN_CLIENT_ID || 'admin-cli',
+    clientId: process.env.KEYCLOAK_ADMIN_CLIENT_ID || 'admin-service',
     clientSecret: process.env.KEYCLOAK_ADMIN_CLIENT_SECRET,
   })
 

@@ -1,0 +1,196 @@
+name: 'Discord Release Notification'
+description: 'Send rich Discord webhook notifications for releases and deployments'
+
+inputs:
+  webhook-url:
+    description: 'Discord webhook URL'
+    required: true
+  notification-type:
+    description: 'Type of notification (release, deployment, error, success)'
+    required: true
+  title:
+    description: 'Notification title'
+    required: true
+  description:
+    description: 'Notification description'
+    required: false
+    default: ''
+  version:
+    description: 'Release version'
+    required: false
+    default: ''
+  release-type:
+    description: 'Release type (alpha, beta, production)'
+    required: false
+    default: ''
+  changelog:
+    description: 'Release changelog'
+    required: false
+    default: ''
+  repository:
+    description: 'Repository name'
+    required: false
+    default: ${{ github.repository }}
+  commit-sha:
+    description: 'Commit SHA'
+    required: false
+    default: ${{ github.sha }}
+  actor:
+    description: 'GitHub actor'
+    required: false
+    default: ${{ github.actor }}
+  workflow-url:
+    description: 'Workflow run URL'
+    required: false
+    default: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  color:
+    description: 'Embed color (hex without #)'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Determine notification color
+      id: color
+      shell: bash
+      run: |
+        COLOR="${{ inputs.color }}"
+        
+        # Default colors based on notification type and release type
+        if [ -z "$COLOR" ]; then
+          case "${{ inputs.notification-type }}" in
+            "release")
+              case "${{ inputs.release-type }}" in
+                "alpha") COLOR="FFA500" ;;      # Orange
+                "beta") COLOR="0099FF" ;;       # Blue  
+                "production") COLOR="00FF00" ;; # Green
+                *) COLOR="7289DA" ;;            # Discord Blurple
+              esac
+              ;;
+            "deployment") COLOR="00D4AA" ;;     # Teal
+            "error") COLOR="FF0000" ;;          # Red
+            "success") COLOR="00FF00" ;;        # Green
+            *) COLOR="7289DA" ;;                # Discord Blurple
+          esac
+        fi
+        
+        echo "color=$COLOR" >> $GITHUB_OUTPUT
+
+    - name: Prepare changelog for Discord
+      id: changelog
+      shell: bash
+      run: |
+        # For safety, we'll either skip the changelog or use a simple placeholder
+        # The full changelog is available in the GitHub release
+        if [ -n "${{ inputs.changelog }}" ]; then
+          echo "formatted_changelog=📋 Changelog available in the GitHub release" >> $GITHUB_OUTPUT
+        else
+          echo "formatted_changelog=" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Send Discord notification
+      shell: bash
+      run: |
+        # Build the Discord embed payload
+        TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%S.000Z")
+        
+        # Build fields array based on available inputs
+        FIELDS=""
+        if [ -n "${{ inputs.version }}" ]; then
+          FIELDS="$FIELDS{\"name\": \"Version\", \"value\": \"\`${{ inputs.version }}\`\", \"inline\": true},"
+        fi
+        
+        if [ -n "${{ inputs.release-type }}" ]; then
+          FIELDS="$FIELDS{\"name\": \"Type\", \"value\": \"\`${{ inputs.release-type }}\`\", \"inline\": true},"
+        fi
+        
+        if [ -n "${{ inputs.actor }}" ]; then
+          FIELDS="$FIELDS{\"name\": \"Released by\", \"value\": \"${{ inputs.actor }}\", \"inline\": true},"
+        fi
+        
+        # Add commit info
+        SHORT_SHA=$(echo "${{ inputs.commit-sha }}" | cut -c1-8)
+        FIELDS="$FIELDS{\"name\": \"Commit\", \"value\": \"[\`$SHORT_SHA\`](https://github.com/${{ inputs.repository }}/commit/${{ inputs.commit-sha }})\", \"inline\": true},"
+        
+        # Remove trailing comma
+        FIELDS=$(echo "$FIELDS" | sed 's/,$//')
+        
+        # Build the complete payload
+        PAYLOAD=$(cat << EOF
+        {
+          "embeds": [
+            {
+              "title": "${{ inputs.title }}",
+              "description": "${{ inputs.description }}",
+              "color": $((0x${{ steps.color.outputs.color }})),
+              "timestamp": "$TIMESTAMP",
+              "fields": [$FIELDS],
+              "footer": {
+                "text": "${{ inputs.repository }}",
+                "icon_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+              }
+            }
+          ]
+        }
+        EOF
+        )
+        
+        # Add changelog as separate field if provided (simple approach)
+        CHANGELOG_FIELD=""
+        if [ -n "${{ steps.changelog.outputs.formatted_changelog }}" ]; then
+          CHANGELOG_FIELD=",{\"name\": \"📋 Changelog\", \"value\": \"${{ steps.changelog.outputs.formatted_changelog }}\", \"inline\": false}"
+        fi
+        
+        # Add workflow URL field if provided
+        WORKFLOW_FIELD=""
+        if [ -n "${{ inputs.workflow-url }}" ]; then
+          WORKFLOW_FIELD=",{\"name\": \"🔗 View Workflow\", \"value\": \"[GitHub Actions](${{ inputs.workflow-url }})\", \"inline\": true}"
+        fi
+        
+        # Rebuild payload with additional fields
+        PAYLOAD=$(cat << EOF
+        {
+          "embeds": [
+            {
+              "title": "${{ inputs.title }}",
+              "description": "${{ inputs.description }}",
+              "color": $((0x${{ steps.color.outputs.color }})),
+              "timestamp": "$TIMESTAMP",
+              "fields": [$FIELDS$CHANGELOG_FIELD$WORKFLOW_FIELD],
+              "footer": {
+                "text": "${{ inputs.repository }}",
+                "icon_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+              }
+            }
+          ]
+        }
+        EOF
+        )
+        
+        # Send the webhook
+        curl -H "Content-Type: application/json" \
+             -d "$PAYLOAD" \
+             "${{ inputs.webhook-url }}"
+        
+        if [ $? -eq 0 ]; then
+          echo "✅ Discord notification sent successfully"
+        else
+          echo "❌ Failed to send Discord notification"
+          exit 1
+        fi
+
+    - name: Log notification details
+      shell: bash
+      run: |
+        echo "Discord notification sent:"
+        echo "  Type: ${{ inputs.notification-type }}"
+        echo "  Title: ${{ inputs.title }}"
+        echo "  Color: #${{ steps.color.outputs.color }}"
+        echo "  Repository: ${{ inputs.repository }}"
+        if [ -n "${{ inputs.version }}" ]; then
+          echo "  Version: ${{ inputs.version }}"
+        fi
+        if [ -n "${{ inputs.release-type }}" ]; then
+          echo "  Release Type: ${{ inputs.release-type }}"
+        fi
