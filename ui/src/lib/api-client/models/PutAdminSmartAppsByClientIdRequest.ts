@@ -50,6 +50,18 @@ export interface PutAdminSmartAppsByClientIdRequest {
      */
     webOrigins?: Array<string>;
     /**
+     * 
+     * @type {Array<string>}
+     * @memberof PutAdminSmartAppsByClientIdRequest
+     */
+    defaultScopes?: Array<string>;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof PutAdminSmartAppsByClientIdRequest
+     */
+    optionalScopes?: Array<string>;
+    /**
      * SMART version
      * @type {string}
      * @memberof PutAdminSmartAppsByClientIdRequest
@@ -85,6 +97,8 @@ export function PutAdminSmartAppsByClientIdRequestFromJSONTyped(json: any, ignor
         'enabled': json['enabled'] == null ? undefined : json['enabled'],
         'redirectUris': json['redirectUris'] == null ? undefined : json['redirectUris'],
         'webOrigins': json['webOrigins'] == null ? undefined : json['webOrigins'],
+        'defaultScopes': json['defaultScopes'] == null ? undefined : json['defaultScopes'],
+        'optionalScopes': json['optionalScopes'] == null ? undefined : json['optionalScopes'],
         'smartVersion': json['smartVersion'] == null ? undefined : json['smartVersion'],
         'fhirVersion': json['fhirVersion'] == null ? undefined : json['fhirVersion'],
     };
@@ -106,6 +120,8 @@ export function PutAdminSmartAppsByClientIdRequestToJSONTyped(value?: PutAdminSm
         'enabled': value['enabled'],
         'redirectUris': value['redirectUris'],
         'webOrigins': value['webOrigins'],
+        'defaultScopes': value['defaultScopes'],
+        'optionalScopes': value['optionalScopes'],
         'smartVersion': value['smartVersion'],
         'fhirVersion': value['fhirVersion'],
     };

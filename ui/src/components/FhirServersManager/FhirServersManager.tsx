@@ -14,7 +14,6 @@ import type {
   UpdateFhirServerRequest,
   FhirServerWithState
 } from '@/lib/types/api';
-import type { GetFhirServersByServerId200Response } from '@/lib/api-client';
 
 // Imported extracted components
 import { StatsCards } from './StatsCards';
@@ -44,7 +43,7 @@ export function FhirServersManager() {
   const [servers, setServers] = useState<FhirServerWithState[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedServer, setSelectedServer] = useState<GetFhirServersByServerId200Response | null>(null);
+  const [selectedServer, setSelectedServer] = useState<FhirServerWithState | null>(null);
   const [loadingServerDetail, setLoadingServerDetail] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   
@@ -229,7 +228,7 @@ export function FhirServersManager() {
     try {
       setLoadingServerDetail(true);
       const response = await apiClients.servers.getFhirServersByServerId({ serverId });
-      setSelectedServer(response);
+      setSelectedServer({id: serverId, ...response});
       setActiveTab('details');
     } catch (err) {
       console.error('Error fetching server detail:', err);
@@ -400,7 +399,7 @@ export function FhirServersManager() {
 
           <TabsContent value="details" className="p-6 space-y-6">
             {selectedServer ? (
-              <ServerDetails server={selectedServer} />
+              <ServerDetails {...selectedServer} />
             ) : (
               <div className="bg-card/70 backdrop-blur-sm p-12 rounded-2xl border border-border shadow-lg text-center">
                 <div className="w-16 h-16 mx-auto mb-6 bg-muted/50 rounded-2xl flex items-center justify-center shadow-sm">

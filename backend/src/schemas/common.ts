@@ -68,8 +68,8 @@ export const SmartAppClient = t.Object({
   implicitFlowEnabled: t.Optional(t.Boolean({ description: 'Whether implicit flow is enabled' })),
   directAccessGrantsEnabled: t.Optional(t.Boolean({ description: 'Whether password grants are enabled' })),
   // SMART specific attributes
-  defaultClientScopes: t.Optional(t.Array(t.String({ description: 'Default OAuth scopes' }))),
-  optionalClientScopes: t.Optional(t.Array(t.String({ description: 'Optional OAuth scopes' }))),
+  defaultClientScopes: t.Optional(t.Array(t.String({ description: 'Default OAuth scopes' }), { description: 'Default OAuth scopes' })),
+  optionalClientScopes: t.Optional(t.Array(t.String({ description: 'Optional OAuth scopes' }), { description: 'Optional OAuth scopes' })),
   access: t.Optional(t.Record(t.String(), t.Boolean(), { description: 'Access permissions' }))
 })
 
