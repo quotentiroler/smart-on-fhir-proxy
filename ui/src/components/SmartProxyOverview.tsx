@@ -24,9 +24,10 @@ import {
 import { Button } from './ui/button';
 import { DescriptionList } from '@medplum/react';
 import type { 
-    DashboardData
+    DashboardData,
+    FhirServersListResponse,
+    KeycloakConfigurationStatus
 } from '../lib/types/api';
-import type { GetFhirServers200Response } from '../lib/api-client';
 import { config } from '../config';
 
 interface SmartProxyOverviewProps {
@@ -56,6 +57,19 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
         usersCount: 0,
         serversCount: 0,
         identityProvidersCount: 0,
+        loading: true,
+        error: null
+    });
+
+    // Keycloak configuration state - using meaningful types from api.ts
+    const [keycloakConfig, setKeycloakConfig] = useState<KeycloakConfigurationStatus & {
+        loading: boolean;
+        error: string | null;
+    }>({
+        baseUrl: null,
+        realm: null,
+        hasAdminClient: false,
+        adminClientId: null,
         loading: true,
         error: null
     });
@@ -144,13 +158,14 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                 setFhirServersHealth(prev => ({ ...prev, loading: true, error: null }));
 
                 // Fetch data in parallel with correct API methods
-                const [smartApps, users, servers, identityProvidersCount, analytics, systemStatus] = await Promise.allSettled([
+                const [smartApps, users, servers, identityProvidersCount, analytics, systemStatus, keycloakStatus] = await Promise.allSettled([
                     apiClients.smartApps.getAdminSmartApps(),
                     apiClients.healthcareUsers.getAdminHealthcareUsers(),
                     apiClients.servers.getFhirServers(),
                     apiClients.identityProviders.getAdminIdpsCount(),
                     apiClients.oauthMonitoring.getMonitoringOauthAnalytics(),
-                    apiClients.server.getStatus()
+                    apiClients.server.getStatus(),
+                    apiClients.admin.getAdminKeycloakConfigStatus()
                 ]);
 
                 // Update dashboard data with proper type checking
@@ -244,6 +259,25 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                     }));
                 }
 
+                // Update Keycloak configuration status
+                if (keycloakStatus.status === 'fulfilled') {
+                    const kcData = keycloakStatus.value as KeycloakConfigurationStatus;
+                    setKeycloakConfig({
+                        baseUrl: kcData.baseUrl,
+                        realm: kcData.realm,
+                        hasAdminClient: kcData.hasAdminClient,
+                        adminClientId: kcData.adminClientId,
+                        loading: false,
+                        error: null
+                    });
+                } else {
+                    setKeycloakConfig((prev: KeycloakConfigurationStatus & { loading: boolean; error: string | null }) => ({
+                        ...prev,
+                        loading: false,
+                        error: 'Failed to load Keycloak configuration'
+                    }));
+                }
+
                 // Measure API response time with a simple call
                 const startTime = performance.now();
                 try {
@@ -263,7 +297,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
 
                 // Update FHIR servers health with actual server data (no mock health metrics)
                 if (servers.status === 'fulfilled') {
-                    const serversData = servers.value as GetFhirServers200Response;
+                    const serversData = servers.value as FhirServersListResponse;
                     const serversArray = serversData.servers || [];
                     
                     // Use actual server data without adding fake health metrics
@@ -526,166 +560,146 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                 </div>
             </div>
 
-            {/* Key Metrics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center shadow-sm">
-                                    <Zap className="w-6 h-6 text-primary" />
-                                </div>
-                                <h3 className="text-sm font-semibold text-primary tracking-wide">{t('SMART Applications')}</h3>
-                            </div>
-                            <div className="text-3xl font-bold text-foreground mb-2">
-                                {dashboardData.loading ? '...' : dashboardData.smartAppsCount}
-                            </div>
-                            <p className="text-sm text-muted-foreground font-medium">{t('Active applications')}</p>
+            {/* Key Metrics Cards - Compact and Professional */}
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+                <div className="bg-card/70 backdrop-blur-sm p-4 rounded-xl border border-border/50 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                    <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+                            <Zap className="w-4 h-4 text-primary" />
                         </div>
+                        <h3 className="text-xs font-medium text-muted-foreground">{t('SMART Apps')}</h3>
                     </div>
+                    <div className="text-2xl font-bold text-foreground">
+                        {dashboardData.loading ? '...' : dashboardData.smartAppsCount}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t('Active')}</p>
                 </div>
 
-                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-12 h-12 bg-emerald-500/10 dark:bg-emerald-400/20 rounded-xl flex items-center justify-center shadow-sm">
-                                    <Users className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                                </div>
-                                <h3 className="text-sm font-semibold text-emerald-700 dark:text-emerald-300 tracking-wide">{t('Healthcare Users')}</h3>
-                            </div>
-                            <div className="text-3xl font-bold text-foreground mb-2">
-                                {dashboardData.loading ? '...' : dashboardData.usersCount}
-                            </div>
-                            <p className="text-sm text-muted-foreground font-medium">{t('Registered users')}</p>
+                <div className="bg-card/70 backdrop-blur-sm p-4 rounded-xl border border-border/50 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                    <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center">
+                            <Users className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                         </div>
+                        <h3 className="text-xs font-medium text-muted-foreground">{t('Users')}</h3>
                     </div>
+                    <div className="text-2xl font-bold text-foreground">
+                        {dashboardData.loading ? '...' : dashboardData.usersCount}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t('Registered')}</p>
                 </div>
 
-                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-12 h-12 bg-orange-500/10 dark:bg-orange-400/20 rounded-xl flex items-center justify-center shadow-sm">
-                                    <Database className="w-6 h-6 text-orange-600 dark:text-orange-400" />
-                                </div>
-                                <h3 className="text-sm font-semibold text-orange-700 dark:text-orange-300 tracking-wide">{t('FHIR Servers')}</h3>
-                            </div>
-                            <div className="text-3xl font-bold text-foreground mb-2">
-                                {dashboardData.loading ? '...' : dashboardData.serversCount}
-                            </div>
-                            <p className="text-sm text-muted-foreground font-medium">{t('Connected servers')}</p>
+                <div className="bg-card/70 backdrop-blur-sm p-4 rounded-xl border border-border/50 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                    <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-8 h-8 bg-orange-500/10 rounded-lg flex items-center justify-center">
+                            <Database className="w-4 h-4 text-orange-600 dark:text-orange-400" />
                         </div>
+                        <h3 className="text-xs font-medium text-muted-foreground">{t('FHIR Servers')}</h3>
                     </div>
+                    <div className="text-2xl font-bold text-foreground">
+                        {dashboardData.loading ? '...' : dashboardData.serversCount}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t('Connected')}</p>
                 </div>
 
-                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-12 h-12 bg-violet-500/10 dark:bg-violet-400/20 rounded-xl flex items-center justify-center shadow-sm">
-                                    <Shield className="w-6 h-6 text-violet-600 dark:text-violet-400" />
-                                </div>
-                                <h3 className="text-sm font-semibold text-violet-700 dark:text-violet-300 tracking-wide">{t('Identity Providers')}</h3>
-                            </div>
-                            <div className="text-3xl font-bold text-foreground mb-2">
-                                {dashboardData.loading ? '...' : dashboardData.identityProvidersCount}
-                            </div>
-                            <p className="text-sm text-muted-foreground font-medium">{t('Active providers')}</p>
+                <div className="bg-card/70 backdrop-blur-sm p-4 rounded-xl border border-border/50 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                    <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-8 h-8 bg-violet-500/10 rounded-lg flex items-center justify-center">
+                            <Shield className="w-4 h-4 text-violet-600 dark:text-violet-400" />
                         </div>
+                        <h3 className="text-xs font-medium text-muted-foreground">{t('Identity Providers')}</h3>
                     </div>
-                </div>
-            </div>
-
-            {/* OAuth Metrics Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-12 h-12 bg-blue-500/10 dark:bg-blue-400/20 rounded-xl flex items-center justify-center shadow-sm">
-                                    <BarChart3 className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                                </div>
-                                <h3 className="text-sm font-semibold text-blue-700 dark:text-blue-300 tracking-wide">{t('OAuth Flows')}</h3>
-                            </div>
-                            <div className="text-3xl font-bold text-foreground mb-2">
-                                {oauthAnalytics.loading ? '...' : oauthAnalytics.totalFlows.toLocaleString()}
-                            </div>
-                            <p className="text-sm text-muted-foreground font-medium">{t('Total flows processed')}</p>
-                        </div>
+                    <div className="text-2xl font-bold text-foreground">
+                        {dashboardData.loading ? '...' : dashboardData.identityProvidersCount}
                     </div>
+                    <p className="text-xs text-muted-foreground">{t('Active')}</p>
                 </div>
 
-                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-12 h-12 bg-green-500/10 dark:bg-green-400/20 rounded-xl flex items-center justify-center shadow-sm">
-                                    <CheckCircle className="w-6 h-6 text-green-600 dark:text-green-400" />
-                                </div>
-                                <h3 className="text-sm font-semibold text-green-700 dark:text-green-300 tracking-wide">{t('Success Rate')}</h3>
-                            </div>
-                            <div className="text-3xl font-bold text-foreground mb-2">
-                                {oauthAnalytics.loading
-                                    ? '...'
-                                    : oauthAnalytics.totalFlows === 0
-                                        ? '--'
-                                        : `${oauthAnalytics.successRate.toFixed(1)}%`
-                                }
-                            </div>
-                            <p className="text-sm text-muted-foreground font-medium">{t('OAuth authentication success')}</p>
+                <div className="bg-card/70 backdrop-blur-sm p-4 rounded-xl border border-border/50 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                    <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                            <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                         </div>
+                        <h3 className="text-xs font-medium text-muted-foreground">{t('OAuth Flows')}</h3>
                     </div>
+                    <div className="text-2xl font-bold text-foreground">
+                        {oauthAnalytics.loading ? '...' : oauthAnalytics.totalFlows.toLocaleString()}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t('Processed')}</p>
                 </div>
 
-                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-12 h-12 bg-indigo-500/10 dark:bg-indigo-400/20 rounded-xl flex items-center justify-center shadow-sm">
-                                    <Clock className="w-6 h-6 text-indigo-600 dark:text-indigo-400" />
-                                </div>
-                                <h3 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300 tracking-wide">{t('Avg Response Time')}</h3>
-                            </div>
-                            <div className="text-3xl font-bold text-foreground mb-2">
-                                {oauthAnalytics.loading
-                                    ? '...'
-                                    : oauthAnalytics.totalFlows === 0
-                                        ? '--'
-                                        : `${oauthAnalytics.averageResponseTime}ms`
-                                }
-                            </div>
-                            <p className="text-sm text-muted-foreground font-medium">{t('OAuth endpoint performance')}</p>
+                <div className="bg-card/70 backdrop-blur-sm p-4 rounded-xl border border-border/50 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                    <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-8 h-8 bg-green-500/10 rounded-lg flex items-center justify-center">
+                            <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
                         </div>
+                        <h3 className="text-xs font-medium text-muted-foreground">{t('Success Rate')}</h3>
                     </div>
+                    <div className="text-2xl font-bold text-foreground">
+                        {oauthAnalytics.loading
+                            ? '...'
+                            : oauthAnalytics.totalFlows === 0
+                                ? '--'
+                                : `${oauthAnalytics.successRate.toFixed(1)}%`
+                        }
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t('OAuth Success')}</p>
                 </div>
 
-                <div className="bg-card/70 backdrop-blur-sm p-6 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 hover:scale-105">
-                    <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-12 h-12 bg-purple-500/10 dark:bg-purple-400/20 rounded-xl flex items-center justify-center shadow-sm">
-                                    <Shield className="w-6 h-6 text-purple-600 dark:text-purple-400" />
-                                </div>
-                                <h3 className="text-sm font-semibold text-purple-700 dark:text-purple-300 tracking-wide">{t('Active Tokens')}</h3>
-                            </div>
-                            <div className="text-3xl font-bold text-foreground mb-2">
-                                {oauthAnalytics.loading ? '...' : oauthAnalytics.activeTokens.toLocaleString()}
-                            </div>
-                            <p className="text-sm text-muted-foreground font-medium">{t('Valid access tokens')}</p>
+                <div className="bg-card/70 backdrop-blur-sm p-4 rounded-xl border border-border/50 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                    <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-8 h-8 bg-indigo-500/10 rounded-lg flex items-center justify-center">
+                            <Clock className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                         </div>
+                        <h3 className="text-xs font-medium text-muted-foreground">{t('Avg Response')}</h3>
                     </div>
+                    <div className="text-2xl font-bold text-foreground">
+                        {oauthAnalytics.loading
+                            ? '...'
+                            : oauthAnalytics.totalFlows === 0
+                                ? '--'
+                                : `${oauthAnalytics.averageResponseTime}ms`
+                        }
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t('Performance')}</p>
+                </div>
+
+                <div className="bg-card/70 backdrop-blur-sm p-4 rounded-xl border border-border/50 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105">
+                    <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center">
+                            <Shield className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                        </div>
+                        <h3 className="text-xs font-medium text-muted-foreground">{t('Active Tokens')}</h3>
+                    </div>
+                    <div className="text-2xl font-bold text-foreground">
+                        {oauthAnalytics.loading ? '...' : oauthAnalytics.activeTokens.toLocaleString()}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t('Valid')}</p>
                 </div>
             </div>
 
             {/* System Information */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-card/70 backdrop-blur-sm p-4 sm:p-6 lg:p-8 rounded-2xl border border-border/50 shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div className="flex items-center mb-6">
-                        <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mr-4 shadow-sm">
-                            <Activity className="w-7 h-7 text-primary" />
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center">
+                            <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center mr-4 shadow-sm">
+                                <Activity className="w-7 h-7 text-primary" />
+                            </div>
+                            <h3 className="text-xl font-bold text-foreground tracking-tight">{t('System Health')}</h3>
                         </div>
-                        <h3 className="text-xl font-bold text-foreground tracking-tight">{t('System Health')}</h3>
+                        <Button
+                            variant={keycloakConfig.hasAdminClient ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => onNavigate('keycloak-config')}
+                            className={`rounded-xl px-4 py-2 transition-all duration-200 ${
+                                keycloakConfig.hasAdminClient
+                                    ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500/30'
+                                    : 'bg-amber-500/10 hover:bg-amber-500/20 border-amber-500/30 text-amber-700 dark:text-amber-300'
+                            }`}
+                        >
+                            <Shield className="w-4 h-4 mr-2" />
+                            {keycloakConfig.hasAdminClient ? t('Keycloak Config') : t('Setup Keycloak')}
+                        </Button>
                     </div>
                     <DescriptionList>
                         <div className="space-y-4">
@@ -708,24 +722,43 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                             <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
                                 <span className="text-sm font-medium text-muted-foreground">{t('Keycloak Auth')}</span>
                                 <div className="flex items-center">
-                                    {systemHealth.keycloakStatus === 'healthy' ? (
+                                    {keycloakConfig.hasAdminClient ? (
                                         <CheckCircle className="w-5 h-5 text-emerald-500 dark:text-emerald-400 mr-2" />
-                                    ) : systemHealth.keycloakStatus === 'degraded' ? (
-                                        <AlertCircle className="w-5 h-5 text-yellow-500 dark:text-yellow-400 mr-2" />
                                     ) : (
-                                        <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400 mr-2" />
+                                        <AlertCircle className="w-5 h-5 text-yellow-500 dark:text-yellow-400 mr-2" />
                                     )}
-                                    <span className={`font-semibold ${systemHealth.keycloakStatus === 'healthy'
+                                    <span className={`font-semibold ${keycloakConfig.hasAdminClient
                                         ? 'text-emerald-600 dark:text-emerald-400'
-                                        : systemHealth.keycloakStatus === 'degraded'
-                                            ? 'text-yellow-600 dark:text-yellow-400'
-                                            : 'text-red-600 dark:text-red-400'
+                                        : 'text-yellow-600 dark:text-yellow-400'
                                         }`}>
-                                        {systemHealth.keycloakStatus === 'healthy' ? t('Healthy') :
-                                            systemHealth.keycloakStatus === 'degraded' ? t('Degraded') :
-                                                systemHealth.keycloakStatus === 'error' ? t('Error') : systemHealth.keycloakStatus}
+                                        {keycloakConfig.loading 
+                                            ? t('Checking...') 
+                                            : keycloakConfig.hasAdminClient 
+                                                ? t('Configured') 
+                                                : t('Not Configured')
+                                        }
                                     </span>
                                 </div>
+                            </div>
+                            <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
+                                <span className="text-sm font-medium text-muted-foreground">{t('Keycloak Realm')}</span>
+                                <span className="text-foreground font-semibold">
+                                    {keycloakConfig.loading
+                                        ? t('Loading...')
+                                        : keycloakConfig.realm || t('Not Set')
+                                    }
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
+                                <span className="text-sm font-medium text-muted-foreground">{t('Keycloak URL')}</span>
+                                <span className="text-foreground font-semibold text-xs">
+                                    {keycloakConfig.loading
+                                        ? t('Loading...')
+                                        : keycloakConfig.baseUrl 
+                                            ? keycloakConfig.baseUrl.replace(/\/$/, '') // Remove trailing slash
+                                            : t('Not Set')
+                                    }
+                                </span>
                             </div>
                             <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
                                 <span className="text-sm font-medium text-muted-foreground">{t('System Uptime')}</span>
@@ -862,7 +895,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                             <Shield className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                            <div className="text-sm font-semibold text-muted-foreground">{t('Platform Version')}</div>
+                            <div className="text-sm font-semibold text-muted-foreground">{t('Platform (UI) Version')}</div>
                             <div className="text-lg font-bold text-foreground">v{config.version}</div>
                         </div>
                     </div>

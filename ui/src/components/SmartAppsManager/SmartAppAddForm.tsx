@@ -34,9 +34,9 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
     clientId: '',
     redirectUris: [], // Changed to array for API compatibility
     description: '',
-    scopes: [],
+    defaultScopes: [],
     scopeSetId: '',
-    customScopes: [],
+    optionalScopes: [],
     appType: 'standalone-app',
     authenticationType: 'asymmetric',
     serverAccessType: 'all-servers',
@@ -117,14 +117,14 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
     e.preventDefault();
     
     // Get scopes from selected scope set - guard against undefined arrays
-    let finalScopes = [...(newApp.scopes || [])];
+    let finalDefaultScopes = [...(newApp.defaultScopes || [])];
     if (newApp.scopeSetId) {
       const selectedScopeSet = scopeSets.find(set => set.id === newApp.scopeSetId);
       if (selectedScopeSet) {
-        finalScopes = [...selectedScopeSet.scopes, ...(newApp.customScopes || [])];
+        finalDefaultScopes = [...selectedScopeSet.scopes, ...(newApp.optionalScopes || [])];
       }
     } else {
-      finalScopes = [...(newApp.scopes || []), ...(newApp.customScopes || [])];
+      finalDefaultScopes = [...(newApp.defaultScopes || []), ...(newApp.optionalScopes || [])];
     }
     
     onAddApp({
@@ -132,9 +132,9 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
       clientId: newApp.clientId,
       redirectUris: newApp.redirectUris || [],
       description: newApp.description,
-      scopes: finalScopes,
+      defaultScopes: finalDefaultScopes,
       scopeSetId: newApp.scopeSetId,
-      customScopes: newApp.customScopes || [],
+      optionalScopes: newApp.optionalScopes || [],
       appType: newApp.appType!,
       authenticationType: newApp.authenticationType,
       serverAccessType: newApp.serverAccessType!,
@@ -147,9 +147,9 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
       clientId: '', 
       redirectUris: [], 
       description: '', 
-      scopes: [], 
+      defaultScopes: [], 
       scopeSetId: '',
-      customScopes: [],
+      optionalScopes: [],
       appType: 'standalone-app', 
       authenticationType: 'asymmetric',
       serverAccessType: 'all-servers',
@@ -164,9 +164,9 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
       clientId: '', 
       redirectUris: [], 
       description: '', 
-      scopes: [], 
+      defaultScopes: [], 
       scopeSetId: '',
-      customScopes: [],
+      optionalScopes: [],
       appType: 'standalone-app', 
       authenticationType: 'asymmetric',
       serverAccessType: 'all-servers',
@@ -486,17 +486,17 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
               <Input
                 id="customScopes"
                 placeholder="patient/Patient.read, user/Observation.read"
-                value={(newApp.customScopes || []).join(', ')}
+                value={(newApp.optionalScopes || []).join(', ')}
                 onChange={(e) => setNewApp({ 
                   ...newApp, 
-                  customScopes: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
+                  optionalScopes: e.target.value.split(',').map(s => s.trim()).filter(Boolean)
                 })}
                 className="rounded-xl border-input focus:border-ring focus:ring-ring shadow-sm"
               />
             </div>
           </div>
 
-          {(newApp.scopeSetId || (newApp.customScopes || []).length > 0) && (
+          {(newApp.scopeSetId || (newApp.optionalScopes || []).length > 0) && (
             <div className="bg-card/50 p-4 rounded-lg border border-border">
               <Label className="text-sm font-semibold text-foreground mb-2 block">Current Scope Preview</Label>
               <div className="text-xs text-muted-foreground mb-2">
@@ -509,9 +509,9 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
                     {scope}
                   </Badge>
                 ))}
-                {/* Show custom scopes */}
-                {(newApp.customScopes || []).map((scope, index) => (
-                  <Badge key={`custom-${index}`} variant="outline" className="text-xs bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 font-mono">
+                {/* Show additional scopes */}
+                {(newApp.optionalScopes || []).map((scope: string, index: number) => (
+                  <Badge key={`optional-${index}`} variant="outline" className="text-xs bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20 font-mono">
                     {scope}
                   </Badge>
                 ))}

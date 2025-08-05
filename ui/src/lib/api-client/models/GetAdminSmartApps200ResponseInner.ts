@@ -110,13 +110,13 @@ export interface GetAdminSmartApps200ResponseInner {
      */
     directAccessGrantsEnabled?: boolean;
     /**
-     * 
+     * Default OAuth scopes
      * @type {Array<string>}
      * @memberof GetAdminSmartApps200ResponseInner
      */
     defaultClientScopes?: Array<string>;
     /**
-     * 
+     * Optional OAuth scopes
      * @type {Array<string>}
      * @memberof GetAdminSmartApps200ResponseInner
      */

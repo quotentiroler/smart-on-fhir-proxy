@@ -35,7 +35,7 @@ import { SmartAppsStatistics } from './SmartAppsStatistics';
 import { DynamicClientRegistrationSettings } from '../DynamicClientRegistrationSettings';
 import { useAuth } from '@/stores/authStore';
 import { useAppStore } from '@/stores/appStore';
-import type { SmartApp, ScopeSet, GetAdminSmartApps200ResponseInner, SmartAppFormData } from '@/lib/types/api';
+import type { SmartApp, ScopeSet, SmartAppFormData } from '@/lib/types/api';
 
 // Mock data for SMART on FHIR applications
 const mockApps: SmartApp[] = [
@@ -43,10 +43,10 @@ const mockApps: SmartApp[] = [
     id: '1',
     name: 'Clinical Decision Support',
     clientId: 'cds-app-123',
-    redirectUri: 'https://cds.example.com/callback',
-    scopes: ['patient/Patient.read', 'patient/Observation.read'],
+    redirectUris: ['https://cds.example.com/callback'],
+    defaultClientScopes: ['patient/Patient.read', 'patient/Observation.read'],
     scopeSetId: 'physician-readonly',
-    customScopes: [],
+    optionalClientScopes: [],
     status: 'active',
     lastUsed: '2024-12-28',
     description: 'AI-powered clinical decision support tool',
@@ -58,9 +58,9 @@ const mockApps: SmartApp[] = [
     id: '2',
     name: 'Patient Portal',
     clientId: 'portal-456',
-    redirectUri: 'https://portal.example.com/auth',
-    scopes: ['patient/Patient.read', 'patient/Condition.read', 'patient/MedicationRequest.read'],
-    customScopes: ['patient/Appointment.read'],
+    redirectUris: ['https://portal.example.com/auth'],
+    defaultClientScopes: ['patient/Patient.read', 'patient/Condition.read', 'patient/MedicationRequest.read'],
+    optionalClientScopes: ['patient/Appointment.read'],
     status: 'active',
     lastUsed: '2024-12-27',
     description: 'Patient self-service portal',
@@ -72,10 +72,10 @@ const mockApps: SmartApp[] = [
     id: '3',
     name: 'Research Analytics',
     clientId: 'research-789',
-    redirectUri: 'https://research.example.com/oauth',
-    scopes: ['user/Patient.read', 'user/Observation.read', 'user/DiagnosticReport.read'],
+    redirectUris: ['https://research.example.com/oauth'],
+    defaultClientScopes: ['user/Patient.read', 'user/Observation.read', 'user/DiagnosticReport.read'],
     scopeSetId: 'researcher-population',
-    customScopes: [],
+    optionalClientScopes: [],
     status: 'inactive',
     lastUsed: '2024-12-20',
     description: 'Clinical research data analytics platform',
@@ -88,9 +88,9 @@ const mockApps: SmartApp[] = [
     id: '4',
     name: 'Mobile Health App',
     clientId: 'mobile-health-101',
-    redirectUri: 'https://mhealth.example.com/callback',
-    scopes: ['patient/Patient.read', 'patient/Observation.read'],
-    customScopes: ['patient/ActivityDefinition.read'],
+    redirectUris: ['https://mhealth.example.com/callback'],
+    defaultClientScopes: ['patient/Patient.read', 'patient/Observation.read'],
+    optionalClientScopes: ['patient/ActivityDefinition.read'],
     status: 'active',
     lastUsed: '2024-12-26',
     description: 'Mobile application for patient health monitoring',
@@ -102,9 +102,9 @@ const mockApps: SmartApp[] = [
     id: '5',
     name: 'Lab Results Viewer',
     clientId: 'lab-viewer-202',
-    redirectUri: 'https://labs.example.com/auth',
-    scopes: ['patient/DiagnosticReport.read', 'patient/Observation.read'],
-    customScopes: [],
+    redirectUris: ['https://labs.example.com/auth'],
+    defaultClientScopes: ['patient/DiagnosticReport.read', 'patient/Observation.read'],
+    optionalClientScopes: [],
     status: 'active',
     lastUsed: '2024-12-25',
     description: 'Laboratory results visualization tool',
@@ -117,9 +117,9 @@ const mockApps: SmartApp[] = [
     id: '6',
     name: 'Autonomous Clinical AI Agent',
     clientId: 'ai-agent-303',
-    redirectUri: 'https://ai-assistant.example.com/callback',
-    scopes: ['agent/Patient.read', 'agent/Observation.read', 'agent/Condition.read', 'agent/MedicationRequest.read', 'agent/CarePlan.create'],
-    customScopes: ['agent/RiskAssessment.create', 'agent/ClinicalImpression.create'],
+    redirectUris: ['https://ai-assistant.example.com/callback'],
+    defaultClientScopes: ['agent/Patient.read', 'agent/Observation.read', 'agent/Condition.read', 'agent/MedicationRequest.read', 'agent/CarePlan.create'],
+    optionalClientScopes: ['agent/RiskAssessment.create', 'agent/ClinicalImpression.create'],
     status: 'active',
     lastUsed: '2024-12-28',
     description: 'Autonomous AI agent that independently analyzes patient data and creates clinical assessments.',
@@ -131,9 +131,9 @@ const mockApps: SmartApp[] = [
     id: '7',
     name: 'Life Saving Lawnmower',
     clientId: 'emergency-mower-911',
-    redirectUri: 'https://smart-lawnmower.emergency.com/callback',
-    scopes: ['agent/Patient.read', 'agent/Encounter.create', 'agent/Observation.create'],
-    customScopes: ['agent/EmergencyContact.read', 'agent/AllergyIntolerance.read', 'agent/MedicationStatement.read'],
+    redirectUris: ['https://smart-lawnmower.emergency.com/callback'],
+    defaultClientScopes: ['agent/Patient.read', 'agent/Encounter.create', 'agent/Observation.create'],
+    optionalClientScopes: ['agent/EmergencyContact.read', 'agent/AllergyIntolerance.read', 'agent/MedicationStatement.read'],
     status: 'active',
     lastUsed: '2024-12-29',
     description: 'Autonomous robotic lawnmower with emergency medical response capabilities.',
@@ -148,7 +148,7 @@ export function SmartAppsManager() {
   const { apiClients } = useAuth();
   const [apps, setApps] = useState<SmartApp[]>([]);
   const [loading, setLoading] = useState(true);
-  const [backendApps, setBackendApps] = useState<GetAdminSmartApps200ResponseInner[]>([]);
+  const [backendApps, setBackendApps] = useState<SmartApp[]>([]);
   const [scopeSets, setScopeSets] = useState<ScopeSet[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showScopeDialog, setShowScopeDialog] = useState(false);
@@ -184,17 +184,12 @@ export function SmartAppsManager() {
           setApps(mockApps);
         } else {
           // Convert backend apps to our format
-          const convertedApps: SmartApp[] = fetchedApps.map((backendApp: GetAdminSmartApps200ResponseInner, index: number) => ({
-            id: backendApp.id || `backend-${index}`,
-            name: backendApp.name || 'Unnamed App',
-            clientId: backendApp.clientId || '',
-            redirectUri: backendApp.redirectUris?.[0] || '',
-            scopes: [], // TODO: Extract scopes from backend app
+          const convertedApps: SmartApp[] = fetchedApps.map((backendApp: SmartApp) => ({
+            ...backendApp, // Inherit all API model fields
+            // UI-specific computed/helper fields
             scopeSetId: undefined,
-            customScopes: [],
             status: backendApp.enabled ? 'active' : 'inactive',
             lastUsed: new Date().toISOString().split('T')[0], // Default to today
-            description: backendApp.description || '',
             appType: backendApp.serviceAccountsEnabled ? 'backend-service' : 'standalone-app',
             authenticationType: backendApp.clientAuthenticatorType === 'client-jwt' ? 'asymmetric' : 'symmetric',
             serverAccessType: 'all-servers', // Default for now
@@ -220,10 +215,10 @@ export function SmartAppsManager() {
       id: Date.now().toString(),
       name: appData.name,
       clientId: appData.clientId,
-      redirectUri: appData.redirectUris?.[0] || '', // Take first redirect URI for UI display
-      scopes: appData.scopes || [],
+      redirectUris: appData.redirectUris , // Take first redirect URI for UI display
+      defaultClientScopes: appData.defaultScopes,
+      optionalClientScopes: appData.optionalScopes,
       scopeSetId: appData.scopeSetId,
-      customScopes: appData.customScopes || [],
       status: 'active',
       lastUsed: new Date().toISOString().split('T')[0],
       description: appData.description || '',
@@ -241,21 +236,23 @@ export function SmartAppsManager() {
   // Helper to determine if we're showing mock data
   const isShowingMockData = backendApps.length === 0;
 
-  const updateAppScopes = (appId: string, scopeSetId: string, customScopes: string[]) => {
+  const updateAppScopes = (appId: string | undefined, scopeSetId: string | null, additionalScopes: string[]) => {
+    if (!appId) return;
+    
     setApps(prevApps => prevApps.map(app => {
       if (app.id === appId) {
-        let finalScopes = [...customScopes];
+        let finalDefaultScopes = [...additionalScopes];
         if (scopeSetId) {
           const selectedScopeSet = scopeSets.find(set => set.id === scopeSetId);
           if (selectedScopeSet) {
-            finalScopes = [...selectedScopeSet.scopes, ...customScopes];
+            finalDefaultScopes = [...selectedScopeSet.scopes, ...additionalScopes];
           }
         }
         return {
           ...app,
-          scopeSetId,
-          customScopes,
-          scopes: finalScopes
+          scopeSetId: scopeSetId || undefined,
+          defaultClientScopes: finalDefaultScopes,
+          optionalClientScopes: app.optionalClientScopes || []
         };
       }
       return app;
@@ -440,7 +437,7 @@ export function SmartAppsManager() {
                     <div>
                       <div className="text-sm font-semibold text-muted-foreground mb-2">Total Scopes</div>
                       <div className="p-3 bg-background rounded-lg border border-border">
-                        <span className="font-bold text-2xl text-primary">{editingApp.scopes.length}</span>
+                        <span className="font-bold text-2xl text-primary">{((editingApp.defaultClientScopes || []).length + (editingApp.optionalClientScopes || []).length)}</span>
                         <span className="text-sm text-muted-foreground ml-2">active scopes</span>
                       </div>
                     </div>
@@ -450,9 +447,16 @@ export function SmartAppsManager() {
                     <div className="text-sm font-semibold text-muted-foreground mb-2">Active Scopes</div>
                     <div className="bg-background p-4 rounded-lg border border-border max-h-32 overflow-y-auto">
                       <div className="flex flex-wrap gap-2">
-                        {editingApp.scopes.map((scope, index) => (
-                          <Badge key={index} variant="outline" className="text-xs font-mono bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20">
+                        {/* Default Scopes */}
+                        {(editingApp.defaultClientScopes || []).map((scope: string, index: number) => (
+                          <Badge key={`default-${index}`} variant="outline" className="text-xs font-mono bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20">
                             {scope}
+                          </Badge>
+                        ))}
+                        {/* Optional Scopes */}
+                        {(editingApp.optionalClientScopes || []).map((scope: string, index: number) => (
+                          <Badge key={`optional-${index}`} variant="outline" className="text-xs font-mono bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20">
+                            {scope} (optional)
                           </Badge>
                         ))}
                       </div>
@@ -476,14 +480,15 @@ export function SmartAppsManager() {
                       <select
                         value={editingApp.scopeSetId || ''}
                         onChange={(e) => {
-                          const scopeSetId = e.target.value;
-                          updateAppScopes(editingApp.id, scopeSetId, editingApp.customScopes);
+                          const scopeSetId = e.target.value || null;
+                          const additionalScopes = editingApp.optionalClientScopes || [];
+                          updateAppScopes(editingApp.id, scopeSetId, additionalScopes);
                           setEditingApp({
                             ...editingApp,
-                            scopeSetId,
-                            scopes: scopeSetId 
-                              ? [...(scopeSets.find(set => set.id === scopeSetId)?.scopes || []), ...editingApp.customScopes]
-                              : editingApp.customScopes
+                            scopeSetId: scopeSetId || undefined,
+                            defaultClientScopes: scopeSetId 
+                              ? [...(scopeSets.find(set => set.id === scopeSetId)?.scopes || []), ...additionalScopes]
+                              : additionalScopes
                           });
                         }}
                         className="flex h-10 w-full rounded-xl border border-input bg-background px-3 py-2 text-sm shadow-sm text-foreground"
@@ -497,18 +502,18 @@ export function SmartAppsManager() {
                       </select>
                     </div>
                     <div className="space-y-3">
-                      <div className="text-sm font-semibold text-muted-foreground">Additional Custom Scopes</div>
+                      <div className="text-sm font-semibold text-muted-foreground">Additional Optional Scopes</div>
                       <textarea
-                        value={editingApp.customScopes.join('\n')}
+                        value={(editingApp.optionalClientScopes || []).join('\n')}
                         onChange={(e) => {
-                          const customScopes = e.target.value.split('\n').filter(scope => scope.trim());
-                          updateAppScopes(editingApp.id, editingApp.scopeSetId || '', customScopes);
+                          const optionalScopes = e.target.value.split('\n').filter(scope => scope.trim());
+                          updateAppScopes(editingApp.id, editingApp.scopeSetId || null, []);
                           setEditingApp({
                             ...editingApp,
-                            customScopes,
-                            scopes: editingApp.scopeSetId 
-                              ? [...(scopeSets.find(set => set.id === editingApp.scopeSetId)?.scopes || []), ...customScopes]
-                              : customScopes
+                            optionalClientScopes: optionalScopes,
+                            defaultClientScopes: editingApp.scopeSetId 
+                              ? [...(scopeSets.find(set => set.id === editingApp.scopeSetId)?.scopes || [])]
+                              : (editingApp.defaultClientScopes || [])
                           });
                         }}
                         rows={5}

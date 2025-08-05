@@ -68,7 +68,13 @@ export interface PostAdminSmartAppsRequest {
      * @type {Array<string>}
      * @memberof PostAdminSmartAppsRequest
      */
-    scopes?: Array<string>;
+    defaultScopes?: Array<string>;
+    /**
+     * 
+     * @type {Array<string>}
+     * @memberof PostAdminSmartAppsRequest
+     */
+    optionalScopes?: Array<string>;
     /**
      * SMART version (default: 2.0.0)
      * @type {string}
@@ -76,7 +82,7 @@ export interface PostAdminSmartAppsRequest {
      */
     smartVersion?: string;
     /**
-     * FHIR version (default: R4)
+     * FHIR version (default: STU3)
      * @type {string}
      * @memberof PostAdminSmartAppsRequest
      */
@@ -132,7 +138,8 @@ export function PostAdminSmartAppsRequestFromJSONTyped(json: any, ignoreDiscrimi
         'publicClient': json['publicClient'] == null ? undefined : json['publicClient'],
         'redirectUris': json['redirectUris'] == null ? undefined : json['redirectUris'],
         'webOrigins': json['webOrigins'] == null ? undefined : json['webOrigins'],
-        'scopes': json['scopes'] == null ? undefined : json['scopes'],
+        'defaultScopes': json['defaultScopes'] == null ? undefined : json['defaultScopes'],
+        'optionalScopes': json['optionalScopes'] == null ? undefined : json['optionalScopes'],
         'smartVersion': json['smartVersion'] == null ? undefined : json['smartVersion'],
         'fhirVersion': json['fhirVersion'] == null ? undefined : json['fhirVersion'],
         'clientType': json['clientType'] == null ? undefined : PostAdminSmartAppsRequestClientTypeFromJSON(json['clientType']),
@@ -159,7 +166,8 @@ export function PostAdminSmartAppsRequestToJSONTyped(value?: PostAdminSmartAppsR
         'publicClient': value['publicClient'],
         'redirectUris': value['redirectUris'],
         'webOrigins': value['webOrigins'],
-        'scopes': value['scopes'],
+        'defaultScopes': value['defaultScopes'],
+        'optionalScopes': value['optionalScopes'],
         'smartVersion': value['smartVersion'],
         'fhirVersion': value['fhirVersion'],
         'clientType': PostAdminSmartAppsRequestClientTypeToJSON(value['clientType']),
