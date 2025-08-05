@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../stores/authStore';
 import { useTranslation } from 'react-i18next';
-import { alert, confirmInput } from '../stores/alertStore';
+import { alert, confirm, confirmInput } from '../stores/alertStore';
 import { aiAssistant } from '../lib/ai-assistant';
 import {
     Activity,
@@ -23,6 +23,13 @@ import {
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { DescriptionList } from '@medplum/react';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from './ui/dialog';
+import { KeycloakConfigForm } from './KeycloakConfigForm';
 import type { 
     DashboardData,
     FhirServersListResponse,
@@ -37,6 +44,9 @@ interface SmartProxyOverviewProps {
 export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
     const { profile, fetchProfile, apiClients } = useAuth();
     const { t } = useTranslation();
+
+    // Modal state for Keycloak configuration
+    const [showKeycloakModal, setShowKeycloakModal] = useState(false);
 
     // Notification state for server management operations
     const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -440,6 +450,39 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
         }
     };
 
+    const handleKeycloakConfig = () => {
+        if (profile) {
+            // User is logged in, warn about logout
+            confirm({
+                title: t('Keycloak Configuration'),
+                message: t('⚠️ Warning: Changing the Keycloak URL or client configuration may log you out of the system. You may need to log in again after making changes. Do you want to continue?'),
+                type: 'warning',
+                confirmText: t('Continue'),
+                cancelText: t('Cancel'),
+                onConfirm: () => {
+                    setShowKeycloakModal(true);
+                }
+            });
+        } else {
+            // User not logged in, open modal directly
+            setShowKeycloakModal(true);
+        }
+    };
+
+    const handleKeycloakSuccess = () => {
+        setShowKeycloakModal(false);
+        setNotification({
+            type: 'success',
+            message: t('Keycloak configuration saved successfully')
+        });
+        // Refresh dashboard data to reflect new configuration
+        handleRefresh();
+    };
+
+    const handleKeycloakCancel = () => {
+        setShowKeycloakModal(false);
+    };
+
     return (
         <div className="p-4 sm:p-6 space-y-6 bg-background min-h-full">
             {/* Notification Toast */}
@@ -690,7 +733,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                         <Button
                             variant={keycloakConfig.hasAdminClient ? "default" : "outline"}
                             size="sm"
-                            onClick={() => onNavigate('keycloak-config')}
+                            onClick={handleKeycloakConfig}
                             className={`rounded-xl px-4 py-2 transition-all duration-200 ${
                                 keycloakConfig.hasAdminClient
                                     ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-500/30'
@@ -910,6 +953,24 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                     </div>
                 </div>
             </div>
+
+            {/* Keycloak Configuration Modal */}
+            <Dialog open={showKeycloakModal} onOpenChange={setShowKeycloakModal}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center space-x-2">
+                            <Shield className="w-5 h-5 text-primary" />
+                            <span>{t('Keycloak Configuration')}</span>
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="mt-4">
+                        <KeycloakConfigForm 
+                            onSuccess={handleKeycloakSuccess}
+                            onCancel={handleKeycloakCancel}
+                        />
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

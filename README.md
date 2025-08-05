@@ -348,7 +348,21 @@ We welcome contributions! Please see our contributing guidelines and:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is available under **dual licensing**:
+
+### 🔓 Open Source - AGPL v3
+
+For open source projects, research, and non-commercial use:
+
+- Free to use and modify
+- Must share source code when deploying as web service
+- All modifications must remain open source
+
+### 💼 Commercial License
+
+For commercial use and proprietary applications:
+
+📋 **[Learn more about dual licensing](LICENSE-DUAL.md)**
 
 ## 🆘 Support
 
