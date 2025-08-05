@@ -67,7 +67,6 @@ export function FhirServersManager() {
   const checkServerSecurity = useCallback(async (server: FhirServerWithState) => {
     setSecurityChecks(prev => {
       if (prev[server.id]) {
-        console.info(`Security check for ${server.serverName || server.name} skipped - already ${prev[server.id]}`);
         return prev;
       }
       
