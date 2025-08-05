@@ -1,6 +1,6 @@
 {
-  "name": "smart-proxy",
-  "displayName": "SMART on FHIR Proxy",
+  "name": "proxy-smart-backend",
+  "displayName": "Proxy Smart Backend",
   "version": "0.0.5-RELEASE.202508051828.9834aee",
   "type": "module",
   "scripts": {

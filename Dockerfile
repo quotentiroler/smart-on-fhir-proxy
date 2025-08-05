@@ -1,4 +1,4 @@
-# Multi-stage build for SMART on FHIR monorepo
+# Multi-stage build for Proxy Smart monorepo
 FROM oven/bun:slim AS base
 WORKDIR /app
 

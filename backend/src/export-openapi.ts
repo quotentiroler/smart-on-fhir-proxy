@@ -14,15 +14,15 @@ import { join } from 'path'
 
 // Minimal config for OpenAPI export - provides defaults for required environment variables
 const exportConfig = {
-  name: 'smart-on-fhir-proxy',
-  displayName: 'SMART on FHIR Proxy',
+  name: 'proxy-smart',
+  displayName: 'Proxy Smart',
   version: process.env.npm_package_version || '1.0.0',
   baseUrl: 'http://localhost:3001',
   port: 3001,
   keycloak: {
     serverUrl: process.env.KEYCLOAK_SERVER_URL || 'http://localhost:8080',
-    realm: process.env.KEYCLOAK_REALM || 'smart-on-fhir',
-    clientId: process.env.KEYCLOAK_CLIENT_ID || 'smart-proxy-admin',
+    realm: process.env.KEYCLOAK_REALM || 'proxy-smart',
+    clientId: process.env.KEYCLOAK_CLIENT_ID || 'proxy-smart-admin',
     clientSecret: process.env.KEYCLOAK_CLIENT_SECRET || 'mock-secret',
   },
   fhir: {

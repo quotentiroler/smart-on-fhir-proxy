@@ -40,7 +40,7 @@ function getPrimaryRole(realmRoles: string[] = [], clientRoles: Record<string, s
   
   // Check realm roles
   const relevantRoles = realmRoles.filter(role => 
-    !['default-roles-smart-on-fhir', 'offline_access', 'uma_authorization'].includes(role)
+    !['default-roles-proxy-smart', 'offline_access', 'uma_authorization'].includes(role)
   )
   
   if (relevantRoles.length > 0) {

@@ -1,8 +1,10 @@
-# SMART on FHIR Proxy
+# Proxy Smart
 
-A comprehensive healthcare application platform implementing the complete SMART App Launch Framework 2.2.0 specification with advanced administrative capabilities, AI-powered assistance, and enterprise-grade security.
+A comprehensive healthcare application platform implementing SMART App Launch Framework 2.2.0 with advanced administrative capabilities, AI-powered assistance, and enterprise-grade security.
 
-[![Version](https://img.shields.io/badge/v0.0.5-RELEASE-blue.svg)](https://github.com/quotentiroler/smart-on-fhir-proxy)
+**Proxy smart, not hard!** 🚀
+
+[![Version](https://img.shields.io/badge/v0.0.5-RELEASE-blue.svg)](https://github.com/quotentiroler/proxy-smart)
 [![SMART App Launch](https://img.shields.io/badge/SMART%20App%20Launch-2.2.0-green.svg)](http://hl7.org/fhir/smart-app-launch/)
 [![FHIR](https://img.shields.io/badge/FHIR-R4%2FR4B-orange.svg)](https://hl7.org/fhir/R4/)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
@@ -10,7 +12,7 @@ A comprehensive healthcare application platform implementing the complete SMART 
 
 ## 🏥 Overview
 
-The SMART on FHIR Proxy is an Open Source solution for managing healthcare applications, users, and FHIR servers in compliance with the SMART App Launch framework. It provides secure OAuth 2.0 flows, comprehensive user management, real-time monitoring, and an AI-powered administrative assistant.
+Proxy Smart is an Open Source solution for managing healthcare applications, users, and FHIR servers in compliance with the SMART App Launch framework. It provides secure OAuth 2.0 flows, comprehensive user management, real-time monitoring, and an AI-powered administrative assistant.
 
 ### Key Features
 
@@ -35,7 +37,7 @@ graph TB
     end
   
     subgraph "API Gateway & Core Platform"
-        D["SMART on FHIR Proxy<br/>Node.js + TypeScript"]
+        D["Proxy Smart<br/>Node.js + TypeScript"]
         E["OAuth 2.0 Endpoints<br/>SMART App Launch 2.2.0"]
         F["WebSocket Server<br/>Real-time Events"]
         G["Discovery Endpoints<br/>FHIR Capability"]
@@ -147,8 +149,8 @@ graph TB
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/quotentiroler/smart-on-fhir-proxy.git
-   cd smart-on-fhir-proxy
+   git clone https://github.com/quotentiroler/proxy-smart.git
+   cd proxy-smart
    ```
 2. **Start the development environment**
 
@@ -232,7 +234,7 @@ The platform includes an intelligent AI assistant powered by RAG (Retrieval Augm
 ### Project Structure
 
 ```
-smart-on-fhir-proxy/
+proxy-smart/
 ├── backend/          # Node.js backend API
 ├── ui/               # React admin interface
 ├── test/             # Comprehensive test suites
@@ -438,6 +440,6 @@ For enterprise deployments and professional support, please contact our team.
 
 **Built with ❤️ for the healthcare community**
 
-[🏠 Home](https://github.com/quotentiroler/smart-on-fhir-proxy) • [📚 Documentation](docs/) • [🚀 Roadmap](ROADMAP.md) • [🐛 Issues](https://github.com/quotentiroler/smart-on-fhir-proxy/issues)
+[🏠 Home](https://github.com/quotentiroler/proxy-smart) • [📚 Documentation](docs/) • [🚀 Roadmap](ROADMAP.md) • [🐛 Issues](https://github.com/quotentiroler/proxy-smart/issues)
 
 </div>
