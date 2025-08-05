@@ -41,6 +41,8 @@ import type {
     PostAuthRegisterRequest,
     PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response,
     PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseServerInfo,
+    GetFhirServers200Response,
+    GetAdminKeycloakConfigStatus200Response,
 } from '../api-client';
 
 export type {
@@ -105,6 +107,12 @@ export type {
     // FHIR Proxy & Cache
     PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response as CacheRefreshResponse,
     PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseServerInfo as CacheServerInfo,
+    
+    // FHIR Server Management
+    GetFhirServers200Response as FhirServersListResponse,
+    
+    // Keycloak Configuration
+    GetAdminKeycloakConfigStatus200Response as KeycloakConfigurationStatus,
 };
 
 // UI Models - these extend the API models with UI-specific properties
@@ -148,6 +156,18 @@ export interface FhirServerWithState extends Omit<GetFhirServers200ResponseServe
 }
 
 export interface OAuthAnalyticsWithState extends GetMonitoringOauthAnalytics200Response {
+    loading?: boolean;
+    error?: string | null;
+}
+
+// Keycloak Configuration with UI state
+export interface KeycloakConfigurationWithState extends GetAdminKeycloakConfigStatus200Response {
+    loading?: boolean;
+    error?: string | null;
+}
+
+// FHIR Servers List with UI state
+export interface FhirServersListWithState extends GetFhirServers200Response {
     loading?: boolean;
     error?: string | null;
 }
