@@ -12,6 +12,10 @@ permissions:
   contents: write
   pull-requests: read
 
+concurrency:
+  group: releases
+  cancel-in-progress: false
+
 jobs:
   check-changes:
     name: Check if release is needed

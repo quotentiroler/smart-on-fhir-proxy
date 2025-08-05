@@ -1,0 +1,35 @@
+name: 'Setup Node.js with AI Dependencies'
+description: 'Checkout code, setup Node.js with caching, and install OpenAI + Octokit'
+
+inputs:
+  node-version:
+    description: 'Node.js version to setup'
+    required: false
+    default: '22'
+  fetch-depth:
+    description: 'Checkout fetch depth'
+    required: false
+    default: '0'
+  checkout:
+    description: 'Whether to checkout code'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout code
+      if: inputs.checkout == 'true'
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: ${{ inputs.fetch-depth }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+
+    - name: Install AI dependencies
+      shell: bash
+      run: npm install openai @octokit/rest
