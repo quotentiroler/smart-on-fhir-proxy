@@ -1,7 +1,7 @@
 {
-  "realm": "smart-on-fhir",
+  "realm": "proxy-smart",
   "enabled": true,
-  "displayName": "SMART on FHIR",
+  "displayName": "Proxy Smart",
   "displayNameHtml": "<div class=\"kc-logo-text\"><span>SMART on FHIR</span></div>",
   "accessTokenLifespan": 3600,
   "accessTokenLifespanForImplicitFlow": 900,

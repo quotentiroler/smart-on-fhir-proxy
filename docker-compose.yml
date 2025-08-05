@@ -1,7 +1,7 @@
 services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.2
-    container_name: smart-on-fhir-keycloak
+    container_name: proxy-smart-keycloak
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
@@ -35,11 +35,11 @@ services:
       retries: 5
       start_period: 20s
     networks:
-      - smart-on-fhir
+      - proxy-smart
 
   postgres:
     image: postgres:16-alpine
-    container_name: smart-on-fhir-postgres
+    container_name: proxy-smart-postgres
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: postgres
@@ -50,7 +50,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./keycloak/database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
-      - smart-on-fhir
+      - proxy-smart
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -59,9 +59,9 @@ services:
 
 volumes:
   postgres_data:
-    name: smart-on-fhir-postgres-data
+    name: proxy-smart-postgres-data
 
 networks:
-  smart-on-fhir:
-    name: smart-on-fhir-network
+  proxy-smart:
+    name: proxy-smart-network
     driver: bridge
