@@ -83,7 +83,7 @@ jobs:
               model: process.env.OPENAI_MODEL,
               messages: [
                 { role: "system", content: "You are a concise code diff explainer." },
-                { role: "user", content: `Review this git diff and give me a short summary:\n\n${diff}` }
+                { role: "user", content: `Review this git diff and give me a short but technically accurate summary:\n\n${diff}` }
               ]
             });
             const comment = res.choices.map(c => c.message.content).join("\n\n---\n\n");

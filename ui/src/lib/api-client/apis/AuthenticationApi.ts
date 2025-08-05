@@ -17,7 +17,6 @@ import * as runtime from '../runtime';
 import type {
   GetAuthConfig200Response,
   GetAuthIdentityProviders200ResponseInner,
-  GetAuthIdps200ResponseInner,
   GetAuthUserinfo200Response,
   PostAuthIntrospect200Response,
   PostAuthIntrospectRequest,
@@ -31,8 +30,6 @@ import {
     GetAuthConfig200ResponseToJSON,
     GetAuthIdentityProviders200ResponseInnerFromJSON,
     GetAuthIdentityProviders200ResponseInnerToJSON,
-    GetAuthIdps200ResponseInnerFromJSON,
-    GetAuthIdps200ResponseInnerToJSON,
     GetAuthUserinfo200ResponseFromJSON,
     GetAuthUserinfo200ResponseToJSON,
     PostAuthIntrospect200ResponseFromJSON,
@@ -223,37 +220,6 @@ export class AuthenticationApi extends runtime.BaseAPI {
      */
     async getAuthIdentityProviders(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GetAuthIdentityProviders200ResponseInner>> {
         const response = await this.getAuthIdentityProvidersRaw(initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Get list of available identity providers for authentication (public endpoint)
-     * Get Available Identity Providers
-     */
-    async getAuthIdpsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<GetAuthIdps200ResponseInner>>> {
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/auth/idps`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(GetAuthIdps200ResponseInnerFromJSON));
-    }
-
-    /**
-     * Get list of available identity providers for authentication (public endpoint)
-     * Get Available Identity Providers
-     */
-    async getAuthIdps(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<GetAuthIdps200ResponseInner>> {
-        const response = await this.getAuthIdpsRaw(initOverrides);
         return await response.value();
     }
 

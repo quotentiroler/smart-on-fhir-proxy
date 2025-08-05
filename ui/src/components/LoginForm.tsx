@@ -3,6 +3,7 @@ import { useAuthStore } from '../stores/authStore';
 import { createApiClients } from '../lib/apiClient';
 import { openidService } from '../service/openid-service';
 import type { GetAuthIdentityProviders200ResponseInner } from '../lib/api-client/models';
+import { KeycloakConfigForm } from './KeycloakConfigForm';
 import { 
   Heart, 
   Shield, 
@@ -14,7 +15,8 @@ import {
   Building2,
   Users,
   ArrowRight,
-  AlertTriangle
+  AlertTriangle,
+  Settings
 } from 'lucide-react';
 
 export function LoginForm() {
@@ -23,22 +25,8 @@ export function LoginForm() {
   const [availableIdps, setAvailableIdps] = useState<GetAuthIdentityProviders200ResponseInner[]>([]);
   const [loadingIdps, setLoadingIdps] = useState(true);
   const [authAvailable, setAuthAvailable] = useState<boolean | null>(null);
+  const [showConfigForm, setShowConfigForm] = useState(false);
   const { initiateLogin, exchangeCodeForToken } = useAuthStore();
-
-  // Check if authentication is configured
-  const checkAuthAvailability = useCallback(async () => {
-    try {
-      const available = await openidService.isAuthenticationAvailable();
-      setAuthAvailable(available);
-      if (!available) {
-        setError('Authentication is not configured. Please contact your administrator.');
-      }
-    } catch (error) {
-      console.error('Failed to check auth availability:', error);
-      setAuthAvailable(false);
-      setError('Unable to verify authentication configuration. Please try again later.');
-    }
-  }, []);
 
   // Fetch available identity providers
   const fetchAvailableIdps = useCallback(async () => {
@@ -63,11 +51,46 @@ export function LoginForm() {
     }
   }, []);
 
-  // Load IdPs and check auth availability on component mount
-  useEffect(() => {
+  // Check if authentication is configured
+  const checkAuthAvailability = useCallback(async () => {
+    try {
+      const available = await openidService.isAuthenticationAvailable();
+      setAuthAvailable(available);
+      if (!available) {
+        setError('Keycloak is not configured. Please contact your administrator.');
+        setLoadingIdps(false); // Stop loading IdPs if auth is not available
+      } else {
+        setError(null); // Clear any previous errors
+        // Only fetch IdPs if authentication is available
+        fetchAvailableIdps();
+      }
+    } catch (error) {
+      console.error('Failed to check auth availability:', error);
+      setAuthAvailable(false);
+      setError('Unable to verify authentication configuration. Please try again later.');
+      setLoadingIdps(false); // Stop loading IdPs on error
+    }
+  }, [fetchAvailableIdps]);
+
+  // Handler for successful Keycloak configuration
+  const handleConfigSuccess = useCallback(() => {
+    setShowConfigForm(false);
+    setAuthAvailable(null); // Reset to trigger re-check
+    setError(null);
+    // Re-check availability and reload IdPs
     checkAuthAvailability();
     fetchAvailableIdps();
   }, [checkAuthAvailability, fetchAvailableIdps]);
+
+  // Handler for canceling Keycloak configuration
+  const handleConfigCancel = useCallback(() => {
+    setShowConfigForm(false);
+  }, []);
+
+  // Load IdPs and check auth availability on component mount
+  useEffect(() => {
+    checkAuthAvailability();
+  }, [checkAuthAvailability]);
 
   const handleCodeExchange = useCallback(async (code: string, state: string) => {
     setLoading(true);
@@ -147,6 +170,18 @@ export function LoginForm() {
     }
   };
 
+  // If the configuration form is shown, render it instead
+  if (showConfigForm) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
+        <KeycloakConfigForm 
+          onSuccess={handleConfigSuccess}
+          onCancel={handleConfigCancel}
+        />
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
@@ -213,13 +248,24 @@ export function LoginForm() {
                     <AlertTriangle className="w-8 h-8 text-yellow-600" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">Authentication Not Configured</h3>
-                  <p className="text-gray-600 mb-4">
-                    The authentication system is not configured on this server.
+                  <p className="text-gray-600 mb-6">
+                    Keycloak is not yet configured on this server.
                   </p>
+                  
+                  <button
+                    onClick={() => setShowConfigForm(true)}
+                    className="w-full mb-4 group relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl py-3 px-6 font-semibold transition-all duration-200 hover:shadow-xl hover:scale-[1.02]"
+                  >
+                    <div className="relative flex items-center justify-center space-x-2">
+                      <Settings className="w-5 h-5" />
+                      <span>Configure Keycloak</span>
+                    </div>
+                  </button>
+                  
                   <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-left">
                     <p className="text-sm text-yellow-800">
-                      <strong>For administrators:</strong> Please configure Keycloak authentication 
-                      by setting the required environment variables and restarting the service.
+                      <strong>For administrators:</strong> You can configure Keycloak authentication 
+                      using the button above or by setting the required environment variables and restarting the service.
                     </p>
                   </div>
                 </div>
