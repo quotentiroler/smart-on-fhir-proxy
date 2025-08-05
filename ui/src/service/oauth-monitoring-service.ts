@@ -1,13 +1,9 @@
 import { getStoredToken, createOauthMonitoringApi } from '../lib/apiClient';
 import type { 
-  GetMonitoringOauthEvents200ResponseEventsInner,
-  GetMonitoringOauthAnalytics200Response,
-  GetMonitoringOauthEvents200Response
-} from '../lib/api-client';
-
-// Re-export types for convenience (using shorter names)
-export type OAuthFlowEvent = GetMonitoringOauthEvents200ResponseEventsInner;
-export type OAuthAnalytics = GetMonitoringOauthAnalytics200Response;
+  OAuthEvent,
+  OAuthAnalytics,
+  OAuthEventsListResponse
+} from '../lib/types/api';
 
 export interface SystemHealth {
   oauthServer: {
@@ -35,7 +31,7 @@ export interface SystemHealth {
 class OAuthMonitoringService {
   private eventsEventSource: EventSource | null = null;
   private analyticsEventSource: EventSource | null = null;
-  private eventListeners = new Set<(event: OAuthFlowEvent) => void>();
+  private eventListeners = new Set<(event: OAuthEvent) => void>();
   private analyticsListeners = new Set<(analytics: OAuthAnalytics) => void>();
   private baseUrl: string;
 
@@ -46,7 +42,7 @@ class OAuthMonitoringService {
   /**
    * Subscribe to real-time OAuth events
    */
-  subscribeToEvents(callback: (event: OAuthFlowEvent) => void): () => void {
+  subscribeToEvents(callback: (event: OAuthEvent) => void): () => void {
     this.eventListeners.add(callback);
     
     if (!this.eventsEventSource) {
@@ -88,7 +84,7 @@ class OAuthMonitoringService {
     status?: string;
     clientId?: string;
     since?: string;
-  }): Promise<GetMonitoringOauthEvents200Response> {
+  }): Promise<OAuthEventsListResponse> {
     const token = getStoredToken();
     if (!token) {
       throw new Error('No authentication token available');
@@ -195,7 +191,7 @@ class OAuthMonitoringService {
           // Notify all listeners
           this.eventListeners.forEach(callback => {
             try {
-              callback(data as OAuthFlowEvent);
+              callback(data as OAuthEvent);
             } catch (error) {
               console.error('Error in OAuth event listener:', error);
             }

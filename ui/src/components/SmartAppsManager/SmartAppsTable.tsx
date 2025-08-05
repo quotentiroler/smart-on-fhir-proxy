@@ -154,13 +154,13 @@ export function SmartAppsTable({
             </TableHeader>
             <TableBody>
               {apps.map((app) => {
-                const appTypeBadge = getAppTypeBadge(app.appType, app.authenticationType);
+                const appTypeBadge = getAppTypeBadge(app.appType || 'standalone-app', app.authenticationType || 'symmetric');
                 return (
                   <TableRow key={app.id} className="border-border/50 hover:bg-muted/50 transition-colors duration-200">
                     <TableCell>
                       <div className="py-2">
                         <div className="flex items-center space-x-3">
-                          <span className="text-lg">{getAppTypeIcon(app.appType)}</span>
+                          <span className="text-lg">{getAppTypeIcon(app.appType || 'standalone-app')}</span>
                           <div>
                             <div className="font-semibold text-foreground">{app.name}</div>
                             <div className="text-sm text-muted-foreground mt-1">{app.description}</div>
@@ -215,25 +215,32 @@ export function SmartAppsTable({
                             {getScopeSetName(app.scopeSetId)}
                           </span>
                           <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800">
-                            {app.scopes.length} scopes
+                            {((app.defaultClientScopes || []).length + (app.optionalClientScopes || []).length)} scopes
                           </Badge>
                         </div>
                         <div className="flex flex-wrap gap-1">
-                          {app.scopes.slice(0, 2).map((scope, index) => (
-                            <Badge key={index} variant="outline" className="text-xs bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 font-mono">
+                          {/* Show first 2 default scopes */}
+                          {(app.defaultClientScopes || []).slice(0, 2).map((scope, index) => (
+                            <Badge key={`default-${index}`} variant="outline" className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 font-mono">
                               {scope.split('/')[1]?.split('.')[0] || scope}
                             </Badge>
                           ))}
-                          {app.scopes.length > 2 && (
+                          {/* Show optional scopes if there's room */}
+                          {(app.defaultClientScopes || []).length < 2 && (app.optionalClientScopes || []).slice(0, 2 - (app.defaultClientScopes || []).length).map((scope, index) => (
+                            <Badge key={`optional-${index}`} variant="outline" className="text-xs bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 font-mono">
+                              {scope.split('/')[1]?.split('.')[0] || scope} (opt)
+                            </Badge>
+                          ))}
+                          {((app.defaultClientScopes || []).length + (app.optionalClientScopes || []).length) > 2 && (
                             <Badge variant="outline" className="text-xs bg-violet-500/10 text-violet-700 dark:text-violet-300 border-violet-200 dark:border-violet-800">
-                              +{app.scopes.length - 2}
+                              +{((app.defaultClientScopes || []).length + (app.optionalClientScopes || []).length) - 2}
                             </Badge>
                           )}
                         </div>
-                        {app.customScopes.length > 0 && (
+                        {(app.optionalClientScopes || []).length > 0 && (
                           <div className="flex items-center space-x-1">
                             <Badge variant="outline" className="text-xs bg-orange-500/10 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800">
-                              +{app.customScopes.length} custom
+                              {(app.optionalClientScopes || []).length} optional
                             </Badge>
                           </div>
                         )}
@@ -250,7 +257,7 @@ export function SmartAppsTable({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="rounded-xl border-border/50 shadow-lg">
-                          <DropdownMenuItem onClick={() => onToggleAppStatus(app.id)} className="rounded-lg">
+                          <DropdownMenuItem onClick={() => app.id && onToggleAppStatus(app.id)} className="rounded-lg">
                             <div className="flex items-center">
                               {app.status === 'active' ? (
                                 <X className="w-4 h-4 mr-2 text-red-600 dark:text-red-400" />
@@ -277,7 +284,7 @@ export function SmartAppsTable({
                             Authentication Settings
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => onDeleteApp(app.id)}
+                            onClick={() => app.id && onDeleteApp(app.id)}
                             className="text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                           >
                             <Trash2 className="w-4 h-4 mr-2" />

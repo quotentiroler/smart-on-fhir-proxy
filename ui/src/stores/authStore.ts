@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { openidService } from '../service/openid-service';
 import { createApiClients, setAuthErrorHandler } from '../lib/apiClient';
-import type { GetAuthUserinfo200Response } from '../lib/api-client';
+import type { UserProfile } from '@/lib/types/api';
 
 interface TokenData {
   access_token: string;
@@ -37,7 +37,7 @@ const isTokenValid = (tokens: TokenData): boolean => {
   return Date.now() < tokens.expires_at * 1000;
 };
 
-const transformUserProfile = (userInfo: Record<string, unknown>): GetAuthUserinfo200Response => {
+const transformUserProfile = (userInfo: Record<string, unknown>): UserProfile => {
   return {
     id: String(userInfo.sub || ''),
     name: [{ text: String(userInfo.name || userInfo.preferred_username || userInfo.email || 'User') }],
@@ -50,7 +50,7 @@ const transformUserProfile = (userInfo: Record<string, unknown>): GetAuthUserinf
 };
 
 interface AuthState {
-  profile: GetAuthUserinfo200Response | null;
+  profile: UserProfile | null;
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;

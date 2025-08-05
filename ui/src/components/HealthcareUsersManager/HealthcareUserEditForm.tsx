@@ -10,13 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Shield, Loader2, Server, Database, Trash2 } from 'lucide-react';
-import type { FhirPersonAssociation } from '@/lib/types/api';
-
-interface FhirServer {
-  name: string;
-  url: string;
-  supported: boolean;
-}
+import type { FhirPersonAssociation, FhirServer } from '@/lib/types/api';
 
 interface EditUserFormData {
   id: string;

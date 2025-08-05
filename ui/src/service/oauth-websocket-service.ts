@@ -1,8 +1,9 @@
 // OAuth WebSocket Service - Simplified version for real-time monitoring with SSE fallback
+import type { OAuthEvent } from '@/lib/types/api';
 import { useAuthStore } from '../stores/authStore';
-import { oauthMonitoringService, type OAuthFlowEvent } from './oauth-monitoring-service';
+import { oauthMonitoringService } from './oauth-monitoring-service';
 
-export interface OAuthEvent {
+export interface OAuthEventSimple {
   id: string;
   timestamp: string;
   type: 'authorization' | 'token' | 'refresh' | 'error' | 'revoke' | 'introspect';
@@ -50,7 +51,7 @@ export class OAuthWebSocketService {
   private useSSE = false;
   private sseEventsUnsub?: () => void;
   private sseAnalyticsUnsub?: () => void;
-  private eventsUpdateHandlers: ((event: OAuthEvent) => void)[] = [];
+  private eventsUpdateHandlers: ((event: OAuthEventSimple) => void)[] = [];
   private analyticsUpdateHandlers: ((analytics: OAuthAnalytics) => void)[] = [];
   
   constructor(baseUrl: string = 'ws://localhost:8445') {
@@ -128,13 +129,13 @@ export class OAuthWebSocketService {
 
   private connectSSE(): void {
     // Subscribe to SSE events and forward them through our interface
-    this.sseEventsUnsub = oauthMonitoringService.subscribeToEvents((event: OAuthFlowEvent) => {
+    this.sseEventsUnsub = oauthMonitoringService.subscribeToEvents((event: OAuthEvent) => {
       // Convert SSE event to our WebSocket event format
-      const oauthEvent: OAuthEvent = {
+      const oauthEvent: OAuthEventSimple = {
         id: event.id || '',
         timestamp: event.timestamp || new Date().toISOString(),
-        type: (event.type as OAuthEvent['type']) || 'authorization',
-        status: (event.status as OAuthEvent['status']) || 'success',
+        type: (event.type as OAuthEventSimple['type']) || 'authorization',
+        status: (event.status as OAuthEventSimple['status']) || 'success',
         clientId: event.clientId || '',
         clientName: event.clientName,
         scopes: event.scopes || [],
@@ -324,16 +325,16 @@ export class OAuthWebSocketService {
     });
   }
 
-  onEventsData(handler: (events: OAuthEvent[]) => void) {
+  onEventsData(handler: (events: OAuthEventSimple[]) => void) {
     this.addEventListener('events_data', (data: unknown) => {
-      const message = data as { data?: { events?: OAuthEvent[] } };
+      const message = data as { data?: { events?: OAuthEventSimple[] } };
       handler(message.data?.events || []);
     });
   }
 
-  onEventsUpdate(handler: (event: OAuthEvent) => void): () => void {
+  onEventsUpdate(handler: (event: OAuthEventSimple) => void): () => void {
     const eventHandler = (data: unknown) => {
-      const message = data as { data?: { event?: OAuthEvent } };
+      const message = data as { data?: { event?: OAuthEventSimple } };
       if (message.data?.event) {
         handler(message.data.event);
       }
