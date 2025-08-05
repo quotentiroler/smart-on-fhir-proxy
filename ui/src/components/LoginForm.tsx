@@ -215,14 +215,14 @@ export function LoginForm() {
               <Heart className="w-10 h-10 text-white" />
             </div>
             <h2 className="text-3xl font-bold text-white mb-2">Healthcare Admin</h2>
-            <p className="text-blue-100">SMART on FHIR Platform</p>
+            <p className="text-blue-100">Proxy Smart</p>
           </div>
           
           {/* Content */}
           <div className="px-8 py-8">
             <div className="text-center mb-8">
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Welcome Back</h3>
-              <p className="text-gray-600">Sign in to access the SMART on FHIR dashboard</p>
+              <p className="text-gray-600">Sign in to access the Proxy Smart dashboard</p>
             </div>
             
             <div className="space-y-6">

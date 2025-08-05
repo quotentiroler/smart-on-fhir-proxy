@@ -1,7 +1,7 @@
 {
-  "name": "admin-ui",
-  "displayName": "SMART on FHIR Admin UI",
-  "description": "A web-based administration interface for managing SMART on FHIR applications and resources.",
+  "name": "proxy-smart-ui",
+  "displayName": "Proxy Smart Admin UI",
+  "description": "A web-based administration interface for managing healthcare applications and resources via Proxy Smart.",
   "private": true,
   "version": "0.0.5-RELEASE.202508051828.9834aee",
   "type": "module",

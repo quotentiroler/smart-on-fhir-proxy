@@ -124,7 +124,7 @@ initializeServer()
     }
   })
   .catch((error) => {
-    logger.server.error('❌ SMART on FHIR Proxy failed to start', {
+    logger.server.error('❌ Proxy Smart failed to start', {
       error: error instanceof Error ? {
         message: error.message,
         stack: error.stack,

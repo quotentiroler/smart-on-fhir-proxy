@@ -199,7 +199,7 @@ export async function initializeFhirServers(): Promise<void> {
  * Initialize all server components (Keycloak + FHIR servers)
  */
 export async function initializeServer(): Promise<void> {
-  logger.server.info('Starting SMART on FHIR Proxy...')
+  logger.server.info('Starting Proxy Smart...')
 
   try {
     // Check if Keycloak is configured

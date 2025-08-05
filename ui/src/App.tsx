@@ -13,7 +13,7 @@ const medplum = new MedplumClient({
 
 function App() {
   return (
-    <ThemeProvider defaultTheme="system" storageKey="smart-on-fhir-theme">
+    <ThemeProvider defaultTheme="system" storageKey="proxy-smart-theme">
       <MantineProvider>
         <MedplumProvider medplum={medplum}>
           <AdminApp />

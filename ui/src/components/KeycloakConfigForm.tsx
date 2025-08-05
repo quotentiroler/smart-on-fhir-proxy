@@ -20,7 +20,7 @@ interface KeycloakConfigFormProps {
 
 export function KeycloakConfigForm({ onSuccess, onCancel }: KeycloakConfigFormProps) {
   const [baseUrl, setBaseUrl] = useState('http://localhost:8080');
-  const [realm, setRealm] = useState('smart-on-fhir');
+  const [realm, setRealm] = useState('proxy-smart');
   const [adminClientId, setAdminClientId] = useState('');
   const [adminClientSecret, setAdminClientSecret] = useState('');
   const [testing, setTesting] = useState(false);
@@ -207,7 +207,7 @@ export function KeycloakConfigForm({ onSuccess, onCancel }: KeycloakConfigFormPr
               </Label>
               <Input
                 id="realm"
-                placeholder="smart-on-fhir"
+                placeholder="proxy-smart"
                 value={realm}
                 onChange={(e) => setRealm(e.target.value)}
                 disabled={testing || saving}

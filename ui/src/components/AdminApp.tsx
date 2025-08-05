@@ -85,7 +85,7 @@ export function AdminApp() {
                                 {t('Healthcare Administration')}
                             </span>
                             <div className="text-xs text-muted-foreground font-medium tracking-wide">
-                                {t('SMART on FHIR Platform')}
+                                {t('Proxy Smart')}
                             </div>
                         </div>
                     </div>

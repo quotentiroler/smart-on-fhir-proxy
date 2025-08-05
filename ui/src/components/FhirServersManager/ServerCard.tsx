@@ -150,7 +150,7 @@ export function ServerCard({
             <div className="text-xs text-orange-700 dark:text-orange-300 space-y-2">
               <p>
                 This FHIR server is publicly accessible and can be reached directly, bypassing the secure proxy.
-                It should only accept traffic from the SMART on FHIR Proxy.
+                It should only accept traffic from the Proxy Server.
               </p>
               <ul className="list-disc pl-5">
                 <li>TLS everywhere: secure client-to-proxy and proxy-to-FHIR connections.</li>

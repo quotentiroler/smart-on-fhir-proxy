@@ -14,15 +14,15 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: smart-on-fhir-backend
+    container_name: proxy-smart-backend
     environment:
       NODE_ENV: production
       PORT: 8445
       BASE_URL: http://localhost:8445
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_DOMAIN: localhost
-      KEYCLOAK_REALM: smart-on-fhir
-      KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/smart-on-fhir/protocol/openid-connect/certs
+      KEYCLOAK_REALM: proxy-smart
+      KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/proxy-smart/protocol/openid-connect/certs
       KEYCLOAK_ADMIN_CLIENT_ID: admin-service
       KEYCLOAK_ADMIN_CLIENT_SECRET: admin-service-secret
       FHIR_SERVER_BASE: https://hapi.fhir.org/baseR4,https://server.fire.ly # Multiple FHIR servers can be specified, separated by commas
@@ -32,13 +32,13 @@ services:
       keycloak:
         condition: service_healthy
     networks:
-      - smart-on-fhir
+      - proxy-smart
 
   frontend:
     build:
       context: ./ui
       dockerfile: Dockerfile
-    container_name: smart-on-fhir-frontend
+    container_name: proxy-smart-frontend
     environment:
       VITE_API_BASE_URL: http://localhost:8445
     ports:
@@ -46,4 +46,9 @@ services:
     depends_on:
       - backend
     networks:
-      - smart-on-fhir
+      - proxy-smart
+
+networks:
+  proxy-smart:
+    name: proxy-smart-network
+    driver: bridge

@@ -515,7 +515,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                 <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center space-y-6 lg:space-y-0">
                     <div className="flex-1">
                         <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent mb-3 tracking-tight">
-                            {t('SMART on FHIR Dashboard')}
+                            {t('Proxy Smart Dashboard')}
                         </h1>
                         <div className="text-muted-foreground flex items-center text-lg">
                             <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center mr-3 shadow-sm">
