@@ -24,7 +24,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
-import { oauthWebSocketService, type OAuthEvent, type OAuthAnalytics } from '../service/oauth-websocket-service';
+import { oauthWebSocketService, type OAuthAnalytics, type OAuthEventSimple } from '../service/oauth-websocket-service';
 
 interface SystemHealth {
   oauthServer: {
@@ -46,7 +46,7 @@ interface SystemHealth {
 
 export function OAuthMonitoringDashboard() {
   const { t } = useTranslation();
-  const [events, setEvents] = useState<OAuthEvent[]>([]);
+  const [events, setEvents] = useState<OAuthEventSimple[]>([]);
   const [analytics, setAnalytics] = useState<OAuthAnalytics | null>(null);
   const [systemHealth] = useState<SystemHealth | null>(null);
   const [isRealTimeActive, setIsRealTimeActive] = useState(true);
@@ -136,7 +136,7 @@ export function OAuthMonitoringDashboard() {
 
     if (isRealTimeActive) {
       // Subscribe to real-time events via WebSocket
-      eventsUnsubscribe = oauthWebSocketService.onEventsUpdate((event: OAuthEvent) => {
+      eventsUnsubscribe = oauthWebSocketService.onEventsUpdate((event: OAuthEventSimple) => {
         setEvents(prev => [event, ...prev.slice(0, 999)]); // Keep last 1000 events
       });
 
