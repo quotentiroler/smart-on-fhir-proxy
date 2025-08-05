@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths-ignore:
       - "ui/src/lib/api-client/**"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:
