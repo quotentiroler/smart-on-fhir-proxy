@@ -23,31 +23,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Setup Node.js with caching
         uses: actions/setup-node@v4
         with:
           node-version: "22"
+          cache: 'npm'
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Bun with caching
+        uses: ./.github/actions/setup-bun-cache
         with:
           bun-version: latest
 
       - name: Build backend
         run: |
-          echo "Building backend..."
+          echo "::group::Building backend"
           cd backend
-          bun install
+          bun install --frozen-lockfile
           bun run build
           cd ..
+          echo "::endgroup::"
 
       - name: Build UI
         run: |
-          echo "Building UI..."
+          echo "::group::Building UI"
           cd ui
-          bun install
+          bun install --frozen-lockfile
           bun run build
           cd ..
+          echo "::endgroup::"
 
       - name: Test UI
         continue-on-error: ${{ !inputs.fail_on_test_failure }}
@@ -56,17 +59,19 @@ jobs:
         env:
           CI: true
         run: |
-          echo "Running UI tests (quick mode for CI)..."
+          echo "::group::Running UI tests (quick mode for CI)"
           cd ui
           # Skip Playwright tests in CI for now since they're too slow
           echo "⏭️ Skipping Playwright tests in CI - too slow for build pipeline"
           echo "✅ UI tests completed (skipped), TODO later"
           cd ..
+          echo "::endgroup::"
 
       - name: Test backend
         continue-on-error: ${{ !inputs.fail_on_test_failure }}
         if: ${{ inputs.run_tests }}
         run: |
-          echo "Running backend tests..."
+          echo "::group::Running backend tests"
           cd backend
-          echo "⏭️ Skipping backend tests in CI for no, TODO later"
+          echo "⏭️ Skipping backend tests in CI for now, TODO later"
+          echo "::endgroup::"

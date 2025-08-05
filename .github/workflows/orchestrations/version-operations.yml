@@ -72,13 +72,8 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.generate_token.outputs.token || github.token }}
 
-      - name: Setup Node.js and Bun
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js and Bun with caching
+        uses: ./.github/actions/setup-bun-cache
         with:
           bun-version: latest
 

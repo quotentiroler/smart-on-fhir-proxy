@@ -8,11 +8,32 @@ on:
       - ".github/workflows/**"
   workflow_dispatch:
 
+# Prevent concurrent production releases
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
-  pull-requests: read
+  actions: read
 
 jobs:
+  # Validate required secrets early
+  validate-secrets:
+    name: Validate Required Secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout for action access
+        uses: actions/checkout@v4
+        
+      - name: Validate secrets
+        uses: ./.github/actions/validate-secrets
+        with:
+          required-secrets: 'APP_ID,APP_PRIVATE_KEY,OPENAI_API_KEY'
+          app-id: ${{ secrets.APP_ID }}
+          app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+
   check-changes:
     name: Check if release is needed
     runs-on: ubuntu-latest
@@ -49,19 +70,19 @@ jobs:
   # Production releases run full security and compliance testing
   production-testing:
     name: Production Testing (Security & Compliance)
-    needs: check-changes
+    needs: [validate-secrets, check-changes]
     if: ${{ needs.check-changes.outputs.should_release == 'true' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Production release') && !contains(github.event.head_commit.message, '🎉') }}
-    uses: ./.github/workflows/testing-strategy.yml
+    uses: ./.github/workflows/orchestrations/testing-strategy.yml
     with:
       test_stage: "production"
       test_scope: "all"
 
   production-release:
     name: Production Release
-    needs: [check-changes, production-testing]
+    needs: [validate-secrets, check-changes, production-testing]
     # Only run if the last commit is not a release commit AND there are non-documentation changes
     if: ${{ needs.check-changes.outputs.should_release == 'true' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Production release') && !contains(github.event.head_commit.message, '🎉') }}
-    uses: ./.github/workflows/release-orchestrator.yml
+    uses: ./.github/workflows/orchestrations/release-orchestrator.yml
     with:
       release_type: "RELEASE"
       source_branch: "main"
@@ -73,6 +94,25 @@ jobs:
       APP_ID: ${{ secrets.APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+  # Notify on failure
+  notify-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [production-testing, production-release]
+    if: failure()
+    steps:
+      - name: Checkout for action access
+        uses: actions/checkout@v4
+        
+      - name: Notify Discord on failure
+        uses: ./.github/actions/discord-notify
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
+          title: "🚨 Production Release Failed"
+          message: "Critical: Production release workflow failed on main branch"
+          color: "ff0000"
+        continue-on-error: true
 
   # Revert changes if production release fails
   revert-on-failure:

@@ -5,6 +5,10 @@ on:
     branches:
       - "dev/*"
 
+permissions:
+  contents: write
+  actions: read
+
 jobs:
   ai-comment:
     name: Review & Comment on HEAD Commit
@@ -18,13 +22,10 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js with OpenAI dependencies
+        uses: ./.github/actions/setup-node-openai
         with:
           node-version: "22"
-
-      - name: Install dependencies
-        run: npm install openai @octokit/rest
 
       - name: Comment on HEAD commit via ChatGPT
         env:

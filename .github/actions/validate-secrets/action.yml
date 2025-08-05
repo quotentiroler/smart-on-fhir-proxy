@@ -1,0 +1,75 @@
+name: 'Validate Required Secrets'
+description: 'Validates that required secrets are present and fails fast if missing'
+
+inputs:
+  required-secrets:
+    description: 'Comma-separated list of required secret names'
+    required: true
+  openai-api-key:
+    description: 'OpenAI API Key'
+    required: false
+  github-token:
+    description: 'GitHub Token'
+    required: false
+  app-id:
+    description: 'GitHub App ID'
+    required: false
+  app-private-key:
+    description: 'GitHub App Private Key'
+    required: false
+  discord-webhook:
+    description: 'Discord webhook URL for notifications'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Validate secrets
+      shell: bash
+      run: |
+        echo "::group::Validating required secrets"
+        
+        IFS=',' read -ra SECRETS <<< "${{ inputs.required-secrets }}"
+        MISSING_SECRETS=()
+        
+        for secret in "${SECRETS[@]}"; do
+          secret=$(echo "$secret" | xargs)  # trim whitespace
+          
+          case "$secret" in
+            "OPENAI_API_KEY")
+              if [ -z "${{ inputs.openai-api-key }}" ]; then
+                MISSING_SECRETS+=("$secret")
+              fi
+              ;;
+            "GITHUB_TOKEN")
+              if [ -z "${{ inputs.github-token }}" ]; then
+                MISSING_SECRETS+=("$secret")
+              fi
+              ;;
+            "APP_ID")
+              if [ -z "${{ inputs.app-id }}" ]; then
+                MISSING_SECRETS+=("$secret")
+              fi
+              ;;
+            "APP_PRIVATE_KEY")
+              if [ -z "${{ inputs.app-private-key }}" ]; then
+                MISSING_SECRETS+=("$secret")
+              fi
+              ;;
+            "DISCORD_WEBHOOK")
+              if [ -z "${{ inputs.discord-webhook }}" ]; then
+                MISSING_SECRETS+=("$secret")
+              fi
+              ;;
+          esac
+        done
+        
+        if [ ${#MISSING_SECRETS[@]} -ne 0 ]; then
+          echo "❌ Missing required secrets:"
+          printf '%s\n' "${MISSING_SECRETS[@]}"
+          echo "::error::Missing required secrets: ${MISSING_SECRETS[*]}"
+          exit 1
+        fi
+        
+        echo "✅ All required secrets are present"
+        echo "::endgroup::"

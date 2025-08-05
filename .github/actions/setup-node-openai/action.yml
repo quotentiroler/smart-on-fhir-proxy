@@ -1,0 +1,39 @@
+name: 'Setup Node.js with OpenAI Dependencies'
+description: 'Sets up Node.js environment with caching and installs OpenAI/Octokit dependencies'
+
+inputs:
+  node-version:
+    description: 'Node.js version to use'
+    required: false
+    default: '22'
+  cache-dependency-path:
+    description: 'Path to dependency file for cache key'
+    required: false
+    default: 'package-lock.json'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+        cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+    - name: Cache node modules
+      uses: actions/cache@v4
+      id: cache-npm
+      with:
+        path: ~/.npm
+        key: ${{ runner.os }}-node-${{ inputs.node-version }}-${{ hashFiles(inputs.cache-dependency-path) }}
+        restore-keys: |
+          ${{ runner.os }}-node-${{ inputs.node-version }}-
+          ${{ runner.os }}-node-
+
+    - name: Install OpenAI dependencies
+      shell: bash
+      run: |
+        echo "::group::Install OpenAI/Octokit dependencies"
+        npm install openai @octokit/rest
+        echo "::endgroup::"

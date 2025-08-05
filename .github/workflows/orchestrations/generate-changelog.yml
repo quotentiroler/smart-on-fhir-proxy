@@ -42,6 +42,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Node.js with OpenAI dependencies
+        uses: ./.github/actions/setup-node-openai
+        with:
+          node-version: "22"
+
       - name: Generate changelog content
         id: generate
         shell: bash

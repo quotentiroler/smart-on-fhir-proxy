@@ -1,0 +1,96 @@
+name: 'Discord Notification'
+description: 'Sends notifications to Discord on workflow failures or important events'
+
+inputs:
+  webhook-url:
+    description: 'Discord webhook URL'
+    required: true
+  title:
+    description: 'Notification title'
+    required: true
+  message:
+    description: 'Notification message'
+    required: true
+  color:
+    description: 'Embed color (hex without #)'
+    required: false
+    default: 'ff0000'  # red for failures
+  include-details:
+    description: 'Include workflow details'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Send Discord notification
+      shell: bash
+      run: |
+        echo "::group::Send Discord notification"
+        
+        # Build the JSON payload
+        WORKFLOW_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        
+        if [ "${{ inputs.include-details }}" = "true" ]; then
+          JSON_PAYLOAD=$(cat <<EOF
+        {
+          "embeds": [
+            {
+              "title": "${{ inputs.title }}",
+              "description": "${{ inputs.message }}",
+              "color": "0x${{ inputs.color }}",
+              "fields": [
+                {
+                  "name": "Repository",
+                  "value": "${{ github.repository }}",
+                  "inline": true
+                },
+                {
+                  "name": "Branch",
+                  "value": "${{ github.ref_name }}",
+                  "inline": true
+                },
+                {
+                  "name": "Workflow",
+                  "value": "${{ github.workflow }}",
+                  "inline": true
+                },
+                {
+                  "name": "Commit",
+                  "value": "[\`${{ github.sha }}\`](https://github.com/${{ github.repository }}/commit/${{ github.sha }})",
+                  "inline": true
+                },
+                {
+                  "name": "Action",
+                  "value": "[View Details]($WORKFLOW_URL)",
+                  "inline": true
+                }
+              ],
+              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+            }
+          ]
+        }
+        EOF
+        )
+        else
+          JSON_PAYLOAD=$(cat <<EOF
+        {
+          "embeds": [
+            {
+              "title": "${{ inputs.title }}",
+              "description": "${{ inputs.message }}",
+              "color": "0x${{ inputs.color }}",
+              "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
+            }
+          ]
+        }
+        EOF
+        )
+        fi
+        
+        # Send the notification
+        curl -H "Content-Type: application/json" \
+             -d "$JSON_PAYLOAD" \
+             "${{ inputs.webhook-url }}" || echo "Failed to send Discord notification"
+        
+        echo "::endgroup::"

@@ -23,6 +23,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Bun with caching
+        uses: ./.github/actions/setup-bun-cache
+        with:
+          bun-version: latest
+
+      - name: Run alpha tests
+        run: |
+          echo "::group::Running Alpha Tests"
+          echo "✅ Alpha tests completed - placeholder"
+          echo "::endgroup::"
+
   beta-tests:
     name: Beta Tests
     runs-on: ubuntu-latest
@@ -33,6 +44,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Setup Bun with caching
+        uses: ./.github/actions/setup-bun-cache
+        with:
+          bun-version: latest
+
+      - name: Run beta tests
+        run: |
+          echo "::group::Running Beta Tests"
+          echo "✅ Beta tests completed - placeholder"
+          echo "::endgroup::"
+
   production-tests:
     name: Production Tests (Security & Compliance)
     runs-on: ubuntu-latest
@@ -42,6 +64,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Setup Bun with caching
+        uses: ./.github/actions/setup-bun-cache
+        with:
+          bun-version: latest
+
+      - name: Run production tests
+        run: |
+          echo "::group::Running Production Tests (Security & Compliance)"
+          echo "✅ Production tests completed - placeholder"
+          echo "::endgroup::"
 
   test-summary:
     name: Test Summary

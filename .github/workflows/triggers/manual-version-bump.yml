@@ -21,9 +21,34 @@ on:
         type: string
         default: 'develop'
 
+# Prevent concurrent version bumps
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.branch }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  actions: read
+
 jobs:
+  # Validate required secrets early
+  validate-secrets:
+    name: Validate Required Secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout for action access
+        uses: actions/checkout@v4
+        
+      - name: Validate secrets
+        uses: ./.github/actions/validate-secrets
+        with:
+          required-secrets: 'APP_ID,APP_PRIVATE_KEY'
+          app-id: ${{ secrets.APP_ID }}
+          app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
   manual-version-bump:
     name: Manual Version Bump
+    needs: [validate-secrets]
     runs-on: ubuntu-latest
     
     steps:
@@ -59,13 +84,8 @@ jobs:
           fetch-depth: 0
           token: ${{ steps.generate-token.outputs.token }}
 
-      - name: Setup Node.js and Bun
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
+      - name: Setup Node.js and Bun with caching
+        uses: ./.github/actions/setup-bun-cache
         with:
           bun-version: latest
 
@@ -111,7 +131,7 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Validate version operations
-        uses: ./.github/workflows/version-operations.yml
+        uses: ./.github/workflows/orchestrations/version-operations.yml
         with:
           operation: validate
 

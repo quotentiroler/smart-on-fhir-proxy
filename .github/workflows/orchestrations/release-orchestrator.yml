@@ -99,7 +99,7 @@ jobs:
   # Manage version
   version:
     name: Version Management
-    uses: ./.github/workflows/version-operations.yml
+    uses: ./.github/workflows/orchestrations/version-operations.yml
     with:
       operation: 'update'
       release_type: ${{ inputs.release_type }}
@@ -112,7 +112,7 @@ jobs:
   changelog:
     name: Generate Changelog
     needs: [get-commits, version]
-    uses: ./.github/workflows/generate-changelog.yml
+    uses: ./.github/workflows/orchestrations/generate-changelog.yml
     with:
       commit_shas: ${{ needs.get-commits.outputs.commit_shas }}
       release_type: ${{ inputs.release_type }}
@@ -145,8 +145,8 @@ jobs:
         run: |
           git pull origin ${{ inputs.target_branch }}
 
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: Setup Bun with caching
+        uses: ./.github/actions/setup-bun-cache
         with:
           bun-version: latest
 
@@ -155,15 +155,21 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
-      - name: Install dependencies
+      - name: Install backend and UI dependencies
         run: |
-          bun install
-          cd backend && bun install
-          cd ../ui && bun install
+          echo "::group::Install backend dependencies"
+          cd backend && bun install --frozen-lockfile
+          echo "::endgroup::"
+          
+          echo "::group::Install UI dependencies"
+          cd ../ui && bun install --frozen-lockfile
+          echo "::endgroup::"
 
       - name: Generate API clients
         run: |
+          echo "::group::Generate API clients"
           bun run generate:ui:normalized
+          echo "::endgroup::"
 
       - name: Commit generated API clients
         run: |
@@ -180,7 +186,7 @@ jobs:
   build:
     name: Build and Test
     needs: [version, generate-api-clients]
-    uses: ./.github/workflows/build-and-test.yml
+    uses: ./.github/workflows/orchestrations/build-and-test.yml
     with:
       run_tests: true
       fail_on_test_failure: false
@@ -189,7 +195,7 @@ jobs:
   release:
     name: Create GitHub Release
     needs: [version, changelog, generate-api-clients, build]
-    uses: ./.github/workflows/create-release.yml
+    uses: ./.github/workflows/orchestrations/create-release.yml
     with:
       release_type: ${{ inputs.release_type }}
       version: ${{ needs.version.outputs.new_version }}

@@ -7,6 +7,15 @@ on:
       - "develop"
       - "test"
 
+# Prevent concurrent PR operations
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   pr-to-develop:
     name: Create/Update PR from dev/* → develop
