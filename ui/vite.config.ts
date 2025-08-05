@@ -13,5 +13,68 @@ export default defineConfig({
     alias: {
       '@': '/src',
     },
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Core React (keep separate as it's used everywhere)
+          'vendor-react': ['react', 'react-dom'],
+
+          //UI libraries
+          'vendor-ui': [
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-avatar',
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-label',
+            '@radix-ui/react-navigation-menu',
+            '@radix-ui/react-progress',
+            '@radix-ui/react-select',
+            '@radix-ui/react-slot',
+            '@radix-ui/react-switch',
+            '@radix-ui/react-tabs',
+            'react-hook-form',
+            '@hookform/resolvers',
+            'zod',
+            'i18next',
+            'react-i18next',
+            'date-fns',
+            'crypto-js',
+            'clsx',
+            'tailwind-merge',
+            'react-markdown',
+            'remark-gfm',
+            '@mantine/core',
+            '@mantine/hooks',
+            '@mantine/notifications',
+            'recharts'
+          ],
+
+          // Large libraries (keep separate)
+          'vendor-ai': ['openai', '@xenova/transformers']
+        }
+      },
+      // Suppress specific warnings we can't fix (third-party library issues)
+      onwarn(warning, warn) {
+        // Suppress eval warnings from onnxruntime-web (third-party minified code)
+        if (warning.code === 'EVAL' && warning.id?.includes('onnxruntime-web')) {
+          return;
+        }
+        warn(warning);
+      }
+    },
+    // Increase chunk size warning limit to 1MB (from default 500KB)
+    chunkSizeWarningLimit: 1000,
+    // Enable source maps for better debugging in production
+    sourcemap: false,
+    // Optimize for smaller builds
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    }
   }
 })
