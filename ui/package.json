@@ -3,7 +3,7 @@
   "displayName": "SMART on FHIR Admin UI",
   "description": "A web-based administration interface for managing SMART on FHIR applications and resources.",
   "private": true,
-  "version": "0.0.5-alpha.202508051423.429852e",
+  "version": "0.0.5-alpha.202508051607.745a59a",
   "type": "module",
   "scripts": {
     "dev": "vite",
