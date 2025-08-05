@@ -19,18 +19,7 @@ For open source projects, research, and non-commercial use, this software is lic
 
 ## Commercial License
 
-For commercial use, proprietary applications, and closed-source deployments, a **Commercial License** is available.
-
-**Benefits of Commercial License:**
-
-- ✅ Use in proprietary healthcare systems
-- ✅ Deploy as SaaS without source disclosure
-- ✅ Integrate into closed-source applications
-- ✅ Keep modifications private
-- ✅ Priority support and maintenance
-- ✅ No copyleft restrictions
-
-[📄 View Commercial License](./LICENSE-COMMERCIAL)
+For commercial use, proprietary applications, and closed-source deployments, a **Commercial License** must be purchased.
 
 ## How to Choose
 

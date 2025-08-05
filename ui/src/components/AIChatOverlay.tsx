@@ -39,7 +39,7 @@ export function AIChatOverlay({ isOpen: externalIsOpen, onClose: externalOnClose
         {
             id: '1',
             type: 'agent',
-            content: t('Hello! I\'m your SMART on FHIR assistant. I can help you manage applications, users, servers, and configurations. What would you like to do today?'),
+            content: t('Hello! I\'m your smart assistant. I can help you manage applications, users, servers, and configurations. What would you like to do today?'),
             timestamp: new Date()
         }
     ]);

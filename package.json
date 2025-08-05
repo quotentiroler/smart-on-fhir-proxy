@@ -1,9 +1,9 @@
 {
-  "name": "smart-on-fhir",
-  "version": "0.0.5-RELEASE.202508051828.9834aee",
+  "name": "proxy-smart",
+  "version": "0.0.1-beta.202508052034.70b6fe5",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/smart-on-fhir.git"
+    "url": "https://github.com/quotentiroler/proxy-smart.git"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.0",
@@ -13,13 +13,13 @@
     "globals": "^16.2.0",
     "typescript-eslint": "^8.35.0"
   },
-  "description": "SMART on FHIR application with Keycloak integration",
+  "description": "Proxy Smart - Healthcare interoperability proxy with Keycloak integration",
   "engines": {
     "node": ">=18.0.0",
     "bun": ">=1.0.0"
   },
   "keywords": [
-    "smart-on-fhir",
+    "proxy-smart",
     "healthcare",
     "keycloak",
     "oauth2",

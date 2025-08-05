@@ -105,7 +105,7 @@ jobs:
 
           # Create release notes with shared content
           cat > release-notes.md <<-EOF
-          # SMART on FHIR Proxy v${{ inputs.version }}${TITLE_SUFFIX}
+          # Proxy Smart v${{ inputs.version }}${TITLE_SUFFIX}
 
           ${WARNING}
           EOF
@@ -129,7 +129,7 @@ jobs:
           ## Installation
           \`\`\`bash
           git clone https://github.com/${{ github.repository }}.git
-          cd smart-on-fhir-proxy
+          cd proxy-smart
           git checkout v${{ inputs.version }}
           \`\`\`
 

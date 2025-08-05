@@ -1,6 +1,6 @@
 # Version Management Tutorial
 
-This tutorial explains how the version management system works in the SMART on FHIR Proxy project. The system is designed to keep all package.json files synchronized across the monorepo and automate versioning for different release types.
+This tutorial explains how the version management system works in the Proxy Smart project. The system is designed to keep all package.json files synchronized across the monorepo and automate versioning for different release types.
 
 ## Overview
 

@@ -1,4 +1,4 @@
-# SMART on FHIR Agent Support
+# Proxy Smart Agent Support
 
 This implementation provides comprehensive support for SMART on FHIR "agent" scopes, which represent autonomous agents (AI systems, robots, automated decision tools) acting as independent entities rather than on behalf of users.
 
@@ -13,22 +13,24 @@ This implementation provides comprehensive support for SMART on FHIR "agent" sco
 
 ### Key Differences
 
-| Context | Who Acts | Identity Source | User Interaction | Behavior | Use Case |
-|---------|----------|----------------|------------------|----------|----------|
-| `patient/` | User on behalf of patient | User identity + patient context | **Interactive login** | User-driven | Patient portals, patient-facing apps |
-| `user/` | Authenticated user | User identity (Practitioner/Person) | **Interactive login** | User-driven | Clinician workflows, admin tools |
-| `system/` | System/server | Client credentials | **No login screen** | **Deterministic** | Backend integrations, scheduled jobs |
-| **`agent/`** | **Autonomous agent** | **Device resource** | **No login screen** | **Non-deterministic** | **AI assistants, robots, autonomous tools** |
+| Context              | Who Acts                   | Identity Source                     | User Interaction            | Behavior                    | Use Case                                          |
+| -------------------- | -------------------------- | ----------------------------------- | --------------------------- | --------------------------- | ------------------------------------------------- |
+| `patient/`         | User on behalf of patient  | User identity + patient context     | **Interactive login** | User-driven                 | Patient portals, patient-facing apps              |
+| `user/`            | Authenticated user         | User identity (Practitioner/Person) | **Interactive login** | User-driven                 | Clinician workflows, admin tools                  |
+| `system/`          | System/server              | Client credentials                  | **No login screen**   | **Deterministic**     | Backend integrations, scheduled jobs              |
+| **`agent/`** | **Autonomous agent** | **Device resource**           | **No login screen**   | **Non-deterministic** | **AI assistants, robots, autonomous tools** |
 
 ### Critical Distinction: System vs Agent
 
 **Backend Service (`system/`):**
+
 - Predictable, scheduled operations
 - Deterministic workflows (e.g., nightly data sync)
 - Human-programmed logic
 - No real-time decision making
 
 **Autonomous Agent (`agent/`):**
+
 - Self-initiated actions based on environmental triggers
 - Non-deterministic behavior (AI/ML decisions)
 - Real-time autonomous responses
@@ -37,6 +39,7 @@ This implementation provides comprehensive support for SMART on FHIR "agent" sco
 ## OAuth Flow Comparison
 
 ### Interactive Flows (patient/, user/)
+
 ```bash
 # 1. User visits app → redirected to authorization server
 # 2. User login screen → username/password
@@ -46,6 +49,7 @@ This implementation provides comprehensive support for SMART on FHIR "agent" sco
 ```
 
 ### Backend Service Flow (system/)
+
 ```bash
 # 1. Scheduled job triggers
 # 2. App authenticates directly with client credentials
@@ -59,7 +63,8 @@ POST /oauth/token
 }
 ```
 
-### Agent Flow (agent/) 
+### Agent Flow (agent/)
+
 ```bash
 # 1. Environmental trigger detected (e.g., patient vitals alarm)
 # 2. Agent autonomously decides to act
@@ -119,12 +124,14 @@ The authorization server must implement logic to:
 ### Client Registration vs. Runtime Identity
 
 **Client Registration (Static):**
+
 - Client ID: `ai-clinical-assistant`
 - Allowed scopes: `agent/Patient.read`, `agent/CarePlan.create`
 - Authentication method: Private Key JWT
 - **NO static fhirUser** ❌
 
 **Runtime Token (Dynamic):**
+
 - Specific Device instance determined during auth flow
 - `fhirUser`: `Device/ai-assistant-deployment-east-wing-3`
 - Scopes validated against this specific Device's capabilities
@@ -184,6 +191,7 @@ The referenced Device resource should include:
 ### 1. Clinical Decision Support AI
 
 **Client Registration:**
+
 ```javascript
 {
   name: "Autonomous Clinical AI Agent",
@@ -201,6 +209,7 @@ The referenced Device resource should include:
 ```
 
 **Runtime Token Example:**
+
 ```json
 {
   "iss": "https://auth.hospital.com",
@@ -213,6 +222,7 @@ The referenced Device resource should include:
 ### 2. Emergency Response Robot
 
 **Client Registration:**
+
 ```javascript
 {
   name: "Emergency Response Robots",
@@ -227,6 +237,7 @@ The referenced Device resource should include:
 ```
 
 **Runtime Token (Specific Robot):**
+
 ```json
 {
   "fhirUser": "Device/emergency-robot-unit-42", // Specific robot instance
@@ -291,6 +302,6 @@ This implementation follows:
 Planned improvements include:
 
 - **Device capability validation** - Automatic scope restriction based on Device.property
-- **Agent certification tracking** - Integration with device certification systems  
+- **Agent certification tracking** - Integration with device certification systems
 - **Cross-organization agent identity** - Support for federated agent authentication
 - **Agent behavior monitoring** - Enhanced audit trails and performance metrics

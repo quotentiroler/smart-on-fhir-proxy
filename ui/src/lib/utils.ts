@@ -7,7 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 // Default encryption secret fallback (should not be used in production)
-const DEFAULT_ENCRYPTION_SECRET = "smart-on-fhir-default-secret-key";
+const DEFAULT_ENCRYPTION_SECRET = "proxy-smart-default-secret-key";
 
 // Get encryption secret with fallback
 const getEncryptionSecret = (): string => {
