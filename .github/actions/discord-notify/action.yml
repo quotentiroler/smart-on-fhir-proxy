@@ -81,17 +81,13 @@ runs:
       id: changelog
       shell: bash
       run: |
-        CHANGELOG="${{ inputs.changelog }}"
-        
-        # Truncate changelog if too long (Discord has 4096 char limit for description)
-        if [ ${#CHANGELOG} -gt 3000 ]; then
-          CHANGELOG="${CHANGELOG:0:3000}..."
+        # For safety, we'll either skip the changelog or use a simple placeholder
+        # The full changelog is available in the GitHub release
+        if [ -n "${{ inputs.changelog }}" ]; then
+          echo "formatted_changelog=📋 Changelog available in the GitHub release" >> $GITHUB_OUTPUT
+        else
+          echo "formatted_changelog=" >> $GITHUB_OUTPUT
         fi
-        
-        # Escape special characters for JSON
-        CHANGELOG=$(echo "$CHANGELOG" | sed 's/"/\\"/g' | sed 's/\\/\\\\/g' | tr '\n' ' ')
-        
-        echo "formatted_changelog=$CHANGELOG" >> $GITHUB_OUTPUT
 
     - name: Send Discord notification
       shell: bash
@@ -140,15 +136,37 @@ runs:
         EOF
         )
         
-        # Add changelog as separate field if provided
+        # Add changelog as separate field if provided (simple approach)
+        CHANGELOG_FIELD=""
         if [ -n "${{ steps.changelog.outputs.formatted_changelog }}" ]; then
-          PAYLOAD=$(echo "$PAYLOAD" | jq --arg changelog "${{ steps.changelog.outputs.formatted_changelog }}" '.embeds[0].fields += [{"name": "📋 Changelog", "value": $changelog, "inline": false}]')
+          CHANGELOG_FIELD=",{\"name\": \"📋 Changelog\", \"value\": \"${{ steps.changelog.outputs.formatted_changelog }}\", \"inline\": false}"
         fi
         
-        # Add action buttons if workflow URL is provided
+        # Add workflow URL field if provided
+        WORKFLOW_FIELD=""
         if [ -n "${{ inputs.workflow-url }}" ]; then
-          PAYLOAD=$(echo "$PAYLOAD" | jq --arg url "${{ inputs.workflow-url }}" '.embeds[0].fields += [{"name": "🔗 View Workflow", "value": "[GitHub Actions](\($url))", "inline": true}]')
+          WORKFLOW_FIELD=",{\"name\": \"🔗 View Workflow\", \"value\": \"[GitHub Actions](${{ inputs.workflow-url }})\", \"inline\": true}"
         fi
+        
+        # Rebuild payload with additional fields
+        PAYLOAD=$(cat << EOF
+        {
+          "embeds": [
+            {
+              "title": "${{ inputs.title }}",
+              "description": "${{ inputs.description }}",
+              "color": $((0x${{ steps.color.outputs.color }})),
+              "timestamp": "$TIMESTAMP",
+              "fields": [$FIELDS$CHANGELOG_FIELD$WORKFLOW_FIELD],
+              "footer": {
+                "text": "${{ inputs.repository }}",
+                "icon_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+              }
+            }
+          ]
+        }
+        EOF
+        )
         
         # Send the webhook
         curl -H "Content-Type: application/json" \
