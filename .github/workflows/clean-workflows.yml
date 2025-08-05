@@ -1,4 +1,4 @@
-name: Cleanup Cancelled and Skipped Workflow Runs
+name: Cleanup Cancelled Workflow Runs
 
 on:
   schedule:
@@ -14,7 +14,7 @@ jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete cancelled, skipped, and successful version checks
+      - name: Delete cancelled and successful version checks
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -22,72 +22,55 @@ jobs:
             const { owner, repo } = context.repo;
 
             // 1) Delete all cancelled runs
-            console.log('Fetching cancelled workflow runs...');
             const cancelled = await github.rest.actions.listWorkflowRunsForRepo({
               owner, 
               repo,
               status: 'cancelled',
               per_page: 100
             });
-            console.log(`Found ${cancelled.data.workflow_runs.length} cancelled runs`);
-            
             for (const run of cancelled.data.workflow_runs) {
-              console.log(`Deleting cancelled run ${run.id} (${run.name}) - ${run.status}`);
-              try {
+              console.log(`Deleting cancelled run ${run.id} (${run.name})`);
+              await github.rest.actions.deleteWorkflowRun({
+                owner,
+                repo,
+                run_id: run.id
+              });
+            }
+
+            // 1.5) Delete all skipped runs
+            console.log('Looking for skipped runs to delete…');
+            const skipped = await github.rest.actions.listWorkflowRunsForRepo({
+              owner, 
+              repo,
+              status: 'completed',
+              per_page: 100
+            });
+            for (const run of skipped.data.workflow_runs) {
+              if (run.conclusion === 'skipped') {
+                console.log(`Deleting skipped run ${run.id} (${run.name})`);
                 await github.rest.actions.deleteWorkflowRun({
                   owner,
                   repo,
                   run_id: run.id
                 });
-                console.log(`Successfully deleted cancelled run ${run.id}`);
-              } catch (error) {
-                console.log(`Failed to delete cancelled run ${run.id}: ${error.message}`);
               }
             }
 
-            // 2) Delete all skipped runs and successful "Version Validation" runs
-            console.log('Fetching completed workflow runs...');
+            // 2) Delete all successful "Version Validation" runs
+            console.log('Looking for successful version‐validation runs to delete…');
             const completed = await github.rest.actions.listWorkflowRunsForRepo({
               owner, 
               repo,
               status: 'completed',
               per_page: 100
             });
-            console.log(`Found ${completed.data.workflow_runs.length} completed runs`);
-            
-            let deletedSkipped = 0;
-            let deletedVersionChecks = 0;
-            
             for (const run of completed.data.workflow_runs) {
-              // Delete skipped runs
-              if (run.conclusion === 'skipped') {
-                console.log(`Deleting skipped run ${run.id} (${run.name})`);
-                try {
-                  await github.rest.actions.deleteWorkflowRun({
-                    owner,
-                    repo,
-                    run_id: run.id
-                  });
-                  deletedSkipped++;
-                  console.log(`Successfully deleted skipped run ${run.id}`);
-                } catch (error) {
-                  console.log(`Failed to delete skipped run ${run.id}: ${error.message}`);
-                }
-              }
-              // Delete successful Version Validation runs
-              else if (run.name === 'Version Validation' && run.conclusion === 'success') {
+              if (run.name === 'Version Validation' && run.conclusion === 'success') {
                 console.log(`Deleting successful version check run ${run.id}`);
-                try {
-                  await github.rest.actions.deleteWorkflowRun({
-                    owner,
-                    repo,
-                    run_id: run.id
-                  });
-                  deletedVersionChecks++;
-                  console.log(`Successfully deleted version check run ${run.id}`);
-                } catch (error) {
-                  console.log(`Failed to delete version check run ${run.id}: ${error.message}`);
-                }
+                await github.rest.actions.deleteWorkflowRun({
+                  owner,
+                  repo,
+                  run_id: run.id
+                });
               }
             }
-            console.log(`Deleted ${deletedSkipped} skipped runs and ${deletedVersionChecks} successful version check runs`);
