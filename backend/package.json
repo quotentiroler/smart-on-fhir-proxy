@@ -1,7 +1,7 @@
 {
   "name": "smart-proxy",
   "displayName": "SMART on FHIR Proxy",
-  "version": "0.0.5-alpha.202508051237.74bf659",
+  "version": "0.0.5-alpha.202508051400.af65bbe",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
