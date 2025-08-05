@@ -15,12 +15,12 @@
 
 import * as runtime from '../runtime';
 import type {
-  PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200Response,
+  PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response,
   PostShutdown500Response,
 } from '../models/index';
 import {
-    PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200ResponseFromJSON,
-    PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200ResponseToJSON,
+    PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseFromJSON,
+    PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseToJSON,
     PostShutdown500ResponseFromJSON,
     PostShutdown500ResponseToJSON,
 } from '../models/index';
@@ -95,7 +95,7 @@ export class FhirApi extends runtime.BaseAPI {
      * Clear and refresh the cached FHIR server information
      * Refresh FHIR Server Cache
      */
-    async postProxySmartBackendByServerNameByFhirVersionCacheRefreshRaw(requestParameters: PostProxySmartBackendByServerNameByFhirVersionCacheRefreshRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200Response>> {
+    async postProxySmartBackendByServerNameByFhirVersionCacheRefreshRaw(requestParameters: PostProxySmartBackendByServerNameByFhirVersionCacheRefreshRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response>> {
         if (requestParameters['serverName'] == null) {
             throw new runtime.RequiredError(
                 'serverName',
@@ -134,14 +134,14 @@ export class FhirApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200ResponseFromJSON(jsonValue));
+        return new runtime.JSONApiResponse(response, (jsonValue) => PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseFromJSON(jsonValue));
     }
 
     /**
      * Clear and refresh the cached FHIR server information
      * Refresh FHIR Server Cache
      */
-    async postProxySmartBackendByServerNameByFhirVersionCacheRefresh(requestParameters: PostProxySmartBackendByServerNameByFhirVersionCacheRefreshRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200Response> {
+    async postProxySmartBackendByServerNameByFhirVersionCacheRefresh(requestParameters: PostProxySmartBackendByServerNameByFhirVersionCacheRefreshRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response> {
         const response = await this.postProxySmartBackendByServerNameByFhirVersionCacheRefreshRaw(requestParameters, initOverrides);
         return await response.value();
     }
