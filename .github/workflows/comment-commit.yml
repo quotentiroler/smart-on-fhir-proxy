@@ -18,13 +18,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js with AI tools
+        uses: ./.github/actions/setup-node-ai
         with:
-          node-version: "22"
-
-      - name: Install dependencies
-        run: npm install openai @octokit/rest
+          checkout: 'false'  # Skip checkout since we already did it
+          fetch-depth: 0
 
       - name: Comment on HEAD commit via ChatGPT
         env:

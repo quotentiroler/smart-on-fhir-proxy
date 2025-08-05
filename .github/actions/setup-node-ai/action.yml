@@ -1,0 +1,47 @@
+name: 'Setup Node.js with AI Dependencies'
+description: 'Checkout code, setup Node.js with caching, and install OpenAI + Octokit'
+
+inputs:
+  node-version:
+    description: 'Node.js version to setup'
+    required: false
+    default: '22'
+  fetch-depth:
+    description: 'Checkout fetch depth'
+    required: false
+    default: '0'
+  checkout:
+    description: 'Whether to checkout code'
+    required: false
+    default: 'true'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout code
+      if: inputs.checkout == 'true'
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: ${{ inputs.fetch-depth }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+
+    - name: Install AI dependencies
+      shell: bash
+      env:
+        NPM_CONFIG_LOGLEVEL: error
+        NPM_CONFIG_FUND: false
+        NPM_CONFIG_AUDIT: false
+      run: |
+        # Install specific versions to avoid deprecated dependency warnings
+        # Suppress output to avoid cluttering CI logs with deprecation warnings
+        npm install openai@latest @octokit/rest@latest --silent 2>/dev/null || {
+          echo "⚠️  Installation had warnings, but dependencies are available"
+          npm install openai@latest @octokit/rest@latest --no-fund --no-audit
+        }
+        
+        echo "✅ Installed AI dependencies (OpenAI + Octokit)"

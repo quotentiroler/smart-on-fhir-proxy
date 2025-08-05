@@ -1,0 +1,62 @@
+name: 'Setup Bun with Version Scripts'
+description: 'Checkout code, setup Node.js and Bun with caching, and prepare version management'
+
+inputs:
+  node-version:
+    description: 'Node.js version to setup'
+    required: false
+    default: '22'
+  bun-version:
+    description: 'Bun version to setup'
+    required: false
+    default: 'latest'
+  fetch-depth:
+    description: 'Checkout fetch depth'
+    required: false
+    default: '0'
+  checkout:
+    description: 'Whether to checkout code'
+    required: false
+    default: 'true'
+  token:
+    description: 'GitHub token for checkout'
+    required: false
+    default: ${{ github.token }}
+  ref:
+    description: 'Branch or ref to checkout'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout code
+      if: inputs.checkout == 'true'
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: ${{ inputs.fetch-depth }}
+        token: ${{ inputs.token }}
+        ref: ${{ inputs.ref }}
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: 'npm'
+        cache-dependency-path: '**/package-lock.json'
+
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
+      with:
+        bun-version: ${{ inputs.bun-version }}
+
+    - name: Cache Bun dependencies
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.bun/install/cache
+          backend/node_modules
+          ui/node_modules
+          node_modules
+        key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock', '**/package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-bun-
