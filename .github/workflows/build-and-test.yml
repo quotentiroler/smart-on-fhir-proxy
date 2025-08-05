@@ -20,8 +20,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Setup Bun with version scripts
         uses: ./.github/actions/setup-bun-version
+        with:
+          checkout: 'false'  # Skip checkout since we already did it
 
       - name: Build backend
         run: |

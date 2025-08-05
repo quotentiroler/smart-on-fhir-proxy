@@ -13,9 +13,15 @@ jobs:
     continue-on-error: true
 
     steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Setup Node.js with AI tools
         uses: ./.github/actions/setup-node-ai
         with:
+          checkout: 'false'  # Skip checkout since we already did it
           fetch-depth: 0
 
       - name: Comment on HEAD commit via ChatGPT

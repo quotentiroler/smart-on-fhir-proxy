@@ -56,9 +56,17 @@ jobs:
             echo "✅ Using version type: ${{ inputs.version_type }}"
           fi
 
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.branch }}
+          fetch-depth: 0
+          token: ${{ steps.generate-token.outputs.token }}
+
       - name: Setup Bun with version scripts
         uses: ./.github/actions/setup-bun-version
         with:
+          checkout: 'false'  # Skip checkout since we already did it
           ref: ${{ inputs.branch }}
           fetch-depth: 0
           token: ${{ steps.generate-token.outputs.token }}
