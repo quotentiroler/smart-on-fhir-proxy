@@ -19,13 +19,13 @@ models/GetAdminHealthcareUsersLimitParameter.ts
 models/GetAdminHealthcareUsersOffsetParameter.ts
 models/GetAdminIdps200ResponseInner.ts
 models/GetAdminIdpsCount200Response.ts
+models/GetAdminKeycloakConfigStatus200Response.ts
 models/GetAdminLaunchContexts200ResponseInner.ts
 models/GetAdminRoles200ResponseInner.ts
 models/GetAdminSmartApps200ResponseInner.ts
 models/GetAuthConfig200Response.ts
 models/GetAuthConfig200ResponseKeycloak.ts
 models/GetAuthIdentityProviders200ResponseInner.ts
-models/GetAuthIdps200ResponseInner.ts
 models/GetAuthUserinfo200Response.ts
 models/GetAuthUserinfo200ResponseNameInner.ts
 models/GetFhirServers200Response.ts
@@ -54,6 +54,10 @@ models/GetStatus200ResponseServer.ts
 models/PostAdminHealthcareUsersRequest.ts
 models/PostAdminIdpsRequest.ts
 models/PostAdminIdpsRequestConfig.ts
+models/PostAdminKeycloakConfigConfigure200Response.ts
+models/PostAdminKeycloakConfigConfigureRequest.ts
+models/PostAdminKeycloakConfigTest200Response.ts
+models/PostAdminKeycloakConfigTestRequest.ts
 models/PostAdminLaunchContextsByUserIdFhirContextRequest.ts
 models/PostAdminRolesRequest.ts
 models/PostAdminSmartAppsRequest.ts

@@ -17,7 +17,6 @@ class OpenIDService {
     this.config = {
       baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8445',
       clientId: 'admin-ui',
-      clientSecret: 'admin-ui-secret',
       redirectUri: window.location.origin + '/',
       scope: 'openid profile email',
     };
@@ -93,15 +92,6 @@ class OpenIDService {
       redirectUri: this.config.redirectUri,
       codeVerifier,
     };
-
-    console.debug('Token request:', {
-      grantType: tokenRequest.grantType,
-      clientId: tokenRequest.clientId,
-      redirectUri: tokenRequest.redirectUri,
-      hasCode: !!tokenRequest.code,
-      hasCodeVerifier: !!tokenRequest.codeVerifier,
-      hasClientSecret: !!tokenRequest.clientSecret
-    });
 
     try {
       const response = await this.authApi.postAuthToken({

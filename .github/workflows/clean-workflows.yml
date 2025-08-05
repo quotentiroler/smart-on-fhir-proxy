@@ -78,7 +78,7 @@ jobs:
             // 3) Delete all successful "Cleanup Workflow Runs" runs (this workflow itself)
             console.log('Looking for successful cleanup workflow runs to delete…');
             for (const run of completed.data.workflow_runs) {
-              if (run.name === 'Cleanup Workflow Runs' && run.conclusion === 'success') {
+              if (run.name.includes('Cleanup') && run.conclusion === 'success') {
                 console.log(`Deleting successful cleanup workflow run ${run.id}`);
                 await github.rest.actions.deleteWorkflowRun({
                   owner,

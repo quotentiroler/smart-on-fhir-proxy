@@ -1,4 +1,4 @@
-# SMART on FHIR Platform
+# SMART on FHIR Proxy
 
 A comprehensive healthcare application platform implementing the complete SMART App Launch Framework 2.2.0 specification with advanced administrative capabilities, AI-powered assistance, and enterprise-grade security.
 
@@ -10,7 +10,7 @@ A comprehensive healthcare application platform implementing the complete SMART 
 
 ## 🏥 Overview
 
-The SMART on FHIR Platform is a complete enterprise solution for managing healthcare applications, users, and FHIR servers in compliance with the SMART App Launch framework. It provides secure OAuth 2.0 flows, comprehensive user management, real-time monitoring, and an AI-powered administrative assistant.
+The SMART on FHIR Proxy is an Open Source solution for managing healthcare applications, users, and FHIR servers in compliance with the SMART App Launch framework. It provides secure OAuth 2.0 flows, comprehensive user management, real-time monitoring, and an AI-powered administrative assistant.
 
 ### Key Features
 
@@ -256,7 +256,7 @@ Each branch automatically triggers appropriate CI/CD workflows with version mana
 
 | Version          | Milestone              | Target Features                           |
 | ---------------- | ---------------------- | ----------------------------------------- |
-| **<0.1.0** | Early Development       | Test deployment, incomplete documentation |
+| **<0.1.0** | Early Development      | Test deployment, incomplete documentation |
 | **v0.1.0** | SMART 2.2.0 Compliance | Complete specification implementation     |
 | **v0.9.0** | AI Enhancement         | Advanced monitoring, predictive analytics |
 | **v1.0.0** | Production Ready       | Enterprise deployment, full documentation |

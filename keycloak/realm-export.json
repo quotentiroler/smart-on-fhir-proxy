@@ -12,8 +12,7 @@
       "clientId": "admin-ui",
       "name": "Admin UI",
       "enabled": true,
-      "clientAuthenticatorType": "client-secret",
-      "secret": "admin-ui-secret",
+      "clientAuthenticatorType": "client-dummy",
       "redirectUris": [
         "http://localhost:5173/*",
         "http://localhost:3000/*"
@@ -23,11 +22,44 @@
         "http://localhost:3000"
       ],
       "protocol": "openid-connect",
-      "publicClient": false,
+      "publicClient": true,
       "bearerOnly": false,
       "standardFlowEnabled": true,
       "implicitFlowEnabled": false,
-      "directAccessGrantsEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "fullScopeAllowed": true,
+      "defaultClientScopes": [
+        "web-origins",
+        "acr",
+        "profile",
+        "roles",
+        "email"
+      ],
+      "optionalClientScopes": [
+        "address",
+        "phone",
+        "offline_access",
+        "microprofile-jwt"
+      ],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    },
+    {
+      "clientId": "admin-service",
+      "name": "Admin Service",
+      "description": "Service account for backend administrative operations including dynamic client registration",
+      "enabled": true,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "admin-service-secret",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": false,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true,
       "authorizationServicesEnabled": false,
       "fullScopeAllowed": true,
@@ -43,7 +75,10 @@
         "phone",
         "offline_access",
         "microprofile-jwt"
-      ]
+      ],
+      "attributes": {
+        "access.token.lifespan": "3600"
+      }
     }
   ],
   "users": [
@@ -103,6 +138,19 @@
       "clientRoles": {
         "admin-ui": [
           "practitioner"
+        ]
+      }
+    },
+    {
+      "username": "service-account-admin-service",
+      "enabled": true,
+      "serviceAccountClientId": "admin-service",
+      "clientRoles": {
+        "realm-management": [
+          "manage-clients",
+          "view-clients",
+          "create-client",
+          "manage-realm"
         ]
       }
     }
