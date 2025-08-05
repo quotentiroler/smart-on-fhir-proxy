@@ -1,13 +1,13 @@
-name: Beta Release
+name: Alpha Release
 
 on:
   push:
-    branches: [test]
+    branches: [develop]
     paths-ignore:
       - 'ui/src/lib/api-client/**'
   workflow_dispatch:
 
-# Prevent concurrent beta releases
+# Prevent concurrent alpha releases
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -33,27 +33,27 @@ jobs:
           app-private-key: ${{ secrets.APP_PRIVATE_KEY }}
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
 
-  # Beta releases run comprehensive testing (unit + integration + E2E)
-  beta-testing:
-    name: Beta Testing
+  # Alpha releases run unit tests first
+  alpha-testing:
+    name: Alpha Testing
     needs: [validate-secrets]
-    if: ${{ !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Beta release') && !contains(github.event.head_commit.message, '🚀') && !contains(github.event.head_commit.message, 'smart-on-fhir-proxy-releaser') }}
-    uses: ./.github/workflows/orchestrations/testing-strategy.yml
+    if: ${{ !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Alpha release') && !contains(github.event.head_commit.message, '🚀') && !contains(github.event.head_commit.message, 'smart-on-fhir-proxy-releaser') }}
+    uses: ./.github/orchestrations/testing-strategy.yml
     with:
-      test_stage: 'beta'
-      test_scope: 'all'
+      test_stage: 'alpha'
+      test_scope: 'unit'
 
-  beta-release:
-    name: Beta Release
+  alpha-release:
+    name: Alpha Release
     # Only run if the last commit is not a release commit to avoid infinite loops
-    if: ${{ !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Beta release') && !contains(github.event.head_commit.message, '🚀') && !contains(github.event.head_commit.message, 'smart-on-fhir-proxy-releaser') }}
-    needs: [validate-secrets, beta-testing]
-    uses: ./.github/workflows/orchestrations/release-orchestrator.yml
+    if: ${{ !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Alpha release') && !contains(github.event.head_commit.message, '🚀') && !contains(github.event.head_commit.message, 'smart-on-fhir-proxy-releaser') }}
+    needs: [validate-secrets, alpha-testing]
+    uses: ./.github/orchestrations/release-orchestrator.yml
     with:
-      release_type: 'beta'
-      source_branch: 'test'
-      target_branch: 'test'
-      should_bump_version: false
+      release_type: 'alpha'
+      source_branch: 'develop'
+      target_branch: 'develop'
+      should_bump_version: true
       is_prerelease: true
       commit_limit: 10
     secrets:
@@ -65,7 +65,7 @@ jobs:
   notify-failure:
     name: Notify on Failure
     runs-on: ubuntu-latest
-    needs: [beta-testing, beta-release]
+    needs: [alpha-testing, alpha-release]
     if: failure()
     steps:
       - name: Checkout for action access
@@ -75,7 +75,7 @@ jobs:
         uses: ./.github/actions/discord-notify
         with:
           webhook-url: ${{ secrets.DISCORD_WEBHOOK }}
-          title: "❌ Beta Release Failed"
-          message: "Beta release workflow failed on test branch"
+          title: "❌ Alpha Release Failed"
+          message: "Alpha release workflow failed on develop branch"
           color: "ff0000"
         continue-on-error: true

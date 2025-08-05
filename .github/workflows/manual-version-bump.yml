@@ -131,7 +131,7 @@ jobs:
           echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
 
       - name: Validate version operations
-        uses: ./.github/workflows/orchestrations/version-operations.yml
+        uses: ./.github/orchestrations/version-operations.yml
         with:
           operation: validate
 

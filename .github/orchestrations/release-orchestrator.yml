@@ -99,7 +99,7 @@ jobs:
   # Manage version
   version:
     name: Version Management
-    uses: ./.github/workflows/orchestrations/version-operations.yml
+    uses: ./.github/orchestrations/version-operations.yml
     with:
       operation: 'update'
       release_type: ${{ inputs.release_type }}
@@ -112,7 +112,7 @@ jobs:
   changelog:
     name: Generate Changelog
     needs: [get-commits, version]
-    uses: ./.github/workflows/orchestrations/generate-changelog.yml
+    uses: ./.github/orchestrations/generate-changelog.yml
     with:
       commit_shas: ${{ needs.get-commits.outputs.commit_shas }}
       release_type: ${{ inputs.release_type }}
@@ -186,7 +186,7 @@ jobs:
   build:
     name: Build and Test
     needs: [version, generate-api-clients]
-    uses: ./.github/workflows/orchestrations/build-and-test.yml
+    uses: ./.github/orchestrations/build-and-test.yml
     with:
       run_tests: true
       fail_on_test_failure: false
@@ -195,7 +195,7 @@ jobs:
   release:
     name: Create GitHub Release
     needs: [version, changelog, generate-api-clients, build]
-    uses: ./.github/workflows/orchestrations/create-release.yml
+    uses: ./.github/orchestrations/create-release.yml
     with:
       release_type: ${{ inputs.release_type }}
       version: ${{ needs.version.outputs.new_version }}

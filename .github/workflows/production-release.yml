@@ -72,7 +72,7 @@ jobs:
     name: Production Testing (Security & Compliance)
     needs: [validate-secrets, check-changes]
     if: ${{ needs.check-changes.outputs.should_release == 'true' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Production release') && !contains(github.event.head_commit.message, '🎉') }}
-    uses: ./.github/workflows/orchestrations/testing-strategy.yml
+    uses: ./.github/orchestrations/testing-strategy.yml
     with:
       test_stage: "production"
       test_scope: "all"
@@ -82,7 +82,7 @@ jobs:
     needs: [validate-secrets, check-changes, production-testing]
     # Only run if the last commit is not a release commit AND there are non-documentation changes
     if: ${{ needs.check-changes.outputs.should_release == 'true' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Production release') && !contains(github.event.head_commit.message, '🎉') }}
-    uses: ./.github/workflows/orchestrations/release-orchestrator.yml
+    uses: ./.github/orchestrations/release-orchestrator.yml
     with:
       release_type: "RELEASE"
       source_branch: "main"

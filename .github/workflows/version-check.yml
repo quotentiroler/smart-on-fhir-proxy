@@ -11,6 +11,6 @@ permissions:
 jobs:
   validate-versions:
     name: Validate Version Consistency
-    uses: ./.github/workflows/orchestrations/version-operations.yml
+    uses: ./.github/orchestrations/version-operations.yml
     with:
       operation: 'validate'
