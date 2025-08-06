@@ -142,12 +142,12 @@ jobs:
 
       - name: Revert and recreate PR
         id: revert-action
-        uses: ./.github/actions/revert-and-recreate-pr
+        uses: ./.github/actions/revert-and-recreate-pr@main
         with:
           target-branch: "main"
           source-branch: "test"
           workflow-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-          failure-context: "Production Release"
+          failure-context: "Production Releasse"
           github-token: ${{ steps.generate_token.outputs.token }}
           commits-to-check: "10"
 
