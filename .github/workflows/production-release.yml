@@ -140,32 +140,30 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
 
-      - name: Revert to previous commit
+      - name: Revert and recreate PR
+        id: revert-action
+        uses: ./.github/actions/revert-and-recreate-pr
+        with:
+          target-branch: "main"
+          source-branch: "test"
+          workflow-url: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          failure-context: "Production Release"
+          github-token: ${{ steps.generate_token.outputs.token }}
+          commits-to-check: "10"
+
+      - name: Handle revert failure
+        if: steps.revert-action.outputs.push-success == 'false'
         run: |
-          echo "🚨 Production release failed - reverting main branch to previous commit"
-
-          # Reset to the previous commit (HEAD~1)
-          git reset --hard HEAD~1
-
-          # Force push the revert
-          git push origin main --force
-
-          echo "✅ Successfully reverted main branch to previous commit"
-
-          # Create an issue to track the failed release
-          gh issue create \
-            --title "🚨 Production Release Failed - Main Branch Reverted" \
-            --body "**Production release pipeline failed and main branch has been automatically reverted.**
-
-          **Details:**
-          - Reverted to previous commit (HEAD~1)
-          - Failed workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          - Timestamp: $(date -u)
-
-          **Next Steps:**
-          1. Investigate the release failure in the workflow logs
-          2. Fix any issues that caused the release to fail
-          3. Re-run the production release when ready" \
-            --label "bug,release-failure,high-priority"
-        env:
-          GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+          echo "⚠️ Automatic revert failed. This is likely due to:"
+          echo "   1. GitHub App missing 'workflows' permission"
+          echo "   2. Repository branch protection rules"
+          echo "   3. Workflow files being affected by the revert"
+          echo ""
+          echo "🔧 To fix this:"
+          echo "   1. Check GitHub App permissions in repository settings"
+          echo "   2. Ensure the app has 'Actions' > 'Write' permission"
+          echo "   3. Consider temporarily relaxing branch protection rules"
+          echo "   4. Or manually revert to commit: ${{ steps.revert-action.outputs.reverted-to }}"
+          echo ""
+          echo "📋 An issue has been created with detailed instructions."
+          exit 1

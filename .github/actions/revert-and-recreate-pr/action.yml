@@ -1,0 +1,238 @@
+name: 'Revert and Recreate PR'
+description: 'Reverts branch to before problematic merge and recreates PR from source branch'
+author: 'smart-on-fhir-proxy'
+
+inputs:
+  target-branch:
+    description: 'The branch to revert (e.g., main)'
+    required: true
+  source-branch:
+    description: 'The source branch to recreate PR from (e.g., test)'
+    required: true
+  workflow-url:
+    description: 'URL of the failed workflow for issue tracking'
+    required: true
+  failure-context:
+    description: 'Context about what failed (e.g., "Production Release", "Beta Release")'
+    required: true
+    default: 'Release'
+  github-token:
+    description: 'GitHub token with appropriate permissions'
+    required: true
+  commits-to-check:
+    description: 'Number of commits to check for merge commits'
+    required: false
+    default: '10'
+
+outputs:
+  reverted-to:
+    description: 'The commit hash of the revert commit that was created'
+    value: ${{ steps.revert.outputs.reverted-to }}
+  merge-commit:
+    description: 'The problematic merge commit that was reverted'
+    value: ${{ steps.revert.outputs.merge-commit }}
+  push-success:
+    description: 'Whether the revert commit was successfully pushed'
+    value: ${{ steps.revert.outputs.push-success }}
+  pr-created:
+    description: 'Whether a new PR was created'
+    value: ${{ steps.recreate-pr.outputs.pr-created }}
+  pr-number:
+    description: 'The number of the created/existing PR'
+    value: ${{ steps.recreate-pr.outputs.pr-number }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Configure git
+      shell: bash
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+    - name: Revert to before problematic merge commit
+      id: revert
+      shell: bash
+      run: |
+        echo "🚨 ${{ inputs.failure-context }} failed - reverting ${{ inputs.target-branch }} to before the problematic merge"
+
+        # Find the most recent merge commit
+        COMMITS_TO_CHECK=${{ inputs.commits-to-check }}
+        MERGE_COMMIT=""
+        REVERT_TO_COMMIT=""
+        
+        for i in $(seq 1 $COMMITS_TO_CHECK); do
+          COMMIT_MESSAGE=$(git log --format="%s" -n 1 HEAD~$i)
+          echo "Checking commit HEAD~$i: $COMMIT_MESSAGE"
+          
+          if echo "$COMMIT_MESSAGE" | grep -q "Merge pull request"; then
+            MERGE_COMMIT="HEAD~$i"
+            REVERT_TO_COMMIT="HEAD~$((i+1))"
+            echo "✅ Found merge commit at HEAD~$i: $COMMIT_MESSAGE"
+            echo "✅ Will revert to commit before merge: $REVERT_TO_COMMIT"
+            break
+          fi
+        done
+
+        if [ -z "$MERGE_COMMIT" ]; then
+          echo "❌ No merge commit found in the last $COMMITS_TO_CHECK commits"
+          echo "Falling back to HEAD~1 for safety"
+          MERGE_COMMIT="HEAD~1"
+        fi
+
+        # Use git revert to create a new commit that undoes the merge
+        echo "🔄 Reverting merge commit: $MERGE_COMMIT"
+        if git revert --mainline 1 --no-edit $MERGE_COMMIT; then
+          echo "✅ Created revert commit for: $MERGE_COMMIT"
+          
+          # Push the revert commit
+          if git push origin ${{ inputs.target-branch }}; then
+            echo "✅ Successfully pushed revert commit to ${{ inputs.target-branch }}"
+            PUSH_SUCCESS="true"
+            REVERT_TO_COMMIT=$(git rev-parse HEAD)
+          else
+            echo "❌ Failed to push revert commit"
+            PUSH_SUCCESS="false"
+            REVERT_TO_COMMIT=$(git rev-parse HEAD)
+          fi
+        else
+          echo "❌ Failed to create revert commit - likely merge conflicts or invalid merge commit"
+          echo "💡 This may be due to:"
+          echo "   - Merge conflicts in the revert"
+          echo "   - Invalid merge commit structure"
+          echo "   - Already reverted commit"
+          PUSH_SUCCESS="false"
+          REVERT_TO_COMMIT="HEAD"
+        fi
+
+        # Set outputs
+        echo "reverted-to=$REVERT_TO_COMMIT" >> $GITHUB_OUTPUT
+        echo "merge-commit=$MERGE_COMMIT" >> $GITHUB_OUTPUT
+        echo "push-success=$PUSH_SUCCESS" >> $GITHUB_OUTPUT
+
+        # Get information about what we reverted
+        CURRENT_HEAD_MESSAGE=$(git log --format="%s" -n 1 HEAD)
+        MERGE_COMMIT_MESSAGE=""
+        if [ -n "$MERGE_COMMIT" ] && [ "$MERGE_COMMIT" != "HEAD~1" ]; then
+          MERGE_COMMIT_MESSAGE=$(git log --format="%s" -n 1 $MERGE_COMMIT)
+        fi
+
+        # Store for issue creation
+        echo "CURRENT_HEAD_MESSAGE=$CURRENT_HEAD_MESSAGE" >> $GITHUB_ENV
+        echo "MERGE_COMMIT_MESSAGE=$MERGE_COMMIT_MESSAGE" >> $GITHUB_ENV
+        echo "PUSH_SUCCESS=$PUSH_SUCCESS" >> $GITHUB_ENV
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+
+    - name: Create issue for failed release
+      shell: bash
+      run: |
+        if [ "$PUSH_SUCCESS" = "true" ]; then
+          PUSH_STATUS="✅ Successfully created and pushed revert commit to ${{ inputs.target-branch }} branch"
+          NEXT_STEPS="1. The problematic merge has been reverted with a new commit
+        2. A new PR will be automatically created from ${{ inputs.source-branch }} → ${{ inputs.target-branch }}
+        3. Investigate the release failure in the workflow logs
+        4. Fix any issues that caused the release to fail
+        5. Re-review and merge the recreated PR when ready"
+        else
+          PUSH_STATUS="❌ Failed to create or push revert commit (likely due to merge conflicts or repository rules)"
+          NEXT_STEPS="1. **MANUAL ACTION REQUIRED**: The revert could not be completed automatically
+        2. You may need to manually revert the merge commit: ${{ steps.revert.outputs.merge-commit }}
+        3. Check for merge conflicts in the revert
+        4. Review repository branch protection rules
+        5. Investigate the release failure in the workflow logs
+        6. Create a new PR from ${{ inputs.source-branch }} → ${{ inputs.target-branch }} when ready"
+        fi
+
+        gh issue create \
+          --title "🚨 ${{ inputs.failure-context }} Failed - ${{ inputs.target-branch }} Branch Revert $(if [ "$PUSH_SUCCESS" = "true" ]; then echo "Completed"; else echo "FAILED"; fi)" \
+          --body "**${{ inputs.failure-context }} pipeline failed and attempted to revert the problematic merge on ${{ inputs.target-branch }} branch.**
+
+        **Revert Status:**
+        $PUSH_STATUS
+
+        **Details:**
+        - Revert commit: ${{ steps.revert.outputs.reverted-to }}
+        - Current HEAD message: $CURRENT_HEAD_MESSAGE
+        - Reverted merge commit: ${{ steps.revert.outputs.merge-commit }}
+        - Original merge message: $MERGE_COMMIT_MESSAGE
+        - Failed workflow: ${{ inputs.workflow-url }}
+        - Timestamp: $(date -u)
+
+        **Approach Used:**
+        This revert used \`git revert --mainline 1\` to create a new commit that undoes the problematic merge, preserving git history.
+
+        **Next Steps:**
+        $NEXT_STEPS" \
+          --label "bug,release-failure,high-priority$(if [ "$PUSH_SUCCESS" = "false" ]; then echo ",manual-action-required"; fi)"
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+
+    - name: Recreate PR
+      id: recreate-pr
+      shell: bash
+      run: |
+        # Only attempt to recreate PR if the revert push was successful
+        if [ "$PUSH_SUCCESS" != "true" ]; then
+          echo "⏭️ Skipping PR recreation since revert push failed"
+          echo "pr-created=false" >> $GITHUB_OUTPUT
+          echo "pr-number=" >> $GITHUB_OUTPUT
+          exit 0
+        fi
+
+        echo "🔄 Recreating PR from ${{ inputs.source-branch }} → ${{ inputs.target-branch }} after revert"
+        
+        PR_CREATED="false"
+        PR_NUMBER=""
+        
+        # Check if source branch exists and has commits ahead of target
+        if git ls-remote --heads origin ${{ inputs.source-branch }} | grep -q "refs/heads/${{ inputs.source-branch }}"; then
+          git fetch origin ${{ inputs.source-branch }}
+          
+          COMMITS_AHEAD=$(git rev-list --count HEAD..origin/${{ inputs.source-branch }})
+          echo "${{ inputs.source-branch }} branch has $COMMITS_AHEAD commits ahead of ${{ inputs.target-branch }}"
+          
+          if [ "$COMMITS_AHEAD" -gt 0 ]; then
+            # Check if PR already exists
+            EXISTING_PR=$(gh pr list --base ${{ inputs.target-branch }} --head ${{ inputs.source-branch }} --state open --json number --jq length)
+            
+            if [ "$EXISTING_PR" -eq 0 ]; then
+              # Create new PR
+              PR_RESULT=$(gh pr create \
+                --base ${{ inputs.target-branch }} \
+                --head ${{ inputs.source-branch }} \
+                --title "🔄 Auto-Recreated PR: Merge \`${{ inputs.source-branch }}\` → \`${{ inputs.target-branch }}\` (After ${{ inputs.failure-context }} Revert)" \
+                --body "**Automatically Recreated Pull Request** 🤖
+
+              This PR was automatically recreated after a failed ${{ inputs.failure-context }} caused ${{ inputs.target-branch }} to be reverted.
+              
+              **Background:**
+              - ${{ inputs.failure-context }} failed and ${{ inputs.target-branch }} was reverted to before the problematic merge
+              - This PR contains the same changes that were previously merged but need to be re-reviewed
+              - Commits ahead of ${{ inputs.target-branch }}: $COMMITS_AHEAD
+              - Reverted to commit: ${{ steps.revert.outputs.reverted-to }}
+              
+              **Action Required:**
+              Please review these changes again and merge when the underlying issues are resolved." \
+                --json number --jq .number)
+              
+              PR_NUMBER="$PR_RESULT"
+              PR_CREATED="true"
+              echo "✅ Created new PR #$PR_NUMBER from ${{ inputs.source-branch }} → ${{ inputs.target-branch }}"
+            else
+              # Get existing PR number
+              PR_NUMBER=$(gh pr list --base ${{ inputs.target-branch }} --head ${{ inputs.source-branch }} --state open --json number --jq '.[0].number')
+              echo "ℹ️ PR #$PR_NUMBER from ${{ inputs.source-branch }} → ${{ inputs.target-branch }} already exists, no need to recreate"
+            fi
+          else
+            echo "ℹ️ ${{ inputs.source-branch }} branch has no commits ahead of ${{ inputs.target-branch }}, no PR needed"
+          fi
+        else
+          echo "⚠️ ${{ inputs.source-branch }} branch does not exist, cannot recreate PR"
+        fi
+
+        # Set outputs
+        echo "pr-created=$PR_CREATED" >> $GITHUB_OUTPUT
+        echo "pr-number=$PR_NUMBER" >> $GITHUB_OUTPUT
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
