@@ -130,17 +130,17 @@ jobs:
           CURRENT_VERSION="${{ steps.check.outputs.current_version }}"
           CURRENT_BASE="${{ steps.check.outputs.base_version }}"
 
-          # Get version from latest release (any type)
-          LATEST_RELEASE_TAG=$(gh release list --limit 1 | cut -f3 | head -n1 || echo "")
+          # Get version from latest beta or production release (excluding alpha)
+          LATEST_RELEASE_TAG=$(gh release list --limit 100 | cut -f3 | grep -E "(RELEASE)" | head -n1 || echo "")
           
           if [ -n "$LATEST_RELEASE_TAG" ]; then
-            # Extract base version from latest release tag
+            # Extract base version from latest beta/production release tag
             LATEST_RELEASE_BASE=$(echo "$LATEST_RELEASE_TAG" | sed 's/^v//' | sed 's/-.*$//')
-            echo "Found latest release: $LATEST_RELEASE_TAG (base: $LATEST_RELEASE_BASE)"
+            echo "Found latest beta/production release: $LATEST_RELEASE_TAG (base: $LATEST_RELEASE_BASE)"
           else
-            # No releases found, use 0.0.0 as baseline
+            # No beta/production releases found, use 0.0.0 as baseline
             LATEST_RELEASE_BASE="0.0.0"
-            echo "No releases found, using baseline: $LATEST_RELEASE_BASE"
+            echo "No beta/production releases found, using baseline: $LATEST_RELEASE_BASE"
           fi
 
           echo "current_base=$CURRENT_BASE" >> $GITHUB_OUTPUT
