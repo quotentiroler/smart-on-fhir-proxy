@@ -36,6 +36,11 @@ on:
         description: "Path to test reports"
         value: ${{ jobs.integration-compliance-tests.outputs.test_reports_path }}
 
+    secrets:
+      DISCORD_WEBHOOK_URL:
+        description: "Discord webhook URL for notifications"
+        required: false
+
 jobs:
   integration-compliance-tests:
     name: Integration & Compliance Testing (${{ inputs.test_stage }})
@@ -297,3 +302,69 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Test Artifacts" >> $GITHUB_STEP_SUMMARY
           echo "Test reports are available in the uploaded artifacts: \`integration-compliance-test-results-${{ inputs.test_stage }}-${{ inputs.deployment_target }}\`" >> $GITHUB_STEP_SUMMARY
+
+  # Discord notification on successful testing
+  notify-testing-success:
+    name: Discord Testing Success Notification
+    needs: [integration-compliance-tests]
+    if: ${{ success() && needs.integration-compliance-tests.outputs.overall_status == 'passed' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Send Discord testing success notification
+        if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
+        uses: ./.github/actions/discord-notify
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          notification-type: 'testing'
+          title: '✅ Tests Passed: ${{ inputs.test_stage }} v${{ inputs.app_version }}'
+          description: 'All integration and compliance tests passed successfully for ${{ inputs.test_stage }} environment!'
+          version: ${{ inputs.app_version }}
+          deployment-stage: ${{ inputs.test_stage }}
+          deployment-target: ${{ inputs.deployment_target }}
+          fhir-server-url: ${{ inputs.fhir_server_url }}
+          keycloak-url: ${{ inputs.keycloak_url }}
+          repository: ${{ github.repository }}
+          commit-sha: ${{ github.sha }}
+          actor: ${{ github.actor }}
+          color: '00FF00'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+  # Discord notification on testing failure
+  notify-testing-failure:
+    name: Discord Testing Failure Notification
+    needs: [integration-compliance-tests]
+    if: ${{ failure() || (success() && needs.integration-compliance-tests.outputs.overall_status != 'passed') }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Send Discord testing failure notification
+        if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
+        uses: ./.github/actions/discord-notify
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          notification-type: 'error'
+          title: '❌ Tests Failed: ${{ inputs.test_stage }} v${{ inputs.app_version }}'
+          description: 'Some tests failed for ${{ inputs.test_stage }} environment. Please check the test reports for details.'
+          version: ${{ inputs.app_version }}
+          deployment-stage: ${{ inputs.test_stage }}
+          deployment-target: ${{ inputs.deployment_target }}
+          fhir-server-url: ${{ inputs.fhir_server_url }}
+          keycloak-url: ${{ inputs.keycloak_url }}
+          repository: ${{ github.repository }}
+          commit-sha: ${{ github.sha }}
+          actor: ${{ github.actor }}
+          color: 'FF0000'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}

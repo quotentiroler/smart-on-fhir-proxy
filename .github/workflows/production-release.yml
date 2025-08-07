@@ -86,6 +86,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
       AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
   # Test the deployed production application
   test-production-deployment:
@@ -98,6 +99,8 @@ jobs:
       fhir_server_url: ${{ needs.deploy-production.outputs.fhir_server_url }}
       keycloak_url: ${{ needs.deploy-production.outputs.keycloak_url }}
       app_version: ${{ needs.production-release.outputs.version }}
+    secrets:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
   # Revert changes if production release fails
   revert-on-failure:
