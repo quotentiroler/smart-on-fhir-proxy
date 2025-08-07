@@ -38,7 +38,7 @@ runs:
       run: |
         echo "🐳 Verifying Docker installation..."
         docker --version
-        docker-compose --version
+        docker compose version
         docker info
 
     - name: Pull Inferno Docker image

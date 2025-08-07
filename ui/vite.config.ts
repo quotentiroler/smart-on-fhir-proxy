@@ -1,4 +1,4 @@
-import { defineConfig, type TerserOptions } from 'vite'
+import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -69,12 +69,6 @@ export default defineConfig({
     // Enable source maps for better debugging in production
     sourcemap: false,
     // Optimize for smaller builds
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true
-      }
-    } as TerserOptions
+    minify: true
   }
 })
