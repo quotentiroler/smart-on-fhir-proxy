@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type TerserOptions } from 'vite'
 import react from '@vitejs/plugin-react-swc'
 import tailwindcss from '@tailwindcss/vite'
 
@@ -75,6 +75,6 @@ export default defineConfig({
         drop_console: true,
         drop_debugger: true
       }
-    }
+    } as TerserOptions
   }
 })

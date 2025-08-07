@@ -84,140 +84,28 @@ jobs:
           echo "🔧 Setting up Fly.io authentication..."
           flyctl auth token $FLY_API_TOKEN
           
-          # Create Fly.io apps if they don't exist
-          echo "🏗️ Creating Fly.io apps..."
+          # Create Keycloak app if it doesn't exist
+          echo "🏗️ Creating Fly.io Keycloak app..."
           flyctl apps create proxy-smart-alpha-auth --org personal || echo "Keycloak app already exists"
-          flyctl apps create proxy-smart-alpha --org personal || echo "Backend app already exists"
-          
+
           # Create Postgres database for Keycloak first
           echo "🗄️ Setting up Keycloak database..."
           flyctl postgres create \
             --name proxy-smart-alpha-db \
-            --region ams \
+            --region fra \
             --initial-cluster-size 1 \
             --vm-size shared-cpu-1x \
-            --volume-size 3 || echo "Database already exists"
+            --volume-size 3 \
+            --password alphapassword123 || echo "Database already exists"
           
-          # Create separate Keycloak Dockerfile with realm import
-          cat > Dockerfile.keycloak << 'EOF'
-          FROM quay.io/keycloak/keycloak:26.2
-          
-          # Copy the realm export file
-          COPY keycloak/realm-export.json /opt/keycloak/data/import/realm-export.json
-          
-          ENV KEYCLOAK_ADMIN=admin
-          ENV KC_DB=postgres
-          ENV KC_PROXY=edge
-          ENV KC_HTTP_ENABLED=true
-          ENV KC_HOSTNAME_STRICT=false
-          
-          ENTRYPOINT ["/opt/keycloak/bin/kc.sh", "start-dev", "--import-realm"]
-          EOF
-          
-          # Create an alpha-specific realm configuration
-          echo "🔧 Creating alpha realm configuration..."
-          cp keycloak/realm-export.json keycloak/realm-export-alpha.json
-          
-          # Verify the file was created
-          ls -la keycloak/realm-export-alpha.json
-          echo "✅ Alpha realm configuration created"
-          
-          # Update the realm export for alpha environment URLs
-          sed -i 's|http://localhost:5173/\*|https://proxy-smart-alpha.fly.dev/*|g' keycloak/realm-export-alpha.json
-          sed -i 's|http://localhost:3000/\*|https://proxy-smart-alpha.fly.dev/*|g' keycloak/realm-export-alpha.json
-          sed -i 's|http://localhost:5173|https://proxy-smart-alpha.fly.dev|g' keycloak/realm-export-alpha.json
-          sed -i 's|http://localhost:3000|https://proxy-smart-alpha.fly.dev|g' keycloak/realm-export-alpha.json
-          
-          # Verify the file still exists after sed operations
-          ls -la keycloak/realm-export-alpha.json
-          echo "✅ Alpha realm URLs updated"
-          
-          # Update Dockerfile to use alpha-specific realm
-          cat > Dockerfile.keycloak << 'EOF'
-          FROM quay.io/keycloak/keycloak:26.2
-          
-          # Copy the alpha-specific realm export file
-          COPY keycloak/realm-export-alpha.json /opt/keycloak/data/import/realm-export.json
-          
-          ENV KEYCLOAK_ADMIN=admin
-          ENV KC_DB=postgres
-          ENV KC_PROXY=edge
-          ENV KC_HTTP_ENABLED=true
-          ENV KC_HOSTNAME_STRICT=false
-          
-          ENTRYPOINT ["/opt/keycloak/bin/kc.sh", "start-dev", "--import-realm"]
-          EOF
-          
-          # Create Keycloak fly.toml configuration
-          cat > fly.keycloak.toml << 'EOF'
-          app = "proxy-smart-alpha-auth"
-          primary_region = "ams"
-          
-          [build]
-            dockerfile = "Dockerfile.keycloak"
-          
-          [env]
-            KEYCLOAK_ADMIN = "admin"
-            KC_DB = "postgres"
-            KC_PROXY = "edge"
-            KC_HTTP_ENABLED = "true"
-            KC_HOSTNAME_STRICT = "false"
-          
-          [[services]]
-            internal_port = 8080
-            protocol = "tcp"
-          
-            [[services.ports]]
-              port = 80
-              handlers = ["http"]
-          
-            [[services.ports]]
-              port = 443
-              handlers = ["http", "tls"]
-          
-          [[services.http_checks]]
-            interval = "60s"
-            timeout = "20s"
-            grace_period = "120s"
-            method = "GET"
-            path = "/"
-          EOF
-          
-          # Deploy Keycloak with adequate memory (as per Medium article)
+          # Deploy Keycloak using our existing configuration
           echo "🚀 Deploying Keycloak app..."
-          
-          # Debug: Show current directory structure
-          echo "📂 Current directory structure:"
-          ls -la
-          echo "📂 Keycloak directory:"
-          ls -la keycloak/
-          
-          # Ensure proper build context by deploying from repository root
-          # Use detached mode to avoid timeout during slow Keycloak startup
-          flyctl deploy --config fly.keycloak.toml --vm-memory=2048 --detach
-          
-          # Wait for deployment to be created
-          echo "⏳ Waiting for Keycloak deployment to start..."
-          sleep 30
-          
-          # Attach database to Keycloak app
-          flyctl postgres attach -a proxy-smart-alpha-auth proxy-smart-alpha-db || echo "Database already attached"
-          
-          # Set Keycloak environment secrets
-          flyctl secrets set -a proxy-smart-alpha-auth \
-            KEYCLOAK_ADMIN_PASSWORD=admin \
-            KC_DB_PASSWORD="${{ secrets.ALPHA_DB_PASSWORD || 'alphapassword' }}" \
-            KC_DB_URL="jdbc:postgresql://proxy-smart-alpha-db.flycast:5432/proxy_smart_alpha_auth?sslmode=disable" \
-            KC_DB_USERNAME=postgres
+          flyctl deploy --config fly.keycloak.toml
           
           # Wait for Keycloak to be ready and realm imported
           echo "⏳ Waiting for Keycloak to start and import realm..."
           # Use a more lenient check since Keycloak takes time to start
-          timeout 600s bash -c "until curl -f https://proxy-smart-alpha-auth.fly.dev/ 2>/dev/null; do echo 'Waiting for Keycloak...'; sleep 30; done"
-          
-          # Wait additional time for realm import to complete
-          echo "⏳ Waiting for realm import to complete..."
-          sleep 60
+          timeout 60s bash -c "until curl -f https://proxy-smart-alpha-auth.fly.dev/ 2>/dev/null; do echo 'Waiting for Keycloak...'; sleep 30; done"
           
           # Verify the realm is available
           echo "🔍 Verifying proxy-smart realm is available..."
@@ -232,46 +120,13 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
           echo "� Deploying Alpha version ${{ inputs.app_version }} to Fly.io..."
-          
-          # Create backend fly.toml configuration (separate from Keycloak)
-          cat > fly.alpha.toml << 'EOF'
-          app = "proxy-smart-alpha"
-          primary_region = "ams"
-          
-          [build]
-            dockerfile = "Dockerfile"
-          
-          [env]
-            NODE_ENV = "alpha"
-            VERSION = "${{ inputs.app_version }}"
-            BASE_URL = "https://proxy-smart-alpha.fly.dev"
-            FHIR_SERVER_BASE = "https://hapi.fhir.org/baseR4"
-            KEYCLOAK_BASE_URL = "https://proxy-smart-alpha-auth.fly.dev"
-            KEYCLOAK_REALM = "proxy-smart"
-            PORT = "8445"
-          
-          [[services]]
-            internal_port = 8445
-            protocol = "tcp"
-          
-            [[services.ports]]
-              port = 80
-              handlers = ["http"]
-          
-            [[services.ports]]
-              port = 443
-              handlers = ["http", "tls"]
-          
-          [[services.http_checks]]
-            interval = "10s"
-            timeout = "5s"
-            grace_period = "10s"
-            method = "GET"
-            path = "/health"
-          EOF
+
+          # Create Backend App if it doesn't exist
+          echo "🏗️ Creating Fly.io backend app..."
+          flyctl apps create proxy-smart-alpha --org personal || echo "Backend app already exists"
           
           # Deploy backend to its own Fly.io app
-          flyctl deploy --config fly.alpha.toml --wait-timeout 300
+          flyctl deploy --config fly.toml
           
           # Get deployed URLs
           BACKEND_URL="https://proxy-smart-alpha.fly.dev"
@@ -649,7 +504,7 @@ jobs:
               echo "### 🧪 Alpha Environment Specifics" >> $GITHUB_STEP_SUMMARY
               echo "- **Backend Health**: [$BACKEND_URL/health]($BACKEND_URL/health)" >> $GITHUB_STEP_SUMMARY
               echo "- **Admin Interface**: [$BACKEND_URL/admin]($BACKEND_URL/admin)" >> $GITHUB_STEP_SUMMARY
-              echo "- **Platform**: Fly.io (Amsterdam region)" >> $GITHUB_STEP_SUMMARY
+              echo "- **Platform**: Fly.io (Frankfurt region)" >> $GITHUB_STEP_SUMMARY
               echo "- **Admin Credentials**: admin/admin (for testing only)" >> $GITHUB_STEP_SUMMARY
               echo "" >> $GITHUB_STEP_SUMMARY
               echo "🔬 **Testing**: This is an alpha environment. Use for development and integration testing." >> $GITHUB_STEP_SUMMARY
@@ -737,7 +592,7 @@ jobs:
                 echo "**Alpha-specific troubleshooting:**" >> $GITHUB_STEP_SUMMARY
                 echo "- Check Fly.io status at https://status.fly.io/" >> $GITHUB_STEP_SUMMARY
                 echo "- Verify FLY_API_TOKEN secret is properly configured" >> $GITHUB_STEP_SUMMARY
-                echo "- Consider using a different Fly.io region if Amsterdam (ams) is having issues" >> $GITHUB_STEP_SUMMARY
+                echo "- Consider using a different Fly.io region if Frankfurt (fra) is having issues" >> $GITHUB_STEP_SUMMARY
               elif [ "${{ inputs.deployment_stage }}" = "beta" ]; then
                 echo "**Beta-specific troubleshooting:**" >> $GITHUB_STEP_SUMMARY
                 echo "- Check VPS connectivity and SSH access" >> $GITHUB_STEP_SUMMARY

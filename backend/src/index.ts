@@ -88,7 +88,13 @@ initializeServer()
     await oauthMetricsLogger.initialize();
 
     try {
-      app.listen(config.port, async () => {
+      // In containerized environments (Docker/Fly.io), listen on all interfaces
+      // In local development, default to localhost only
+      const listenOptions = process.env.NODE_ENV === 'production' || process.env.DOCKER
+        ? { port: config.port, hostname: '0.0.0.0' }
+        : { port: config.port };
+        
+      app.listen(listenOptions, async () => {
         logger.server.info(`🚀 Server successfully started on port ${config.port}`)
         await displayServerEndpoints()
       })
