@@ -256,6 +256,7 @@ jobs:
           repository: ${{ github.repository }}
           commit-sha: ${{ github.sha }}
           actor: ${{ github.actor }}
+          release-url: ${{ needs.release.outputs.release_url }}
 
   # Discord notification on failure
   notify-failure:

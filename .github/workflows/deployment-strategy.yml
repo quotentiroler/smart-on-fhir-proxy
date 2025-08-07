@@ -22,6 +22,9 @@ on:
       keycloak_url:
         description: "Keycloak URL after deployment"
         value: ${{ jobs.output-deployment-urls.outputs.keycloak_url }}
+      app_url:
+        description: "Main application URL after deployment"
+        value: ${{ jobs.output-deployment-urls.outputs.app_url }}
       deployment_status:
         description: "Status of the deployment"
         value: ${{ jobs.output-deployment-urls.outputs.deployment_status }}
@@ -60,6 +63,7 @@ jobs:
     outputs:
       fhir_server_url: ${{ steps.deploy.outputs.fhir_server_url }}
       keycloak_url: ${{ steps.deploy.outputs.keycloak_url }}
+      app_url: ${{ steps.deploy.outputs.app_url }}
       deployment_status: ${{ steps.deploy.outputs.deployment_status }}
       deployment_target: ${{ steps.deploy.outputs.deployment_target }}
     
@@ -177,6 +181,7 @@ jobs:
           # Set outputs
           echo "fhir_server_url=$BACKEND_URL/proxy-smart-backend/hapi-fhir-server/R4" >> $GITHUB_OUTPUT
           echo "keycloak_url=$KEYCLOAK_URL" >> $GITHUB_OUTPUT
+          echo "app_url=$BACKEND_URL" >> $GITHUB_OUTPUT
           echo "deployment_status=success" >> $GITHUB_OUTPUT
           echo "deployment_target=fly.io" >> $GITHUB_OUTPUT
           
@@ -419,6 +424,7 @@ jobs:
     outputs:
       fhir_server_url: ${{ steps.set-outputs.outputs.fhir_server_url }}
       keycloak_url: ${{ steps.set-outputs.outputs.keycloak_url }}
+      app_url: ${{ steps.set-outputs.outputs.app_url }}
       deployment_status: ${{ steps.set-outputs.outputs.deployment_status }}
       deployment_target: ${{ steps.set-outputs.outputs.deployment_target }}
     
@@ -440,6 +446,7 @@ jobs:
             if [ "$ALPHA_RESULT" = "success" ]; then
               echo "fhir_server_url=${{ needs.deploy-alpha.outputs.fhir_server_url }}" >> $GITHUB_OUTPUT
               echo "keycloak_url=${{ needs.deploy-alpha.outputs.keycloak_url }}" >> $GITHUB_OUTPUT
+              echo "app_url=${{ needs.deploy-alpha.outputs.app_url }}" >> $GITHUB_OUTPUT
               echo "deployment_status=${{ needs.deploy-alpha.outputs.deployment_status }}" >> $GITHUB_OUTPUT
               echo "deployment_target=${{ needs.deploy-alpha.outputs.deployment_target }}" >> $GITHUB_OUTPUT
             else
@@ -702,6 +709,7 @@ jobs:
           deployment-target: ${{ needs.output-deployment-urls.outputs.deployment_target }}
           fhir-server-url: ${{ needs.output-deployment-urls.outputs.fhir_server_url }}
           keycloak-url: ${{ needs.output-deployment-urls.outputs.keycloak_url }}
+          app-url: ${{ needs.output-deployment-urls.outputs.app_url }}
           repository: ${{ github.repository }}
           commit-sha: ${{ github.sha }}
           actor: ${{ github.actor }}

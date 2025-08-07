@@ -95,7 +95,6 @@ class OAuthMonitoringService {
     
     try {
       return await api.getMonitoringOauthEvents({
-        authorization: `Bearer ${token}`,
         limit: options?.limit?.toString(),
         type: options?.type,
         status: options?.status,
@@ -120,9 +119,7 @@ class OAuthMonitoringService {
     const api = createOauthMonitoringApi(token);
     
     try {
-      return await api.getMonitoringOauthAnalytics({
-        authorization: `Bearer ${token}`
-      });
+      return await api.getMonitoringOauthAnalytics({});
     } catch (error) {
       console.error('Failed to fetch OAuth analytics:', error);
       throw error;
@@ -141,9 +138,7 @@ class OAuthMonitoringService {
     const api = createOauthMonitoringApi(token);
     
     try {
-      const response = await api.getMonitoringOauthHealth({
-        authorization: `Bearer ${token}`
-      });
+      const response = await api.getMonitoringOauthHealth({});
       // The API returns the health data directly
       return response as unknown as SystemHealth;
     } catch (error) {

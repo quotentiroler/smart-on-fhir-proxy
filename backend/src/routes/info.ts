@@ -50,6 +50,11 @@ async function getFHIRServersHealth() {
  */
 export const serverRoutes = new Elysia({ tags: ['server'] })
   .use(staticPlugin({ assets: 'public', prefix: '/' })) // Serve static files from public directory
+  
+  // Explicitly serve the index.html at root
+  .get('/', async () => {
+    return Bun.file('./public/index.html')
+  })
   // Shutdown endpoint - gracefully shutdown the server
   .post('/shutdown', async ({ set }) => {
     try {
