@@ -93,7 +93,8 @@ jobs:
             -e KC_DB_USERNAME=postgres \
             -e KC_DB_PASSWORD=postgres \
             -p 8080:8080 \
-            quay.io/keycloak/keycloak:26.2 start-dev
+            -v "$(pwd)/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro" \
+            quay.io/keycloak/keycloak:26.2 start-dev --import-realm
           
           # Wait for Keycloak
           echo "⏳ Waiting for Keycloak to be ready..."
@@ -120,6 +121,13 @@ jobs:
             echo "❌ Keycloak failed to start within timeout"
             echo "📋 Checking Keycloak container logs..."
             docker logs alpha-keycloak --tail 50
+            
+            # Set failure outputs
+            echo "fhir_server_url=" >> $GITHUB_OUTPUT
+            echo "keycloak_url=" >> $GITHUB_OUTPUT
+            echo "deployment_status=failed" >> $GITHUB_OUTPUT
+            echo "deployment_target=local" >> $GITHUB_OUTPUT
+            
             exit 1
           fi
           
@@ -129,20 +137,109 @@ jobs:
           bun install
           bun run build
           
-          # Set environment variables for backend
+          # Set environment variables for backend (all required variables)
+          export NODE_ENV="alpha"
+          export BASE_URL="http://localhost:3001"
+          export PORT=3001
           export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/keycloak"
           export KEYCLOAK_BASE_URL="http://localhost:8080"
           export KEYCLOAK_REALM="proxy-smart"
-          export PORT=3001
+          export FHIR_SERVER_BASE="https://hapi.fhir.org/baseR4"  # Use public FHIR server for alpha testing
           
-          # Start the FHIR proxy server in background
-          nohup bun run start &
+          # Start the FHIR proxy server in background with proper logging
+          echo "🚀 Starting backend server with the following config:"
+          echo "  BASE_URL: $BASE_URL"
+          echo "  PORT: $PORT"
+          echo "  KEYCLOAK_BASE_URL: $KEYCLOAK_BASE_URL"
+          echo "  FHIR_SERVER_BASE: $FHIR_SERVER_BASE"
+          
+          # Start backend and capture output
+          nohup bun run dist/index.js > ../backend.log 2>&1 &
           echo $! > ../backend.pid
           cd ..
           
           # Wait for backend to be ready
           echo "⏳ Waiting for FHIR backend..."
-          timeout 120s bash -c 'until curl -f http://localhost:3001/health; do sleep 5; done'
+          max_backend_attempts=24  # 2 minutes with 5-second intervals
+          backend_attempt=1
+          
+          while [ $backend_attempt -le $max_backend_attempts ]; do
+            echo "🔄 Checking backend connectivity... (attempt $backend_attempt/$max_backend_attempts)"
+            
+            # First check if the port is responding at all
+            if curl -s --connect-timeout 3 --max-time 5 http://localhost:3001 >/dev/null 2>&1; then
+              echo "✅ Backend port is responding, checking health endpoint..."
+              
+              # Try the simpler status endpoint first (may be more forgiving)
+              status_response=$(curl -s --connect-timeout 3 --max-time 5 http://localhost:3001/status 2>&1)
+              status_exit_code=$?
+              
+              if [ $status_exit_code -eq 0 ]; then
+                echo "✅ FHIR backend status check passed"
+                echo "Status response: $status_response"
+                break
+              else
+                echo "⚠️ Status endpoint failed, trying health endpoint..."
+                
+                # Now try the health endpoint
+                health_response=$(curl -s --connect-timeout 3 --max-time 5 http://localhost:3001/health 2>&1)
+                health_exit_code=$?
+                
+                if [ $health_exit_code -eq 0 ]; then
+                  echo "✅ FHIR backend health check passed"
+                  echo "Health response: $health_response"
+                  break
+                else
+                  echo "⚠️ Health endpoint also failed (exit code: $health_exit_code)"
+                  echo "Health response: $health_response"
+                  echo "Status response: $status_response"
+                  echo "⏳ Backend may still be initializing, waiting..."
+                fi
+              fi
+            else
+              echo "⏳ Backend port not responding yet, waiting..."
+              
+              # Check if process is still running
+              if [ -f backend.pid ]; then
+                backend_pid=$(cat backend.pid)
+                if ! ps -p $backend_pid > /dev/null 2>&1; then
+                  echo "❌ Backend process has died! PID: $backend_pid"
+                  echo "📋 Backend logs:"
+                  cat backend.log || echo "No backend.log file found"
+                  
+                  # Set failure outputs
+                  echo "fhir_server_url=" >> $GITHUB_OUTPUT
+                  echo "keycloak_url=http://localhost:8080" >> $GITHUB_OUTPUT
+                  echo "deployment_status=failed" >> $GITHUB_OUTPUT
+                  echo "deployment_target=local" >> $GITHUB_OUTPUT
+                  
+                  exit 1
+                fi
+              fi
+              
+              sleep 5
+              backend_attempt=$((backend_attempt + 1))
+            fi
+          done
+          
+          if [ $backend_attempt -gt $max_backend_attempts ]; then
+            echo "❌ FHIR backend failed to start within timeout"
+            echo "📋 Checking backend logs..."
+            if [ -f backend.pid ]; then
+              echo "Backend PID: $(cat backend.pid)"
+              ps aux | grep $(cat backend.pid) || echo "Backend process not running"
+            fi
+            echo "📋 Backend logs:"
+            cat backend.log || echo "No backend.log file found"
+            
+            # Set failure outputs
+            echo "fhir_server_url=" >> $GITHUB_OUTPUT
+            echo "keycloak_url=http://localhost:8080" >> $GITHUB_OUTPUT
+            echo "deployment_status=failed" >> $GITHUB_OUTPUT
+            echo "deployment_target=local" >> $GITHUB_OUTPUT
+            
+            exit 1
+          fi
           
           # Set outputs
           echo "fhir_server_url=http://localhost:3001" >> $GITHUB_OUTPUT

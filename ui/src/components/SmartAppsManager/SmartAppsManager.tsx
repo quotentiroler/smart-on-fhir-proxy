@@ -145,7 +145,7 @@ const mockApps: SmartApp[] = [
 
 export function SmartAppsManager() {
   const { smartAppsManagerTab, setSmartAppsManagerTab } = useAppStore();
-  const { apiClients } = useAuth();
+  const { clientApis } = useAuth();
   const [apps, setApps] = useState<SmartApp[]>([]);
   const [loading, setLoading] = useState(true);
   const [backendApps, setBackendApps] = useState<SmartApp[]>([]);
@@ -174,7 +174,7 @@ export function SmartAppsManager() {
     const fetchApps = async () => {
       try {
         setLoading(true);
-        const fetchedApps = await apiClients.smartApps.getAdminSmartApps();
+        const fetchedApps = await clientApis.smartApps.getAdminSmartApps();
         
         setBackendApps(fetchedApps);
         
@@ -207,7 +207,7 @@ export function SmartAppsManager() {
     };
 
     fetchApps();
-  }, [apiClients.smartApps]);
+  }, [clientApis.smartApps]);
 
   const handleAddApp = (appData: SmartAppFormData) => {
     // Convert form data to SmartApp format for UI display

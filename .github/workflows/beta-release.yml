@@ -19,7 +19,7 @@ jobs:
   beta-release:
     name: Beta Release
     # Only run if the last commit is not a release commit to avoid infinite loops
-    if: ${{ !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Beta release') && !contains(github.event.head_commit.message, '🚀') && !contains(github.event.head_commit.message, 'proxy-smart-releaser') }}
+    if: ${{ !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update client APIs') && !contains(github.event.head_commit.message, 'Beta release') && !contains(github.event.head_commit.message, '🚀') && !contains(github.event.head_commit.message, 'proxy-smart-releaser') }}
     uses: ./.github/workflows/release-orchestrator.yml
     with:
       release_type: 'beta'

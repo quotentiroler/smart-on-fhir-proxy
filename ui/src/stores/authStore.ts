@@ -2,7 +2,7 @@ import React from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { openidService } from '../service/openid-service';
-import { createApiClients, setAuthErrorHandler } from '../lib/apiClient';
+import { createClientApis, setAuthErrorHandler } from '../lib/apiClient';
 import type { UserProfile } from '@/lib/types/api';
 
 interface TokenData {
@@ -54,7 +54,7 @@ interface AuthState {
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
-  apiClients: ReturnType<typeof createApiClients>;
+  clientApis: ReturnType<typeof createClientApis>;
   
   initiateLogin: (idpHint?: string) => Promise<void>;
   exchangeCodeForToken: (code: string, codeVerifier: string) => Promise<void>;
@@ -62,7 +62,7 @@ interface AuthState {
   refreshTokens: () => Promise<void>;
   logout: () => void;
   clearError: () => void;
-  updateApiClients: () => void;
+  updateClientApis: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -73,13 +73,13 @@ export const useAuthStore = create<AuthState>()(
       loading: false,
       error: null,
       isAuthenticated: false,
-      apiClients: createApiClients(), // Initialize with no token
+      clientApis: createClientApis(), // Initialize with no token
 
-      // Helper function to update API clients with current token
-      updateApiClients: () => {
+      // Helper function to update client APIs with current token
+      updateClientApis: () => {
         const tokens = getStoredTokens();
         const token = tokens?.access_token || undefined;
-        set({ apiClients: createApiClients(token) });
+        set({ clientApis: createClientApis(token) });
         
         // Set up auth error handler each time we update clients
         setAuthErrorHandler(() => {
@@ -126,8 +126,8 @@ export const useAuthStore = create<AuthState>()(
           storeTokens(tokenData);
           set({ isAuthenticated: true });
           
-          // Update API clients with new token
-          get().updateApiClients();
+          // Update client APIs with new token
+          get().updateClientApis();
           
           // Fetch user profile
           await get().fetchProfile();
@@ -205,8 +205,8 @@ export const useAuthStore = create<AuthState>()(
           storeTokens(tokenData);
           set({ isAuthenticated: true, loading: false });
           
-          // Update API clients with refreshed token
-          get().updateApiClients();
+          // Update client APIs with refreshed token
+          get().updateClientApis();
           
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Token refresh failed';
@@ -236,8 +236,8 @@ export const useAuthStore = create<AuthState>()(
           loading: false 
         });
         
-        // Update API clients to have no token
-        get().updateApiClients();
+        // Update client APIs to have no token
+        get().updateClientApis();
         
         clearTokens();
         sessionStorage.removeItem('pkce_code_verifier');
@@ -256,7 +256,7 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-store',
       storage: createJSONStorage(() => localStorage),
-      // Only persist profile and isAuthenticated, not loading/error states or apiClients
+      // Only persist profile and isAuthenticated, not loading/error states or clientApis
       partialize: (state) => ({ 
         profile: state.profile, 
         isAuthenticated: state.isAuthenticated 
@@ -269,11 +269,11 @@ export const useAuthStore = create<AuthState>()(
             console.log('❌ Invalid or missing tokens, clearing auth state');
             state.profile = null;
             state.isAuthenticated = false;
-            state.apiClients = createApiClients(); // No token
+            state.clientApis = createClientApis(); // No token
             clearTokens();
           } else {
-            // Update API clients with current token
-            state.apiClients = createApiClients(tokens.access_token);
+            // Update client APIs with current token
+            state.clientApis = createClientApis(tokens.access_token);
             // Set up auth error handler for rehydrated clients
             setAuthErrorHandler(() => {
               console.log('Auth error handler triggered during rehydration, logging out...');

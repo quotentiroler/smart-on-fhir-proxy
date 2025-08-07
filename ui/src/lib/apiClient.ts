@@ -82,7 +82,7 @@ const createConfig = (token?: string) => {
   });
 };
 
-// Create individual API clients
+// Create individual client APIs
 export const createAdminApi = (token?: string) => new AdminApi(createConfig(token));
 export const createAuthApi = (token?: string) => new AuthenticationApi(createConfig(token));
 export const createHealthcareUsersApi = (token?: string) => new HealthcareUsersApi(createConfig(token));
@@ -121,8 +121,8 @@ const wrapApiClient = <T extends object>(client: T): T => {
   });
 };
 
-// Create all API clients at once with automatic auth error handling
-export const createApiClients = (token?: string) => ({
+// Create all client APIs at once with automatic auth error handling
+export const createClientApis = (token?: string) => ({
   admin: wrapApiClient(createAdminApi(token)),
   auth: wrapApiClient(createAuthApi(token)),
   healthcareUsers: wrapApiClient(createHealthcareUsersApi(token)),
@@ -155,8 +155,8 @@ export const getStoredToken = (): string | null => {
   }
 };
 
-// Create authenticated API clients using stored token
-export const createAuthenticatedApiClients = () => {
+// Create authenticated client APIs using stored token
+export const createAuthenticatedClientApis = () => {
   const token = getStoredToken();
-  return createApiClients(token || undefined);
+  return createClientApis(token || undefined);
 };
