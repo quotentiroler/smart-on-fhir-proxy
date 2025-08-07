@@ -1,7 +1,7 @@
 {
   "name": "proxy-smart-backend",
   "displayName": "Proxy Smart Backend",
-  "version": "0.0.1-alpha.202508071609.ed66c60",
+  "version": "0.0.1-alpha.202508071629.9b421fe",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
