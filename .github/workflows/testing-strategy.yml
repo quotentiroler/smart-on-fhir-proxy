@@ -79,8 +79,12 @@ jobs:
           max_attempts=30
           attempt=1
           
+          # Extract base URL from FHIR server URL (remove the /proxy-smart-backend/... path)
+          BASE_URL=$(echo "${{ inputs.fhir_server_url }}" | sed 's|/proxy-smart-backend.*||')
+          echo "Checking health at: $BASE_URL/health"
+          
           while [ $attempt -le $max_attempts ]; do
-            if curl -f "${{ inputs.fhir_server_url }}/health" >/dev/null 2>&1; then
+            if curl -f "$BASE_URL/health" >/dev/null 2>&1; then
               echo "✅ FHIR server is ready and responding"
               break
             fi
@@ -99,14 +103,27 @@ jobs:
         run: |
           echo "🔗 Running integration tests for ${{ inputs.test_stage }}..."
           
-          # Test basic health endpoint (already verified above, but good to document)
+          # Extract base URL from FHIR server URL (remove the /proxy-smart-backend/... path)
+          BASE_URL=$(echo "${{ inputs.fhir_server_url }}" | sed 's|/proxy-smart-backend.*||')
+          echo "Base server URL: $BASE_URL"
+          echo "FHIR endpoint URL: ${{ inputs.fhir_server_url }}"
+          
+          # Test basic health endpoint
           echo "Testing health endpoint..."
-          if curl -f "${{ inputs.fhir_server_url }}/health" > testing/${{ inputs.test_stage }}/reports/integration/health.json; then
+          if curl -f "$BASE_URL/health" > testing/${{ inputs.test_stage }}/reports/integration/health.json; then
             echo "✅ Health endpoint working"
           else
             echo "❌ Health endpoint failed"
             echo "status=failed" >> $GITHUB_OUTPUT
             exit 1
+          fi
+          
+          # Test FHIR server metadata endpoint
+          echo "Testing FHIR metadata endpoint..."
+          if curl -f "${{ inputs.fhir_server_url }}/metadata" > testing/${{ inputs.test_stage }}/reports/integration/fhir_metadata.json; then
+            echo "✅ FHIR metadata endpoint working"
+          else
+            echo "⚠️ FHIR metadata endpoint not available - may need authentication"
           fi
           
           # Test OAuth discovery if Keycloak is available
