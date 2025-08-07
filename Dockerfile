@@ -32,8 +32,8 @@ RUN bun run build
 # Build UI
 WORKDIR /app/ui
 # Set Vite environment variables for production build
-RUN echo "VITE_API_BASE_URL=https://proxy-smart-alpha.fly.dev" > .env.production && \
-    echo "VITE_BASE=/webapp/" >> .env.production
+ENV VITE_API_BASE_URL=https://proxy-smart-alpha.fly.dev
+ENV VITE_BASE=/webapp/
 # Build UI
 RUN bun run build
 
