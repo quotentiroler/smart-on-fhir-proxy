@@ -90,11 +90,19 @@ export async function getFHIRServerInfo(baseUrl?: string): Promise<FHIRVersionIn
   try {
     // Fetch CapabilityStatement (metadata endpoint)
     const metadataUrl = `${serverUrl}/metadata`
+    
+    // Add timeout to prevent hanging on slow/unreachable servers
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+    
     const response = await fetch(metadataUrl, {
       headers: {
         'Accept': 'application/fhir+json, application/json'
-      }
+      },
+      signal: controller.signal
     })
+    
+    clearTimeout(timeoutId)
 
     if (!response.ok) {
       throw new Error(`Failed to fetch FHIR metadata: ${response.status} ${response.statusText}`)
