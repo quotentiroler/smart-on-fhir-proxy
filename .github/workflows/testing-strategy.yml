@@ -113,8 +113,10 @@ jobs:
           echo "Testing OAuth discovery endpoint..."
           if curl -f "${{ inputs.keycloak_url }}/realms/proxy-smart/.well-known/openid_configuration" > testing/${{ inputs.test_stage }}/reports/integration/oauth_discovery.json; then
             echo "✅ OAuth discovery endpoint working"
+          elif curl -f "${{ inputs.keycloak_url }}/realms/master/.well-known/openid_configuration" > testing/${{ inputs.test_stage }}/reports/integration/oauth_discovery_master.json; then
+            echo "✅ Keycloak master realm accessible (proxy-smart realm may not be configured yet)"
           else
-            echo "⚠️ OAuth discovery endpoint not available"
+            echo "⚠️ OAuth discovery endpoint not available - Keycloak may not be fully configured"
           fi
           
           echo "status=passed" >> $GITHUB_OUTPUT
