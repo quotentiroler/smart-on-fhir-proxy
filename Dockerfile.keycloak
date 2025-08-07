@@ -1,0 +1,12 @@
+FROM quay.io/keycloak/keycloak:26.2
+
+# Copy the alpha-specific realm export file
+COPY keycloak/realm-export-alpha.json /opt/keycloak/data/import/realm-export.json
+
+ENV KEYCLOAK_ADMIN=admin
+ENV KC_DB=postgres
+ENV KC_PROXY=edge
+ENV KC_HTTP_ENABLED=true
+ENV KC_HOSTNAME_STRICT=false
+
+ENTRYPOINT ["/opt/keycloak/bin/kc.sh", "start-dev", "--import-realm"]
