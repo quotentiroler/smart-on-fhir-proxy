@@ -47,6 +47,7 @@ jobs:
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
       VPS_HOST: ${{ secrets.VPS_HOST }}
       VPS_USER: ${{ secrets.VPS_USER }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
   # Test the deployed beta application
   test-beta-deployment:
@@ -59,3 +60,5 @@ jobs:
       fhir_server_url: ${{ needs.deploy-beta.outputs.fhir_server_url }}
       keycloak_url: ${{ needs.deploy-beta.outputs.keycloak_url }}
       app_version: ${{ needs.beta-release.outputs.version }}
+    secrets:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}

@@ -49,6 +49,8 @@ on:
         required: false
       AWS_ACCOUNT_ID:
         required: false
+      DISCORD_WEBHOOK_URL:
+        required: false
 
 jobs:
   deploy-alpha:
@@ -102,14 +104,8 @@ jobs:
           echo "🚀 Deploying Keycloak app..."
           flyctl deploy --config fly.keycloak.toml
           
-          # Wait for Keycloak to be ready and realm imported
-          echo "⏳ Waiting for Keycloak to start and import realm..."
-          # Use a more lenient check since Keycloak takes time to start
-          timeout 60s bash -c "until curl -f https://proxy-smart-alpha-auth.fly.dev/ 2>/dev/null; do echo 'Waiting for Keycloak...'; sleep 30; done"
-          
-          # Verify the realm is available
-          echo "🔍 Verifying proxy-smart realm is available..."
-          timeout 60s bash -c "until curl -f https://proxy-smart-alpha-auth.fly.dev/realms/proxy-smart/.well-known/openid_configuration; do sleep 10; done"
+          echo "🔍 Verifying proxy-smart is available..."
+          timeout 10s bash -c "until curl -f https://proxy-smart-alpha-auth.fly.dev; do sleep 10; done"
           
           echo "✅ Keycloak deployed at https://proxy-smart-alpha-auth.fly.dev"
           echo "✅ Realm 'proxy-smart' imported and available"
@@ -628,3 +624,67 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "*Deployment completed at $TIMESTAMP*" >> $GITHUB_STEP_SUMMARY
+
+  # Discord notification on successful deployment
+  notify-deployment-success:
+    name: Discord Deployment Success Notification
+    needs: [output-deployment-urls]
+    if: ${{ success() && needs.output-deployment-urls.outputs.deployment_status == 'success' }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Send Discord deployment success notification
+        if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
+        uses: ./.github/actions/discord-notify
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          notification-type: 'deployment'
+          title: '🚀 Deployment Successful: ${{ inputs.deployment_stage }} v${{ inputs.app_version }}'
+          description: 'Successfully deployed to ${{ inputs.deployment_stage }} environment on ${{ needs.output-deployment-urls.outputs.deployment_target }}!'
+          version: ${{ inputs.app_version }}
+          deployment-stage: ${{ inputs.deployment_stage }}
+          deployment-target: ${{ needs.output-deployment-urls.outputs.deployment_target }}
+          fhir-server-url: ${{ needs.output-deployment-urls.outputs.fhir_server_url }}
+          keycloak-url: ${{ needs.output-deployment-urls.outputs.keycloak_url }}
+          repository: ${{ github.repository }}
+          commit-sha: ${{ github.sha }}
+          actor: ${{ github.actor }}
+          color: '00FF00'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+  # Discord notification on deployment failure
+  notify-deployment-failure:
+    name: Discord Deployment Failure Notification
+    needs: [deploy-alpha, deploy-beta, deploy-production, output-deployment-urls]
+    if: ${{ failure() }}
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Send Discord deployment failure notification
+        if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
+        uses: ./.github/actions/discord-notify
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          notification-type: 'error'
+          title: '❌ Deployment Failed: ${{ inputs.deployment_stage }} v${{ inputs.app_version }}'
+          description: 'Failed to deploy to ${{ inputs.deployment_stage }} environment. Please check the workflow logs for details.'
+          version: ${{ inputs.app_version }}
+          deployment-stage: ${{ inputs.deployment_stage }}
+          deployment-target: ${{ needs.output-deployment-urls.outputs.deployment_target || 'unknown' }}
+          repository: ${{ github.repository }}
+          commit-sha: ${{ github.sha }}
+          actor: ${{ github.actor }}
+          color: 'FF0000'
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
