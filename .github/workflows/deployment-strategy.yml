@@ -656,6 +656,8 @@ jobs:
     needs: [output-deployment-urls]
     if: ${{ success() && needs.output-deployment-urls.outputs.deployment_status == 'success' }}
     runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     
     steps:
       - name: Checkout code
@@ -680,8 +682,6 @@ jobs:
           commit-sha: ${{ github.sha }}
           actor: ${{ github.actor }}
           color: '00FF00'
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
   # Discord notification on deployment failure
   notify-deployment-failure:
@@ -689,6 +689,8 @@ jobs:
     needs: [deploy-alpha, deploy-beta, deploy-production, output-deployment-urls]
     if: ${{ failure() }}
     runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     
     steps:
       - name: Checkout code
@@ -711,5 +713,3 @@ jobs:
           commit-sha: ${{ github.sha }}
           actor: ${{ github.actor }}
           color: 'FF0000'
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}

@@ -309,6 +309,8 @@ jobs:
     needs: [integration-compliance-tests]
     if: ${{ success() && needs.integration-compliance-tests.outputs.overall_status == 'passed' }}
     runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     
     steps:
       - name: Checkout code
@@ -333,8 +335,6 @@ jobs:
           commit-sha: ${{ github.sha }}
           actor: ${{ github.actor }}
           color: '00FF00'
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
   # Discord notification on testing failure
   notify-testing-failure:
@@ -342,6 +342,8 @@ jobs:
     needs: [integration-compliance-tests]
     if: ${{ failure() || (success() && needs.integration-compliance-tests.outputs.overall_status != 'passed') }}
     runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     
     steps:
       - name: Checkout code
@@ -366,5 +368,3 @@ jobs:
           commit-sha: ${{ github.sha }}
           actor: ${{ github.actor }}
           color: 'FF0000'
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
