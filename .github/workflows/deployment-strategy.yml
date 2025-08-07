@@ -263,15 +263,15 @@ jobs:
               handlers = ["http", "tls"]
           
           [[services.http_checks]]
-            interval = "10s"
-            timeout = "5s"
-            grace_period = "10s"
+            interval = "15s"
+            timeout = "10s"
+            grace_period = "60s"
             method = "GET"
             path = "/health"
           EOF
           
           # Deploy backend to its own Fly.io app
-          flyctl deploy --config fly.alpha.toml --wait-timeout 300
+          flyctl deploy --config fly.alpha.toml --wait-timeout 600
           
           # Get deployed URLs
           BACKEND_URL="https://proxy-smart-alpha.fly.dev"
@@ -279,7 +279,7 @@ jobs:
           
           # Wait for backend to be ready
           echo "⏳ Waiting for backend deployment..."
-          timeout 300s bash -c "until curl -f $BACKEND_URL/health; do sleep 10; done"
+          timeout 600s bash -c "until curl -f --connect-timeout 10 --max-time 15 $BACKEND_URL/health; do sleep 10; done"
           
           # Set outputs
           echo "fhir_server_url=$BACKEND_URL/proxy-smart-backend/hapi-fhir-server/R4" >> $GITHUB_OUTPUT

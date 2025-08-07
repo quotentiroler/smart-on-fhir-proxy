@@ -131,8 +131,43 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
     }
   })
 
-  // Health check endpoint - check if server is healthy
-  .get('/health', async ({ set }) => {
+  // Health check endpoint - basic infrastructure health check  
+  .get('/health', async () => {
+    // Basic health check - returns 200 if server is running
+    // This is used by load balancers and deployment systems
+    return {
+      status: 'healthy' as const,
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024)
+      }
+    }
+  }, {
+    response: {
+      200: t.Object({
+        status: t.Literal('healthy', { description: 'Health status' }),
+        timestamp: t.String({ description: 'Current timestamp' }),
+        uptime: t.Number({ description: 'Server uptime in seconds' }),
+        memory: t.Object({
+          used: t.Number({ description: 'Used memory in MB' }),
+          total: t.Number({ description: 'Total memory in MB' })
+        })
+      })
+    },
+    detail: {
+      summary: 'Basic Health Check',
+      description: 'Check if the SMART on FHIR server is running (for load balancers)',
+      tags: ['server'],
+      response: {
+        200: { description: 'Server is healthy and running' }
+      }
+    }
+  })
+
+  // Comprehensive health check endpoint - includes external service checks
+  .get('/health/detailed', async ({ set }) => {
     try {
       const fhirServers = await getFHIRServersHealth()
       const healthyServers = fhirServers.filter(server => server.status === 'healthy')
@@ -224,8 +259,8 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
       })
     },
     detail: {
-      summary: 'Health Check',
-      description: 'Check the health status of the SMART on FHIR server',
+      summary: 'Detailed Health Check',
+      description: 'Check the health status of the SMART on FHIR server including external services',
       tags: ['server'],
       response: {
         200: { description: 'Server is healthy' },
