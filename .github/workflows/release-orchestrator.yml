@@ -233,6 +233,8 @@ jobs:
     needs: [version, changelog, release]
     if: ${{ success() }}
     runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     
     steps:
       - name: Checkout code
@@ -254,8 +256,6 @@ jobs:
           repository: ${{ github.repository }}
           commit-sha: ${{ github.sha }}
           actor: ${{ github.actor }}
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
 
   # Discord notification on failure
   notify-failure:
@@ -263,6 +263,8 @@ jobs:
     needs: [version, changelog, generate-client-apis, build, release]
     if: ${{ failure() }}
     runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     
     steps:
       - name: Checkout code
@@ -284,5 +286,3 @@ jobs:
           commit-sha: ${{ github.sha }}
           actor: ${{ github.actor }}
           color: 'FF0000'
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
