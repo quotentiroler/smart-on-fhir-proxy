@@ -9,7 +9,7 @@ inputs:
   bun-version:
     description: 'Bun version to setup'
     required: false
-    default: 'latest'
+    default: '1.2.19'
   fetch-depth:
     description: 'Checkout fetch depth'
     required: false

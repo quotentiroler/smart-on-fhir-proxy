@@ -122,6 +122,18 @@ jobs:
           # Deploy Keycloak using our existing configuration
           echo "🚀 Deploying Keycloak app..."
           flyctl deploy --config fly.keycloak.toml
+
+          # Try 10 times to ping Keycloak to ensure it's ready every 5 seconds
+          echo "⏳ Waiting for Keycloak to be ready..."
+          for i in {1..10}; do
+            if curl -s -o /dev/null -w "%{http_code}" https://proxy-smart-alpha-auth.fly.dev/ > /dev/null; then
+              echo "✅ Keycloak is ready!"
+              break
+            else
+              echo "🔄 Keycloak not ready yet, retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
           
           echo "✅ Keycloak deployed at https://proxy-smart-alpha-auth.fly.dev"
           echo "✅ Realm 'proxy-smart' imported and available"
@@ -146,6 +158,18 @@ jobs:
           # Deploy backend to its own Fly.io app
           flyctl deploy --config fly.toml
           
+          # Wait for deployment to be ready
+          echo "⏳ Waiting for backend deployment to be ready..."
+          for i in {1..10}; do
+            if curl -s -o /dev/null -w "%{http_code}" https://proxy-smart-alpha.fly.dev/ > /dev/null; then
+              echo "✅ Backend is ready!"
+              break
+            else
+              echo "🔄 Backend not ready yet, retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+
           # Get deployed URLs
           BACKEND_URL="https://proxy-smart-alpha.fly.dev"
           KEYCLOAK_URL="https://proxy-smart-alpha-auth.fly.dev"
