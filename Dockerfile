@@ -31,11 +31,11 @@ RUN bun run build
 
 # Build UI
 WORKDIR /app/ui
-# Create production environment for single-app deployment (empty API URL = relative)
-# Don't require Keycloak configuration at build time
-RUN echo "VITE_API_BASE_URL=" > .env.production
-# Build with correct base path for /webapp serving
-RUN VITE_BASE=/webapp/ bun run build
+# Set Vite environment variables for production build
+RUN echo "VITE_API_BASE_URL=https://proxy-smart-alpha.fly.dev" > .env.production && \
+    echo "VITE_BASE_URL=/webapp/" >> .env.production
+# Build UI
+RUN bun run build
 
 # Production stage - backend API server with static frontend
 FROM base AS production
@@ -50,7 +50,9 @@ RUN apt-get update -qq && \
 # Copy built backend
 COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/backend/package.json ./backend/package.json
-COPY --from=build /app/backend/node_modules ./backend/node_modules
+
+# Copy root node_modules (monorepo structure)
+COPY --from=build /app/node_modules ./node_modules
 
 # Copy built UI to be served as static files at /webapp
 COPY --from=build /app/ui/dist ./backend/public/webapp

@@ -1,0 +1,23 @@
+FROM quay.io/keycloak/keycloak:26.2
+
+# Copy the alpha-specific realm export file
+COPY keycloak/realm-export-alpha.json /opt/keycloak/data/import/realm-export.json
+
+# Set environment variables for HTTPS operation
+ENV KEYCLOAK_ADMIN=admin
+ENV KC_DB=postgres
+ENV KC_PROXY=edge
+ENV KC_PROXY_HEADERS=xforwarded
+ENV KC_HTTP_ENABLED=true
+ENV KC_HOSTNAME_STRICT=false
+ENV KC_HEALTH_ENABLED=true
+ENV KC_METRICS_ENABLED=true
+ENV KC_HOSTNAME=proxy-smart-alpha-auth.fly.dev
+ENV KC_HOSTNAME_URL=https://proxy-smart-alpha-auth.fly.dev
+ENV KC_HOSTNAME_ADMIN_URL=https://proxy-smart-alpha-auth.fly.dev
+
+# Build Keycloak to optimize startup time
+RUN /opt/keycloak/bin/kc.sh build
+
+# Start Keycloak with realm import
+ENTRYPOINT ["/opt/keycloak/bin/kc.sh", "start-dev", "--import-realm"]

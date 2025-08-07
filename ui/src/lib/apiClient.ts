@@ -1,3 +1,4 @@
+import { config } from '@/config';
 import {
   AdminApi,
   AuthenticationApi,
@@ -74,8 +75,7 @@ export const handleApiError = (error: unknown) => {
 
 // Create API client configuration
 const createConfig = (token?: string) => {
-  // Use environment variable or fallback to localhost:8445
-  const basePath = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8445';
+  const basePath = config.api.baseUrl;
   return new Configuration({
     basePath,
     accessToken: token,

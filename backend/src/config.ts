@@ -46,7 +46,8 @@ export const config = {
     // Public URL for browser redirects (defaults to baseUrl if not specified)
     get publicUrl() {   
       if (!this.baseUrl) return null
-      const domain = process.env.KEYCLOAK_DOMAIN || 'localhost'
+      const domain = process.env.KEYCLOAK_DOMAIN;
+      if (!domain) return this.baseUrl
       // Use regex to replace the hostname in the URL, preserving protocol and port
       return this.baseUrl.replace(/\/\/([^:/]+)(:[0-9]+)?/, `//${domain}$2`)
     },

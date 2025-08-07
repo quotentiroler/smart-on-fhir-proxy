@@ -1,3 +1,4 @@
+import { config } from '@/config';
 import { AuthenticationApi, Configuration } from '../lib/api-client';
 import type { PostAuthTokenRequest } from '../lib/api-client';
 
@@ -15,9 +16,9 @@ class OpenIDService {
 
   constructor() {
     this.config = {
-      baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8445',
+      baseUrl: config.api.baseUrl,
       clientId: 'admin-ui',
-      redirectUri: window.location.origin + '/',
+      redirectUri: window.location.origin + config.app.baseUrl,
       scope: 'openid profile email',
     };
 

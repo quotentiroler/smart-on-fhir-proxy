@@ -17,6 +17,7 @@ export const config = {
 
     // Application settings
     app: {
+        baseUrl: import.meta.env.VITE_BASE_URL || '/',
         title: packageJson.displayName || packageJson.name,
         description: packageJson.description || 'Healthcare Administration Platform',
         environment: import.meta.env.MODE || 'development',

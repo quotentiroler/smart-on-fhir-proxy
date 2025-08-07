@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { oauthWebSocketService, type OAuthAnalytics, type OAuthEventSimple } from '../service/oauth-websocket-service';
+import { config } from '@/config';
 
 interface SystemHealth {
   oauthServer: {
@@ -287,7 +288,7 @@ export function OAuthMonitoringDashboard() {
       }
 
       // NOTE: Using fetch for now - will switch to API client once events export endpoint is regenerated
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8445'}/monitoring/oauth/events/export`, {
+      const response = await fetch(`${config.api.baseUrl}/monitoring/oauth/events/export`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${accessToken}`,

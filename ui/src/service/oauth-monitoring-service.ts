@@ -1,3 +1,4 @@
+import { config } from '@/config';
 import { getStoredToken, createOauthMonitoringApi } from '../lib/apiClient';
 import type { 
   OAuthEvent,
@@ -36,7 +37,7 @@ class OAuthMonitoringService {
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8445';
+    this.baseUrl = config.api.baseUrl;
   }
 
   /**
