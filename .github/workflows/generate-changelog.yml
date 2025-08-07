@@ -66,7 +66,15 @@ jobs:
             for sha in $commit_shas; do
               if git cat-file -e "$sha" 2>/dev/null; then
                 commit_msg=$(git log --format="%s" -n 1 "$sha" 2>/dev/null || echo "")
+                commit_author=$(git log --format="%an" -n 1 "$sha" 2>/dev/null || echo "")
                 commit_timestamp=$(git log --format="%ad" --date=format:"%Y-%m-%d %H:%M:%S" -n 1 "$sha" 2>/dev/null || echo "")
+                
+                # Skip automated commits from GitHub Copilot and other bots
+                if [[ "$commit_msg" =~ ^(Initial plan|Initial analysis|Update|Merge pull request.*copilot|🤖|Auto-generated) ]]; then
+                  echo "⏭️ Skipping automated commit $sha: $commit_msg (by $commit_author)" >&2
+                  continue
+                fi
+                
                 echo "Processing commit $sha: $commit_msg ($commit_timestamp)" >&2
                 
                 # Build simple commit list for display with timestamp
@@ -113,8 +121,16 @@ jobs:
               fi
             done
             
+            # Check if we have any meaningful commits after filtering
             if [ -z "$all_comments" ]; then
-              echo "- Minor updates and improvements"
+              echo "⚠️ No meaningful commits found after filtering automated commits" >&2
+              echo "## Release Notes"
+              echo "This release contains maintenance updates and system improvements."
+              echo ""
+              echo "### Technical Details"
+              echo "- Build and deployment optimizations"
+              echo "- System configuration updates"
+              echo "- Development workflow improvements"
               return
             fi
             
