@@ -33,14 +33,10 @@ jobs:
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-      VPS_HOST: ${{ secrets.VPS_HOST }}
-      VPS_USER: ${{ secrets.VPS_USER }}
 
   # Deploy after successful release
   deploy-alpha:
-    name: Deploy Alpha to Local Testing
+    name: Deploy Alpha to Fly.io
     needs: [alpha-release]
     uses: ./.github/workflows/deployment-strategy.yml
     with:
@@ -49,9 +45,7 @@ jobs:
       source_branch: 'develop'
     secrets:
       FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-      VPS_HOST: ${{ secrets.VPS_HOST }}
-      VPS_USER: ${{ secrets.VPS_USER }}
+      ALPHA_DB_PASSWORD: ${{ secrets.ALPHA_DB_PASSWORD }}
 
   # Test the deployed alpha application
   test-alpha-deployment:
