@@ -132,7 +132,7 @@ export const serverRoutes = new Elysia({ tags: ['server'] })
   })
 
   // Health check endpoint - basic infrastructure health check  
-  .get('/health', async ({ set }) => {
+  .get('/health', async () => {
     // Basic health check - returns 200 if server is running
     // This is used by load balancers and deployment systems
     return {

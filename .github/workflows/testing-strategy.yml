@@ -76,7 +76,7 @@ jobs:
       - name: Wait for deployment readiness
         run: |
           echo "⏳ Waiting for deployment to be ready..."
-          max_attempts=30
+          max_attempts=60  # Increased to give more time for deployment
           attempt=1
           
           # Extract base URL from FHIR server URL (remove the /proxy-smart-backend/... path)
@@ -84,7 +84,7 @@ jobs:
           echo "Checking health at: $BASE_URL/health"
           
           while [ $attempt -le $max_attempts ]; do
-            if curl -f "$BASE_URL/health" >/dev/null 2>&1; then
+            if curl -f --connect-timeout 10 --max-time 15 "$BASE_URL/health" >/dev/null 2>&1; then
               echo "✅ FHIR server is ready and responding"
               break
             fi
@@ -110,7 +110,7 @@ jobs:
           
           # Test basic health endpoint
           echo "Testing health endpoint..."
-          if curl -f "$BASE_URL/health" > testing/${{ inputs.test_stage }}/reports/integration/health.json; then
+          if curl -f --connect-timeout 10 --max-time 15 "$BASE_URL/health" > testing/${{ inputs.test_stage }}/reports/integration/health.json; then
             echo "✅ Health endpoint working"
           else
             echo "❌ Health endpoint failed"
@@ -120,7 +120,7 @@ jobs:
           
           # Test FHIR server metadata endpoint
           echo "Testing FHIR metadata endpoint..."
-          if curl -f "${{ inputs.fhir_server_url }}/metadata" > testing/${{ inputs.test_stage }}/reports/integration/fhir_metadata.json; then
+          if curl -f --connect-timeout 10 --max-time 15 "${{ inputs.fhir_server_url }}/metadata" > testing/${{ inputs.test_stage }}/reports/integration/fhir_metadata.json; then
             echo "✅ FHIR metadata endpoint working"
           else
             echo "⚠️ FHIR metadata endpoint not available - may need authentication"
@@ -128,9 +128,9 @@ jobs:
           
           # Test OAuth discovery if Keycloak is available
           echo "Testing OAuth discovery endpoint..."
-          if curl -f "${{ inputs.keycloak_url }}/realms/proxy-smart/.well-known/openid_configuration" > testing/${{ inputs.test_stage }}/reports/integration/oauth_discovery.json; then
+          if curl -f --connect-timeout 10 --max-time 15 "${{ inputs.keycloak_url }}/realms/proxy-smart/.well-known/openid_configuration" > testing/${{ inputs.test_stage }}/reports/integration/oauth_discovery.json; then
             echo "✅ OAuth discovery endpoint working"
-          elif curl -f "${{ inputs.keycloak_url }}/realms/master/.well-known/openid_configuration" > testing/${{ inputs.test_stage }}/reports/integration/oauth_discovery_master.json; then
+          elif curl -f --connect-timeout 10 --max-time 15 "${{ inputs.keycloak_url }}/realms/master/.well-known/openid_configuration" > testing/${{ inputs.test_stage }}/reports/integration/oauth_discovery_master.json; then
             echo "✅ Keycloak master realm accessible (proxy-smart realm may not be configured yet)"
           else
             echo "⚠️ OAuth discovery endpoint not available - Keycloak may not be fully configured"
