@@ -118,11 +118,19 @@ jobs:
           echo "🔧 Creating alpha realm configuration..."
           cp keycloak/realm-export.json keycloak/realm-export-alpha.json
           
+          # Verify the file was created
+          ls -la keycloak/realm-export-alpha.json
+          echo "✅ Alpha realm configuration created"
+          
           # Update the realm export for alpha environment URLs
           sed -i 's|http://localhost:5173/\*|https://proxy-smart-alpha.fly.dev/*|g' keycloak/realm-export-alpha.json
           sed -i 's|http://localhost:3000/\*|https://proxy-smart-alpha.fly.dev/*|g' keycloak/realm-export-alpha.json
           sed -i 's|http://localhost:5173|https://proxy-smart-alpha.fly.dev|g' keycloak/realm-export-alpha.json
           sed -i 's|http://localhost:3000|https://proxy-smart-alpha.fly.dev|g' keycloak/realm-export-alpha.json
+          
+          # Verify the file still exists after sed operations
+          ls -la keycloak/realm-export-alpha.json
+          echo "✅ Alpha realm URLs updated"
           
           # Update Dockerfile to use alpha-specific realm
           cat > Dockerfile.keycloak << 'EOF'
@@ -177,6 +185,14 @@ jobs:
           
           # Deploy Keycloak with adequate memory (as per Medium article)
           echo "🚀 Deploying Keycloak app..."
+          
+          # Debug: Show current directory structure
+          echo "📂 Current directory structure:"
+          ls -la
+          echo "📂 Keycloak directory:"
+          ls -la keycloak/
+          
+          # Ensure proper build context by deploying from repository root
           flyctl deploy --config fly.keycloak.toml --vm-memory=2048 --wait-timeout 600
           
           # Attach database to Keycloak app
