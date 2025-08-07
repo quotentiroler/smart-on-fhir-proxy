@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';
-import { createApiClients } from '../lib/apiClient';
+import { createClientApis } from '../lib/apiClient';
 import { openidService } from '../service/openid-service';
 import type { GetAuthIdentityProviders200ResponseInner } from '../lib/api-client/models';
 import { KeycloakConfigForm } from './KeycloakConfigForm';
@@ -32,8 +32,8 @@ export function LoginForm() {
   const fetchAvailableIdps = useCallback(async () => {
     try {
       setLoadingIdps(true);
-      const apiClients = createApiClients(); // No token needed for public IdP list
-      const idps = await apiClients.auth.getAuthIdentityProviders();
+      const clientApis = createClientApis(); // No token needed for public IdP list
+      const idps = await clientApis.auth.getAuthIdentityProviders();
       
       // Filter to only show enabled identity providers
       const enabledIdps = idps.filter((idp: GetAuthIdentityProviders200ResponseInner) => idp.enabled !== false);

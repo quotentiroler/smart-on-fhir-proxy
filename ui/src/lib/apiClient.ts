@@ -122,7 +122,7 @@ const wrapApiClient = <T extends object>(client: T): T => {
 };
 
 // Create all client APIs at once with automatic auth error handling
-export const createApiClients = (token?: string) => ({
+export const createClientApis = (token?: string) => ({
   admin: wrapApiClient(createAdminApi(token)),
   auth: wrapApiClient(createAuthApi(token)),
   healthcareUsers: wrapApiClient(createHealthcareUsersApi(token)),
@@ -156,7 +156,7 @@ export const getStoredToken = (): string | null => {
 };
 
 // Create authenticated client APIs using stored token
-export const createAuthenticatedApiClients = () => {
+export const createAuthenticatedClientApis = () => {
   const token = getStoredToken();
-  return createApiClients(token || undefined);
+  return createClientApis(token || undefined);
 };
