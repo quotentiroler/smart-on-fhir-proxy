@@ -104,9 +104,6 @@ jobs:
           echo "🚀 Deploying Keycloak app..."
           flyctl deploy --config fly.keycloak.toml
           
-          echo "🔍 Verifying proxy-smart is available..."
-          timeout 10s bash -c "until curl -f https://proxy-smart-alpha-auth.fly.dev; do sleep 10; done"
-          
           echo "✅ Keycloak deployed at https://proxy-smart-alpha-auth.fly.dev"
           echo "✅ Realm 'proxy-smart' imported and available"
       
