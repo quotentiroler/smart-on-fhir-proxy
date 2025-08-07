@@ -123,26 +123,44 @@ jobs:
       - name: Check if version should be bumped (alpha releases only)
         id: version_check
         if: inputs.operation == 'update' && inputs.release_type == 'alpha'
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token || github.token }}
         run: |
           # Get current version from current branch
           CURRENT_VERSION="${{ steps.check.outputs.current_version }}"
           CURRENT_BASE="${{ steps.check.outputs.base_version }}"
 
-          # Get version from main branch
-          git fetch origin main
-          MAIN_VERSION=$(git show origin/main:package.json | node -p "JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8')).version")
-          MAIN_BASE=$(echo "$MAIN_VERSION" | sed 's/-.*$//')
+          # Get version from latest beta or production release (excluding alpha)
+          LATEST_RELEASE_TAG=$(gh release list --limit 100 | cut -f3 | grep -E "(RELEASE)" | head -n1 || echo "")
+          
+          if [ -n "$LATEST_RELEASE_TAG" ]; then
+            # Extract base version from latest beta/production release tag
+            LATEST_RELEASE_BASE=$(echo "$LATEST_RELEASE_TAG" | sed 's/^v//' | sed 's/-.*$//')
+            echo "Found latest beta/production release: $LATEST_RELEASE_TAG (base: $LATEST_RELEASE_BASE)"
+          else
+            # No beta/production releases found, use 0.0.0 as baseline
+            LATEST_RELEASE_BASE="0.0.0"
+            echo "No beta/production releases found, using baseline: $LATEST_RELEASE_BASE"
+          fi
 
           echo "current_base=$CURRENT_BASE" >> $GITHUB_OUTPUT
-          echo "main_base=$MAIN_BASE" >> $GITHUB_OUTPUT
+          echo "latest_release_base=$LATEST_RELEASE_BASE" >> $GITHUB_OUTPUT
 
-          # Check if versions match (meaning we should bump)
-          if [ "$CURRENT_BASE" = "$MAIN_BASE" ]; then
+          # Check if current base is same or older than latest release (meaning we should bump)
+          if [ "$CURRENT_BASE" = "$LATEST_RELEASE_BASE" ]; then
             echo "should_bump=true" >> $GITHUB_OUTPUT
-            echo "✅ Versions match ($CURRENT_BASE = $MAIN_BASE) - will bump version"
+            echo "✅ Current base matches latest release ($CURRENT_BASE = $LATEST_RELEASE_BASE) - will bump version"
           else
-            echo "should_bump=false" >> $GITHUB_OUTPUT
-            echo "⏭️  Versions differ ($CURRENT_BASE ≠ $MAIN_BASE) - will use current version"
+            # Use version comparison to check if current is newer
+            if printf '%s\n%s\n' "$LATEST_RELEASE_BASE" "$CURRENT_BASE" | sort -V | head -n1 | grep -q "^$LATEST_RELEASE_BASE$"; then
+              if [ "$CURRENT_BASE" != "$LATEST_RELEASE_BASE" ]; then
+                echo "should_bump=false" >> $GITHUB_OUTPUT
+                echo "⏭️  Current base is newer than latest release ($CURRENT_BASE > $LATEST_RELEASE_BASE) - will use current version"
+              fi
+            else
+              echo "should_bump=true" >> $GITHUB_OUTPUT
+              echo "✅ Current base is older than latest release ($CURRENT_BASE < $LATEST_RELEASE_BASE) - will bump version"
+            fi
           fi
 
       - name: Update versions
@@ -211,9 +229,21 @@ jobs:
           case "${{ inputs.release_type }}" in
             "alpha")
               if [ "${{ inputs.should_bump_version }}" = "true" ] && [ "${{ steps.version_check.outputs.should_bump }}" = "true" ]; then
-                # Use our bump script to increment patch version
-                bun run version:bump
-                NEW_BASE=$(node -p "require('./package.json').version")
+                # Calculate new base version by bumping the latest release version
+                LATEST_RELEASE_BASE="${{ steps.version_check.outputs.latest_release_base }}"
+                
+                # Use Node.js to properly increment the version
+                NEW_BASE=$(node -e "
+                  const latest = '$LATEST_RELEASE_BASE';
+                  const [major, minor, patch] = latest.split('.').map(Number);
+                  console.log(\`\${major}.\${minor}.\${patch + 1}\`);
+                ")
+                
+                echo "Bumping from latest release base $LATEST_RELEASE_BASE to $NEW_BASE"
+                
+                # Set the new base version in all package.json files
+                bun run version:set "$NEW_BASE"
+                
                 NEW_VERSION="${NEW_BASE}-${VERSION_SUFFIX}.${BUILD_NUMBER}.${RELEASE_SHA}"
               else
                 NEW_VERSION="${BASE_VERSION}-${VERSION_SUFFIX}.${BUILD_NUMBER}.${RELEASE_SHA}"

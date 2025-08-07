@@ -39,12 +39,12 @@ import type {
     GetHealth200ResponseMemory,
     PostAuthIntrospect200Response,
     PostAuthRegisterRequest,
-    PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response,
-    PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseServerInfo,
     GetFhirServers200Response,
     GetAdminKeycloakConfigStatus200Response,
     GetMonitoringOauthEvents200Response,
     GetFhirServersByServerId200Response,
+    PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200Response,
+    PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200ResponseServerInfo,
 } from '../api-client';
 
 export type {
@@ -107,8 +107,8 @@ export type {
     GetAdminClientRegistrationSettings200Response as ClientRegistrationSettings,
     
     // FHIR Proxy & Cache
-    PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response as CacheRefreshResponse,
-    PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseServerInfo as CacheServerInfo,
+    PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200Response as CacheRefreshResponse,
+    PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200ResponseServerInfo as CacheServerInfo,
     
     // FHIR Server Management
     GetFhirServers200Response as FhirServersListResponse,
