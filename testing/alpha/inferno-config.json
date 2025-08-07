@@ -1,0 +1,32 @@
+{
+  "test_stage": "alpha",
+  "description": "Alpha testing with basic FHIR compliance checks",
+  "fhir_server": {
+    "url": "http://proxy-smart-backend:3001",
+    "name": "Proxy Smart FHIR Server (Alpha)"
+  },
+  "inferno": {
+    "module": "onc_program",
+    "sequences": [
+      "UsCoreR4CapabilityStatement",
+      "USCore311Patient"
+    ],
+    "test_focus": "basic_compliance"
+  },
+  "client": {
+    "client_id": "alpha_test_client",
+    "client_secret": "alpha_test_secret",
+    "scopes": "patient/*.read",
+    "redirect_uri": "http://inferno:4567/inferno/callback"
+  },
+  "endpoints": {
+    "authorization": "http://keycloak:8080/realms/proxy-smart/protocol/openid-connect/auth",
+    "token": "http://keycloak:8080/realms/proxy-smart/protocol/openid-connect/token",
+    "introspection": "http://keycloak:8080/realms/proxy-smart/protocol/openid-connect/token/introspect"
+  },
+  "test_settings": {
+    "timeout": 30,
+    "retries": 3,
+    "validate_ssl": false
+  }
+}
