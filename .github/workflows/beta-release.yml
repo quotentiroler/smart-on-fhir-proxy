@@ -33,14 +33,10 @@ jobs:
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-      VPS_HOST: ${{ secrets.VPS_HOST }}
-      VPS_USER: ${{ secrets.VPS_USER }}
 
   # Deploy after successful release
   deploy-beta:
-    name: Deploy Beta to Fly.io
+    name: Deploy Beta to VPS
     needs: [beta-release]
     uses: ./.github/workflows/deployment-strategy.yml
     with:
@@ -48,7 +44,6 @@ jobs:
       app_version: ${{ needs.beta-release.outputs.version }}
       source_branch: 'test'
     secrets:
-      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
       VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
       VPS_HOST: ${{ secrets.VPS_HOST }}
       VPS_USER: ${{ secrets.VPS_USER }}

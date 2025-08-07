@@ -80,6 +80,11 @@ jobs:
         run: |
           echo "🔐 Deploying Keycloak for Alpha environment..."
           
+          # Create Fly.io apps if they don't exist
+          echo "🏗️ Creating Fly.io apps..."
+          fly apps create proxy-smart-alpha-auth --org personal || echo "Keycloak app already exists"
+          fly apps create proxy-smart-alpha --org personal || echo "Backend app already exists"
+          
           # Create Postgres database for Keycloak first
           echo "🗄️ Setting up Keycloak database..."
           fly postgres create \

@@ -70,14 +70,10 @@ jobs:
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-      VPS_HOST: ${{ secrets.VPS_HOST }}
-      VPS_USER: ${{ secrets.VPS_USER }}
 
   # Deploy after successful release
   deploy-production:
-    name: Deploy Production to VPS
+    name: Deploy Production to AWS/Azure
     needs: [production-release]
     uses: ./.github/workflows/deployment-strategy.yml
     with:
@@ -85,10 +81,11 @@ jobs:
       app_version: ${{ needs.production-release.outputs.version }}
       source_branch: 'main'
     secrets:
-      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
-      VPS_HOST: ${{ secrets.VPS_HOST }}
-      VPS_USER: ${{ secrets.VPS_USER }}
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
   # Test the deployed production application
   test-production-deployment:
