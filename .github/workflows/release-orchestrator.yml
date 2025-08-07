@@ -30,6 +30,18 @@ on:
         required: false
         type: number
         default: 10
+    
+    outputs:
+      version:
+        description: "The version that was released"
+        value: ${{ jobs.version.outputs.new_version }}
+      changelog:
+        description: "The generated changelog"
+        value: ${{ jobs.changelog.outputs.changelog }}
+      release_url:
+        description: "The URL of the created release"
+        value: ${{ jobs.release.outputs.release_url }}
+
     secrets:
       APP_ID:
         required: true
@@ -38,6 +50,14 @@ on:
       OPENAI_API_KEY:
         required: false
       DISCORD_WEBHOOK_URL:
+        required: false
+      FLY_API_TOKEN:
+        required: false
+      VPS_SSH_KEY:
+        required: false
+      VPS_HOST:
+        required: false
+      VPS_USER:
         required: false
 
 jobs:

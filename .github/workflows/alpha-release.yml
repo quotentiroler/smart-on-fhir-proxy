@@ -16,20 +16,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Alpha releases run unit tests first
-  alpha-testing:
-    name: Alpha Testing
-    if: ${{ !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Alpha release') && !contains(github.event.head_commit.message, '🚀') && !contains(github.event.head_commit.message, 'proxy-smart-releaser') }}
-    uses: ./.github/workflows/testing-strategy.yml
-    with:
-      test_stage: 'alpha'
-      test_scope: 'unit'
-
   alpha-release:
     name: Alpha Release
     # Only run if the last commit is not a release commit to avoid infinite loops
     if: ${{ !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Alpha release') && !contains(github.event.head_commit.message, '🚀') && !contains(github.event.head_commit.message, 'proxy-smart-releaser') }}
-    needs: [alpha-testing]
     uses: ./.github/workflows/release-orchestrator.yml
     with:
       release_type: 'alpha'
@@ -43,3 +33,34 @@ jobs:
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+
+  # Deploy after successful release
+  deploy-alpha:
+    name: Deploy Alpha to Local Testing
+    needs: [alpha-release]
+    uses: ./.github/workflows/deployment-strategy.yml
+    with:
+      deployment_stage: 'alpha'
+      app_version: ${{ needs.alpha-release.outputs.version }}
+      source_branch: 'develop'
+    secrets:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+
+  # Test the deployed alpha application
+  test-alpha-deployment:
+    name: Test Alpha Deployment
+    needs: [alpha-release, deploy-alpha]
+    uses: ./.github/workflows/testing-strategy.yml
+    with:
+      test_stage: 'alpha'
+      deployment_target: ${{ needs.deploy-alpha.outputs.deployment_target }}
+      fhir_server_url: ${{ needs.deploy-alpha.outputs.fhir_server_url }}
+      keycloak_url: ${{ needs.deploy-alpha.outputs.keycloak_url }}
+      app_version: ${{ needs.alpha-release.outputs.version }}

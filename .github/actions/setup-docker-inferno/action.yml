@@ -1,0 +1,177 @@
+name: 'Setup Docker and Inferno'
+description: 'Sets up Docker environment and prepares Inferno testing infrastructure'
+
+inputs:
+  test_stage:
+    description: 'Testing stage: alpha, beta, or production'
+    required: true
+  fhir_server_url:
+    description: 'FHIR server URL for Inferno testing'
+    required: true
+  keycloak_url:
+    description: 'Keycloak URL for OAuth testing'
+    required: true
+    default: 'http://localhost:8080'
+  inferno_version:
+    description: 'Inferno Docker image version to use'
+    required: false
+    default: 'latest'
+
+outputs:
+  inferno_container_id:
+    description: 'Container ID of the started Inferno instance'
+    value: ${{ steps.start-inferno.outputs.container_id }}
+  test_config_path:
+    description: 'Path to the generated test configuration'
+    value: ${{ steps.generate-config.outputs.config_path }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        version: latest
+
+    - name: Verify Docker installation
+      shell: bash
+      run: |
+        echo "🐳 Verifying Docker installation..."
+        docker --version
+        docker-compose --version
+        docker info
+
+    - name: Pull Inferno Docker image
+      shell: bash
+      run: |
+        echo "📥 Pulling Inferno Docker image..."
+        docker pull healthit/inferno-program:${{ inputs.inferno_version }}
+
+    - name: Create test directories
+      shell: bash
+      run: |
+        echo "📁 Creating test directories for ${{ inputs.test_stage }}..."
+        mkdir -p testing/${{ inputs.test_stage }}/reports/inferno
+        mkdir -p testing/${{ inputs.test_stage }}/config
+        mkdir -p testing/${{ inputs.test_stage }}/data
+
+    - name: Generate Inferno test configuration
+      id: generate-config
+      shell: bash
+      run: |
+        echo "⚙️ Generating Inferno test configuration for ${{ inputs.test_stage }}..."
+        
+        # Determine test sequences based on stage
+        if [ "${{ inputs.test_stage }}" = "alpha" ]; then
+          SEQUENCES='["UsCoreR4CapabilityStatement", "USCore311Patient"]'
+          TEST_FOCUS="basic_compliance"
+        elif [ "${{ inputs.test_stage }}" = "beta" ]; then
+          SEQUENCES='["UsCoreR4CapabilityStatement", "USCore311Patient", "USCore311AllergyIntolerance", "USCore311Condition", "USCore311Device", "SMARTDiscovery"]'
+          TEST_FOCUS="us_core_profiles"
+        else
+          SEQUENCES='["UsCoreR4CapabilityStatement", "USCore311Patient", "USCore311AllergyIntolerance", "USCore311CareTeam", "USCore311Condition", "USCore311Device", "USCore311DiagnosticReport", "USCore311DocumentReference", "USCore311Encounter", "USCore311Goal", "USCore311Immunization", "USCore311Location", "USCore311Medication", "USCore311MedicationRequest", "USCore311Observation", "USCore311Organization", "USCore311Practitioner", "USCore311PractitionerRole", "USCore311Procedure", "USCore311Provenance", "SMARTDiscovery", "SMARTStandalonePatientApp", "SMARTEHRPatientApp", "BulkDataGroupExport", "BulkDataPatientExport", "BulkDataSystemExport"]'
+          TEST_FOCUS="full_onc_certification"
+        fi
+        
+        CONFIG_PATH="testing/${{ inputs.test_stage }}/config/inferno-runtime-config.json"
+        
+        cat > "$CONFIG_PATH" << EOF
+        {
+          "test_stage": "${{ inputs.test_stage }}",
+          "description": "${{ inputs.test_stage }} testing with Inferno ONC Program Edition",
+          "fhir_server": {
+            "url": "${{ inputs.fhir_server_url }}",
+            "name": "Proxy Smart FHIR Server (${{ inputs.test_stage }})"
+          },
+          "inferno": {
+            "module": "onc_program",
+            "sequences": $SEQUENCES,
+            "test_focus": "$TEST_FOCUS"
+          },
+          "client": {
+            "client_id": "${{ inputs.test_stage }}_test_client",
+            "client_secret": "${{ inputs.test_stage }}_test_secret",
+            "scopes": "patient/*.read user/*.read system/*.read",
+            "redirect_uri": "http://localhost:4567/inferno/callback"
+          },
+          "endpoints": {
+            "authorization": "${{ inputs.keycloak_url }}/realms/proxy-smart/protocol/openid-connect/auth",
+            "token": "${{ inputs.keycloak_url }}/realms/proxy-smart/protocol/openid-connect/token",
+            "introspection": "${{ inputs.keycloak_url }}/realms/proxy-smart/protocol/openid-connect/token/introspect"
+          },
+          "test_settings": {
+            "timeout": 120,
+            "retries": 10,
+            "validate_ssl": false,
+            "smart_app_launch": true,
+            "bulk_data": true,
+            "security_testing": true
+          },
+          "bulk_data": {
+            "group_export_endpoint": "${{ inputs.fhir_server_url }}/Group/[id]/\$export",
+            "patient_export_endpoint": "${{ inputs.fhir_server_url }}/Patient/\$export",
+            "system_export_endpoint": "${{ inputs.fhir_server_url }}/\$export"
+          }
+        }
+        EOF
+        
+        echo "config_path=$CONFIG_PATH" >> $GITHUB_OUTPUT
+        echo "✅ Inferno configuration generated at $CONFIG_PATH"
+
+    - name: Start Inferno container
+      id: start-inferno
+      shell: bash
+      run: |
+        echo "🚀 Starting Inferno container for ${{ inputs.test_stage }} testing..."
+        
+        # Start Inferno container with proper volume mounts
+        CONTAINER_ID=$(docker run -d \
+          --name "inferno-${{ inputs.test_stage }}-$(date +%s)" \
+          -p 4567:4567 \
+          -v "$(pwd)/testing/${{ inputs.test_stage }}/config:/opt/inferno/config:ro" \
+          -v "$(pwd)/testing/${{ inputs.test_stage }}/reports/inferno:/opt/inferno/results" \
+          -v "$(pwd)/testing/${{ inputs.test_stage }}/data:/opt/inferno/data" \
+          -e "INFERNO_HOST=0.0.0.0" \
+          -e "INFERNO_PORT=4567" \
+          -e "DATABASE_URL=sqlite:///opt/inferno/data/inferno.db" \
+          healthit/inferno-program:${{ inputs.inferno_version }})
+        
+        echo "container_id=$CONTAINER_ID" >> $GITHUB_OUTPUT
+        echo "✅ Inferno container started with ID: $CONTAINER_ID"
+
+    - name: Wait for Inferno to be ready
+      shell: bash
+      run: |
+        echo "⏳ Waiting for Inferno to be ready..."
+        max_attempts=30
+        attempt=1
+        
+        while [ $attempt -le $max_attempts ]; do
+          if curl -f http://localhost:4567/health >/dev/null 2>&1; then
+            echo "✅ Inferno is ready and responding"
+            break
+          fi
+          echo "🔄 Waiting for Inferno... (attempt $attempt/$max_attempts)"
+          sleep 10
+          attempt=$((attempt + 1))
+        done
+        
+        if [ $attempt -gt $max_attempts ]; then
+          echo "❌ Inferno failed to start within timeout"
+          docker logs inferno-${{ inputs.test_stage }}-* || true
+          exit 1
+        fi
+
+    - name: Verify Inferno configuration
+      shell: bash
+      run: |
+        echo "🔍 Verifying Inferno configuration..."
+        
+        # Test Inferno API endpoints
+        echo "Testing Inferno health endpoint..."
+        curl -f http://localhost:4567/health || exit 1
+        
+        echo "Testing Inferno API..."
+        curl -f http://localhost:4567/api/test_sessions || echo "API endpoint not ready yet"
+        
+        echo "✅ Inferno setup verification completed"

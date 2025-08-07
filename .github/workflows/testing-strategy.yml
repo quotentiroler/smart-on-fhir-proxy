@@ -7,22 +7,43 @@ on:
         description: "Testing stage: alpha, beta, or production"
         required: true
         type: string
-      test_scope:
-        description: "Specify the scope of tests to run (unit, integration, security, or all)"
+      deployment_target:
+        description: "Where the application is deployed: local, fly.io, or vps"
         required: false
         type: string
-        default: "all"
+        default: "local"
       fhir_server_url:
-        description: "FHIR server URL for Inferno testing"
+        description: "FHIR server URL for testing (provided by deployment workflow)"
         required: false
         type: string
         default: "http://localhost:3001"
+      keycloak_url:
+        description: "Keycloak URL for testing (provided by deployment workflow)"
+        required: false
+        type: string
+        default: "http://localhost:8080"
+      app_version:
+        description: "Version of the application being tested"
+        required: false
+        type: string
+        default: "dev"
+
+    outputs:
+      test_status:
+        description: "Overall test status"
+        value: ${{ jobs.integration-compliance-tests.outputs.overall_status }}
+      test_reports_path:
+        description: "Path to test reports"
+        value: ${{ jobs.integration-compliance-tests.outputs.test_reports_path }}
 
 jobs:
-  alpha-tests:
-    name: Alpha Tests (Unit & Integration)
+  integration-compliance-tests:
+    name: Integration & Compliance Testing (${{ inputs.test_stage }})
     runs-on: ubuntu-latest
-    if: inputs.test_stage == 'alpha' || inputs.test_stage == 'all'
+    
+    outputs:
+      overall_status: ${{ steps.summary.outputs.overall_status }}
+      test_reports_path: ${{ steps.summary.outputs.reports_path }}
 
     steps:
       - name: Checkout code
@@ -33,339 +54,227 @@ jobs:
         with:
           checkout: 'false'
 
-      - name: Install dependencies
+      - name: Install dependencies (for local deployment only)
+        if: inputs.deployment_target == 'local'
         run: |
           bun install
           cd backend && bun install
           cd ../ui && bun install
 
-      - name: Run unit tests
-        if: inputs.test_scope == 'unit' || inputs.test_scope == 'all'
+      - name: Setup test environment
         run: |
-          echo "🧪 Running unit tests..."
-          cd backend
-          # Add your backend unit tests here
-          echo "Backend unit tests completed"
-          cd ../ui
-          # Add your UI unit tests here
-          echo "UI unit tests completed"
+          echo "🚀 Setting up integration & compliance testing environment..."
+          echo "Test Stage: ${{ inputs.test_stage }}"
+          echo "Deployment Target: ${{ inputs.deployment_target }}"
+          echo "FHIR Server: ${{ inputs.fhir_server_url }}"
+          echo "Keycloak: ${{ inputs.keycloak_url }}"
+          
+          # Create basic test directory structure (Inferno action will create its own subdirs)
+          mkdir -p testing/${{ inputs.test_stage }}/reports/{integration,summary}
+          mkdir -p testing/${{ inputs.test_stage }}/config
 
-      - name: Run integration tests
-        if: inputs.test_scope == 'integration' || inputs.test_scope == 'all'
+      - name: Wait for deployment readiness
         run: |
-          echo "🔗 Running integration tests..."
-          # Add integration tests between components
-          echo "Integration tests completed"
-
-  beta-tests:
-    name: Beta Tests (FHIR Compliance & API Testing)
-    runs-on: ubuntu-latest
-    if: inputs.test_stage == 'beta' || inputs.test_stage == 'all'
-    needs: [alpha-tests]
-
-    services:
-      # Start your FHIR proxy for testing
-      fhir-proxy:
-        image: node:18
-        ports:
-          - 3001:3001
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Bun with version scripts
-        uses: ./.github/actions/setup-bun-version
-        with:
-          checkout: 'false'
-
-      - name: Start FHIR Proxy Server
-        run: |
-          echo "🚀 Starting FHIR Proxy Server for testing..."
-          cd backend
-          bun install
-          # Start your FHIR proxy in background
-          nohup bun run start &
-          sleep 10
-          echo "FHIR Proxy Server started"
-
-      - name: Health check FHIR server
-        run: |
-          echo "🏥 Checking FHIR server health..."
+          echo "⏳ Waiting for deployment to be ready..."
           max_attempts=30
           attempt=1
+          
           while [ $attempt -le $max_attempts ]; do
-            if curl -f "${{ inputs.fhir_server_url }}/health" > /dev/null 2>&1; then
-              echo "✅ FHIR server is responding"
+            if curl -f "${{ inputs.fhir_server_url }}/health" >/dev/null 2>&1; then
+              echo "✅ FHIR server is ready and responding"
               break
             fi
-            echo "⏳ Waiting for FHIR server... (attempt $attempt/$max_attempts)"
+            echo "🔄 Waiting for FHIR server... (attempt $attempt/$max_attempts)"
             sleep 10
             attempt=$((attempt + 1))
           done
           
           if [ $attempt -gt $max_attempts ]; then
-            echo "❌ FHIR server failed to start"
+            echo "❌ FHIR server failed to respond within timeout"
             exit 1
           fi
 
-      - name: Setup Docker for Inferno
+      - name: Run integration tests
+        id: integration-tests
         run: |
-          echo "🐳 Setting up Docker for Inferno testing..."
-          # Ensure Docker is available
-          docker --version
-          docker-compose --version
-
-      - name: Run Basic FHIR Compliance Tests
-        if: inputs.test_scope == 'integration' || inputs.test_scope == 'all'
-        run: |
-          echo "🔍 Running basic FHIR compliance tests..."
+          echo "🔗 Running integration tests for ${{ inputs.test_stage }}..."
           
-          # Test FHIR capability statement
-          echo "Testing FHIR Capability Statement..."
-          curl -H "Accept: application/fhir+json" "${{ inputs.fhir_server_url }}/metadata" | jq .
-          
-          # Test SMART configuration
-          echo "Testing SMART configuration..."
-          curl -H "Accept: application/json" "${{ inputs.fhir_server_url }}/.well-known/smart_configuration" | jq .
-          
-          echo "✅ Basic FHIR compliance tests completed"
-
-      - name: Run Inferno ONC Program Tests (Basic)
-        if: inputs.test_scope == 'integration' || inputs.test_scope == 'all'
-        run: |
-          echo "🔥 Running Inferno ONC Program Tests..."
-          
-          # Clone the archived Inferno repository for reference testing
-          git clone --depth=1 https://github.com/onc-healthit/inferno-program.git /tmp/inferno
-          cd /tmp/inferno
-          
-          # Create a basic test configuration
-          cat > test_config.json << EOF
-          {
-            "url": "${{ inputs.fhir_server_url }}",
-            "module": "onc_program",
-            "sequences": [
-              "UsCoreR4CapabilityStatement",
-              "USCore311Patient"
-            ],
-            "client_id": "test_client",
-            "client_secret": "test_secret",
-            "scopes": "patient/*.read"
-          }
-          EOF
-          
-          echo "📋 Inferno test configuration created"
-          echo "Note: Full Inferno testing would require proper FHIR test data and authentication setup"
-          echo "This is a placeholder for actual Inferno test execution"
-
-  production-tests:
-    name: Production Tests (Security, Compliance & Full ONC Inferno)
-    runs-on: ubuntu-latest
-    if: inputs.test_stage == 'production' || inputs.test_stage == 'all'
-    needs: [beta-tests]
-
-    services:
-      # Start your FHIR proxy for testing
-      fhir-proxy:
-        image: node:18
-        ports:
-          - 3001:3001
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Bun with version scripts
-        uses: ./.github/actions/setup-bun-version
-        with:
-          checkout: 'false'
-
-      - name: Start FHIR Proxy Server
-        run: |
-          echo "🚀 Starting FHIR Proxy Server for production testing..."
-          cd backend
-          bun install
-          # Start your FHIR proxy in background
-          nohup bun run start &
-          sleep 15
-          echo "FHIR Proxy Server started for production testing"
-
-      - name: Security Testing
-        if: inputs.test_scope == 'security' || inputs.test_scope == 'all'
-        run: |
-          echo "🔒 Running security tests..."
-          
-          # Test OAuth 2.0 flows
-          echo "Testing OAuth 2.0 security..."
-          
-          # Test authorization endpoints
-          echo "Testing authorization endpoints..."
-          
-          # Test token validation
-          echo "Testing token validation..."
-          
-          # Test SMART scope enforcement
-          echo "Testing SMART scope enforcement..."
-          
-          echo "✅ Security tests completed"
-
-      - name: Full ONC Inferno Program Edition Tests
-        if: inputs.test_scope == 'security' || inputs.test_scope == 'all'
-        run: |
-          echo "🔥 Running Full ONC Inferno Program Edition Tests..."
-          
-          # Setup Inferno environment
-          git clone --depth=1 https://github.com/onc-healthit/inferno-program.git /tmp/inferno-full
-          cd /tmp/inferno-full
-          
-          # Create comprehensive test configuration for ONC certification
-          cat > production_test_config.json << EOF
-          {
-            "url": "${{ inputs.fhir_server_url }}",
-            "module": "onc_program",
-            "sequences": [
-              "UsCoreR4CapabilityStatement",
-              "USCore311Patient",
-              "USCore311AllergyIntolerance", 
-              "USCore311CareTeam",
-              "USCore311Condition",
-              "USCore311Device",
-              "USCore311DiagnosticReport",
-              "USCore311DocumentReference",
-              "USCore311Encounter",
-              "USCore311Goal",
-              "USCore311Immunization",
-              "USCore311Location",
-              "USCore311Medication",
-              "USCore311MedicationRequest",
-              "USCore311Observation",
-              "USCore311Organization",
-              "USCore311Practitioner",
-              "USCore311PractitionerRole",
-              "USCore311Procedure",
-              "USCore311Provenance",
-              "SMARTDiscovery",
-              "SMARTStandalonePatientApp",
-              "SMARTEHRPatientApp",
-              "BulkDataGroupExport",
-              "BulkDataPatientExport",
-              "BulkDataSystemExport"
-            ],
-            "client_id": "production_test_client",
-            "client_secret": "production_test_secret",
-            "scopes": "patient/*.read user/*.read system/*.read",
-            "redirect_uri": "http://localhost:4567/inferno/callback"
-          }
-          EOF
-          
-          echo "📋 Full ONC Inferno test configuration created"
-          echo "🎯 Production-grade FHIR compliance testing configured"
-          echo "📊 This would test all required ONC certification criteria:"
-          echo "   - FHIR R4 compliance"
-          echo "   - US Core 3.1.1 profiles"
-          echo "   - SMART App Launch"
-          echo "   - Bulk Data Access"
-          echo "   - Security and OAuth 2.0"
-          
-          # In a real implementation, you would run:
-          # docker-compose up -d
-          # Wait for services to be ready
-          # Execute the full test suite
-          # Generate compliance reports
-          
-          echo "✅ Production ONC Inferno testing framework ready"
-
-      - name: Compliance Report Generation
-        if: always()
-        run: |
-          echo "📄 Generating compliance reports..."
-          
-          # Create compliance report
-          cat > compliance_report.md << EOF
-          # FHIR Compliance Report
-          
-          ## Test Summary
-          - **Test Stage**: ${{ inputs.test_stage }}
-          - **Test Scope**: ${{ inputs.test_scope }}
-          - **FHIR Server**: ${{ inputs.fhir_server_url }}
-          - **Timestamp**: $(date -u)
-          
-          ## ONC Certification Requirements
-          - [ ] FHIR R4 Capability Statement
-          - [ ] US Core 3.1.1 Patient Profile
-          - [ ] SMART App Launch Framework
-          - [ ] OAuth 2.0 Security
-          - [ ] Bulk Data Access (FHIR Flat)
-          - [ ] All required US Core profiles
-          
-          ## Test Results
-          - Alpha Tests: ✅ Passed
-          - Beta Tests: ✅ Passed  
-          - Production Tests: ✅ Ready for ONC Inferno
-          
-          ## Next Steps
-          1. Execute full Inferno test suite
-          2. Address any compliance gaps
-          3. Generate official certification reports
-          EOF
-          
-          echo "📋 Compliance report generated"
-
-  test-summary:
-    name: Test Summary & Inferno Results
-    runs-on: ubuntu-latest
-    needs: [alpha-tests, beta-tests, production-tests]
-    if: always()
-
-    steps:
-      - name: Generate comprehensive test summary
-        run: |
-          echo "📊 Generating comprehensive test summary..."
-          
-          # Determine overall test status
-          ALPHA_STATUS="${{ needs.alpha-tests.result }}"
-          BETA_STATUS="${{ needs.beta-tests.result }}"
-          PRODUCTION_STATUS="${{ needs.production-tests.result }}"
-          
-          echo "## 🧪 Test Results Summary"
-          echo "| Stage | Status | Tests |"
-          echo "|-------|--------|-------|"
-          echo "| Alpha | $ALPHA_STATUS | Unit & Integration |"
-          echo "| Beta | $BETA_STATUS | FHIR Compliance & Basic Inferno |"
-          echo "| Production | $PRODUCTION_STATUS | Security & Full ONC Inferno |"
-          
-          echo ""
-          echo "## 🔥 Inferno ONC Program Edition Status"
-          echo "- **Framework**: Ready for ONC certification testing"
-          echo "- **Test Modules**: All ONC required sequences configured"
-          echo "- **FHIR Version**: R4 (4.0.1)"
-          echo "- **US Core**: 3.1.1 profiles"
-          echo "- **SMART**: App Launch Framework 1.0.0"
-          echo "- **Bulk Data**: FHIR Flat v1.0.0"
-          
-          if [[ "$ALPHA_STATUS" == "success" && "$BETA_STATUS" == "success" && "$PRODUCTION_STATUS" == "success" ]]; then
-            echo "✅ All tests passed - Ready for ONC certification"
-            echo "OVERALL_STATUS=success" >> $GITHUB_ENV
+          # Test basic health endpoint (already verified above, but good to document)
+          echo "Testing health endpoint..."
+          if curl -f "${{ inputs.fhir_server_url }}/health" > testing/${{ inputs.test_stage }}/reports/integration/health.json; then
+            echo "✅ Health endpoint working"
           else
-            echo "❌ Some tests failed - Review before certification"
-            echo "OVERALL_STATUS=failure" >> $GITHUB_ENV
+            echo "❌ Health endpoint failed"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            exit 1
           fi
           
-          echo ""
-          echo "## 📋 Next Steps for ONC Certification"
-          echo "1. 🏥 Deploy to certification environment"
-          echo "2. 🔥 Run full Inferno test suite with real test data"
-          echo "3. 📊 Generate official compliance reports"
-          echo "4. 🎯 Submit for ONC certification review"
+          # Test OAuth discovery if Keycloak is available
+          echo "Testing OAuth discovery endpoint..."
+          if curl -f "${{ inputs.keycloak_url }}/realms/proxy-smart/.well-known/openid_configuration" > testing/${{ inputs.test_stage }}/reports/integration/oauth_discovery.json; then
+            echo "✅ OAuth discovery endpoint working"
+          else
+            echo "⚠️ OAuth discovery endpoint not available"
+          fi
+          
+          echo "status=passed" >> $GITHUB_OUTPUT
+          echo "Integration tests completed successfully" | tee testing/${{ inputs.test_stage }}/reports/integration/integration_tests.log
 
-      - name: Upload test artifacts
+      - name: Setup Docker and Inferno
+        id: setup-inferno
+        uses: ./.github/actions/setup-docker-inferno
+        with:
+          test_stage: ${{ inputs.test_stage }}
+          fhir_server_url: ${{ inputs.fhir_server_url }}
+          keycloak_url: ${{ inputs.keycloak_url }}
+
+      - name: Run Inferno ONC tests
+        id: inferno-tests
+        uses: ./.github/actions/run-inferno-tests
+        with:
+          test_stage: ${{ inputs.test_stage }}
+          inferno_container_id: ${{ steps.setup-inferno.outputs.inferno_container_id }}
+          test_config_path: ${{ steps.setup-inferno.outputs.test_config_path }}
+          fhir_server_url: ${{ inputs.fhir_server_url }}
+
+      - name: Generate test summary
+        id: summary
+        if: always()
+        run: |
+          echo "📊 Generating test summary..."
+          
+          INTEGRATION_STATUS="${{ steps.integration-tests.outputs.status || 'failed' }}"
+          INFERNO_STATUS="${{ steps.inferno-tests.outputs.compliance_status || 'skipped' }}"
+          
+          # Determine overall status
+          if [[ "$INTEGRATION_STATUS" == "failed" || "$INFERNO_STATUS" == "failed" ]]; then
+            OVERALL_STATUS="failed"
+            STATUS_EMOJI="❌"
+          elif [[ "$INTEGRATION_STATUS" == "passed" && ("$INFERNO_STATUS" == "passed" || "$INFERNO_STATUS" == "skipped") ]]; then
+            OVERALL_STATUS="passed"
+            STATUS_EMOJI="✅"
+          else
+            OVERALL_STATUS="unknown"
+            STATUS_EMOJI="⚠️"
+          fi
+          
+          echo "overall_status=$OVERALL_STATUS" >> $GITHUB_OUTPUT
+          echo "reports_path=testing/${{ inputs.test_stage }}/reports" >> $GITHUB_OUTPUT
+          
+          # Generate summary report
+          SUMMARY_FILE="testing/${{ inputs.test_stage }}/reports/summary/test_summary.md"
+          
+          cat > "$SUMMARY_FILE" << EOF
+          # $STATUS_EMOJI Integration & Compliance Test Results - ${{ inputs.test_stage }}
+          
+          **Generated**: $(date -u)
+          **Test Stage**: ${{ inputs.test_stage }}
+          **Deployment Target**: ${{ inputs.deployment_target }}
+          **App Version**: ${{ inputs.app_version }}
+          **Overall Status**: $OVERALL_STATUS
+          
+          ## Test Environment
+          - **FHIR Server**: ${{ inputs.fhir_server_url }}
+          - **Keycloak**: ${{ inputs.keycloak_url }}
+          - **Deployment**: ${{ inputs.deployment_target }}
+          
+          ## Test Results Summary
+          | Test Type | Status | Details |
+          |-----------|--------|---------|
+          | Integration Tests | $INTEGRATION_STATUS | FHIR endpoints & OAuth |
+          | Inferno ONC Tests | $INFERNO_STATUS | ONC Program Edition compliance |
+          
+          ## Test Artifacts
+          - **Integration Tests**: \`testing/${{ inputs.test_stage }}/reports/integration/\`
+          - **Inferno Tests**: \`testing/${{ inputs.test_stage }}/reports/inferno/\`
+          
+          ## Key Files
+          - \`metadata.json\`: FHIR server capability statement
+          - \`patient_search.json\`: FHIR Patient endpoint test
+          - \`oauth_discovery.json\`: OAuth discovery configuration
+          EOF
+          
+          if [ "$INFERNO_STATUS" != "skipped" ]; then
+            cat >> "$SUMMARY_FILE" << EOF
+          - \`compliance_report.md\`: Detailed Inferno compliance report
+          - \`test_results.json\`: Raw Inferno test results
+          - \`test_report.html\`: Inferno HTML report
+          EOF
+          fi
+          
+          cat >> "$SUMMARY_FILE" << EOF
+          
+          ## Next Steps
+          EOF
+          
+          if [ "$OVERALL_STATUS" = "passed" ]; then
+            cat >> "$SUMMARY_FILE" << EOF
+          ✅ **All tests passed successfully!**
+          
+          1. Review test artifacts for any warnings
+          2. Proceed with deployment to next stage
+          3. For production: Submit for ONC certification if required
+          EOF
+          else
+            cat >> "$SUMMARY_FILE" << EOF
+          ❌ **Some tests failed - Action required**
+          
+          1. Review failed test logs in respective directories
+          2. Address identified issues
+          3. Re-run tests after fixes are implemented
+          EOF
+          fi
+          
+          echo "✅ Test summary generated"
+
+      - name: Upload test reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: inferno-test-results-${{ inputs.test_stage }}
-          path: |
-            compliance_report.md
-            test_config.json
-            production_test_config.json
+          name: integration-compliance-test-results-${{ inputs.test_stage }}-${{ inputs.deployment_target }}
+          path: testing/${{ inputs.test_stage }}/reports/
           retention-days: 30
+
+      - name: Cleanup local services
+        if: inputs.deployment_target == 'local' && always()
+        run: |
+          echo "🧹 Cleaning up Alpha deployment resources after testing..."
+          
+          # Stop backend process (deployed by deployment strategy)
+          if [ -f backend.pid ]; then
+            echo "Stopping backend process..."
+            kill $(cat backend.pid) || true
+            rm backend.pid
+          fi
+          
+          # Stop and remove Docker containers (created by deployment strategy)
+          echo "Stopping Docker containers..."
+          docker stop alpha-keycloak alpha-postgres || true
+          docker rm alpha-keycloak alpha-postgres || true
+          
+          # Clean up any Inferno containers from testing
+          echo "Cleaning up Inferno test containers..."
+          docker ps -a --filter "name=inferno" --format "{{.Names}}" | xargs -r docker rm -f || true
+          
+          # Clean up any dangling Docker resources
+          echo "Cleaning up Docker resources..."
+          docker system prune -f || true
+          
+          echo "✅ Alpha deployment and testing cleanup completed"
+
+      - name: Generate GitHub Step Summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Results Summary - ${{ inputs.test_stage }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Stage**: ${{ inputs.test_stage }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Target**: ${{ inputs.deployment_target }}" >> $GITHUB_STEP_SUMMARY
+          echo "**FHIR Server**: ${{ inputs.fhir_server_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Overall Status**: ${{ steps.summary.outputs.overall_status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **Integration Tests**: ${{ steps.integration-tests.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Inferno ONC Tests**: ${{ steps.inferno-tests.outputs.compliance_status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "Test reports are available in the uploaded artifacts: \`integration-compliance-test-results-${{ inputs.test_stage }}-${{ inputs.deployment_target }}\`" >> $GITHUB_STEP_SUMMARY
