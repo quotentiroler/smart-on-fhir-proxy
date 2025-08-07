@@ -242,13 +242,13 @@ jobs:
           fi
           
           # Set outputs
-          echo "fhir_server_url=http://localhost:3001" >> $GITHUB_OUTPUT
+          echo "fhir_server_url=http://localhost:3001/proxy-smart-backend/hapi-fhir-server/R4" >> $GITHUB_OUTPUT
           echo "keycloak_url=http://localhost:8080" >> $GITHUB_OUTPUT
           echo "deployment_status=success" >> $GITHUB_OUTPUT
           echo "deployment_target=local" >> $GITHUB_OUTPUT
           
           echo "✅ Alpha deployment completed successfully"
-          echo "📍 FHIR Server: http://localhost:3001"
+          echo "📍 FHIR Server (Proxied): http://localhost:3001/proxy-smart-backend/hapi-fhir-server/R4"
           echo "📍 Keycloak: http://localhost:8080"
           echo "🔍 Backend PID stored in backend.pid for testing phase"
 
@@ -324,13 +324,13 @@ jobs:
           timeout 300s bash -c "until curl -f $FLY_APP_URL/health; do sleep 10; done"
           
           # Set outputs (assuming Keycloak is also deployed or accessible)
-          echo "fhir_server_url=$FLY_APP_URL" >> $GITHUB_OUTPUT
+          echo "fhir_server_url=$FLY_APP_URL/proxy-smart-backend/hapi-fhir-server/R4" >> $GITHUB_OUTPUT
           echo "keycloak_url=https://auth-proxy-smart-beta.fly.dev" >> $GITHUB_OUTPUT
           echo "deployment_status=success" >> $GITHUB_OUTPUT
           echo "deployment_target=fly.io" >> $GITHUB_OUTPUT
           
           echo "✅ Beta deployment completed successfully"
-          echo "📍 FHIR Server: $FLY_APP_URL"
+          echo "📍 FHIR Server (Proxied): $FLY_APP_URL/proxy-smart-backend/hapi-fhir-server/R4"
           echo "📍 Keycloak: https://auth-proxy-smart-beta.fly.dev"
 
   deploy-production:
@@ -404,13 +404,13 @@ jobs:
           PRODUCTION_URL="https://your-production-domain.com"
           KEYCLOAK_URL="https://auth.your-production-domain.com"
           
-          echo "fhir_server_url=$PRODUCTION_URL" >> $GITHUB_OUTPUT
+          echo "fhir_server_url=$PRODUCTION_URL/proxy-smart-backend/hapi-fhir-server/R4" >> $GITHUB_OUTPUT
           echo "keycloak_url=$KEYCLOAK_URL" >> $GITHUB_OUTPUT
           echo "deployment_status=success" >> $GITHUB_OUTPUT
           echo "deployment_target=vps" >> $GITHUB_OUTPUT
           
           echo "✅ Production deployment completed successfully"
-          echo "📍 FHIR Server: $PRODUCTION_URL"
+          echo "📍 FHIR Server (Proxied): $PRODUCTION_URL/proxy-smart-backend/hapi-fhir-server/R4"
           echo "📍 Keycloak: $KEYCLOAK_URL"
 
   output-deployment-urls:
