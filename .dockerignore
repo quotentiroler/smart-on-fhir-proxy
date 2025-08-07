@@ -58,8 +58,9 @@ Dockerfile*
 docker-compose*.yml
 .dockerignore
 
-# Keycloak
+# Keycloak (exclude everything except realm export files)
 keycloak/
+!keycloak/realm-export*.json
 
 # Scripts
 scripts/
