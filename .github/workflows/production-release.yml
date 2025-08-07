@@ -51,19 +51,9 @@ jobs:
             echo "should_release=true" >> $GITHUB_OUTPUT
           fi
 
-  # Production releases run full security and compliance testing
-  production-testing:
-    name: Production Testing (Security & Compliance)
-    needs: check-changes
-    if: ${{ needs.check-changes.outputs.should_release == 'true' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Production release') && !contains(github.event.head_commit.message, '🎉') }}
-    uses: ./.github/workflows/testing-strategy.yml
-    with:
-      test_stage: "production"
-      test_scope: "all"
-
   production-release:
     name: Production Release
-    needs: [check-changes, production-testing]
+    needs: [check-changes]
     # Only run if the last commit is not a release commit AND there are non-documentation changes
     if: ${{ needs.check-changes.outputs.should_release == 'true' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Production release') && !contains(github.event.head_commit.message, '🎉') }}
     uses: ./.github/workflows/release-orchestrator.yml
@@ -141,10 +131,20 @@ jobs:
           2. Fix any issues that caused the release to fail in the test branch
           3. Re-test the changes thoroughly
           4. Merge this PR when ready to retry the production release
-          
+
           **This PR uses the test branch to retry the failed production release.**" \
             --base main \
             --head "test" \
             --label "retry,release-failure,high-priority"
         env:
           GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+
+  # Production releases run full security and compliance testing
+  production-testing:
+    name: Production Testing (Security & Compliance)
+    needs: [check-changes, production-release]
+    if: ${{ needs.check-changes.outputs.should_release == 'true' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'Production release') && !contains(github.event.head_commit.message, '🎉') }}
+    uses: ./.github/workflows/testing-strategy.yml
+    with:
+      test_stage: "production"
+      test_scope: "all"
