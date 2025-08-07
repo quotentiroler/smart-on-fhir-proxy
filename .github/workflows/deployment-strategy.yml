@@ -120,6 +120,13 @@ jobs:
             echo "❌ Keycloak failed to start within timeout"
             echo "📋 Checking Keycloak container logs..."
             docker logs alpha-keycloak --tail 50
+            
+            # Set failure outputs
+            echo "fhir_server_url=" >> $GITHUB_OUTPUT
+            echo "keycloak_url=" >> $GITHUB_OUTPUT
+            echo "deployment_status=failed" >> $GITHUB_OUTPUT
+            echo "deployment_target=local" >> $GITHUB_OUTPUT
+            
             exit 1
           fi
           
@@ -142,7 +149,22 @@ jobs:
           
           # Wait for backend to be ready
           echo "⏳ Waiting for FHIR backend..."
-          timeout 120s bash -c 'until curl -f http://localhost:3001/health; do sleep 5; done'
+          if ! timeout 120s bash -c 'until curl -f http://localhost:3001/health; do sleep 5; done'; then
+            echo "❌ FHIR backend failed to start within timeout"
+            echo "📋 Checking backend logs..."
+            if [ -f backend.pid ]; then
+              echo "Backend PID: $(cat backend.pid)"
+              ps aux | grep $(cat backend.pid) || echo "Backend process not running"
+            fi
+            
+            # Set failure outputs
+            echo "fhir_server_url=" >> $GITHUB_OUTPUT
+            echo "keycloak_url=http://localhost:8080" >> $GITHUB_OUTPUT
+            echo "deployment_status=failed" >> $GITHUB_OUTPUT
+            echo "deployment_target=local" >> $GITHUB_OUTPUT
+            
+            exit 1
+          fi
           
           # Set outputs
           echo "fhir_server_url=http://localhost:3001" >> $GITHUB_OUTPUT
