@@ -229,7 +229,7 @@ export function LaunchContextManager() {
   // Use fhirStore for context sets management
   const { contextSets, addContextSet, updateContextSet, deleteContextSet } = useLaunchContextSets();
 
-  // Use auth store to get authenticated API clients and auth state
+  // Use auth store to get authenticated client APIs and auth state
   const { isAuthenticated, profile, apiClients } = useAuth();
 
   // Track if templates have been initialized to prevent infinite loops
@@ -335,7 +335,7 @@ export function LaunchContextManager() {
         setLaunchContextsLoading(true);
         setError(null);
         try {
-          // Use auth store's API clients with automatic error handling
+          // Use auth store's client APIs with automatic error handling
           const response = await apiClients.launchContexts.getAdminLaunchContexts();
           setLaunchContextUsers(response);
           console.log('Successfully loaded launch contexts:', response.length);

@@ -75,7 +75,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       apiClients: createApiClients(), // Initialize with no token
 
-      // Helper function to update API clients with current token
+      // Helper function to update client APIs with current token
       updateApiClients: () => {
         const tokens = getStoredTokens();
         const token = tokens?.access_token || undefined;
@@ -126,7 +126,7 @@ export const useAuthStore = create<AuthState>()(
           storeTokens(tokenData);
           set({ isAuthenticated: true });
           
-          // Update API clients with new token
+          // Update client APIs with new token
           get().updateApiClients();
           
           // Fetch user profile
@@ -205,7 +205,7 @@ export const useAuthStore = create<AuthState>()(
           storeTokens(tokenData);
           set({ isAuthenticated: true, loading: false });
           
-          // Update API clients with refreshed token
+          // Update client APIs with refreshed token
           get().updateApiClients();
           
         } catch (error) {
@@ -236,7 +236,7 @@ export const useAuthStore = create<AuthState>()(
           loading: false 
         });
         
-        // Update API clients to have no token
+        // Update client APIs to have no token
         get().updateApiClients();
         
         clearTokens();
@@ -272,7 +272,7 @@ export const useAuthStore = create<AuthState>()(
             state.apiClients = createApiClients(); // No token
             clearTokens();
           } else {
-            // Update API clients with current token
+            // Update client APIs with current token
             state.apiClients = createApiClients(tokens.access_token);
             // Set up auth error handler for rehydrated clients
             setAuthErrorHandler(() => {

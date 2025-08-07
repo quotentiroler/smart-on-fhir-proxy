@@ -305,7 +305,7 @@ bun run test:smart-flows        # SMART App Launch tests
 bun run test:backend-services   # Backend API tests
 
 # API Generation
-bun run generate                # Generate API clients
+bun run generate                # Generate client APIs
 bun run validate-api            # Validate OpenAPI specs
 
 # Version Management
