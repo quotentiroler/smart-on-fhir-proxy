@@ -41,8 +41,6 @@ runs:
       uses: actions/setup-node@v4
       with:
         node-version: ${{ inputs.node-version }}
-        cache: 'npm'
-        cache-dependency-path: '**/package-lock.json'
 
     - name: Setup Bun
       uses: oven-sh/setup-bun@v2

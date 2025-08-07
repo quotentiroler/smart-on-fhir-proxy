@@ -122,21 +122,29 @@ jobs:
 
           echo "✅ Successfully created revert commit for failed production release"
 
-          # Create an issue to track the failed release
-          gh issue create \
-            --title "🚨 Production Release Failed - Revert Commit Created" \
+          # Create a PR from test branch to track the failed release and retry
+          gh pr create \
+            --title "� RETRY: Production Release Failed - Using Test Branch" \
             --body "**Production release pipeline failed and a revert commit has been created.**
 
           **Details:**
-          - Revert commit created for: \`$(git rev-parse HEAD~1)\`
-          - Previous working commit: \`$PREVIOUS_COMMIT\`
+          - Revert commit: \`$(git rev-parse HEAD)\`
+          - Failed commit: \`$(git rev-parse HEAD~1)\`
           - Failed workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           - Timestamp: $(date -u)
 
+          **What happened:**
+          The production release pipeline failed, so the changes have been reverted from main.
+
           **Next Steps:**
           1. Investigate the release failure in the workflow logs
-          2. Fix any issues that caused the release to fail
-          3. Re-run the production release when ready" \
-            --label "bug,release-failure,high-priority"
+          2. Fix any issues that caused the release to fail in the test branch
+          3. Re-test the changes thoroughly
+          4. Merge this PR when ready to retry the production release
+          
+          **This PR uses the test branch to retry the failed production release.**" \
+            --base main \
+            --head "test" \
+            --label "retry,release-failure,high-priority"
         env:
           GH_TOKEN: ${{ steps.generate_token.outputs.token }}
