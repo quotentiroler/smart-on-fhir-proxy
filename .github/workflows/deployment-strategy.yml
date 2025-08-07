@@ -526,34 +526,250 @@ jobs:
       - name: Set deployment outputs
         id: set-outputs
         run: |
+          # Initialize default values for failed deployments
+          echo "fhir_server_url=" >> $GITHUB_OUTPUT
+          echo "keycloak_url=" >> $GITHUB_OUTPUT
+          echo "deployment_status=failed" >> $GITHUB_OUTPUT
+          echo "deployment_target=unknown" >> $GITHUB_OUTPUT
+          
+          # Determine the job result and set appropriate values
           if [ "${{ inputs.deployment_stage }}" = "alpha" ]; then
-            echo "fhir_server_url=${{ needs.deploy-alpha.outputs.fhir_server_url }}" >> $GITHUB_OUTPUT
-            echo "keycloak_url=${{ needs.deploy-alpha.outputs.keycloak_url }}" >> $GITHUB_OUTPUT
-            echo "deployment_status=${{ needs.deploy-alpha.outputs.deployment_status }}" >> $GITHUB_OUTPUT
-            echo "deployment_target=${{ needs.deploy-alpha.outputs.deployment_target }}" >> $GITHUB_OUTPUT
+            ALPHA_RESULT="${{ needs.deploy-alpha.result }}"
+            echo "Alpha deployment result: $ALPHA_RESULT"
+            
+            if [ "$ALPHA_RESULT" = "success" ]; then
+              echo "fhir_server_url=${{ needs.deploy-alpha.outputs.fhir_server_url }}" >> $GITHUB_OUTPUT
+              echo "keycloak_url=${{ needs.deploy-alpha.outputs.keycloak_url }}" >> $GITHUB_OUTPUT
+              echo "deployment_status=${{ needs.deploy-alpha.outputs.deployment_status }}" >> $GITHUB_OUTPUT
+              echo "deployment_target=${{ needs.deploy-alpha.outputs.deployment_target }}" >> $GITHUB_OUTPUT
+            else
+              echo "deployment_status=$ALPHA_RESULT" >> $GITHUB_OUTPUT
+              echo "deployment_target=fly.io" >> $GITHUB_OUTPUT
+            fi
+            
           elif [ "${{ inputs.deployment_stage }}" = "beta" ]; then
-            echo "fhir_server_url=${{ needs.deploy-beta.outputs.fhir_server_url }}" >> $GITHUB_OUTPUT
-            echo "keycloak_url=${{ needs.deploy-beta.outputs.keycloak_url }}" >> $GITHUB_OUTPUT
-            echo "deployment_status=${{ needs.deploy-beta.outputs.deployment_status }}" >> $GITHUB_OUTPUT
-            echo "deployment_target=${{ needs.deploy-beta.outputs.deployment_target }}" >> $GITHUB_OUTPUT
+            BETA_RESULT="${{ needs.deploy-beta.result }}"
+            echo "Beta deployment result: $BETA_RESULT"
+            
+            if [ "$BETA_RESULT" = "success" ]; then
+              echo "fhir_server_url=${{ needs.deploy-beta.outputs.fhir_server_url }}" >> $GITHUB_OUTPUT
+              echo "keycloak_url=${{ needs.deploy-beta.outputs.keycloak_url }}" >> $GITHUB_OUTPUT
+              echo "deployment_status=${{ needs.deploy-beta.outputs.deployment_status }}" >> $GITHUB_OUTPUT
+              echo "deployment_target=${{ needs.deploy-beta.outputs.deployment_target }}" >> $GITHUB_OUTPUT
+            else
+              echo "deployment_status=$BETA_RESULT" >> $GITHUB_OUTPUT
+              echo "deployment_target=vps" >> $GITHUB_OUTPUT
+            fi
+            
           elif [ "${{ inputs.deployment_stage }}" = "production" ]; then
-            echo "fhir_server_url=${{ needs.deploy-production.outputs.fhir_server_url }}" >> $GITHUB_OUTPUT
-            echo "keycloak_url=${{ needs.deploy-production.outputs.keycloak_url }}" >> $GITHUB_OUTPUT
-            echo "deployment_status=${{ needs.deploy-production.outputs.deployment_status }}" >> $GITHUB_OUTPUT
-            echo "deployment_target=${{ needs.deploy-production.outputs.deployment_target }}" >> $GITHUB_OUTPUT
+            PROD_RESULT="${{ needs.deploy-production.result }}"
+            echo "Production deployment result: $PROD_RESULT"
+            
+            if [ "$PROD_RESULT" = "success" ]; then
+              echo "fhir_server_url=${{ needs.deploy-production.outputs.fhir_server_url }}" >> $GITHUB_OUTPUT
+              echo "keycloak_url=${{ needs.deploy-production.outputs.keycloak_url }}" >> $GITHUB_OUTPUT
+              echo "deployment_status=${{ needs.deploy-production.outputs.deployment_status }}" >> $GITHUB_OUTPUT
+              echo "deployment_target=${{ needs.deploy-production.outputs.deployment_target }}" >> $GITHUB_OUTPUT
+            else
+              echo "deployment_status=$PROD_RESULT" >> $GITHUB_OUTPUT
+              echo "deployment_target=azure-or-aws" >> $GITHUB_OUTPUT
+            fi
           fi
       
       - name: Deployment Summary
         run: |
-          echo "## Deployment Summary for ${{ inputs.deployment_stage }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Version**: ${{ inputs.app_version }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Target**: ${{ steps.set-outputs.outputs.deployment_target }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **FHIR Server**: ${{ steps.set-outputs.outputs.fhir_server_url }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Keycloak**: ${{ steps.set-outputs.outputs.keycloak_url }}" >> $GITHUB_STEP_SUMMARY
+          # Get current timestamp
+          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
           
-          # Check if deployment actually succeeded
-          if [ "${{ steps.set-outputs.outputs.deployment_status }}" = "success" ]; then
-            echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+          echo "# 🚀 Deployment Summary for ${{ inputs.deployment_stage }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Deployment Status Section
+          DEPLOYMENT_STATUS="${{ steps.set-outputs.outputs.deployment_status }}"
+          echo "Deployment status: $DEPLOYMENT_STATUS"
+          
+          if [ "$DEPLOYMENT_STATUS" = "success" ]; then
+            echo "## ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Your ${{ inputs.deployment_stage }} environment has been successfully deployed and is ready for use!" >> $GITHUB_STEP_SUMMARY
+          elif [ "$DEPLOYMENT_STATUS" = "cancelled" ]; then
+            echo "## 🚫 Deployment Cancelled" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The deployment to ${{ inputs.deployment_stage }} environment was cancelled manually or due to a timeout." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Possible reasons:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Manual cancellation by user" >> $GITHUB_STEP_SUMMARY
+            echo "- Workflow timeout (usually after 6 hours)" >> $GITHUB_STEP_SUMMARY
+            echo "- Resource constraints on the target platform" >> $GITHUB_STEP_SUMMARY
+            echo "- Network connectivity issues" >> $GITHUB_STEP_SUMMARY
+          elif [ "$DEPLOYMENT_STATUS" = "failure" ] || [ "$DEPLOYMENT_STATUS" = "failed" ]; then
+            echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The deployment to ${{ inputs.deployment_stage }} environment has failed. Please check the logs for details." >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **Status**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+            echo "## ⚠️ Deployment Status Unknown" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "The deployment to ${{ inputs.deployment_stage }} environment finished with status: \`$DEPLOYMENT_STATUS\`" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the deployment logs for more information." >> $GITHUB_STEP_SUMMARY
           fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 📋 Deployment Details" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Environment** | \`${{ inputs.deployment_stage }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version** | \`${{ inputs.app_version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Source Branch** | \`${{ inputs.source_branch }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Target Platform** | \`${{ steps.set-outputs.outputs.deployment_target }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Deployed At** | $TIMESTAMP |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Run ID** | [\`${{ github.run_id }}\`](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Commit** | [\`${{ github.sha }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}) |" >> $GITHUB_STEP_SUMMARY
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔗 Service URLs" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$DEPLOYMENT_STATUS" = "success" ]; then
+            echo "### 🏥 FHIR API Endpoints" >> $GITHUB_STEP_SUMMARY
+            echo "- **FHIR Server (Proxied)**: [${{ steps.set-outputs.outputs.fhir_server_url }}](${{ steps.set-outputs.outputs.fhir_server_url }})" >> $GITHUB_STEP_SUMMARY
+            echo "- **Health Check**: [${{ steps.set-outputs.outputs.fhir_server_url }}/metadata](${{ steps.set-outputs.outputs.fhir_server_url }}/metadata)" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            echo "### 🔐 Authentication & Authorization" >> $GITHUB_STEP_SUMMARY
+            echo "- **Keycloak Console**: [${{ steps.set-outputs.outputs.keycloak_url }}](${{ steps.set-outputs.outputs.keycloak_url }})" >> $GITHUB_STEP_SUMMARY
+            echo "- **SMART Realm**: [${{ steps.set-outputs.outputs.keycloak_url }}/realms/proxy-smart](${{ steps.set-outputs.outputs.keycloak_url }}/realms/proxy-smart)" >> $GITHUB_STEP_SUMMARY
+            echo "- **OIDC Discovery**: [${{ steps.set-outputs.outputs.keycloak_url }}/realms/proxy-smart/.well-known/openid_configuration](${{ steps.set-outputs.outputs.keycloak_url }}/realms/proxy-smart/.well-known/openid_configuration)" >> $GITHUB_STEP_SUMMARY
+            
+            # Environment-specific information
+            if [ "${{ inputs.deployment_stage }}" = "alpha" ]; then
+              BACKEND_URL="https://proxy-smart-alpha.fly.dev"
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### 🧪 Alpha Environment Specifics" >> $GITHUB_STEP_SUMMARY
+              echo "- **Backend Health**: [$BACKEND_URL/health]($BACKEND_URL/health)" >> $GITHUB_STEP_SUMMARY
+              echo "- **Admin Interface**: [$BACKEND_URL/admin]($BACKEND_URL/admin)" >> $GITHUB_STEP_SUMMARY
+              echo "- **Platform**: Fly.io (Amsterdam region)" >> $GITHUB_STEP_SUMMARY
+              echo "- **Admin Credentials**: admin/admin (for testing only)" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "🔬 **Testing**: This is an alpha environment. Use for development and integration testing." >> $GITHUB_STEP_SUMMARY
+              
+            elif [ "${{ inputs.deployment_stage }}" = "beta" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### 🧪 Beta Environment Specifics" >> $GITHUB_STEP_SUMMARY
+              echo "- **Platform**: VPS (Self-hosted)" >> $GITHUB_STEP_SUMMARY
+              echo "- **Database**: PostgreSQL" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "🔍 **Testing**: This is a beta environment. Use for pre-production testing and validation." >> $GITHUB_STEP_SUMMARY
+              
+            elif [ "${{ inputs.deployment_stage }}" = "production" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "### 🏭 Production Environment Specifics" >> $GITHUB_STEP_SUMMARY
+              echo "- **Platform**: ${{ steps.set-outputs.outputs.deployment_target }}" >> $GITHUB_STEP_SUMMARY
+              echo "- **High Availability**: Enabled" >> $GITHUB_STEP_SUMMARY
+              echo "- **Monitoring**: Active" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "🚨 **Production**: This is the live production environment. Use with caution!" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## 🧪 Quick Test Commands" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Test your deployment with these curl commands:" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
+            echo "# Test FHIR server capability statement" >> $GITHUB_STEP_SUMMARY
+            echo "curl -H \"Accept: application/fhir+json\" \"${{ steps.set-outputs.outputs.fhir_server_url }}/metadata\"" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "# Test OIDC discovery endpoint" >> $GITHUB_STEP_SUMMARY
+            echo "curl \"${{ steps.set-outputs.outputs.keycloak_url }}/realms/proxy-smart/.well-known/openid_configuration\"" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "${{ inputs.deployment_stage }}" = "alpha" ]; then
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "# Test backend health (Alpha only)" >> $GITHUB_STEP_SUMMARY
+              echo "curl \"https://proxy-smart-alpha.fly.dev/health\"" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## 📊 Next Steps" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "${{ inputs.deployment_stage }}" = "alpha" ]; then
+              echo "- 🧪 Run integration tests against the alpha environment" >> $GITHUB_STEP_SUMMARY
+              echo "- 🔍 Test SMART on FHIR app launches with the Keycloak realm" >> $GITHUB_STEP_SUMMARY
+              echo "- 📝 Validate FHIR operations through the proxy" >> $GITHUB_STEP_SUMMARY
+              echo "- 🚀 Consider promoting to beta if all tests pass" >> $GITHUB_STEP_SUMMARY
+              
+            elif [ "${{ inputs.deployment_stage }}" = "beta" ]; then
+              echo "- 🔍 Perform thorough testing and validation" >> $GITHUB_STEP_SUMMARY
+              echo "- 📋 Run security and performance tests" >> $GITHUB_STEP_SUMMARY
+              echo "- 👥 Invite stakeholders for user acceptance testing" >> $GITHUB_STEP_SUMMARY
+              echo "- 📈 Monitor logs and performance metrics" >> $GITHUB_STEP_SUMMARY
+              echo "- 🚀 Consider promoting to production if validation passes" >> $GITHUB_STEP_SUMMARY
+              
+            elif [ "${{ inputs.deployment_stage }}" = "production" ]; then
+              echo "- 📊 Monitor application health and performance" >> $GITHUB_STEP_SUMMARY
+              echo "- 🔔 Set up alerts for any issues" >> $GITHUB_STEP_SUMMARY
+              echo "- 📋 Update documentation with production URLs" >> $GITHUB_STEP_SUMMARY
+              echo "- 👥 Notify users that the new version is available" >> $GITHUB_STEP_SUMMARY
+              echo "- 📈 Monitor usage analytics and user feedback" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+          else
+            echo "❌ **Deployment unsuccessful** - No service URLs available" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "## 🔧 Troubleshooting Guide" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            if [ "$DEPLOYMENT_STATUS" = "cancelled" ]; then
+              echo "### 🚫 Deployment was cancelled" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "**Quick Recovery Steps:**" >> $GITHUB_STEP_SUMMARY
+              echo "1. 🔄 **Re-run the workflow** - Click 'Re-run all jobs' button above" >> $GITHUB_STEP_SUMMARY
+              echo "2. 🕐 **Check timeouts** - Ensure sufficient time for deployment (Fly.io deployments can take 10-15 minutes)" >> $GITHUB_STEP_SUMMARY
+              echo "3. 📊 **Monitor resources** - Check if the target platform has sufficient resources" >> $GITHUB_STEP_SUMMARY
+              echo "4. 🌐 **Verify connectivity** - Ensure GitHub can reach the deployment target" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              
+              if [ "${{ inputs.deployment_stage }}" = "alpha" ]; then
+                echo "**Alpha-specific troubleshooting:**" >> $GITHUB_STEP_SUMMARY
+                echo "- Check Fly.io status at https://status.fly.io/" >> $GITHUB_STEP_SUMMARY
+                echo "- Verify FLY_API_TOKEN secret is properly configured" >> $GITHUB_STEP_SUMMARY
+                echo "- Consider using a different Fly.io region if Amsterdam (ams) is having issues" >> $GITHUB_STEP_SUMMARY
+              elif [ "${{ inputs.deployment_stage }}" = "beta" ]; then
+                echo "**Beta-specific troubleshooting:**" >> $GITHUB_STEP_SUMMARY
+                echo "- Check VPS connectivity and SSH access" >> $GITHUB_STEP_SUMMARY
+                echo "- Verify VPS_SSH_KEY, VPS_HOST, and VPS_USER secrets" >> $GITHUB_STEP_SUMMARY
+                echo "- Ensure the VPS has sufficient disk space and memory" >> $GITHUB_STEP_SUMMARY
+              elif [ "${{ inputs.deployment_stage }}" = "production" ]; then
+                echo "**Production-specific troubleshooting:**" >> $GITHUB_STEP_SUMMARY
+                echo "- Check Azure/AWS service status" >> $GITHUB_STEP_SUMMARY
+                echo "- Verify cloud provider credentials and permissions" >> $GITHUB_STEP_SUMMARY
+                echo "- Ensure container registry is accessible" >> $GITHUB_STEP_SUMMARY
+              fi
+              
+            else
+              echo "### ❌ Deployment failed with errors" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "**Investigation Steps:**" >> $GITHUB_STEP_SUMMARY
+              echo "1. 📋 **Check the deployment logs** above for specific error messages" >> $GITHUB_STEP_SUMMARY
+              echo "2. 🔐 **Verify secrets** - Ensure all required secrets are properly configured" >> $GITHUB_STEP_SUMMARY
+              echo "3. 🌐 **Test connectivity** - Check if the target platform (${{ steps.set-outputs.outputs.deployment_target }}) is accessible" >> $GITHUB_STEP_SUMMARY
+              echo "4. 🏗️ **Validate configuration** - Review deployment configuration files and environment variables" >> $GITHUB_STEP_SUMMARY
+              echo "5. 🔄 **Re-run deployment** after addressing the identified issues" >> $GITHUB_STEP_SUMMARY
+            fi
+            
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📞 Need Help?" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "- 📖 **Documentation**: Check the deployment docs in \`docs/\` directory" >> $GITHUB_STEP_SUMMARY
+            echo "- 🐛 **Create an issue**: [Report deployment problems](${{ github.server_url }}/${{ github.repository }}/issues/new)" >> $GITHUB_STEP_SUMMARY
+            echo "- 💬 **Discussion**: Start a [discussion](${{ github.server_url }}/${{ github.repository }}/discussions) for general help" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔍 **Previous runs**: [Check workflow history](${{ github.server_url }}/${{ github.repository }}/actions/workflows/deployment-strategy.yml)" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "*Deployment completed at $TIMESTAMP*" >> $GITHUB_STEP_SUMMARY
