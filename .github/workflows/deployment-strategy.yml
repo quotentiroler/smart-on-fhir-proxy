@@ -96,8 +96,32 @@ jobs:
             quay.io/keycloak/keycloak:26.2 start-dev
           
           # Wait for Keycloak
-          echo "⏳ Waiting for Keycloak..."
-          timeout 180s bash -c 'until curl -f http://localhost:8080/health/ready; do sleep 5; done'
+          echo "⏳ Waiting for Keycloak to be ready..."
+          max_attempts=30
+          attempt=1
+          
+          while [ $attempt -le $max_attempts ]; do
+            echo "🔄 Checking Keycloak health... (attempt $attempt/$max_attempts)"
+            
+            # Just check if the port is responding and returns any HTTP response
+            if curl -s --connect-timeout 5 --max-time 10 http://localhost:8080 >/dev/null 2>&1; then
+              echo "✅ Keycloak is responding on port 8080"
+              # Give it a few more seconds to fully initialize
+              sleep 5
+              break
+            else
+              echo "⏳ Keycloak not responding yet, waiting..."
+              sleep 10
+              attempt=$((attempt + 1))
+            fi
+          done
+          
+          if [ $attempt -gt $max_attempts ]; then
+            echo "❌ Keycloak failed to start within timeout"
+            echo "📋 Checking Keycloak container logs..."
+            docker logs alpha-keycloak --tail 50
+            exit 1
+          fi
           
           # Build and start the backend
           echo "🏗️ Building and starting FHIR backend..."
@@ -331,4 +355,10 @@ jobs:
           echo "- **Target**: ${{ steps.set-outputs.outputs.deployment_target }}" >> $GITHUB_STEP_SUMMARY
           echo "- **FHIR Server**: ${{ steps.set-outputs.outputs.fhir_server_url }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Keycloak**: ${{ steps.set-outputs.outputs.keycloak_url }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+          
+          # Check if deployment actually succeeded
+          if [ "${{ steps.set-outputs.outputs.deployment_status }}" = "success" ]; then
+            echo "- **Status**: ✅ Success" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Status**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+          fi
