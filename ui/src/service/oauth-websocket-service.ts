@@ -2,6 +2,7 @@
 import type { OAuthEvent } from '@/lib/types/api';
 import { useAuthStore } from '../stores/authStore';
 import { oauthMonitoringService } from './oauth-monitoring-service';
+import { config } from '@/config';
 
 export interface OAuthEventSimple {
   id: string;
@@ -54,8 +55,10 @@ export class OAuthWebSocketService {
   private eventsUpdateHandlers: ((event: OAuthEventSimple) => void)[] = [];
   private analyticsUpdateHandlers: ((analytics: OAuthAnalytics) => void)[] = [];
   
-  constructor(baseUrl: string = 'ws://localhost:8445') {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl?: string) {
+    // Convert HTTP/HTTPS base URL to WebSocket URL
+    const apiBaseUrl = baseUrl || config.api.baseUrl;
+    this.baseUrl = apiBaseUrl.replace(/^https?:/, apiBaseUrl.startsWith('https:') ? 'wss:' : 'ws:');
   }
 
   async connect(): Promise<void> {
