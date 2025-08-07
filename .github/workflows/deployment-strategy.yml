@@ -80,14 +80,18 @@ jobs:
         run: |
           echo "🔐 Deploying Keycloak for Alpha environment..."
           
+          # Verify flyctl is available and authenticate
+          echo "🔧 Setting up Fly.io authentication..."
+          flyctl auth token $FLY_API_TOKEN
+          
           # Create Fly.io apps if they don't exist
           echo "🏗️ Creating Fly.io apps..."
-          fly apps create proxy-smart-alpha-auth --org personal || echo "Keycloak app already exists"
-          fly apps create proxy-smart-alpha --org personal || echo "Backend app already exists"
+          flyctl apps create proxy-smart-alpha-auth --org personal || echo "Keycloak app already exists"
+          flyctl apps create proxy-smart-alpha --org personal || echo "Backend app already exists"
           
           # Create Postgres database for Keycloak first
           echo "🗄️ Setting up Keycloak database..."
-          fly postgres create \
+          flyctl postgres create \
             --name proxy-smart-alpha-db \
             --region ams \
             --initial-cluster-size 1 \
@@ -176,10 +180,10 @@ jobs:
           flyctl deploy --config fly.keycloak.toml --vm-memory=2048 --wait-timeout 600
           
           # Attach database to Keycloak app
-          fly postgres attach -a proxy-smart-alpha-auth proxy-smart-alpha-db || echo "Database already attached"
+          flyctl postgres attach -a proxy-smart-alpha-auth proxy-smart-alpha-db || echo "Database already attached"
           
           # Set Keycloak environment secrets
-          fly secrets set -a proxy-smart-alpha-auth \
+          flyctl secrets set -a proxy-smart-alpha-auth \
             KEYCLOAK_ADMIN_PASSWORD=admin \
             KC_DB_PASSWORD="${{ secrets.ALPHA_DB_PASSWORD || 'alphapassword' }}" \
             KC_DB_URL="jdbc:postgresql://proxy-smart-alpha-db.flycast:5432/proxy_smart_alpha_auth?sslmode=disable" \
