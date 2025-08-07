@@ -31,231 +31,30 @@ on:
     secrets:
       FLY_API_TOKEN:
         required: false
+      ALPHA_DB_PASSWORD:
+        required: false
       VPS_SSH_KEY:
         required: false
       VPS_HOST:
         required: false
       VPS_USER:
         required: false
+      AZURE_CREDENTIALS:
+        required: false
+      AWS_ACCESS_KEY_ID:
+        required: false
+      AWS_SECRET_ACCESS_KEY:
+        required: false
+      AWS_REGION:
+        required: false
+      AWS_ACCOUNT_ID:
+        required: false
 
 jobs:
   deploy-alpha:
-    name: Deploy Alpha (Local)
+    name: Deploy Alpha (Fly.io)
     runs-on: ubuntu-latest
     if: inputs.deployment_stage == 'alpha'
-    outputs:
-      fhir_server_url: ${{ steps.deploy.outputs.fhir_server_url }}
-      keycloak_url: ${{ steps.deploy.outputs.keycloak_url }}
-      deployment_status: ${{ steps.deploy.outputs.deployment_status }}
-      deployment_target: ${{ steps.deploy.outputs.deployment_target }}
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.source_branch }}
-      
-      - name: Setup Bun
-        uses: ./.github/actions/setup-bun-version
-      
-      - name: Install dependencies
-        run: bun install --frozen-lockfile
-      
-      - name: Deploy Alpha (Local with Docker)
-        id: deploy
-        run: |
-          echo "🚀 Deploying Alpha version ${{ inputs.app_version }} locally using Docker..."
-          
-          # Start services using Docker (similar to testing but for deployment)
-          echo "🐳 Starting PostgreSQL..."
-          docker run -d \
-            --name alpha-postgres \
-            -e POSTGRES_DB=keycloak \
-            -e POSTGRES_USER=postgres \
-            -e POSTGRES_PASSWORD=postgres \
-            -p 5432:5432 \
-            postgres:16-alpine
-          
-          # Wait for PostgreSQL
-          echo "⏳ Waiting for PostgreSQL..."
-          timeout 60s bash -c 'until docker exec alpha-postgres pg_isready -U postgres; do sleep 2; done'
-          
-          echo "🔐 Starting Keycloak..."
-          docker run -d \
-            --name alpha-keycloak \
-            --link alpha-postgres:postgres \
-            -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
-            -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
-            -e KC_HTTP_ENABLED=true \
-            -e KC_HOSTNAME_STRICT=false \
-            -e KC_DB=postgres \
-            -e KC_DB_URL=jdbc:postgresql://postgres:5432/keycloak \
-            -e KC_DB_USERNAME=postgres \
-            -e KC_DB_PASSWORD=postgres \
-            -p 8080:8080 \
-            -v "$(pwd)/keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro" \
-            quay.io/keycloak/keycloak:26.2 start-dev --import-realm
-          
-          # Wait for Keycloak
-          echo "⏳ Waiting for Keycloak to be ready..."
-          max_attempts=30
-          attempt=1
-          
-          while [ $attempt -le $max_attempts ]; do
-            echo "🔄 Checking Keycloak health... (attempt $attempt/$max_attempts)"
-            
-            # Just check if the port is responding and returns any HTTP response
-            if curl -s --connect-timeout 5 --max-time 10 http://localhost:8080 >/dev/null 2>&1; then
-              echo "✅ Keycloak is responding on port 8080"
-              # Give it a few more seconds to fully initialize
-              sleep 5
-              break
-            else
-              echo "⏳ Keycloak not responding yet, waiting..."
-              sleep 10
-              attempt=$((attempt + 1))
-            fi
-          done
-          
-          if [ $attempt -gt $max_attempts ]; then
-            echo "❌ Keycloak failed to start within timeout"
-            echo "📋 Checking Keycloak container logs..."
-            docker logs alpha-keycloak --tail 50
-            
-            # Set failure outputs
-            echo "fhir_server_url=" >> $GITHUB_OUTPUT
-            echo "keycloak_url=" >> $GITHUB_OUTPUT
-            echo "deployment_status=failed" >> $GITHUB_OUTPUT
-            echo "deployment_target=local" >> $GITHUB_OUTPUT
-            
-            exit 1
-          fi
-          
-          # Build and start the backend
-          echo "🏗️ Building and starting FHIR backend..."
-          cd backend
-          bun install
-          bun run build
-          
-          # Set environment variables for backend (all required variables)
-          export NODE_ENV="alpha"
-          export BASE_URL="http://localhost:3001"
-          export PORT=3001
-          export DATABASE_URL="postgresql://postgres:postgres@localhost:5432/keycloak"
-          export KEYCLOAK_BASE_URL="http://localhost:8080"
-          export KEYCLOAK_REALM="proxy-smart"
-          export FHIR_SERVER_BASE="https://hapi.fhir.org/baseR4"  # Use public FHIR server for alpha testing
-          
-          # Start the FHIR proxy server in background with proper logging
-          echo "🚀 Starting backend server with the following config:"
-          echo "  BASE_URL: $BASE_URL"
-          echo "  PORT: $PORT"
-          echo "  KEYCLOAK_BASE_URL: $KEYCLOAK_BASE_URL"
-          echo "  FHIR_SERVER_BASE: $FHIR_SERVER_BASE"
-          
-          # Start backend and capture output
-          nohup bun run dist/index.js > ../backend.log 2>&1 &
-          echo $! > ../backend.pid
-          cd ..
-          
-          # Wait for backend to be ready
-          echo "⏳ Waiting for FHIR backend..."
-          max_backend_attempts=24  # 2 minutes with 5-second intervals
-          backend_attempt=1
-          
-          while [ $backend_attempt -le $max_backend_attempts ]; do
-            echo "🔄 Checking backend connectivity... (attempt $backend_attempt/$max_backend_attempts)"
-            
-            # First check if the port is responding at all
-            if curl -s --connect-timeout 3 --max-time 5 http://localhost:3001 >/dev/null 2>&1; then
-              echo "✅ Backend port is responding, checking health endpoint..."
-              
-              # Try the simpler status endpoint first (may be more forgiving)
-              status_response=$(curl -s --connect-timeout 3 --max-time 5 http://localhost:3001/status 2>&1)
-              status_exit_code=$?
-              
-              if [ $status_exit_code -eq 0 ]; then
-                echo "✅ FHIR backend status check passed"
-                echo "Status response: $status_response"
-                break
-              else
-                echo "⚠️ Status endpoint failed, trying health endpoint..."
-                
-                # Now try the health endpoint
-                health_response=$(curl -s --connect-timeout 3 --max-time 5 http://localhost:3001/health 2>&1)
-                health_exit_code=$?
-                
-                if [ $health_exit_code -eq 0 ]; then
-                  echo "✅ FHIR backend health check passed"
-                  echo "Health response: $health_response"
-                  break
-                else
-                  echo "⚠️ Health endpoint also failed (exit code: $health_exit_code)"
-                  echo "Health response: $health_response"
-                  echo "Status response: $status_response"
-                  echo "⏳ Backend may still be initializing, waiting..."
-                fi
-              fi
-            else
-              echo "⏳ Backend port not responding yet, waiting..."
-              
-              # Check if process is still running
-              if [ -f backend.pid ]; then
-                backend_pid=$(cat backend.pid)
-                if ! ps -p $backend_pid > /dev/null 2>&1; then
-                  echo "❌ Backend process has died! PID: $backend_pid"
-                  echo "📋 Backend logs:"
-                  cat backend.log || echo "No backend.log file found"
-                  
-                  # Set failure outputs
-                  echo "fhir_server_url=" >> $GITHUB_OUTPUT
-                  echo "keycloak_url=http://localhost:8080" >> $GITHUB_OUTPUT
-                  echo "deployment_status=failed" >> $GITHUB_OUTPUT
-                  echo "deployment_target=local" >> $GITHUB_OUTPUT
-                  
-                  exit 1
-                fi
-              fi
-              
-              sleep 5
-              backend_attempt=$((backend_attempt + 1))
-            fi
-          done
-          
-          if [ $backend_attempt -gt $max_backend_attempts ]; then
-            echo "❌ FHIR backend failed to start within timeout"
-            echo "📋 Checking backend logs..."
-            if [ -f backend.pid ]; then
-              echo "Backend PID: $(cat backend.pid)"
-              ps aux | grep $(cat backend.pid) || echo "Backend process not running"
-            fi
-            echo "📋 Backend logs:"
-            cat backend.log || echo "No backend.log file found"
-            
-            # Set failure outputs
-            echo "fhir_server_url=" >> $GITHUB_OUTPUT
-            echo "keycloak_url=http://localhost:8080" >> $GITHUB_OUTPUT
-            echo "deployment_status=failed" >> $GITHUB_OUTPUT
-            echo "deployment_target=local" >> $GITHUB_OUTPUT
-            
-            exit 1
-          fi
-          
-          # Set outputs
-          echo "fhir_server_url=http://localhost:3001/proxy-smart-backend/hapi-fhir-server/R4" >> $GITHUB_OUTPUT
-          echo "keycloak_url=http://localhost:8080" >> $GITHUB_OUTPUT
-          echo "deployment_status=success" >> $GITHUB_OUTPUT
-          echo "deployment_target=local" >> $GITHUB_OUTPUT
-          
-          echo "✅ Alpha deployment completed successfully"
-          echo "📍 FHIR Server (Proxied): http://localhost:3001/proxy-smart-backend/hapi-fhir-server/R4"
-          echo "📍 Keycloak: http://localhost:8080"
-          echo "🔍 Backend PID stored in backend.pid for testing phase"
-
-  deploy-beta:
-    name: Deploy Beta (Fly.io)
-    runs-on: ubuntu-latest
-    if: inputs.deployment_stage == 'beta'
     outputs:
       fhir_server_url: ${{ steps.deploy.outputs.fhir_server_url }}
       keycloak_url: ${{ steps.deploy.outputs.keycloak_url }}
@@ -274,27 +73,81 @@ jobs:
       - name: Setup Fly.io CLI
         uses: superfly/flyctl-actions/setup-flyctl@master
       
-      - name: Deploy Beta (Fly.io)
-        id: deploy
+      - name: Deploy Alpha Keycloak (Fly.io)
+        id: deploy-keycloak
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         run: |
-          echo "🚀 Deploying Beta version ${{ inputs.app_version }} to Fly.io..."
+          echo "🔐 Deploying Keycloak for Alpha environment..."
           
-          # Create or update fly.beta.toml configuration
-          cat > fly.beta.toml << EOF
-          app = "proxy-smart-beta"
+          # Create Postgres database for Keycloak first
+          echo "🗄️ Setting up Keycloak database..."
+          fly postgres create \
+            --name proxy-smart-alpha-db \
+            --region ams \
+            --initial-cluster-size 1 \
+            --vm-size shared-cpu-1x \
+            --volume-size 3 || echo "Database already exists"
+          
+          # Create separate Keycloak Dockerfile with realm import
+          cat > Dockerfile.keycloak << 'EOF'
+          FROM quay.io/keycloak/keycloak:26.2
+          
+          # Copy the realm export file
+          COPY keycloak/realm-export.json /opt/keycloak/data/import/realm-export.json
+          
+          ENV KEYCLOAK_ADMIN=admin
+          ENV KC_DB=postgres
+          ENV KC_PROXY=edge
+          ENV KC_HTTP_ENABLED=true
+          ENV KC_HOSTNAME_STRICT=false
+          
+          ENTRYPOINT ["/opt/keycloak/bin/kc.sh", "start-dev", "--import-realm"]
+          EOF
+          
+          # Create an alpha-specific realm configuration
+          echo "🔧 Creating alpha realm configuration..."
+          cp keycloak/realm-export.json keycloak/realm-export-alpha.json
+          
+          # Update the realm export for alpha environment URLs
+          sed -i 's|http://localhost:5173/\*|https://proxy-smart-alpha.fly.dev/*|g' keycloak/realm-export-alpha.json
+          sed -i 's|http://localhost:3000/\*|https://proxy-smart-alpha.fly.dev/*|g' keycloak/realm-export-alpha.json
+          sed -i 's|http://localhost:5173|https://proxy-smart-alpha.fly.dev|g' keycloak/realm-export-alpha.json
+          sed -i 's|http://localhost:3000|https://proxy-smart-alpha.fly.dev|g' keycloak/realm-export-alpha.json
+          
+          # Update Dockerfile to use alpha-specific realm
+          cat > Dockerfile.keycloak << 'EOF'
+          FROM quay.io/keycloak/keycloak:26.2
+          
+          # Copy the alpha-specific realm export file
+          COPY keycloak/realm-export-alpha.json /opt/keycloak/data/import/realm-export.json
+          
+          ENV KEYCLOAK_ADMIN=admin
+          ENV KC_DB=postgres
+          ENV KC_PROXY=edge
+          ENV KC_HTTP_ENABLED=true
+          ENV KC_HOSTNAME_STRICT=false
+          
+          ENTRYPOINT ["/opt/keycloak/bin/kc.sh", "start-dev", "--import-realm"]
+          EOF
+          
+          # Create Keycloak fly.toml configuration
+          cat > fly.keycloak.toml << 'EOF'
+          app = "proxy-smart-alpha-auth"
           primary_region = "ams"
           
           [build]
-            dockerfile = "Dockerfile"
+            dockerfile = "Dockerfile.keycloak"
           
           [env]
-            NODE_ENV = "beta"
-            VERSION = "${{ inputs.app_version }}"
+            KEYCLOAK_ADMIN = "admin"
+            KC_DB = "postgres"
+            KC_PROXY = "edge"
+            KC_HTTP_ENABLED = "true"
+            KC_HOSTNAME_STRICT = "false"
           
           [[services]]
-            internal_port = 3001
+            internal_port = 8080
             protocol = "tcp"
           
             [[services.ports]]
@@ -305,36 +158,208 @@ jobs:
               port = 443
               handlers = ["http", "tls"]
           
-          [[ services.http_checks ]]
-            interval = "10s"
-            timeout = "2s"
-            grace_period = "5s"
+          [[services.http_checks]]
+            interval = "30s"
+            timeout = "10s"
+            grace_period = "15s"
             method = "GET"
             path = "/health"
           EOF
           
-          # Deploy to Fly.io
-          flyctl deploy --config fly.beta.toml --wait-timeout 300
+          # Deploy Keycloak with adequate memory (as per Medium article)
+          echo "🚀 Deploying Keycloak app..."
+          flyctl deploy --config fly.keycloak.toml --vm-memory=2048 --wait-timeout 600
           
-          # Get the deployed URL
-          FLY_APP_URL="https://proxy-smart-beta.fly.dev"
+          # Attach database to Keycloak app
+          fly postgres attach -a proxy-smart-alpha-auth proxy-smart-alpha-db || echo "Database already attached"
           
-          # Wait for deployment to be ready
-          echo "⏳ Waiting for Fly.io deployment to be ready..."
-          timeout 300s bash -c "until curl -f $FLY_APP_URL/health; do sleep 10; done"
+          # Set Keycloak environment secrets
+          fly secrets set -a proxy-smart-alpha-auth \
+            KEYCLOAK_ADMIN_PASSWORD=admin \
+            KC_DB_PASSWORD="${{ secrets.ALPHA_DB_PASSWORD || 'alphapassword' }}" \
+            KC_DB_URL="jdbc:postgresql://proxy-smart-alpha-db.flycast:5432/proxy_smart_alpha_auth?sslmode=disable" \
+            KC_DB_USERNAME=postgres
           
-          # Set outputs (assuming Keycloak is also deployed or accessible)
-          echo "fhir_server_url=$FLY_APP_URL/proxy-smart-backend/hapi-fhir-server/R4" >> $GITHUB_OUTPUT
-          echo "keycloak_url=https://auth-proxy-smart-beta.fly.dev" >> $GITHUB_OUTPUT
+          # Wait for Keycloak to be ready and realm imported
+          echo "⏳ Waiting for Keycloak to start and import realm..."
+          timeout 450s bash -c "until curl -f https://proxy-smart-alpha-auth.fly.dev/health; do sleep 15; done"
+          
+          # Wait a bit more for realm import to complete
+          sleep 30
+          
+          # Verify the realm is available
+          echo "🔍 Verifying proxy-smart realm is available..."
+          timeout 60s bash -c "until curl -f https://proxy-smart-alpha-auth.fly.dev/realms/proxy-smart/.well-known/openid_configuration; do sleep 10; done"
+          
+          echo "✅ Keycloak deployed at https://proxy-smart-alpha-auth.fly.dev"
+          echo "✅ Realm 'proxy-smart' imported and available"
+      
+      - name: Deploy Alpha Backend (Fly.io)
+        id: deploy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          echo "� Deploying Alpha version ${{ inputs.app_version }} to Fly.io..."
+          
+          # Create backend fly.toml configuration (separate from Keycloak)
+          cat > fly.alpha.toml << 'EOF'
+          app = "proxy-smart-alpha"
+          primary_region = "ams"
+          
+          [build]
+            dockerfile = "Dockerfile"
+          
+          [env]
+            NODE_ENV = "alpha"
+            VERSION = "${{ inputs.app_version }}"
+            BASE_URL = "https://proxy-smart-alpha.fly.dev"
+            FHIR_SERVER_BASE = "https://hapi.fhir.org/baseR4"
+            KEYCLOAK_BASE_URL = "https://proxy-smart-alpha-auth.fly.dev"
+            KEYCLOAK_REALM = "proxy-smart"
+            PORT = "8445"
+          
+          [[services]]
+            internal_port = 8445
+            protocol = "tcp"
+          
+            [[services.ports]]
+              port = 80
+              handlers = ["http"]
+          
+            [[services.ports]]
+              port = 443
+              handlers = ["http", "tls"]
+          
+          [[services.http_checks]]
+            interval = "10s"
+            timeout = "5s"
+            grace_period = "10s"
+            method = "GET"
+            path = "/health"
+          EOF
+          
+          # Deploy backend to its own Fly.io app
+          flyctl deploy --config fly.alpha.toml --wait-timeout 300
+          
+          # Get deployed URLs
+          BACKEND_URL="https://proxy-smart-alpha.fly.dev"
+          KEYCLOAK_URL="https://proxy-smart-alpha-auth.fly.dev"
+          
+          # Wait for backend to be ready
+          echo "⏳ Waiting for backend deployment..."
+          timeout 300s bash -c "until curl -f $BACKEND_URL/health; do sleep 10; done"
+          
+          # Set outputs
+          echo "fhir_server_url=$BACKEND_URL/proxy-smart-backend/hapi-fhir-server/R4" >> $GITHUB_OUTPUT
+          echo "keycloak_url=$KEYCLOAK_URL" >> $GITHUB_OUTPUT
           echo "deployment_status=success" >> $GITHUB_OUTPUT
           echo "deployment_target=fly.io" >> $GITHUB_OUTPUT
           
+          echo "✅ Alpha deployment completed successfully"
+          echo "📍 Backend: $BACKEND_URL"
+          echo "📍 FHIR Server (Proxied): $BACKEND_URL/proxy-smart-backend/hapi-fhir-server/R4"
+          echo "📍 Keycloak: $KEYCLOAK_URL"
+          echo "📍 Keycloak Admin: $KEYCLOAK_URL (admin/admin)"
+          echo "📍 SMART Realm: $KEYCLOAK_URL/realms/proxy-smart"
+          echo "📍 OIDC Discovery: $KEYCLOAK_URL/realms/proxy-smart/.well-known/openid_configuration"
+
+  deploy-beta:
+    name: Deploy Beta (VPS)
+    runs-on: ubuntu-latest
+    if: inputs.deployment_stage == 'beta'
+    outputs:
+      fhir_server_url: ${{ steps.deploy.outputs.fhir_server_url }}
+      keycloak_url: ${{ steps.deploy.outputs.keycloak_url }}
+      deployment_status: ${{ steps.deploy.outputs.deployment_status }}
+      deployment_target: ${{ steps.deploy.outputs.deployment_target }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_branch }}
+      
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun-version
+      
+      - name: Deploy Beta (VPS)
+        id: deploy
+        run: |
+          echo "🚀 Deploying Beta version ${{ inputs.app_version }} to VPS..."
+          
+          # Setup SSH key
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          
+          # Create deployment script
+          cat > deploy-to-vps.sh << 'EOF'
+          #!/bin/bash
+          set -e
+          
+          echo "📦 Updating application on VPS..."
+          
+          # Navigate to application directory
+          cd /opt/proxy-smart-beta
+          
+          # Pull latest changes
+          git fetch origin
+          git checkout ${{ inputs.source_branch }}
+          git pull origin ${{ inputs.source_branch }}
+          
+          # Install dependencies and build
+          bun install --frozen-lockfile
+          cd backend
+          bun install --frozen-lockfile
+          bun run build
+          cd ..
+          
+          # Update environment variables
+          cat > backend/.env << ENVEOF
+          NODE_ENV=beta
+          VERSION=${{ inputs.app_version }}
+          BASE_URL=https://beta.proxy-smart.your-domain.com
+          PORT=3002
+          FHIR_SERVER_BASE=https://hapi.fhir.org/baseR4
+          KEYCLOAK_BASE_URL=https://auth-beta.proxy-smart.your-domain.com
+          KEYCLOAK_REALM=proxy-smart
+          DATABASE_URL=postgresql://proxyuser:secure_password@localhost:5432/proxy_smart_beta
+          ENVEOF
+          
+          # Restart services
+          sudo systemctl restart proxy-smart-beta
+          sudo systemctl restart nginx
+          
+          # Wait for service to be ready
+          sleep 10
+          
+          echo "✅ Beta deployment completed"
+          EOF
+          
+          # Execute deployment script on VPS
+          scp deploy-to-vps.sh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/
+          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "chmod +x /tmp/deploy-to-vps.sh && /tmp/deploy-to-vps.sh"
+          
+          # Test deployment
+          VPS_URL="https://beta.proxy-smart.com"
+          
+          # Wait for deployment to be ready
+          echo "⏳ Waiting for VPS deployment to be ready..."
+          timeout 300s bash -c "until curl -f $VPS_URL/health; do sleep 10; done"
+          
+          # Set outputs
+          echo "fhir_server_url=$VPS_URL/proxy-smart-backend/hapi-fhir-server/R4" >> $GITHUB_OUTPUT
+          echo "keycloak_url=https://auth-beta.proxy-smart.your-domain.com" >> $GITHUB_OUTPUT
+          echo "deployment_status=success" >> $GITHUB_OUTPUT
+          echo "deployment_target=vps" >> $GITHUB_OUTPUT
+          
           echo "✅ Beta deployment completed successfully"
-          echo "📍 FHIR Server (Proxied): $FLY_APP_URL/proxy-smart-backend/hapi-fhir-server/R4"
-          echo "📍 Keycloak: https://auth-proxy-smart-beta.fly.dev"
+          echo "📍 FHIR Server (Proxied): $VPS_URL/proxy-smart-backend/hapi-fhir-server/R4"
+          echo "📍 Keycloak: https://auth-beta.proxy-smart.your-domain.com"
 
   deploy-production:
-    name: Deploy Production (VPS)
+    name: Deploy Production (Azure/AWS)
     runs-on: ubuntu-latest
     if: inputs.deployment_stage == 'production'
     outputs:
@@ -352,66 +377,107 @@ jobs:
       - name: Setup Bun
         uses: ./.github/actions/setup-bun-version
       
-      - name: Deploy Production (VPS)
-        id: deploy
+      - name: Setup Cloud CLI (Azure/AWS)
         run: |
-          echo "🚀 Deploying Production version ${{ inputs.app_version }} to VPS..."
+          # Install Azure CLI
+          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
           
-          # Setup SSH key
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
+          # Install AWS CLI
+          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+          unzip awscliv2.zip
+          sudo ./aws/install
+      
+      - name: Deploy Production (Azure/AWS)
+        id: deploy
+        env:
+          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+        run: |
+          echo "🚀 Deploying Production version ${{ inputs.app_version }} to Azure/AWS..."
           
-          # Create deployment script
-          cat > deploy-to-vps.sh << 'EOF'
-          #!/bin/bash
-          set -e
+          # Determine deployment target based on available credentials
+          if [ -n "$AZURE_CREDENTIALS" ]; then
+            echo "📱 Using Azure for production deployment..."
+            DEPLOYMENT_TARGET="azure"
+            
+            # Login to Azure
+            echo "$AZURE_CREDENTIALS" | az login --service-principal -u "$(echo "$AZURE_CREDENTIALS" | jq -r .clientId)" -p "$(echo "$AZURE_CREDENTIALS" | jq -r .clientSecret)" --tenant "$(echo "$AZURE_CREDENTIALS" | jq -r .tenantId)"
+            
+            # Deploy to Azure Container Apps or Azure App Service
+            RESOURCE_GROUP="proxy-smart-production"
+            APP_NAME="proxy-smart-prod"
+            
+            # Build and push container image to Azure Container Registry
+            az acr build --registry proxysmartregistry --image proxy-smart:${{ inputs.app_version }} .
+            
+            # Deploy to Azure Container Apps
+            az containerapp update \
+              --name $APP_NAME \
+              --resource-group $RESOURCE_GROUP \
+              --image proxysmartregistry.azurecr.io/proxy-smart:${{ inputs.app_version }} \
+              --set-env-vars \
+                NODE_ENV=production \
+                VERSION=${{ inputs.app_version }} \
+                BASE_URL=https://proxy-smart.your-production-domain.com \
+                FHIR_SERVER_BASE=https://hapi.fhir.org/baseR4 \
+                KEYCLOAK_BASE_URL=https://auth.your-production-domain.com
+            
+            PRODUCTION_URL="https://proxy-smart.your-production-domain.com"
+            KEYCLOAK_URL="https://auth.your-production-domain.com"
+            
+          elif [ -n "$AWS_ACCESS_KEY_ID" ]; then
+            echo "☁️ Using AWS for production deployment..."
+            DEPLOYMENT_TARGET="aws"
+            
+            # Configure AWS CLI
+            aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+            aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+            aws configure set default.region $AWS_REGION
+            
+            # Deploy to AWS ECS or AWS App Runner
+            CLUSTER_NAME="proxy-smart-production"
+            SERVICE_NAME="proxy-smart-prod"
+            
+            # Build and push to ECR
+            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com
+            
+            docker build -t proxy-smart:${{ inputs.app_version }} .
+            docker tag proxy-smart:${{ inputs.app_version }} ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/proxy-smart:${{ inputs.app_version }}
+            docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/proxy-smart:${{ inputs.app_version }}
+            
+            # Update ECS service
+            aws ecs update-service \
+              --cluster $CLUSTER_NAME \
+              --service $SERVICE_NAME \
+              --force-new-deployment
+            
+            # Wait for deployment to complete
+            aws ecs wait services-stable --cluster $CLUSTER_NAME --services $SERVICE_NAME
+            
+            PRODUCTION_URL="https://proxy-smart.your-production-domain.com"
+            KEYCLOAK_URL="https://auth.your-production-domain.com"
+            
+          else
+            echo "❌ No cloud credentials found for production deployment"
+            exit 1
+          fi
           
-          echo "📦 Updating application on VPS..."
-          
-          # Navigate to application directory
-          cd /opt/proxy-smart
-          
-          # Pull latest changes
-          git fetch origin
-          git checkout ${{ inputs.source_branch }}
-          git pull origin ${{ inputs.source_branch }}
-          
-          # Install dependencies and build
-          bun install --frozen-lockfile
-          cd backend && bun install && bun run build && cd ..
-          cd ui && bun install && bun run build && cd ..
-          
-          # Restart services using Docker Compose
-          docker-compose down
-          docker-compose up -d --build
-          
-          # Wait for services to be ready
-          timeout 120s bash -c 'until curl -f http://localhost:3001/health; do sleep 5; done'
-          
-          echo "✅ VPS deployment completed"
-          EOF
-          
-          # Make script executable and copy to VPS
-          chmod +x deploy-to-vps.sh
-          scp deploy-to-vps.sh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/
-          
-          # Execute deployment on VPS
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "bash /tmp/deploy-to-vps.sh"
+          # Wait for deployment to be ready
+          echo "⏳ Waiting for production deployment to be ready..."
+          timeout 300s bash -c "until curl -f $PRODUCTION_URL/health; do sleep 10; done"
           
           # Set outputs
-          PRODUCTION_URL="https://your-production-domain.com"
-          KEYCLOAK_URL="https://auth.your-production-domain.com"
-          
           echo "fhir_server_url=$PRODUCTION_URL/proxy-smart-backend/hapi-fhir-server/R4" >> $GITHUB_OUTPUT
           echo "keycloak_url=$KEYCLOAK_URL" >> $GITHUB_OUTPUT
           echo "deployment_status=success" >> $GITHUB_OUTPUT
-          echo "deployment_target=vps" >> $GITHUB_OUTPUT
+          echo "deployment_target=$DEPLOYMENT_TARGET" >> $GITHUB_OUTPUT
           
           echo "✅ Production deployment completed successfully"
           echo "📍 FHIR Server (Proxied): $PRODUCTION_URL/proxy-smart-backend/hapi-fhir-server/R4"
           echo "📍 Keycloak: $KEYCLOAK_URL"
+          echo "🎯 Deployment Target: $DEPLOYMENT_TARGET"
 
   output-deployment-urls:
     name: Output Deployment URLs
