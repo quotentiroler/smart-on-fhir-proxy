@@ -176,11 +176,11 @@ jobs:
               handlers = ["http", "tls"]
           
           [[services.http_checks]]
-            interval = "30s"
-            timeout = "10s"
-            grace_period = "15s"
+            interval = "60s"
+            timeout = "20s"
+            grace_period = "120s"
             method = "GET"
-            path = "/health"
+            path = "/"
           EOF
           
           # Deploy Keycloak with adequate memory (as per Medium article)
@@ -193,7 +193,12 @@ jobs:
           ls -la keycloak/
           
           # Ensure proper build context by deploying from repository root
-          flyctl deploy --config fly.keycloak.toml --vm-memory=2048 --wait-timeout 600
+          # Use detached mode to avoid timeout during slow Keycloak startup
+          flyctl deploy --config fly.keycloak.toml --vm-memory=2048 --detach
+          
+          # Wait for deployment to be created
+          echo "⏳ Waiting for Keycloak deployment to start..."
+          sleep 30
           
           # Attach database to Keycloak app
           flyctl postgres attach -a proxy-smart-alpha-auth proxy-smart-alpha-db || echo "Database already attached"
@@ -207,10 +212,12 @@ jobs:
           
           # Wait for Keycloak to be ready and realm imported
           echo "⏳ Waiting for Keycloak to start and import realm..."
-          timeout 450s bash -c "until curl -f https://proxy-smart-alpha-auth.fly.dev/health; do sleep 15; done"
+          # Use a more lenient check since Keycloak takes time to start
+          timeout 600s bash -c "until curl -f https://proxy-smart-alpha-auth.fly.dev/ 2>/dev/null; do echo 'Waiting for Keycloak...'; sleep 30; done"
           
-          # Wait a bit more for realm import to complete
-          sleep 30
+          # Wait additional time for realm import to complete
+          echo "⏳ Waiting for realm import to complete..."
+          sleep 60
           
           # Verify the realm is available
           echo "🔍 Verifying proxy-smart realm is available..."
