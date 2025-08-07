@@ -678,7 +678,7 @@ jobs:
   notify-deployment-success:
     name: Discord Deployment Success Notification
     needs: [output-deployment-urls]
-    if: ${{ success() && needs.output-deployment-urls.outputs.deployment_status == 'success' }}
+    if: ${{ always() && needs.output-deployment-urls.outputs.deployment_status == 'success' }}
     runs-on: ubuntu-latest
     env:
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
@@ -710,8 +710,8 @@ jobs:
   # Discord notification on deployment failure
   notify-deployment-failure:
     name: Discord Deployment Failure Notification
-    needs: [deploy-alpha, deploy-beta, deploy-production, output-deployment-urls]
-    if: ${{ failure() }}
+    needs: [output-deployment-urls]
+    if: ${{ always() && needs.output-deployment-urls.outputs.deployment_status != 'success' && needs.output-deployment-urls.outputs.deployment_status != '' }}
     runs-on: ubuntu-latest
     env:
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
