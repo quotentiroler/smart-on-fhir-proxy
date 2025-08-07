@@ -25,6 +25,7 @@ import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { oauthWebSocketService, type OAuthAnalytics, type OAuthEventSimple } from '../service/oauth-websocket-service';
+import { oauthMonitoringService } from '../service/oauth-monitoring-service';
 import { config } from '@/config';
 
 interface SystemHealth {
@@ -94,19 +95,64 @@ export function OAuthMonitoringDashboard() {
         await oauthWebSocketService.authenticate();
         
         // Set up event handlers BEFORE subscribing
-        oauthWebSocketService.onEventsData((eventList) => {
-          // Only update state if this is the initial load OR if real-time is active
-          if (isInitialLoadRef.current || isRealTimeActiveRef.current) {
-            setEvents(eventList);
+        if (oauthWebSocketService.isUsingSSE) {
+          // For SSE mode, data comes through update handlers, not initial data handlers
+          console.info('Using SSE mode for OAuth monitoring');
+          
+          // In SSE mode, we need to fetch initial data via API and then use update handlers
+          try {
+            const initialEventsResponse = await oauthMonitoringService.getEvents({ limit: 100 });
+            const initialAnalyticsResponse = await oauthMonitoringService.getAnalytics();
+            
+            // Convert API response types to WebSocket service types
+            const convertedEvents: OAuthEventSimple[] = (initialEventsResponse.events || []).map(event => ({
+              id: event.id || '',
+              timestamp: event.timestamp || new Date().toISOString(),
+              type: (event.type as OAuthEventSimple['type']) || 'authorization',
+              status: (event.status as OAuthEventSimple['status']) || 'success',
+              clientId: event.clientId || '',
+              clientName: event.clientName,
+              scopes: event.scopes || [],
+              grantType: event.grantType || '',
+              responseTime: event.responseTime || 0,
+              errorMessage: event.errorMessage
+            }));
+            
+            const convertedAnalytics: OAuthAnalytics = {
+              totalFlows: initialAnalyticsResponse.totalFlows || 0,
+              successRate: initialAnalyticsResponse.successRate || 0,
+              averageResponseTime: initialAnalyticsResponse.averageResponseTime || 0,
+              activeTokens: initialAnalyticsResponse.activeTokens || 0,
+              topClients: initialAnalyticsResponse.topClients || [],
+              flowsByType: (initialAnalyticsResponse.flowsByType as Record<string, number>) || {},
+              errorsByType: (initialAnalyticsResponse.errorsByType as Record<string, number>) || {},
+              hourlyStats: initialAnalyticsResponse.hourlyStats || []
+            };
+            
+            if (isInitialLoadRef.current || isRealTimeActiveRef.current) {
+              setEvents(convertedEvents);
+              setAnalytics(convertedAnalytics);
+            }
+          } catch (apiError) {
+            console.warn('Failed to fetch initial data via API for SSE mode:', apiError);
+            // Continue anyway, real-time updates will start flowing
           }
-        });
+        } else {
+          // For WebSocket mode, use the initial data handlers
+          oauthWebSocketService.onEventsData((eventList) => {
+            // Only update state if this is the initial load OR if real-time is active
+            if (isInitialLoadRef.current || isRealTimeActiveRef.current) {
+              setEvents(eventList);
+            }
+          });
 
-        oauthWebSocketService.onAnalyticsData((analyticsData) => {
-          // Only update state if this is the initial load OR if real-time is active
-          if (isInitialLoadRef.current || isRealTimeActiveRef.current) {
-            setAnalytics(analyticsData);
-          }
-        });
+          oauthWebSocketService.onAnalyticsData((analyticsData) => {
+            // Only update state if this is the initial load OR if real-time is active
+            if (isInitialLoadRef.current || isRealTimeActiveRef.current) {
+              setAnalytics(analyticsData);
+            }
+          });
+        }
 
         oauthWebSocketService.onError((errorMsg) => {
           setError(errorMsg);
