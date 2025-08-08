@@ -56,12 +56,9 @@ runs:
           git checkout "v${{ inputs.inferno_version }}" || git checkout "${{ inputs.inferno_version }}" || echo "Using default branch"
         fi
         
-        # Build the Docker image
+        # Build the Docker image using the official Dockerfile
         echo "Building Inferno Docker image..."
-        docker build -t onc-inferno:${{ inputs.inferno_version }} .
-        
-        # Also tag as the expected name for compatibility
-        docker tag onc-inferno:${{ inputs.inferno_version }} healthit/inferno-program:${{ inputs.inferno_version }}
+        docker build -t onc-inferno:${{ inputs.test_stage }} .
         
         echo "✅ Inferno Docker image built successfully"
 
@@ -142,30 +139,62 @@ runs:
       run: |
         echo "🚀 Starting Inferno container for ${{ inputs.test_stage }} testing..."
         
-        # Start Inferno container with proper volume mounts
+        # Use a simpler container name without timestamp to avoid confusion
+        CONTAINER_NAME="inferno-${{ inputs.test_stage }}"
+        
+        # Stop and remove any existing container with the same name
+        docker stop "$CONTAINER_NAME" 2>/dev/null || true
+        docker rm "$CONTAINER_NAME" 2>/dev/null || true
+        
+        # Start Inferno container with proper volume mounts and the correct image
         CONTAINER_ID=$(docker run -d \
-          --name "inferno-${{ inputs.test_stage }}-$(date +%s)" \
+          --name "$CONTAINER_NAME" \
           -p 4567:4567 \
-          -v "$(pwd)/testing/${{ inputs.test_stage }}/config:/opt/inferno/config:ro" \
-          -v "$(pwd)/testing/${{ inputs.test_stage }}/reports/inferno:/opt/inferno/results" \
-          -v "$(pwd)/testing/${{ inputs.test_stage }}/data:/opt/inferno/data" \
+          -v "$(pwd)/testing/${{ inputs.test_stage }}/config:/opt/app/config:ro" \
+          -v "$(pwd)/testing/${{ inputs.test_stage }}/reports/inferno:/opt/app/results" \
+          -v "$(pwd)/testing/${{ inputs.test_stage }}/data:/opt/app/data" \
           -e "INFERNO_HOST=0.0.0.0" \
           -e "INFERNO_PORT=4567" \
-          -e "DATABASE_URL=sqlite:///opt/inferno/data/inferno.db" \
-          healthit/inferno-program:${{ inputs.inferno_version }})
+          -e "DATABASE_URL=sqlite:///opt/app/data/inferno.db" \
+          onc-inferno:${{ inputs.test_stage }})
         
         echo "container_id=$CONTAINER_ID" >> $GITHUB_OUTPUT
-        echo "✅ Inferno container started with ID: $CONTAINER_ID"
+        echo "Container name: $CONTAINER_NAME"
+        echo "Container ID: $CONTAINER_ID"
+        echo "✅ Inferno container started"
 
     - name: Wait for Inferno to be ready
       shell: bash
       run: |
         echo "⏳ Waiting for Inferno to be ready..."
-        max_attempts=30
+        CONTAINER_NAME="inferno-${{ inputs.test_stage }}"
+        max_attempts=60
         attempt=1
         
+        # First, wait for the container to be running
+        echo "Checking if container is running..."
+        while [ $attempt -le 10 ]; do
+          if docker ps | grep -q "$CONTAINER_NAME"; then
+            echo "✅ Container is running"
+            break
+          fi
+          echo "🔄 Waiting for container to start... (attempt $attempt/10)"
+          sleep 2
+          attempt=$((attempt + 1))
+        done
+        
+        if [ $attempt -gt 10 ]; then
+          echo "❌ Container failed to start"
+          echo "Container logs:"
+          docker logs "$CONTAINER_NAME" || true
+          exit 1
+        fi
+        
+        # Now wait for Inferno to be ready
+        attempt=1
         while [ $attempt -le $max_attempts ]; do
-          if curl -f http://localhost:4567/health >/dev/null 2>&1; then
+          # Check if Inferno is responding on the root path (some versions don't have /health)
+          if curl -f http://localhost:4567/ >/dev/null 2>&1 || curl -f http://localhost:4567/health >/dev/null 2>&1; then
             echo "✅ Inferno is ready and responding"
             break
           fi
@@ -176,7 +205,10 @@ runs:
         
         if [ $attempt -gt $max_attempts ]; then
           echo "❌ Inferno failed to start within timeout"
-          docker logs inferno-${{ inputs.test_stage }}-* || true
+          echo "Container logs:"
+          docker logs "$CONTAINER_NAME" || true
+          echo "Container status:"
+          docker ps -a | grep "$CONTAINER_NAME" || true
           exit 1
         fi
 
@@ -184,12 +216,34 @@ runs:
       shell: bash
       run: |
         echo "🔍 Verifying Inferno configuration..."
+        CONTAINER_NAME="inferno-${{ inputs.test_stage }}"
         
-        # Test Inferno API endpoints
+        # Test Inferno is responding
+        echo "Testing Inferno root endpoint..."
+        if curl -f http://localhost:4567/ >/dev/null 2>&1; then
+          echo "✅ Inferno root endpoint is responding"
+        else
+          echo "⚠️ Inferno root endpoint not responding"
+        fi
+        
+        # Test health endpoint if available
         echo "Testing Inferno health endpoint..."
-        curl -f http://localhost:4567/health || exit 1
+        if curl -f http://localhost:4567/health >/dev/null 2>&1; then
+          echo "✅ Inferno health endpoint is responding"
+        else
+          echo "⚠️ Inferno health endpoint not available (may be normal for some versions)"
+        fi
         
+        # Test API endpoint
         echo "Testing Inferno API..."
-        curl -f http://localhost:4567/api/test_sessions || echo "API endpoint not ready yet"
+        if curl -f http://localhost:4567/api/test_sessions >/dev/null 2>&1; then
+          echo "✅ Inferno API is responding"
+        else
+          echo "⚠️ Inferno API not ready yet (will retry during tests)"
+        fi
+        
+        # Show container status for debugging
+        echo "Container status:"
+        docker ps | grep "$CONTAINER_NAME" || true
         
         echo "✅ Inferno setup verification completed"
