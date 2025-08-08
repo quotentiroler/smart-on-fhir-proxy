@@ -19,5 +19,5 @@ ENV KC_HOSTNAME_ADMIN_URL=https://proxy-smart-alpha-auth.fly.dev
 # Build Keycloak to optimize startup time
 RUN /opt/keycloak/bin/kc.sh build
 
-# Start Keycloak with realm import
-ENTRYPOINT ["/opt/keycloak/bin/kc.sh", "start-dev", "--import-realm"]
+# Start Keycloak in production mode with realm import and optimized settings
+ENTRYPOINT ["/opt/keycloak/bin/kc.sh", "start", "--import-realm"]
