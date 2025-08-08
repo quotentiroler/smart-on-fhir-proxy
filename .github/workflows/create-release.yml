@@ -160,16 +160,15 @@ jobs:
             EXTRA_ARGS="--prerelease"
           fi
 
-          # Create the release and capture the URL
+          # Create the release
           TAG_NAME="v${{ inputs.version }}"
-          RELEASE_OUTPUT=$(gh release create "$TAG_NAME" \
+          gh release create "$TAG_NAME" \
             --title "$TAG_NAME" \
             --notes-file release-notes.md \
-            $EXTRA_ARGS \
-            --json url)
+            $EXTRA_ARGS
           
-          # Extract the URL from the JSON response
-          RELEASE_URL=$(echo "$RELEASE_OUTPUT" | grep -o '"url":"[^"]*"' | cut -d'"' -f4)
+          # Get the release URL
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/$TAG_NAME"
           
           echo "Created release: $RELEASE_URL"
           echo "url=$RELEASE_URL" >> $GITHUB_OUTPUT
