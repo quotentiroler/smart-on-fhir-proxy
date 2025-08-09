@@ -15,6 +15,10 @@ import { initializeServer, displayServerEndpoints } from './init'
 import { oauthMetricsLogger } from './lib/oauth-metrics-logger'
 import staticPlugin from '@elysiajs/static'
 
+// Debug CORS configuration
+console.log('[DEBUG] NODE_ENV:', process.env.NODE_ENV)
+console.log('[DEBUG] CORS origins:', config.cors.origins)
+
 const app = new Elysia({
   name: config.name,
   serve: {

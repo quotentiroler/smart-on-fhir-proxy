@@ -67,7 +67,7 @@
     "clean": "bun run clean:backend && bun run clean:ui",
     "clean:backend": "cd backend && rm -rf node_modules dist",
     "clean:ui": "cd ui && rm -rf node_modules dist",
-    "docker:dev": "docker compose -f docker-compose.development.yml up -d && bun run dev",
+    "docker:dev": "docker compose -f docker-compose.development.yml up -d",
     "docker:dev:build": "docker-compose -f docker-compose.development.yml up --build -d",
     "docker:dev:down": "docker-compose -f docker-compose.development.yml down",
     "docker:dev:logs": "docker-compose -f docker-compose.development.yml logs -f",

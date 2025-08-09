@@ -35,6 +35,7 @@ import { SmartAppsStatistics } from './SmartAppsStatistics';
 import { DynamicClientRegistrationSettings } from '../DynamicClientRegistrationSettings';
 import { useAuth } from '@/stores/authStore';
 import { useAppStore } from '@/stores/appStore';
+import { getItem } from '@/lib/storage';
 import type { SmartApp, ScopeSet, SmartAppFormData } from '@/lib/types/api';
 
 // Mock data for SMART on FHIR applications
@@ -156,11 +157,11 @@ export function SmartAppsManager() {
 
   // Load scope sets from ScopeManager
   useEffect(() => {
-    const loadScopeSets = () => {
+    const loadScopeSets = async () => {
       try {
-        const saved = localStorage.getItem('smart-scope-sets');
+        const saved = await getItem<ScopeSet[]>('smart-scope-sets');
         if (saved) {
-          setScopeSets(JSON.parse(saved));
+          setScopeSets(saved);
         }
       } catch (error) {
         console.error('Failed to load scope sets:', error);

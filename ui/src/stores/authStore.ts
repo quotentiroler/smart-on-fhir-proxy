@@ -3,7 +3,15 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { openidService } from '../service/openid-service';
 import { createClientApis, setAuthErrorHandler } from '../lib/apiClient';
-import { getItem, storeItem, removeItem } from '../lib/storage';
+import { 
+  getItem, 
+  storeItem, 
+  removeItem, 
+  getSessionItem, 
+  setSessionItem, 
+  removeSessionItem,
+  clearAllAuthData 
+} from '../lib/storage';
 import type { UserProfile } from '@/lib/types/api';
 
 interface TokenData {
@@ -195,8 +203,8 @@ export const useAuthStore = create<AuthState>()(
           const { url, codeVerifier, state } = await openidService.getAuthorizationUrl(idpHint);
           
           // Store PKCE parameters for callback
-          sessionStorage.setItem('pkce_code_verifier', codeVerifier);
-          sessionStorage.setItem('oauth_state', state);
+          setSessionItem('pkce_code_verifier', codeVerifier);
+          setSessionItem('oauth_state', state);
           
           if (idpHint) {
             console.log(`Initiating login with Identity Provider: ${idpHint}`);
@@ -214,7 +222,7 @@ export const useAuthStore = create<AuthState>()(
         console.log('🔄 Starting token exchange with code:', code.substring(0, 10) + '...');
         console.log('🔑 Using code verifier:', codeVerifier.substring(0, 10) + '...');
         console.log('📍 Current URL:', window.location.href);
-        console.log('🔗 Stored code verifier:', sessionStorage.getItem('pkce_code_verifier')?.substring(0, 10) + '...');
+        console.log('🔗 Stored code verifier:', getSessionItem('pkce_code_verifier')?.substring(0, 10) + '...');
         
         set({ loading: true, error: null });
 
@@ -238,8 +246,8 @@ export const useAuthStore = create<AuthState>()(
           await get().fetchProfile();
           
           // Clear session storage
-          sessionStorage.removeItem('pkce_code_verifier');
-          sessionStorage.removeItem('oauth_state');
+          removeSessionItem('pkce_code_verifier');
+          removeSessionItem('oauth_state');
           
           console.log('✅ Token exchange successful!');
           
@@ -330,29 +338,35 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         const tokens = await getStoredTokens();
         
-        console.log('Initiating logout with tokens:', {
+        console.log('🚪 Initiating logout with tokens:', {
           hasAccessToken: !!tokens?.access_token,
           hasIdToken: !!tokens?.id_token,
           hasRefreshToken: !!tokens?.refresh_token
         });
         
+        // Clear all auth state immediately
         set({ 
           profile: null, 
           isAuthenticated: false, 
           error: null, 
-          loading: false 
+          loading: false,
+          isInitializing: true // Reset to allow fresh initialization
         });
         
         // Update client APIs to have no token
         await get().updateClientApis();
         
-        await clearTokens();
-        sessionStorage.removeItem('pkce_code_verifier');
-        sessionStorage.removeItem('oauth_state');
+        // Clear all stored tokens and session data using the centralized utility
+        await clearAllAuthData();
         
-        // Redirect to logout URL
+        // Add a small delay to ensure all cleanup is complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Generate logout URL with additional parameters for better cleanup
         const logoutUrl = openidService.getLogoutUrl(tokens?.id_token);
-        console.log('Logout URL:', logoutUrl);
+        console.log('🔗 Logout URL:', logoutUrl);
+        
+        // Force a complete page reload after logout to ensure clean state
         window.location.href = logoutUrl;
       },
 
