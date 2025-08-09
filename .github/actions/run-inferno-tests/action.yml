@@ -44,8 +44,12 @@ runs:
       shell: bash
       run: |
         echo "🔍 Verifying Inferno container is running..."
-        if ! docker ps | grep -q "${{ inputs.inferno_container_id }}"; then
-          echo "❌ Inferno container is not running"
+        CONTAINER_NAME="inferno-${{ inputs.test_stage }}"
+        
+        if ! docker ps | grep -q "$CONTAINER_NAME"; then
+          echo "❌ Inferno container '$CONTAINER_NAME' is not running"
+          echo "Available containers:"
+          docker ps -a
           exit 1
         fi
         echo "✅ Inferno container is running"
@@ -249,7 +253,8 @@ runs:
       shell: bash
       run: |
         echo "📋 Exporting Inferno container logs..."
-        docker logs "${{ inputs.inferno_container_id }}" > testing/${{ inputs.test_stage }}/reports/inferno/inferno_container.log 2>&1 || true
+        CONTAINER_NAME="inferno-${{ inputs.test_stage }}"
+        docker logs "$CONTAINER_NAME" > testing/${{ inputs.test_stage }}/reports/inferno/inferno_container.log 2>&1 || true
         echo "✅ Container logs exported"
 
     - name: Cleanup Inferno container
@@ -257,6 +262,7 @@ runs:
       shell: bash
       run: |
         echo "🧹 Cleaning up Inferno container..."
-        docker stop "${{ inputs.inferno_container_id }}" || true
-        docker rm "${{ inputs.inferno_container_id }}" || true
+        CONTAINER_NAME="inferno-${{ inputs.test_stage }}"
+        docker stop "$CONTAINER_NAME" || true
+        docker rm "$CONTAINER_NAME" || true
         echo "✅ Inferno container cleaned up"

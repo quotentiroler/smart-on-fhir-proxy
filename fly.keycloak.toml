@@ -39,5 +39,5 @@ primary_region = 'fra'
     handlers = ['http', 'tls']
 
 [[vm]]
-  size = 'shared-cpu-2x'
-  memory = '2048mb'
+  size = 'shared-cpu-4x'
+  memory = '4096mb'

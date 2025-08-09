@@ -15,14 +15,14 @@
 
 import * as runtime from '../runtime';
 import type {
+  GetFhirServers500Response,
   PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200Response,
-  PostShutdown500Response,
 } from '../models/index';
 import {
+    GetFhirServers500ResponseFromJSON,
+    GetFhirServers500ResponseToJSON,
     PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200ResponseFromJSON,
     PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200ResponseToJSON,
-    PostShutdown500ResponseFromJSON,
-    PostShutdown500ResponseToJSON,
 } from '../models/index';
 
 export interface GetProxySmartBackendByServerNameByFhirVersionRequest {

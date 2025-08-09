@@ -1,8 +1,8 @@
-import React from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { openidService } from '../service/openid-service';
 import { createClientApis, setAuthErrorHandler } from '../lib/apiClient';
+import { getItem, storeItem, removeItem } from '../lib/storage';
 import type { UserProfile } from '@/lib/types/api';
 
 interface TokenData {
@@ -14,21 +14,20 @@ interface TokenData {
 
 const TOKEN_STORAGE_KEY = 'openid_tokens';
 
-const getStoredTokens = (): TokenData | null => {
+const getStoredTokens = async (): Promise<TokenData | null> => {
   try {
-    const stored = localStorage.getItem(TOKEN_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
+    return await getItem<TokenData>(TOKEN_STORAGE_KEY);
   } catch {
     return null;
   }
 };
 
-const storeTokens = (tokens: TokenData) => {
-  localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(tokens));
+const storeTokens = async (tokens: TokenData): Promise<void> => {
+  await storeItem(TOKEN_STORAGE_KEY, tokens);
 };
 
-const clearTokens = () => {
-  localStorage.removeItem(TOKEN_STORAGE_KEY);
+const clearTokens = async (): Promise<void> => {
+  await removeItem(TOKEN_STORAGE_KEY);
 };
 
 const isTokenValid = (tokens: TokenData): boolean => {
@@ -60,9 +59,9 @@ interface AuthState {
   exchangeCodeForToken: (code: string, codeVerifier: string) => Promise<void>;
   fetchProfile: () => Promise<void>;
   refreshTokens: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   clearError: () => void;
-  updateClientApis: () => void;
+  updateClientApis: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -76,15 +75,15 @@ export const useAuthStore = create<AuthState>()(
       clientApis: createClientApis(), // Initialize with no token
 
       // Helper function to update client APIs with current token
-      updateClientApis: () => {
-        const tokens = getStoredTokens();
+      updateClientApis: async () => {
+        const tokens = await getStoredTokens();
         const token = tokens?.access_token || undefined;
         set({ clientApis: createClientApis(token) });
         
         // Set up auth error handler each time we update clients
-        setAuthErrorHandler(() => {
+        setAuthErrorHandler(async () => {
           console.log('Auth error handler triggered, logging out...');
-          get().logout();
+          await get().logout();
         });
       },      // Actions
       initiateLogin: async (idpHint?: string) => {
@@ -123,11 +122,11 @@ export const useAuthStore = create<AuthState>()(
             expires_at: tokens.expires_in ? Math.floor(Date.now() / 1000) + tokens.expires_in : undefined,
           };
           
-          storeTokens(tokenData);
+          await storeTokens(tokenData);
           set({ isAuthenticated: true });
           
           // Update client APIs with new token
-          get().updateClientApis();
+          await get().updateClientApis();
           
           // Fetch user profile
           await get().fetchProfile();
@@ -145,7 +144,7 @@ export const useAuthStore = create<AuthState>()(
             loading: false, 
             error: errorMessage 
           });
-          clearTokens();
+          await clearTokens();
           throw error;
         } finally {
           set({ loading: false });
@@ -153,10 +152,10 @@ export const useAuthStore = create<AuthState>()(
       },
 
       fetchProfile: async () => {
-        const tokens = getStoredTokens();
+        const tokens = await getStoredTokens();
         if (!tokens || !isTokenValid(tokens)) {
           set({ profile: null, isAuthenticated: false });
-          clearTokens();
+          await clearTokens();
           return;
         }
 
@@ -179,14 +178,14 @@ export const useAuthStore = create<AuthState>()(
             loading: false, 
             error: errorMessage 
           });
-          clearTokens();
+          await clearTokens();
         }
       },
 
       refreshTokens: async () => {
-        const tokens = getStoredTokens();
+        const tokens = await getStoredTokens();
         if (!tokens?.refresh_token) {
-          get().logout();
+          await get().logout();
           return;
         }
 
@@ -202,11 +201,11 @@ export const useAuthStore = create<AuthState>()(
             expires_at: newTokens.expires_in ? Math.floor(Date.now() / 1000) + newTokens.expires_in : undefined,
           };
           
-          storeTokens(tokenData);
+          await storeTokens(tokenData);
           set({ isAuthenticated: true, loading: false });
           
           // Update client APIs with refreshed token
-          get().updateClientApis();
+          await get().updateClientApis();
           
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Token refresh failed';
@@ -216,12 +215,12 @@ export const useAuthStore = create<AuthState>()(
             loading: false, 
             error: errorMessage 
           });
-          clearTokens();
+          await clearTokens();
         }
       },
 
-      logout: () => {
-        const tokens = getStoredTokens();
+      logout: async () => {
+        const tokens = await getStoredTokens();
         
         console.log('Initiating logout with tokens:', {
           hasAccessToken: !!tokens?.access_token,
@@ -237,9 +236,9 @@ export const useAuthStore = create<AuthState>()(
         });
         
         // Update client APIs to have no token
-        get().updateClientApis();
+        await get().updateClientApis();
         
-        clearTokens();
+        await clearTokens();
         sessionStorage.removeItem('pkce_code_verifier');
         sessionStorage.removeItem('oauth_state');
         
@@ -262,23 +261,59 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated 
       }),
       // On rehydration, check if tokens still exist and are valid
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: () => async (state) => {
         if (state) {
-          const tokens = getStoredTokens();
-          if (!tokens || !isTokenValid(tokens)) {
-            console.log('❌ Invalid or missing tokens, clearing auth state');
+          try {
+            const tokens = await getStoredTokens();
+            
+            if (!tokens) {
+              state.profile = null;
+              state.isAuthenticated = false;
+              state.clientApis = createClientApis(); // No token
+            } else if (!isTokenValid(tokens)) {
+              console.log('❌ Invalid tokens found');
+              
+              if (tokens.refresh_token) {
+                console.log('🔄 Attempting to refresh expired tokens');
+                // Don't clear state yet, let refreshTokens handle it
+                state.clientApis = createClientApis(tokens.access_token);
+                // Trigger refresh in background
+                setTimeout(async () => {
+                  await useAuthStore.getState().refreshTokens();
+                }, 100);
+              } else {
+                console.log('❌ No refresh token, clearing auth state');
+                state.profile = null;
+                state.isAuthenticated = false;
+                state.clientApis = createClientApis(); // No token
+                await clearTokens();
+              }
+            } else {
+              console.log('✅ Valid tokens found, setting up auth state');
+              // Update client APIs with current token
+              state.clientApis = createClientApis(tokens.access_token);
+              
+              // Auto-fetch profile if authenticated but no profile exists
+              if (state.isAuthenticated && !state.profile) {
+                console.log('👤 Fetching user profile');
+                setTimeout(async () => {
+                  await useAuthStore.getState().fetchProfile();
+                }, 100);
+              }
+            }
+            
+            // Set up auth error handler for all cases
+            setAuthErrorHandler(async () => {
+              console.log('Auth error handler triggered during rehydration, logging out...');
+              await useAuthStore.getState().logout();
+            });
+          } catch (error) {
+            console.error('Error during rehydration:', error);
+            // On error, clear auth state to be safe
             state.profile = null;
             state.isAuthenticated = false;
-            state.clientApis = createClientApis(); // No token
-            clearTokens();
-          } else {
-            // Update client APIs with current token
-            state.clientApis = createClientApis(tokens.access_token);
-            // Set up auth error handler for rehydrated clients
-            setAuthErrorHandler(() => {
-              console.log('Auth error handler triggered during rehydration, logging out...');
-              useAuthStore.getState().logout();
-            });
+            state.clientApis = createClientApis();
+            await clearTokens();
           }
         } else {
           console.log('⚠️ No state found during rehydration');
@@ -288,27 +323,7 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Custom hook that automatically handles token refresh and profile fetching
+// Custom hook that provides auth state without side effects
 export const useAuth = () => {
-  const store = useAuthStore();
-  const { isAuthenticated, profile, loading } = store;
-  
-  React.useEffect(() => {
-    const tokens = getStoredTokens();
-    
-    if (tokens && isTokenValid(tokens)) {
-      // Auto-fetch profile if authenticated but no profile exists
-      if (isAuthenticated && !profile && !loading) {
-        store.fetchProfile();
-      }
-    } else if (tokens && !isTokenValid(tokens) && tokens.refresh_token) {
-      // Try to refresh tokens if they're expired but we have a refresh token
-      store.refreshTokens();
-    } else if (tokens && !isTokenValid(tokens)) {
-      // Clear invalid tokens
-      store.logout();
-    }
-  }, [isAuthenticated, profile, loading, store]);
-
-  return store;
+  return useAuthStore();
 };

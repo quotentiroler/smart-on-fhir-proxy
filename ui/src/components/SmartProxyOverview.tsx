@@ -33,7 +33,8 @@ import { KeycloakConfigForm } from './KeycloakConfigForm';
 import type { 
     DashboardData,
     FhirServersListResponse,
-    KeycloakConfigurationStatus
+    KeycloakConfigurationStatus,
+    SystemStatus
 } from '../lib/types/api';
 import { config } from '../config';
 
@@ -214,13 +215,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
 
                 // Update system health with real data
                 if (systemStatus.status === 'fulfilled') {
-                    const statusData = systemStatus.value as {
-                        timestamp?: string;
-                        uptime?: number;
-                        server?: { status?: string; version?: string };
-                        fhir?: { status?: string; totalServers?: number; healthyServers?: number };
-                        keycloak?: { status?: string; accessible?: boolean };
-                    };
+                    const statusData = systemStatus.value as SystemStatus;
 
                     // Format uptime
                     const uptimeSeconds = statusData.uptime || 0;
@@ -232,15 +227,10 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                     const aiAgentStatus = isOpenAIConnected ? 'connected' : 'fallback';
                     const aiAgentSearchType = isOpenAIConnected ? 'openai_powered' : 'semantic_search';
 
-                    // Get real memory usage from health endpoint
+                    // Get memory usage from status endpoint instead of health
                     let memoryUsage = 'unknown';
-                    try {
-                        const healthData = await clientApis.server.getHealth();
-                        if (healthData.memory) {
-                            memoryUsage = `${healthData.memory.used}MB / ${healthData.memory.total}MB`;
-                        }
-                    } catch (error) {
-                        console.warn('Failed to fetch memory usage:', error);
+                    if (statusData.memory) {
+                        memoryUsage = `${statusData.memory.used}MB / ${statusData.memory.total}MB`;
                     }
 
                     setSystemHealth(prev => ({
@@ -248,7 +238,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                         databaseStatus: 'healthy', // We know it's healthy if we got a response
                         systemUptime: uptimeFormatted,
                         lastBackup: null, // Remove mock backup timestamp
-                        serverVersion: statusData.server?.version || 'unknown',
+                        serverVersion: statusData.version,
                         keycloakStatus: statusData.keycloak?.status || 'unknown',
                         memoryUsage,
                         aiAgentStatus,
@@ -342,8 +332,8 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
         fetchDashboardData();
     }, [clientApis]);
 
-    const handleRefresh = () => {
-        fetchProfile();
+    const handleRefresh = async () => {
+        await fetchProfile();
         // Trigger dashboard data refresh
         setDashboardData(prev => ({ ...prev, loading: true }));
         // Reset AI Agent status to checking
@@ -374,7 +364,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
             },
             onConfirm: async (reason) => {
                 try {
-                    await clientApis.server.postShutdown();
+                    await clientApis.admin.postAdminShutdown();
                     alert({
                         title: t('Server Shutdown Initiated'),
                         message: t('Server shutdown has been initiated successfully. Reason: {{reason}}', { reason }),
@@ -412,7 +402,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
             },
             onConfirm: async (reason) => {
                 try {
-                    await clientApis.server.postRestart();
+                    await clientApis.admin.postAdminRestart();
                     alert({
                         title: t('Server Restart Initiated'),
                         message: t('Server restart has been initiated successfully. Reason: {{reason}}', { reason }),

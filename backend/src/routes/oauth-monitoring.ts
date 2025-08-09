@@ -55,7 +55,7 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
           
           // Check if controller is still open before trying to enqueue
           try {
-            if (controller.desiredSize === null || controller.desiredSize === undefined) {
+            if (controller.desiredSize === null) {
               logger.sse.debug('OAuth events stream controller closed during event send, stopping stream');
               isStreamActive = false;
               return;
@@ -85,8 +85,8 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
           }
           
           try {
-            // Check multiple conditions for stream closure
-            if (controller.desiredSize === null || controller.desiredSize === undefined) {
+            // Check if controller is still open - desiredSize is null when closed
+            if (controller.desiredSize === null) {
               logger.sse.info('OAuth events stream controller closed, stopping keepalive');
               isStreamActive = false;
               clearInterval(keepAliveInterval);
@@ -189,7 +189,7 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
           if (!isStreamActive) return;
           
           try {
-            if (controller.desiredSize === null || controller.desiredSize === undefined) {
+            if (controller.desiredSize === null) {
               logger.sse.debug('OAuth analytics stream controller closed during analytics send, stopping stream');
               isStreamActive = false;
               return;
@@ -219,8 +219,8 @@ export const oauthMonitoringRoutes = new Elysia({ prefix: '/monitoring/oauth', t
           }
           
           try {
-            // Check multiple conditions for stream closure
-            if (controller.desiredSize === null || controller.desiredSize === undefined) {
+            // Check if controller is still open - desiredSize is null when closed
+            if (controller.desiredSize === null) {
               logger.sse.info('OAuth analytics stream controller closed, stopping keepalive');
               isStreamActive = false;
               clearInterval(keepAliveInterval);

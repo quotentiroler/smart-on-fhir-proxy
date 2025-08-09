@@ -28,19 +28,19 @@ import {
  */
 export interface GetStatus200ResponseFhir {
     /**
-     * Overall FHIR servers status
+     * 
      * @type {string}
      * @memberof GetStatus200ResponseFhir
      */
     status: string;
     /**
-     * Total number of configured FHIR servers
+     * 
      * @type {number}
      * @memberof GetStatus200ResponseFhir
      */
     totalServers: number;
     /**
-     * Number of healthy FHIR servers
+     * 
      * @type {number}
      * @memberof GetStatus200ResponseFhir
      */

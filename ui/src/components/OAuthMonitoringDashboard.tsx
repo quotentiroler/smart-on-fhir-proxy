@@ -26,6 +26,7 @@ import { format } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { oauthWebSocketService, type OAuthAnalytics, type OAuthEventSimple } from '../service/oauth-websocket-service';
 import { oauthMonitoringService } from '../service/oauth-monitoring-service';
+import { getItem } from '../lib/storage';
 import { config } from '@/config';
 
 interface SystemHealth {
@@ -89,8 +90,7 @@ export function OAuthMonitoringDashboard() {
       
       // Wait a bit to ensure connection is fully stable
       await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Try to authenticate using token from localStorage  
+     
       try {
         await oauthWebSocketService.authenticate();
         
@@ -315,17 +315,12 @@ export function OAuthMonitoringDashboard() {
 
   const exportServerEvents = async () => {
     try {
-      // Get token from localStorage - we'll improve this once events export is added to API client
-      const token = localStorage.getItem('openid_tokens');
+      // Get token from encrypted storage
+      const tokenData = await getItem<{access_token: string}>('openid_tokens');
       let accessToken = '';
       
-      if (token) {
-        try {
-          const tokenData = JSON.parse(token);
-          accessToken = tokenData.access_token;
-        } catch {
-          // Fall back to direct access_token if parsing fails
-        }
+      if (tokenData?.access_token) {
+        accessToken = tokenData.access_token;
       }
       
       if (!accessToken) {

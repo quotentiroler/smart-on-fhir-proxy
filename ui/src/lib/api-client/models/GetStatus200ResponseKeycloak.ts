@@ -20,19 +20,19 @@ import { mapValues } from '../runtime';
  */
 export interface GetStatus200ResponseKeycloak {
     /**
-     * Keycloak status
+     * 
      * @type {string}
      * @memberof GetStatus200ResponseKeycloak
      */
     status: string;
     /**
-     * Whether Keycloak is accessible
+     * 
      * @type {boolean}
      * @memberof GetStatus200ResponseKeycloak
      */
     accessible: boolean;
     /**
-     * Keycloak realm name
+     * 
      * @type {string}
      * @memberof GetStatus200ResponseKeycloak
      */

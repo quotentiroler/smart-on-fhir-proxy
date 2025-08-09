@@ -90,7 +90,7 @@ export const useSmartStore = create<SmartState>()(
 
         try {
           console.debug('🔄 Fetching FHIR servers from API...');
-          const { servers } = createAuthenticatedClientApis();
+          const { servers } = await createAuthenticatedClientApis();
           const response: GetFhirServers200Response = await servers.getFhirServers();
           
           console.debug('✅ FHIR servers fetched successfully:', {
@@ -126,7 +126,7 @@ export const useSmartStore = create<SmartState>()(
 
         try {
           console.debug('🔄 Fetching healthcare users from API...');
-          const { healthcareUsers } = createAuthenticatedClientApis();
+          const { healthcareUsers } = await createAuthenticatedClientApis();
           const users = await healthcareUsers.getAdminHealthcareUsers();
           
           console.debug('✅ Healthcare users fetched successfully:', {

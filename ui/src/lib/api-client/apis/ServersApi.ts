@@ -16,6 +16,7 @@
 import * as runtime from '../runtime';
 import type {
   GetFhirServers200Response,
+  GetFhirServers500Response,
   GetFhirServersByServerId200Response,
   GetFhirServersByServerIdMtls200Response,
   PostFhirServers200Response,
@@ -23,7 +24,6 @@ import type {
   PostFhirServersByServerIdMtlsCertificates200Response,
   PostFhirServersByServerIdMtlsCertificatesRequest,
   PostFhirServersRequest,
-  PostShutdown500Response,
   PutFhirServersByServerId200Response,
   PutFhirServersByServerId400Response,
   PutFhirServersByServerIdMtls200Response,
@@ -33,6 +33,8 @@ import type {
 import {
     GetFhirServers200ResponseFromJSON,
     GetFhirServers200ResponseToJSON,
+    GetFhirServers500ResponseFromJSON,
+    GetFhirServers500ResponseToJSON,
     GetFhirServersByServerId200ResponseFromJSON,
     GetFhirServersByServerId200ResponseToJSON,
     GetFhirServersByServerIdMtls200ResponseFromJSON,
@@ -47,8 +49,6 @@ import {
     PostFhirServersByServerIdMtlsCertificatesRequestToJSON,
     PostFhirServersRequestFromJSON,
     PostFhirServersRequestToJSON,
-    PostShutdown500ResponseFromJSON,
-    PostShutdown500ResponseToJSON,
     PutFhirServersByServerId200ResponseFromJSON,
     PutFhirServersByServerId200ResponseToJSON,
     PutFhirServersByServerId400ResponseFromJSON,

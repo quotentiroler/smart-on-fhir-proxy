@@ -16,18 +16,18 @@
 import * as runtime from '../runtime';
 import type {
   GetAdminSmartApps200ResponseInner,
+  GetFhirServers500Response,
   PostAdminSmartAppsRequest,
-  PostShutdown500Response,
   PutAdminSmartAppsByClientId200Response,
   PutAdminSmartAppsByClientIdRequest,
 } from '../models/index';
 import {
     GetAdminSmartApps200ResponseInnerFromJSON,
     GetAdminSmartApps200ResponseInnerToJSON,
+    GetFhirServers500ResponseFromJSON,
+    GetFhirServers500ResponseToJSON,
     PostAdminSmartAppsRequestFromJSON,
     PostAdminSmartAppsRequestToJSON,
-    PostShutdown500ResponseFromJSON,
-    PostShutdown500ResponseToJSON,
     PutAdminSmartAppsByClientId200ResponseFromJSON,
     PutAdminSmartAppsByClientId200ResponseToJSON,
     PutAdminSmartAppsByClientIdRequestFromJSON,
