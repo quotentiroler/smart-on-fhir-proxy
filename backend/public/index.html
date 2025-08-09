@@ -508,7 +508,7 @@
         const response = await fetch('/status');
         const healthData = await response.json();
         
-        availableServers = healthData.fhirServers?.servers || [];
+        availableServers = healthData.fhir?.servers || [];
         
         // Clear and populate the select dropdown
         fhirServerSelect.innerHTML = '<option value="">Select a FHIR server...</option>';
