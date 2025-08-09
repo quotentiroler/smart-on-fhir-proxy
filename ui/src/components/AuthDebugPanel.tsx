@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { useAuthStore } from '../stores/authStore';
-import { getItem, removeItem } from '../lib/storage';
+import { getItem, removeItem, getSessionItem, removeSessionItem } from '../lib/storage';
 import { AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
 
 interface TokenData {
@@ -33,8 +33,8 @@ export const AuthDebugPanel: React.FC = () => {
       const localAuthStorage = localStorage.getItem('auth-store');
       
       // Check session storage (still used for OAuth flow)
-      const pkceVerifier = sessionStorage.getItem('pkce_code_verifier');
-      const oauthState = sessionStorage.getItem('oauth_state');
+      const pkceVerifier = getSessionItem('pkce_code_verifier');
+      const oauthState = getSessionItem('oauth_state');
 
       setStorageInfo({
         hasTokens: !!(encryptedTokenStorage || localTokenStorage),
@@ -47,8 +47,8 @@ export const AuthDebugPanel: React.FC = () => {
       // Fallback to localStorage only
       const localTokenStorage = localStorage.getItem('openid_tokens');
       const localAuthStorage = localStorage.getItem('auth-store');
-      const pkceVerifier = sessionStorage.getItem('pkce_code_verifier');
-      const oauthState = sessionStorage.getItem('oauth_state');
+      const pkceVerifier = getSessionItem('pkce_code_verifier');
+      const oauthState = getSessionItem('oauth_state');
 
       setStorageInfo({
         hasTokens: !!localTokenStorage,
@@ -74,8 +74,8 @@ export const AuthDebugPanel: React.FC = () => {
       localStorage.removeItem('auth-store');
       
       // Clear session storage
-      sessionStorage.removeItem('pkce_code_verifier');
-      sessionStorage.removeItem('oauth_state');
+      removeSessionItem('pkce_code_verifier');
+      removeSessionItem('oauth_state');
       
       // Clear browser caches
       if ('caches' in window) {
@@ -114,14 +114,14 @@ export const AuthDebugPanel: React.FC = () => {
   };
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <AlertCircle className="h-5 w-5 text-yellow-500" />
+    <Card className="w-full">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-sm">
+          <AlertCircle className="h-4 w-4 text-yellow-500" />
           Authentication Debug
         </CardTitle>
-        <CardDescription>
-          Use these tools if you're experiencing login timeout issues
+        <CardDescription className="text-xs">
+          Use these tools if you're experiencing login timeout or "Code not valid" errors
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -205,7 +205,7 @@ export const AuthDebugPanel: React.FC = () => {
             </Button>
           </div>
           <p className="text-xs text-gray-500">
-            Use "Clear All Caches" if you see expired code errors. Use "Force Logout" for persistent issues.
+            Use "Clear All Caches" if you see "Code not valid" or expired code errors. Use "Force Logout" for persistent login issues.
           </p>
         </div>
       </CardContent>

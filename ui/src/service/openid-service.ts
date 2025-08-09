@@ -249,6 +249,13 @@ class OpenIDService {
       logoutUrl.searchParams.set('id_token_hint', idToken);
     }
     
+    // Add additional parameters to ensure complete logout
+    // This helps with Keycloak session cleanup, especially on shared deployments
+    logoutUrl.searchParams.set('logout_hint', 'complete');
+    
+    // Add a timestamp to prevent caching issues
+    logoutUrl.searchParams.set('_t', Date.now().toString());
+    
     return logoutUrl.href;
   }
 

@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { openidService } from '../service/openid-service';
+import { getSessionItem } from '@/lib/storage';
 import type { GetAuthIdentityProviders200ResponseInner } from '../lib/api-client/models';
 import { KeycloakConfigForm } from './KeycloakConfigForm';
+import { AuthDebugPanel } from './AuthDebugPanel';
 import { 
   Heart, 
   Shield, 
@@ -15,7 +17,10 @@ import {
   Users,
   ArrowRight,
   AlertTriangle,
-  Settings
+  Settings,
+  Bug,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 export function LoginForm() {
@@ -25,6 +30,7 @@ export function LoginForm() {
   const [loadingIdps, setLoadingIdps] = useState(true);
   const [authAvailable, setAuthAvailable] = useState<boolean | null>(null);
   const [showConfigForm, setShowConfigForm] = useState(false);
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
   const { initiateLogin, exchangeCodeForToken, clientApis } = useAuthStore();
 
   // Fetch available identity providers
@@ -96,8 +102,8 @@ export function LoginForm() {
 
     try {
       // Get stored PKCE parameters
-      const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
-      const storedState = sessionStorage.getItem('oauth_state');
+      const codeVerifier = getSessionItem('pkce_code_verifier');
+      const storedState = getSessionItem('oauth_state');
 
       if (!codeVerifier) {
         throw new Error('Missing PKCE code verifier');
@@ -401,6 +407,25 @@ export function LoginForm() {
           <p className="text-sm text-gray-500">
             Protected by enterprise-grade security
           </p>
+        </div>
+
+        {/* Debug Panel Toggle */}
+        <div className="mt-6">
+          <button
+            onClick={() => setShowDebugPanel(!showDebugPanel)}
+            className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200 flex items-center justify-center gap-2 py-2"
+          >
+            <Bug className="w-3 h-3" />
+            <span>Troubleshooting</span>
+            {showDebugPanel ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+          
+          {/* Debug Panel */}
+          {showDebugPanel && (
+            <div className="mt-4 animate-in slide-in-from-top-2 duration-200">
+              <AuthDebugPanel />
+            </div>
+          )}
         </div>
       </div>
     </div>

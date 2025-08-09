@@ -79,18 +79,18 @@ export const config = {
         'http://localhost:5173', // Vite dev server
         'http://localhost:3000', // React dev server  
         'http://localhost:8445', // App server
-        config.baseUrl, // Current app base URL
+        config.baseUrl // Fallback to base URL
       ];
       
       const envOrigins = process.env.CORS_ORIGINS?.split(',').map(s => s.trim()) || [];
       
-      // In development mode, allow all localhost origins and the current base URL
-      if (process.env.NODE_ENV === 'development') {
+      // In development mode, allow all localhost origins
+      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV !== 'production') {
         const allOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
         return allOrigins.filter(Boolean);
       }
       
-      // In production, only use explicitly configured origins or the base URL
+      // In production, only use explicitly configured origins or fallback to base URL
       return envOrigins.length > 0 ? envOrigins : [config.baseUrl];
     }
   }
