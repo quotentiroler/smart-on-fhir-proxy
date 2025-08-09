@@ -229,8 +229,8 @@ export function LaunchContextManager() {
   // Use fhirStore for context sets management
   const { contextSets, addContextSet, updateContextSet, deleteContextSet } = useLaunchContextSets();
 
-  // Use auth store to get authenticated API clients and auth state
-  const { isAuthenticated, profile, apiClients } = useAuth();
+  // Use auth store to get authenticated client APIs and auth state
+  const { isAuthenticated, profile, clientApis } = useAuth();
 
   // Track if templates have been initialized to prevent infinite loops
   const templatesInitialized = useRef(false);
@@ -335,8 +335,8 @@ export function LaunchContextManager() {
         setLaunchContextsLoading(true);
         setError(null);
         try {
-          // Use auth store's API clients with automatic error handling
-          const response = await apiClients.launchContexts.getAdminLaunchContexts();
+          // Use auth store's client APIs with automatic error handling
+          const response = await clientApis.launchContexts.getAdminLaunchContexts();
           setLaunchContextUsers(response);
           console.log('Successfully loaded launch contexts:', response.length);
         } catch (err) {
@@ -351,7 +351,7 @@ export function LaunchContextManager() {
 
       loadLaunchContextsImmediate();
     }
-  }, [activeTab, isAuthenticated, profile, apiClients.launchContexts]);
+  }, [activeTab, isAuthenticated, profile, clientApis.launchContexts]);
 
   // Handle saving a context set from the builder
   const handleSaveContextSet = (contextSetData: Omit<ContextSet, 'id' | 'createdAt' | 'updatedAt'>) => {

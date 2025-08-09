@@ -1,9 +1,10 @@
 import { Elysia } from 'elysia'
 import { swagger } from '@elysiajs/swagger'
 import { cors } from '@elysiajs/cors'
+import { config } from './config'
 import { keycloakPlugin } from './lib/keycloak-plugin'
 import { fhirRoutes } from './routes/fhir'
-import { serverRoutes } from './routes/info'
+import { statusRoutes } from './routes/status'
 import { serverDiscoveryRoutes } from './routes/fhir-servers'
 import { oauthMonitoringRoutes } from './routes/oauth-monitoring'
 import { oauthWebSocket } from './routes/oauth-websocket'
@@ -53,7 +54,7 @@ const app = new Elysia({
   sanitize: (value) => Bun.escapeHTML(value)
 })
   .use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    origin: config.cors.origins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
@@ -100,7 +101,7 @@ const app = new Elysia({
     }
   }))
   .use(keycloakPlugin)
-  .use(serverRoutes)
+  .use(statusRoutes)
   .use(serverDiscoveryRoutes)
   .use(authRoutes)
   .use(adminRoutes)

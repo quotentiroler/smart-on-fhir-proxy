@@ -77,7 +77,7 @@ const DEFAULT_REDIRECT_PATTERNS = [
 ];
 
 export function DynamicClientRegistrationSettings() {
-  const { apiClients } = useAuth();
+  const { clientApis } = useAuth();
   const [settings, setSettings] = useState<ClientRegistrationSettings>({
     enabled: true,
     requireHttps: true,
@@ -106,7 +106,7 @@ export function DynamicClientRegistrationSettings() {
       setLoading(true);
       setMessage(null);
       
-      const settingsData = await apiClients.admin.getAdminClientRegistrationSettings();
+      const settingsData = await clientApis.admin.getAdminClientRegistrationSettings();
       
       setSettings(settingsData);
       setMessage({ type: 'success', text: 'Settings loaded successfully' });
@@ -119,7 +119,7 @@ export function DynamicClientRegistrationSettings() {
     } finally {
       setLoading(false);
     }
-  }, [apiClients]);
+  }, [clientApis]);
 
   useEffect(() => {
     loadSettings();
@@ -130,7 +130,7 @@ export function DynamicClientRegistrationSettings() {
       setSaving(true);
       setMessage(null);
       
-      await apiClients.admin.putAdminClientRegistrationSettings({
+      await clientApis.admin.putAdminClientRegistrationSettings({
         getAdminClientRegistrationSettings200Response: settings as ClientRegistrationSettings
       });
       
@@ -151,7 +151,7 @@ export function DynamicClientRegistrationSettings() {
       setSaving(true);
       setMessage(null);
       
-      await apiClients.admin.postAdminClientRegistrationResetDefaults();
+      await clientApis.admin.postAdminClientRegistrationResetDefaults();
       
       // Reload the settings after reset
       await loadSettings();

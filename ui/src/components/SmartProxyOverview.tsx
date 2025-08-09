@@ -33,7 +33,8 @@ import { KeycloakConfigForm } from './KeycloakConfigForm';
 import type { 
     DashboardData,
     FhirServersListResponse,
-    KeycloakConfigurationStatus
+    KeycloakConfigurationStatus,
+    SystemStatus
 } from '../lib/types/api';
 import { config } from '../config';
 
@@ -42,7 +43,7 @@ interface SmartProxyOverviewProps {
 }
 
 export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
-    const { profile, fetchProfile, apiClients } = useAuth();
+    const { profile, fetchProfile, clientApis } = useAuth();
     const { t } = useTranslation();
 
     // Modal state for Keycloak configuration
@@ -169,13 +170,13 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
 
                 // Fetch data in parallel with correct API methods
                 const [smartApps, users, servers, identityProvidersCount, analytics, systemStatus, keycloakStatus] = await Promise.allSettled([
-                    apiClients.smartApps.getAdminSmartApps(),
-                    apiClients.healthcareUsers.getAdminHealthcareUsers(),
-                    apiClients.servers.getFhirServers(),
-                    apiClients.identityProviders.getAdminIdpsCount(),
-                    apiClients.oauthMonitoring.getMonitoringOauthAnalytics(),
-                    apiClients.server.getStatus(),
-                    apiClients.admin.getAdminKeycloakConfigStatus()
+                    clientApis.smartApps.getAdminSmartApps(),
+                    clientApis.healthcareUsers.getAdminHealthcareUsers(),
+                    clientApis.servers.getFhirServers(),
+                    clientApis.identityProviders.getAdminIdpsCount(),
+                    clientApis.oauthMonitoring.getMonitoringOauthAnalytics(),
+                    clientApis.server.getStatus(),
+                    clientApis.admin.getAdminKeycloakConfigStatus()
                 ]);
 
                 // Update dashboard data with proper type checking
@@ -214,13 +215,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
 
                 // Update system health with real data
                 if (systemStatus.status === 'fulfilled') {
-                    const statusData = systemStatus.value as {
-                        timestamp?: string;
-                        uptime?: number;
-                        server?: { status?: string; version?: string };
-                        fhir?: { status?: string; totalServers?: number; healthyServers?: number };
-                        keycloak?: { status?: string; accessible?: boolean };
-                    };
+                    const statusData = systemStatus.value as SystemStatus;
 
                     // Format uptime
                     const uptimeSeconds = statusData.uptime || 0;
@@ -232,15 +227,10 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                     const aiAgentStatus = isOpenAIConnected ? 'connected' : 'fallback';
                     const aiAgentSearchType = isOpenAIConnected ? 'openai_powered' : 'semantic_search';
 
-                    // Get real memory usage from health endpoint
+                    // Get memory usage from status endpoint instead of health
                     let memoryUsage = 'unknown';
-                    try {
-                        const healthData = await apiClients.server.getHealth();
-                        if (healthData.memory) {
-                            memoryUsage = `${healthData.memory.used}MB / ${healthData.memory.total}MB`;
-                        }
-                    } catch (error) {
-                        console.warn('Failed to fetch memory usage:', error);
+                    if (statusData.memory) {
+                        memoryUsage = `${statusData.memory.used}MB / ${statusData.memory.total}MB`;
                     }
 
                     setSystemHealth(prev => ({
@@ -248,7 +238,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                         databaseStatus: 'healthy', // We know it's healthy if we got a response
                         systemUptime: uptimeFormatted,
                         lastBackup: null, // Remove mock backup timestamp
-                        serverVersion: statusData.server?.version || 'unknown',
+                        serverVersion: statusData.version,
                         keycloakStatus: statusData.keycloak?.status || 'unknown',
                         memoryUsage,
                         aiAgentStatus,
@@ -291,7 +281,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                 // Measure API response time with a simple call
                 const startTime = performance.now();
                 try {
-                    await apiClients.smartApps.getAdminSmartApps();
+                    await clientApis.smartApps.getAdminSmartApps();
                     const endTime = performance.now();
 
                     setSystemHealth(prev => ({
@@ -340,10 +330,10 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
         };
 
         fetchDashboardData();
-    }, [apiClients]);
+    }, [clientApis]);
 
-    const handleRefresh = () => {
-        fetchProfile();
+    const handleRefresh = async () => {
+        await fetchProfile();
         // Trigger dashboard data refresh
         setDashboardData(prev => ({ ...prev, loading: true }));
         // Reset AI Agent status to checking
@@ -374,7 +364,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
             },
             onConfirm: async (reason) => {
                 try {
-                    await apiClients.server.postShutdown();
+                    await clientApis.admin.postAdminShutdown();
                     alert({
                         title: t('Server Shutdown Initiated'),
                         message: t('Server shutdown has been initiated successfully. Reason: {{reason}}', { reason }),
@@ -412,7 +402,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
             },
             onConfirm: async (reason) => {
                 try {
-                    await apiClients.server.postRestart();
+                    await clientApis.admin.postAdminRestart();
                     alert({
                         title: t('Server Restart Initiated'),
                         message: t('Server restart has been initiated successfully. Reason: {{reason}}', { reason }),
@@ -433,7 +423,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
 
     const handleHealthCheck = async () => {
         try {
-            const data = await apiClients.server.getHealth();
+            const data = await clientApis.server.getHealth();
             setNotification({
                 type: 'success',
                 message: t('Health check completed: Server is {{status}}', {

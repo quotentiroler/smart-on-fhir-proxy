@@ -10,7 +10,7 @@ on:
 jobs:
   pr-to-develop:
     name: Create/Update PR from dev/* → develop
-    if: startsWith(github.ref, 'refs/heads/dev/') && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'proxy-smart-releaser')
+    if: startsWith(github.ref, 'refs/heads/dev/') && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update client APIs') && !contains(github.event.head_commit.message, 'proxy-smart-releaser')
     runs-on: ubuntu-latest
 
     steps:
@@ -142,7 +142,7 @@ jobs:
 
   pr-to-test:
     name: Create/Update PR from develop → test
-    if: github.ref == 'refs/heads/develop' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'proxy-smart-releaser')
+    if: github.ref == 'refs/heads/develop' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update client APIs') && !contains(github.event.head_commit.message, 'proxy-smart-releaser')
     runs-on: ubuntu-latest
 
     steps:
@@ -260,7 +260,7 @@ jobs:
 
   pr-to-main:
     name: Create/Update PR from test → main
-    if: github.ref == 'refs/heads/test' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update API clients') && !contains(github.event.head_commit.message, 'proxy-smart-releaser')
+    if: github.ref == 'refs/heads/test' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update client APIs') && !contains(github.event.head_commit.message, 'proxy-smart-releaser')
     runs-on: ubuntu-latest
 
     steps:

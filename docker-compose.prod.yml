@@ -1,19 +1,54 @@
 services:
   keycloak:
+    build:
+      context: .
+      dockerfile: Dockerfile.keycloak
+    container_name: proxy-smart-keycloak-prod
     environment:
       KC_HOSTNAME: localhost
       KC_HOSTNAME_PORT: 8080
       KC_PROXY: edge
       KC_CACHE: ispn
-      KC_CACHE_STACK: tcp
-    command:
-      - start
-      - --import-realm
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+      KC_HTTP_ENABLED: true
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - proxy-smart
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: proxy-smart-postgres-prod
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./keycloak/database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - proxy-smart
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d keycloak"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build:
-      context: ./backend
+      context: .
       dockerfile: Dockerfile
+      target: backend
     container_name: proxy-smart-backend
     environment:
       NODE_ENV: production
@@ -29,20 +64,20 @@ services:
     ports:
       - "8445:8445"
     depends_on:
-      keycloak:
-        condition: service_healthy
+      - keycloak
     networks:
       - proxy-smart
 
   frontend:
     build:
-      context: ./ui
+      context: .
       dockerfile: Dockerfile
+      target: ui
     container_name: proxy-smart-frontend
     environment:
       VITE_API_BASE_URL: http://localhost:8445
     ports:
-      - "3000:3000"
+      - "3000:80"
     depends_on:
       - backend
     networks:
@@ -52,3 +87,6 @@ networks:
   proxy-smart:
     name: proxy-smart-network
     driver: bridge
+
+volumes:
+  postgres_data:

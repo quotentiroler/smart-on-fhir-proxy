@@ -30,6 +30,18 @@ on:
         required: false
         type: number
         default: 10
+    
+    outputs:
+      version:
+        description: "The version that was released"
+        value: ${{ jobs.version.outputs.new_version }}
+      changelog:
+        description: "The generated changelog"
+        value: ${{ jobs.changelog.outputs.changelog }}
+      release_url:
+        description: "The URL of the created release"
+        value: ${{ jobs.release.outputs.release_url }}
+
     secrets:
       APP_ID:
         required: true
@@ -38,6 +50,14 @@ on:
       OPENAI_API_KEY:
         required: false
       DISCORD_WEBHOOK_URL:
+        required: false
+      FLY_API_TOKEN:
+        required: false
+      VPS_SSH_KEY:
+        required: false
+      VPS_HOST:
+        required: false
+      VPS_USER:
         required: false
 
 jobs:
@@ -123,8 +143,8 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  # Generate API clients with updated version
-  generate-api-clients:
+  # Generate client APIs with updated version
+  generate-client-apis:
     name: Generate API Clients
     needs: [version]
     runs-on: ubuntu-latest
@@ -165,17 +185,17 @@ jobs:
           cd backend && bun install
           cd ../ui && bun install
 
-      - name: Generate API clients
+      - name: Generate client APIs
         run: |
           bun run generate:ui:normalized
 
-      - name: Commit generated API clients
+      - name: Commit generated client APIs
         run: |
           # Check if there are changes to commit (files should already be staged by generate:ui:normalized)
           if git diff --staged --quiet; then
             echo "No API client changes to commit"
           else
-            git commit -m "🤖 Update API clients for v${{ needs.version.outputs.new_version }}"
+            git commit -m "🤖 Update client APIs for v${{ needs.version.outputs.new_version }}"
             git push origin ${{ inputs.target_branch }}
           fi
 
@@ -183,7 +203,7 @@ jobs:
   # Build and test
   build:
     name: Build and Test
-    needs: [version, generate-api-clients]
+    needs: [version, generate-client-apis]
     uses: ./.github/workflows/build-and-test.yml
     with:
       run_tests: true
@@ -192,7 +212,7 @@ jobs:
   # Create GitHub release
   release:
     name: Create GitHub Release
-    needs: [version, changelog, generate-api-clients, build]
+    needs: [version, changelog, generate-client-apis, build]
     uses: ./.github/workflows/create-release.yml
     with:
       release_type: ${{ inputs.release_type }}
@@ -213,6 +233,8 @@ jobs:
     needs: [version, changelog, release]
     if: ${{ success() }}
     runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     
     steps:
       - name: Checkout code
@@ -234,15 +256,16 @@ jobs:
           repository: ${{ github.repository }}
           commit-sha: ${{ github.sha }}
           actor: ${{ github.actor }}
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          release-url: ${{ needs.release.outputs.release_url }}
 
   # Discord notification on failure
   notify-failure:
     name: Discord Failure Notification
-    needs: [version, changelog, generate-api-clients, build, release]
+    needs: [version, changelog, generate-client-apis, build, release]
     if: ${{ failure() }}
     runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     
     steps:
       - name: Checkout code
@@ -264,5 +287,3 @@ jobs:
           commit-sha: ${{ github.sha }}
           actor: ${{ github.actor }}
           color: 'FF0000'
-        env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}

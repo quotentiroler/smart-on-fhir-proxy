@@ -9,7 +9,6 @@ import { logger } from '../lib/logger'
 import { fetchWithMtls, getMtlsConfig } from './fhir-servers'
 import type { SmartConfiguration } from '../types'
 
-// Extract proxy logic into a reusable function
 async function proxyFHIR({ params, request, set }: { 
   params: { server_name: string, fhir_version: string }, 
   request: Request, 

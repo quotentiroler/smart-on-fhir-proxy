@@ -15,11 +15,17 @@
       "clientAuthenticatorType": "client-dummy",
       "redirectUris": [
         "http://localhost:5173/*",
-        "http://localhost:3000/*"
+        "http://localhost:3000/*",
+        "http://localhost:8445/*",
+        "https://proxy-smart.fly.dev/*",
+        "https://proxy-smart.fly.dev/*"
       ],
       "webOrigins": [
         "http://localhost:5173",
-        "http://localhost:3000"
+        "http://localhost:3000",
+        "http://localhost:8445",
+        "https://proxy-smart.fly.dev",
+        "https://proxy-smart.fly.dev"
       ],
       "protocol": "openid-connect",
       "publicClient": true,

@@ -2,7 +2,7 @@ import localforage from "localforage";
 import { applyDecrypt, applyEncrypt } from "./utils";
 
 localforage.config({
-    name: "myteacher",
+    name: "proxy-smart",
 });
 
 export const getItem = async <T>(key: string): Promise<T | null> => {

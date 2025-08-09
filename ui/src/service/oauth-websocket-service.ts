@@ -2,6 +2,8 @@
 import type { OAuthEvent } from '@/lib/types/api';
 import { useAuthStore } from '../stores/authStore';
 import { oauthMonitoringService } from './oauth-monitoring-service';
+import { config } from '@/config';
+import { getItem } from '../lib/storage';
 
 export interface OAuthEventSimple {
   id: string;
@@ -54,8 +56,10 @@ export class OAuthWebSocketService {
   private eventsUpdateHandlers: ((event: OAuthEventSimple) => void)[] = [];
   private analyticsUpdateHandlers: ((analytics: OAuthAnalytics) => void)[] = [];
   
-  constructor(baseUrl: string = 'ws://localhost:8445') {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl?: string) {
+    // Convert HTTP/HTTPS base URL to WebSocket URL
+    const apiBaseUrl = baseUrl || config.api.baseUrl;
+    this.baseUrl = apiBaseUrl.replace(/^https?:/, apiBaseUrl.startsWith('https:') ? 'wss:' : 'ws:');
   }
 
   async connect(): Promise<void> {
@@ -209,44 +213,39 @@ export class OAuthWebSocketService {
       return Promise.resolve();
     }
     
-    return new Promise((resolve, reject) => {
-      // Ensure WebSocket is connected and client ID is received
-      if (!this.isFullyReady) {
-        reject(new Error('WebSocket not fully ready. Connection or client ID missing.'));
-        return;
-      }
+    // Ensure WebSocket is connected and client ID is received
+    if (!this.isFullyReady) {
+      throw new Error('WebSocket not fully ready. Connection or client ID missing.');
+    }
 
-      // Get token from auth store
-      const getToken = (): string | null => {
-        try {
-          // Access the auth store directly (not using the hook since this is outside React)
-          const authStore = useAuthStore.getState();
-          
-          if (authStore.isAuthenticated) {
-            // Try to get token from localStorage using the same key as auth store
-            const stored = localStorage.getItem('openid_tokens');
-            if (stored) {
-              const tokens = JSON.parse(stored);
-              if (tokens.access_token) {
-                return tokens.access_token;
-              }
-            }
+    // Get token from auth store
+    const getToken = async (): Promise<string | null> => {
+      try {
+        // Access the auth store directly (not using the hook since this is outside React)
+        const authStore = useAuthStore.getState();
+        
+        if (authStore.isAuthenticated) {
+          // Try to get token from encrypted storage using the same key as auth store
+          const tokens = await getItem<{access_token: string}>('openid_tokens');
+          if (tokens?.access_token) {
+            return tokens.access_token;
           }
-          
-          console.warn('No valid authentication token found. User may need to log in.');
-          return null;
-        } catch (error) {
-          console.error('Error reading token from auth store:', error);
-          return null;
         }
-      };
-
-      const token = getToken();
-      if (!token) {
-        reject(new Error('No authentication token found. Please log in first.'));
-        return;
+        
+        console.warn('No valid authentication token found. User may need to log in.');
+        return null;
+      } catch (error) {
+        console.error('Error reading token from auth store:', error);
+        return null;
       }
+    };
 
+    const token = await getToken();
+    if (!token) {
+      throw new Error('No authentication token found. Please log in first.');
+    }
+
+    return new Promise((resolve, reject) => {
       // Set up timeout for authentication
       const authTimeout = setTimeout(() => {
         this.removeEventHandler('auth_success', authHandler);
