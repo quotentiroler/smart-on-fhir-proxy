@@ -12,7 +12,7 @@ const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
  * Application configuration from environment variables
  */
 export const config = {
-  baseUrl: process.env.BASE_URL!,
+  baseUrl: process.env.BASE_URL || 'http://localhost:8445',
   port: process.env.PORT || 8445,
   
   // Application name and version from package.json
@@ -69,5 +69,29 @@ export const config = {
     configCacheTtl: parseInt(process.env.SMART_CONFIG_CACHE_TTL || '300000'), // 5 minutes
     scopesSupported: process.env.SMART_SCOPES_SUPPORTED?.split(',').map(s => s.trim()),
     capabilities: process.env.SMART_CAPABILITIES?.split(',').map(s => s.trim()),
+  },
+
+  cors: {
+    // Support multiple origins - can be a single URL or comma-separated list
+    // Defaults to common development origins
+    get origins() {
+      const defaultOrigins = [
+        'http://localhost:5173', // Vite dev server
+        'http://localhost:3000', // React dev server  
+        'http://localhost:8445', // App server
+        config.baseUrl, // Current app base URL
+      ];
+      
+      const envOrigins = process.env.CORS_ORIGINS?.split(',').map(s => s.trim()) || [];
+      
+      // In development mode, allow all localhost origins and the current base URL
+      if (process.env.NODE_ENV === 'development') {
+        const allOrigins = [...new Set([...defaultOrigins, ...envOrigins])];
+        return allOrigins.filter(Boolean);
+      }
+      
+      // In production, only use explicitly configured origins or the base URL
+      return envOrigins.length > 0 ? envOrigins : [config.baseUrl];
+    }
   }
 } as const

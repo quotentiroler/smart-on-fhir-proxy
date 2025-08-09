@@ -1,3 +1,4 @@
+import React from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { openidService } from '../service/openid-service';
@@ -37,13 +38,19 @@ const isTokenValid = (tokens: TokenData): boolean => {
 };
 
 const transformUserProfile = (userInfo: Record<string, unknown>): UserProfile => {
+  const safeString = (value: unknown): string => {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number') return String(value);
+    return '';
+  };
+
   return {
-    id: String(userInfo.sub || ''),
-    name: [{ text: String(userInfo.name || userInfo.preferred_username || userInfo.email || 'User') }],
-    username: String(userInfo.preferred_username || userInfo.email || ''),
-    email: String(userInfo.email || ''),
-    firstName: String(userInfo.given_name || ''),
-    lastName: String(userInfo.family_name || ''),
+    id: safeString(userInfo.sub) || '',
+    name: [{ text: safeString(userInfo.name || userInfo.preferred_username || userInfo.email) || 'User' }],
+    username: safeString(userInfo.preferred_username || userInfo.email) || '',
+    email: safeString(userInfo.email) || '',
+    firstName: safeString(userInfo.given_name) || '',
+    lastName: safeString(userInfo.family_name) || '',
     roles: Array.isArray(userInfo.roles) ? userInfo.roles.map(String) : [],
   };
 };
@@ -54,6 +61,7 @@ interface AuthState {
   error: string | null;
   isAuthenticated: boolean;
   clientApis: ReturnType<typeof createClientApis>;
+  isInitializing: boolean; // Add flag to track initialization
   
   initiateLogin: (idpHint?: string) => Promise<void>;
   exchangeCodeForToken: (code: string, codeVerifier: string) => Promise<void>;
@@ -62,6 +70,7 @@ interface AuthState {
   logout: () => Promise<void>;
   clearError: () => void;
   updateClientApis: () => Promise<void>;
+  initialize: () => Promise<void>; // Add explicit initialization method
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -72,7 +81,100 @@ export const useAuthStore = create<AuthState>()(
       loading: false,
       error: null,
       isAuthenticated: false,
+      isInitializing: true,
       clientApis: createClientApis(), // Initialize with no token
+
+      // Proper initialization method that handles all auth setup
+      initialize: async () => {
+        if (!get().isInitializing) return; // Already initialized
+        
+        set({ isInitializing: true, loading: true });
+        
+        try {
+          const tokens = await getStoredTokens();
+          
+          if (!tokens) {
+            // No tokens found
+            set({ 
+              isAuthenticated: false, 
+              profile: null,
+              isInitializing: false,
+              loading: false,
+              clientApis: createClientApis()
+            });
+            return;
+          }
+
+          if (isTokenValid(tokens)) {
+            // Valid tokens found
+            set({ 
+              isAuthenticated: true,
+              clientApis: createClientApis(tokens.access_token),
+              isInitializing: false,
+              loading: false
+            });
+            
+            // Set up auth error handler
+            setAuthErrorHandler(async () => {
+              console.log('Auth error handler triggered, logging out...');
+              await get().logout();
+            });
+            
+            // Fetch profile if needed
+            if (!get().profile) {
+              await get().fetchProfile();
+            }
+            return;
+          }
+
+          // Tokens expired, try to refresh if we have refresh token
+          if (tokens.refresh_token) {
+            console.log('🔄 Tokens expired, attempting refresh...');
+            try {
+              await get().refreshTokens();
+              set({ isInitializing: false });
+              
+              // Fetch profile after successful refresh
+              if (!get().profile) {
+                await get().fetchProfile();
+              }
+            } catch (refreshError) {
+              console.warn('❌ Token refresh failed during initialization:', refreshError);
+              // Clear invalid tokens and reset state
+              await clearTokens();
+              set({ 
+                isAuthenticated: false, 
+                profile: null,
+                isInitializing: false,
+                loading: false,
+                clientApis: createClientApis()
+              });
+            }
+          } else {
+            // No refresh token, clear everything
+            console.log('❌ No refresh token available, clearing auth state');
+            await clearTokens();
+            set({ 
+              isAuthenticated: false, 
+              profile: null,
+              isInitializing: false,
+              loading: false,
+              clientApis: createClientApis()
+            });
+          }
+        } catch (error) {
+          console.error('❌ Error during auth initialization:', error);
+          await clearTokens();
+          set({ 
+            isAuthenticated: false, 
+            profile: null,
+            isInitializing: false,
+            loading: false,
+            error: 'Initialization failed',
+            clientApis: createClientApis()
+          });
+        }
+      },
 
       // Helper function to update client APIs with current token
       updateClientApis: async () => {
@@ -185,8 +287,8 @@ export const useAuthStore = create<AuthState>()(
       refreshTokens: async () => {
         const tokens = await getStoredTokens();
         if (!tokens?.refresh_token) {
-          await get().logout();
-          return;
+          console.warn('No refresh token available');
+          throw new Error('No refresh token available');
         }
 
         set({ loading: true, error: null });
@@ -204,18 +306,16 @@ export const useAuthStore = create<AuthState>()(
           await storeTokens(tokenData);
           set({ isAuthenticated: true, loading: false });
           
-          // Update client APIs with refreshed token
+          // Update API clients with refreshed token
           await get().updateClientApis();
           
+          console.debug('✅ Tokens refreshed successfully');
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Token refresh failed';
-          set({ 
-            profile: null, 
-            isAuthenticated: false, 
-            loading: false, 
-            error: errorMessage 
-          });
-          await clearTokens();
+          console.error('❌ Token refresh failed:', error);
+          set({ loading: false });
+          // Don't automatically logout here - let the API client handle that
+          // This prevents competing logout calls
+          throw error;
         }
       },
 
@@ -260,70 +360,33 @@ export const useAuthStore = create<AuthState>()(
         profile: state.profile, 
         isAuthenticated: state.isAuthenticated 
       }),
-      // On rehydration, check if tokens still exist and are valid
-      onRehydrateStorage: () => async (state) => {
+      // On rehydration, just trigger initialization
+      onRehydrateStorage: () => (state) => {
         if (state) {
-          try {
-            const tokens = await getStoredTokens();
-            
-            if (!tokens) {
-              state.profile = null;
-              state.isAuthenticated = false;
-              state.clientApis = createClientApis(); // No token
-            } else if (!isTokenValid(tokens)) {
-              console.log('❌ Invalid tokens found');
-              
-              if (tokens.refresh_token) {
-                console.log('🔄 Attempting to refresh expired tokens');
-                // Don't clear state yet, let refreshTokens handle it
-                state.clientApis = createClientApis(tokens.access_token);
-                // Trigger refresh in background
-                setTimeout(async () => {
-                  await useAuthStore.getState().refreshTokens();
-                }, 100);
-              } else {
-                console.log('❌ No refresh token, clearing auth state');
-                state.profile = null;
-                state.isAuthenticated = false;
-                state.clientApis = createClientApis(); // No token
-                await clearTokens();
-              }
-            } else {
-              console.log('✅ Valid tokens found, setting up auth state');
-              // Update client APIs with current token
-              state.clientApis = createClientApis(tokens.access_token);
-              
-              // Auto-fetch profile if authenticated but no profile exists
-              if (state.isAuthenticated && !state.profile) {
-                console.log('👤 Fetching user profile');
-                setTimeout(async () => {
-                  await useAuthStore.getState().fetchProfile();
-                }, 100);
-              }
-            }
-            
-            // Set up auth error handler for all cases
-            setAuthErrorHandler(async () => {
-              console.log('Auth error handler triggered during rehydration, logging out...');
-              await useAuthStore.getState().logout();
-            });
-          } catch (error) {
-            console.error('Error during rehydration:', error);
-            // On error, clear auth state to be safe
-            state.profile = null;
-            state.isAuthenticated = false;
-            state.clientApis = createClientApis();
-            await clearTokens();
-          }
-        } else {
-          console.log('⚠️ No state found during rehydration');
+          // Reset initialization flag and trigger proper initialization
+          state.isInitializing = true;
+          state.clientApis = createClientApis(); // Start with no token
+          
+          // Trigger initialization after rehydration is complete
+          setTimeout(() => {
+            useAuthStore.getState().initialize();
+          }, 0);
         }
       },
     }
   )
 );
 
-// Custom hook that provides auth state without side effects
+// Custom hook that properly initializes auth state
 export const useAuth = () => {
-  return useAuthStore();
+  const store = useAuthStore();
+  
+  React.useEffect(() => {
+    // Only initialize if we haven't started initialization yet
+    if (store.isInitializing && !store.loading) {
+      store.initialize();
+    }
+  }, [store]);
+
+  return store;
 };

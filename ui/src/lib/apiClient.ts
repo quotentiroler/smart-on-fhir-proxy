@@ -67,7 +67,7 @@ export const handleApiError = async (error: unknown) => {
     }
   }
 
-  // Attempt refresh if we detected an auth error
+  // Attempt refresh if we detected an auth error and not already refreshing
   if (shouldTryRefresh && !isRefreshing) {
     console.debug('🔄 Attempting token refresh before logout...');
     isRefreshing = true;
@@ -102,17 +102,23 @@ export const handleApiError = async (error: unknown) => {
       isRefreshing = false;
     }
     
-    // If we get here, refresh failed - trigger logout
+    // If we get here, refresh failed - trigger logout immediately
+    console.warn('🚪 Authentication failed after refresh attempt, logging out');
     if (onAuthError) {
       onAuthError();
       return; // Don't throw again, auth error handler will handle logout
     }
   } else if (shouldTryRefresh && isRefreshing) {
-    console.debug('🔄 Refresh already in progress, triggering logout');
-    if (onAuthError) {
-      onAuthError();
-      return;
-    }
+    console.debug('🔄 Refresh already in progress, waiting and then triggering logout');
+    // Wait a bit for the ongoing refresh to complete, then logout if still failing
+    setTimeout(() => {
+      if (onAuthError && isRefreshing) {
+        console.warn('🚪 Refresh timeout, forcing logout');
+        isRefreshing = false;
+        onAuthError();
+      }
+    }, 3000); // 3 second timeout
+    return;
   }
 
   throw error;

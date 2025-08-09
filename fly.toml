@@ -2,7 +2,7 @@ app = "proxy-smart-alpha"
 primary_region = "fra"
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = "Dockerfile.mono"
 
 [env]
   NODE_ENV = "alpha"
@@ -11,6 +11,7 @@ primary_region = "fra"
   KEYCLOAK_BASE_URL = "https://proxy-smart-alpha-auth.fly.dev"
   KEYCLOAK_REALM = "proxy-smart"
   PORT = "8445"
+  CORS_ORIGINS = "https://proxy-smart-alpha.fly.dev"
 
 [[services]]
   internal_port = 8445
