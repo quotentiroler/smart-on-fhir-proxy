@@ -47,7 +47,9 @@ class OAuthMonitoringService {
     this.eventListeners.add(callback);
     
     if (!this.eventsEventSource) {
-      this.connectToEventsStream();
+      this.connectToEventsStream().catch(error => {
+        console.error('Failed to connect to events stream:', error);
+      });
     }
 
     return () => {
@@ -65,7 +67,9 @@ class OAuthMonitoringService {
     this.analyticsListeners.add(callback);
     
     if (!this.analyticsEventSource) {
-      this.connectToAnalyticsStream();
+      this.connectToAnalyticsStream().catch(error => {
+        console.error('Failed to connect to analytics stream:', error);
+      });
     }
 
     return () => {
@@ -86,7 +90,7 @@ class OAuthMonitoringService {
     clientId?: string;
     since?: string;
   }): Promise<OAuthEventsListResponse> {
-    const token = getStoredToken();
+    const token = await getStoredToken();
     if (!token) {
       throw new Error('No authentication token available');
     }
@@ -111,7 +115,7 @@ class OAuthMonitoringService {
    * Get current OAuth analytics
    */
   async getAnalytics(): Promise<OAuthAnalytics> {
-    const token = getStoredToken();
+    const token = await getStoredToken();
     if (!token) {
       throw new Error('No authentication token available');
     }
@@ -130,7 +134,7 @@ class OAuthMonitoringService {
    * Get system health metrics
    */
   async getSystemHealth(): Promise<SystemHealth> {
-    const token = getStoredToken();
+    const token = await getStoredToken();
     if (!token) {
       throw new Error('No authentication token available');
     }
@@ -150,13 +154,13 @@ class OAuthMonitoringService {
   /**
    * Connect to OAuth events SSE stream
    */
-  private connectToEventsStream(): void {
+  private async connectToEventsStream(): Promise<void> {
     // Don't create a new connection if one already exists
     if (this.eventsEventSource && this.eventsEventSource.readyState !== EventSource.CLOSED) {
       return;
     }
 
-    const token = getStoredToken();
+    const token = await getStoredToken();
     if (!token) {
       console.error('No token available for OAuth events stream');
       return;
@@ -216,13 +220,13 @@ class OAuthMonitoringService {
   /**
    * Connect to OAuth analytics SSE stream
    */
-  private connectToAnalyticsStream(): void {
+  private async connectToAnalyticsStream(): Promise<void> {
     // Don't create a new connection if one already exists
     if (this.analyticsEventSource && this.analyticsEventSource.readyState !== EventSource.CLOSED) {
       return;
     }
 
-    const token = getStoredToken();
+    const token = await getStoredToken();
     if (!token) {
       console.error('No token available for OAuth analytics stream');
       return;

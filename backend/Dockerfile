@@ -17,6 +17,7 @@ RUN bun install
 # Copy source code
 COPY src/ ./src/
 COPY tsconfig.json ./
+COPY public ./public
 
 # Build the application
 RUN bun run build
@@ -26,6 +27,7 @@ FROM base AS production
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./
+COPY --from=build /app/public ./public
 
 # Expose the port
 EXPOSE 8445

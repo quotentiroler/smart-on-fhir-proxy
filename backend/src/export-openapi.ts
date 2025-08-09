@@ -3,7 +3,7 @@ import { swagger } from '@elysiajs/swagger'
 import { cors } from '@elysiajs/cors'
 import { keycloakPlugin } from './lib/keycloak-plugin'
 import { fhirRoutes } from './routes/fhir'
-import { serverRoutes } from './routes/info'
+import { statusRoutes } from './routes/status'
 import { serverDiscoveryRoutes } from './routes/fhir-servers'
 import { oauthMonitoringRoutes } from './routes/oauth-monitoring'
 import { oauthWebSocket } from './routes/oauth-websocket'
@@ -100,7 +100,7 @@ const app = new Elysia({
     }
   }))
   .use(keycloakPlugin)
-  .use(serverRoutes)
+  .use(statusRoutes)
   .use(serverDiscoveryRoutes)
   .use(authRoutes)
   .use(adminRoutes)

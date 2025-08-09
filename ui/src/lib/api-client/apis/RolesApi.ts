@@ -17,8 +17,8 @@ import * as runtime from '../runtime';
 import type {
   DeleteAdminRolesByRoleName200Response,
   GetAdminRoles200ResponseInner,
+  GetFhirServers500Response,
   PostAdminRolesRequest,
-  PostShutdown500Response,
   PutAdminRolesByRoleName200Response,
   PutAdminRolesByRoleNameRequest,
 } from '../models/index';
@@ -27,10 +27,10 @@ import {
     DeleteAdminRolesByRoleName200ResponseToJSON,
     GetAdminRoles200ResponseInnerFromJSON,
     GetAdminRoles200ResponseInnerToJSON,
+    GetFhirServers500ResponseFromJSON,
+    GetFhirServers500ResponseToJSON,
     PostAdminRolesRequestFromJSON,
     PostAdminRolesRequestToJSON,
-    PostShutdown500ResponseFromJSON,
-    PostShutdown500ResponseToJSON,
     PutAdminRolesByRoleName200ResponseFromJSON,
     PutAdminRolesByRoleName200ResponseToJSON,
     PutAdminRolesByRoleNameRequestFromJSON,

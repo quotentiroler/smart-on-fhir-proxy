@@ -20,49 +20,49 @@ import { mapValues } from '../runtime';
  */
 export interface GetStatus200ResponseFhirServersInner {
     /**
-     * Server name
+     * 
      * @type {string}
      * @memberof GetStatus200ResponseFhirServersInner
      */
     name: string;
     /**
-     * Server URL
+     * 
      * @type {string}
      * @memberof GetStatus200ResponseFhirServersInner
      */
     url: string;
     /**
-     * Server status
+     * 
      * @type {string}
      * @memberof GetStatus200ResponseFhirServersInner
      */
     status: string;
     /**
-     * Whether server is accessible
+     * 
      * @type {boolean}
      * @memberof GetStatus200ResponseFhirServersInner
      */
     accessible: boolean;
     /**
-     * FHIR version
+     * 
      * @type {string}
      * @memberof GetStatus200ResponseFhirServersInner
      */
     version: string;
     /**
-     * FHIR server software name
+     * 
      * @type {string}
      * @memberof GetStatus200ResponseFhirServersInner
      */
     serverName?: string;
     /**
-     * FHIR server software version
+     * 
      * @type {string}
      * @memberof GetStatus200ResponseFhirServersInner
      */
     serverVersion?: string;
     /**
-     * Error message if unhealthy
+     * 
      * @type {string}
      * @memberof GetStatus200ResponseFhirServersInner
      */

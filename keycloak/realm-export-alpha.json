@@ -5,6 +5,11 @@
   "displayNameHtml": "<div class=\"kc-logo-text\"><span>SMART on FHIR</span></div>",
   "accessTokenLifespan": 3600,
   "accessTokenLifespanForImplicitFlow": 900,
+  "accessCodeLifespan": 300,
+  "accessCodeLifespanLogin": 1800,
+  "accessCodeLifespanUserAction": 300,
+  "actionTokenGeneratedByAdminLifespan": 43200,
+  "actionTokenGeneratedByUserLifespan": 300,
   "ssoSessionIdleTimeout": 1800,
   "ssoSessionMaxLifespan": 36000,
   "clients": [
