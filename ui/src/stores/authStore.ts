@@ -211,7 +211,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       exchangeCodeForToken: async (code: string, codeVerifier: string) => {
-        console.log('Starting token exchange with code:', code.substring(0, 10) + '...');
+        console.log('🔄 Starting token exchange with code:', code.substring(0, 10) + '...');
+        console.log('🔑 Using code verifier:', codeVerifier.substring(0, 10) + '...');
+        console.log('📍 Current URL:', window.location.href);
+        console.log('🔗 Stored code verifier:', sessionStorage.getItem('pkce_code_verifier')?.substring(0, 10) + '...');
+        
         set({ loading: true, error: null });
 
         try {
@@ -237,8 +241,12 @@ export const useAuthStore = create<AuthState>()(
           sessionStorage.removeItem('pkce_code_verifier');
           sessionStorage.removeItem('oauth_state');
           
+          console.log('✅ Token exchange successful!');
+          
         } catch (error) {
-          console.error('Token exchange failed:', error);
+          console.error('❌ Token exchange failed:', error);
+          console.log('🔍 Failed with code:', code.substring(0, 10) + '...');
+          console.log('🔍 Failed with verifier:', codeVerifier.substring(0, 10) + '...');
           const errorMessage = error instanceof Error ? error.message : 'Token exchange failed';
           set({ 
             profile: null, 
