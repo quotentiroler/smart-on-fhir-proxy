@@ -499,13 +499,13 @@
       }
     });
     
-    // Load available FHIR servers from /health endpoint
+    // Load available FHIR servers from /status endpoint
     async function loadAvailableServers() {
       try {
         serverStatus.textContent = 'Loading servers...';
         fhirServerSelect.innerHTML = '<option value="">Loading available servers...</option>';
         
-        const response = await fetch('/health');
+        const response = await fetch('/status');
         const healthData = await response.json();
         
         availableServers = healthData.fhirServers?.servers || [];
