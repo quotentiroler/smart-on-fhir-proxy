@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';
-import { createClientApis } from '../lib/apiClient';
 import { openidService } from '../service/openid-service';
 import type { GetAuthIdentityProviders200ResponseInner } from '../lib/api-client/models';
 import { KeycloakConfigForm } from './KeycloakConfigForm';
@@ -26,13 +25,12 @@ export function LoginForm() {
   const [loadingIdps, setLoadingIdps] = useState(true);
   const [authAvailable, setAuthAvailable] = useState<boolean | null>(null);
   const [showConfigForm, setShowConfigForm] = useState(false);
-  const { initiateLogin, exchangeCodeForToken } = useAuthStore();
+  const { initiateLogin, exchangeCodeForToken, clientApis } = useAuthStore();
 
   // Fetch available identity providers
   const fetchAvailableIdps = useCallback(async () => {
     try {
       setLoadingIdps(true);
-      const clientApis = createClientApis(); // No token needed for public IdP list
       const idps = await clientApis.auth.getAuthIdentityProviders();
       
       // Filter to only show enabled identity providers
@@ -49,7 +47,7 @@ export function LoginForm() {
     } finally {
       setLoadingIdps(false);
     }
-  }, []);
+  }, [clientApis.auth]);
 
   // Check if authentication is configured
   const checkAuthAvailability = useCallback(async () => {
@@ -160,7 +158,10 @@ export function LoginForm() {
     setError(null);
     
     try {
-      console.log(`Initiating login${idpAlias ? ` with Identity Provider: ${idpAlias}` : ' with default provider'}`);
+      const loginMessage = idpAlias 
+        ? `Initiating login with Identity Provider: ${idpAlias}`
+        : 'Initiating login with default provider';
+      console.log(loginMessage);
       
       // Pass the IdP alias as a hint to the authentication service
       await initiateLogin(idpAlias);
@@ -236,13 +237,15 @@ export function LoginForm() {
               )}
 
               {/* Loading state for IdPs */}
-              {loadingIdps || authAvailable === null ? (
+              {(loadingIdps || authAvailable === null) && (
                 <div className="text-center py-4">
                   <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-gray-400" />
                   <p className="text-sm text-gray-500">Loading authentication options...</p>
                 </div>
-              ) : authAvailable === false ? (
-                /* Authentication not configured */
+              )}
+
+              {/* Authentication not configured */}
+              {authAvailable === false && (
                 <div className="text-center py-8">
                   <div className="w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full flex items-center justify-center">
                     <AlertTriangle className="w-8 h-8 text-yellow-600" />
@@ -269,7 +272,10 @@ export function LoginForm() {
                     </p>
                   </div>
                 </div>
-              ) : (
+              )}
+
+              {/* Authentication available - show login options */}
+              {authAvailable === true && (
                 <>
                   {/* Available Identity Providers */}
                   {availableIdps.length > 0 && (

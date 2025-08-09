@@ -14,7 +14,6 @@ import { logger } from './lib/logger'
 import { initializeServer, displayServerEndpoints } from './init'
 import { oauthMetricsLogger } from './lib/oauth-metrics-logger'
 import staticPlugin from '@elysiajs/static'
-import { join } from 'path'
 
 const app = new Elysia({
   name: config.name,
@@ -28,7 +27,7 @@ const app = new Elysia({
   sanitize: (value) => Bun.escapeHTML(value)
 })
   .use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    origin: config.cors.origins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
@@ -75,12 +74,6 @@ const app = new Elysia({
     }
   }))
   .use(staticPlugin({ assets: 'public', prefix: '/' })) // Serve static files from public directory
-  // Explicitly serve the index.html at root because for some reason its not there when UI is served at /webapp/
-  .get('/', async () => {
-    // Resolve path relative to compiled dist directory (routes becomes dist/routes)
-    const filePath = join(import.meta.dir, '..', 'public', 'index.html')
-    return Bun.file(filePath)
-  })
   .use(keycloakPlugin)
   .use(statusRoutes)// Server status and info endpoints, smart launcher, restart and shutdown too (will be moved to admin)
   .use(serverDiscoveryRoutes)// Server discovery endpoints

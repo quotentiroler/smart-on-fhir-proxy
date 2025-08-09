@@ -62,8 +62,9 @@ docker-compose*.yml
 keycloak/
 !keycloak/realm-export*.json
 
-# Scripts
+# Scripts (exclude most but allow build scripts needed for mono mode)
 scripts/
+!scripts/copy-ui-dist.js
 
 # Agent (if not needed in production)
 agent/

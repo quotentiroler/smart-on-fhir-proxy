@@ -1,8 +1,6 @@
 # Proxy Smart
 
-A comprehensive healthcare application platform implementing SMART App Launch Framework 2.2.0 with advanced administrative capabilities, AI-powered assistance, and enterprise-grade security.
-
-**Proxy smart, not hard!** 🚀
+**Secure any FHIR server in minutes!** A comprehensive healthcare platform that transforms unsecured FHIR servers into SMART-compliant, OAuth 2.0 protected endpoints with enterprise-grade security, user management, and AI-powered administration.
 
 [![Version](https://img.shields.io/badge/v0.0.1-alpha-blue.svg)](https://github.com/quotentiroler/proxy-smart)
 [![SMART App Launch](https://img.shields.io/badge/SMART%20App%20Launch-2.2.0-green.svg)](http://hl7.org/fhir/smart-app-launch/)
@@ -12,7 +10,16 @@ A comprehensive healthcare application platform implementing SMART App Launch Fr
 
 ## 🏥 Overview
 
-Proxy Smart is an Open Source **stateless proxy solution** for managing healthcare applications, users, and FHIR servers in compliance with the SMART App Launch framework. As a lightweight intermediary layer, it provides secure OAuth 2.0 flows, comprehensive user management, real-time monitoring, and an AI-powered administrative assistant without storing or caching FHIR data.
+Proxy Smart is an Open Source **stateless proxy solution** that makes it **incredibly easy to secure any FHIR server** with enterprise-grade OAuth 2.0 authentication and SMART App Launch compliance. 
+
+### 🚀 **Secure Any FHIR Server in Minutes**
+
+**All you need is:**
+- ✅ **Any FHIR server** (HAPI FHIR, Microsoft FHIR, AWS HealthLake, etc.)
+- ✅ **A running Keycloak instance** (included in our Docker setup)
+- ✅ **Proxy Smart** (this application)
+
+**That's it!** No vendor lock-in, no data migration required.
 
 ### 🔄 Stateless Proxy Architecture
 
@@ -198,7 +205,7 @@ graph TB
 
    ```bash
    # Start all services with Docker
-   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+   bun docker:dev
 
    # Install dependencies
    bun install
@@ -313,6 +320,95 @@ bun run version:sync            # Sync all package.json versions
 bun run version:bump patch      # Bump patch version
 ```
 
+### Docker Commands
+
+Proxy Smart provides multiple Docker deployment strategies for different use cases:
+
+```bash
+# Hot-Reload Environment: (Single Container Mode, No UI Hot-Reload)
+docker compose up
+bun run dev:mono
+
+# Hot-Reload Environment: (Separated Services)
+docker compose up
+bun run dev
+
+# Development Environment (Single Container Mode)
+bun run docker:dev              # Start dev containers with mono app
+bun run docker:dev:build        # Build and start dev containers
+bun run docker:dev:down         # Stop dev containers
+bun run docker:dev:logs         # View dev container logs
+
+# Production Environment (Separated Services)
+bun run docker:prod             # Start production containers
+bun run docker:prod:build       # Build and start production containers
+bun run docker:prod:down        # Stop production containers
+bun run docker:prod:logs        # View production container logs
+
+# Individual Container Builds
+bun run docker:backend          # Build backend container only
+bun run docker:ui               # Build UI container only
+bun run docker:mono             # Build monolithic container
+
+# Base Docker Commands
+bun run docker:up               # Start default containers
+bun run docker:down             # Stop default containers
+bun run docker:logs             # View default container logs
+```
+
+### Docker Deployment Modes
+
+#### 1. Development Mode (`docker:dev`)
+- **File**: `docker-compose.development.yml`
+- **Architecture**: Monolithic container (UI + Backend in one)
+- **Use Case**: Local development and testing
+- **Services**:
+  - `app`: Mono container (Backend + UI at `/webapp/`)
+  - `keycloak`: Identity provider
+  - `postgres`: Database
+- **URLs**:
+  - Application: http://localhost:8445
+  - UI: http://localhost:8445/webapp/
+  - Keycloak: http://localhost:8080
+
+#### 2. Production Mode (`docker:prod`)
+- **File**: `docker-compose.prod.yml`
+- **Architecture**: Microservices (separate containers)
+- **Use Case**: Production deployment and staging
+- **Services**:
+  - `backend`: API server only
+  - `frontend`: Nginx serving React SPA
+  - `keycloak`: Identity provider
+  - `postgres`: Database
+- **URLs**:
+  - Backend API: http://localhost:8445
+  - Frontend UI: http://localhost:3000
+  - Keycloak: http://localhost:8080
+
+#### 3. Default Mode (`docker:up`)
+- **File**: `docker-compose.yml`
+- **Architecture**: Basic development setup
+- **Use Case**: Simple local testing
+- **Services**: Core services without application
+
+### Quick Start Examples
+
+```bash
+# 🚀 Fastest setup - Development mode
+bun run docker:dev:build
+# ➜ Visit http://localhost:8445/webapp/
+
+# 🏭 Production-like setup - Separated services
+bun run docker:prod:build
+# ➜ Frontend: http://localhost:3000
+# ➜ Backend: http://localhost:8445
+
+# 🔧 Build individual components
+bun run docker:backend          # Just the API
+bun run docker:ui               # Just the frontend
+bun run docker:mono             # All-in-one container
+```
+
 ### Branching Strategy
 
 - **`main`**: Production releases (auto-tagged)
@@ -332,8 +428,6 @@ Each branch automatically triggers appropriate CI/CD workflows with version mana
 - Administrative API with generated clients
 - Docker containerization and development environment
 - Comprehensive documentation structure
-- AI assistant integration framework
-- GitHub Release and Versioning Pipeline
 
 ### 🚧 In Progress (v0.0.2-v0.0.8)
 
@@ -380,29 +474,6 @@ Each branch automatically triggers appropriate CI/CD workflows with version mana
 - Backend services authentication
 - Agent-based authorization patterns
 
-## 🧪 Testing
-
-The platform includes comprehensive testing across all layers:
-
-### Test Categories
-
-- **Unit Tests**: Core logic and utilities
-- **Integration Tests**: API endpoints and flows
-- **SMART Flow Tests**: Complete authorization workflows
-- **Security Tests**: OAuth vulnerabilities and compliance
-- **End-to-End Tests**: Full user journey validation
-
-### Running Tests
-
-```bash
-# All tests
-bun run test
-
-# Specific test suites
-bun run test:smart-flows        # SMART App Launch workflows
-bun run test:backend-services   # Backend API integration
-bun run test:oauth-security     # Security validation
-```
 
 ## 📈 Monitoring & Analytics
 
@@ -428,7 +499,6 @@ We welcome contributions! Please see our contributing guidelines and:
 1. Fork the repository
 2. Create a feature branch (`dev/feature-name`)
 3. Make your changes with tests
-4. Submit a pull request to `develop`
 
 ### Development Guidelines
 

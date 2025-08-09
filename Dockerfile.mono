@@ -1,0 +1,54 @@
+# Multi-stage build for Proxy Smart monorepo - Mono Mode
+FROM oven/bun:slim AS base
+WORKDIR /app
+
+# Build stage
+FROM base AS build
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+    build-essential \
+    pkg-config \
+    python-is-python3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy all files needed for build
+COPY package.json bun.lock ./
+COPY backend/ ./backend/
+COPY ui/ ./ui/
+COPY scripts/ ./scripts/
+
+# Install dependencies for all workspaces
+RUN bun install --frozen-lockfile
+
+# Use the mono build script which handles:
+# - Building UI with correct VITE_BASE=/webapp/
+# - Copying UI dist to backend/public/webapp/
+# - Building backend
+RUN bun run build:mono
+
+# Production stage - backend API server with static frontend
+FROM base AS production
+WORKDIR /app
+
+# Install minimal runtime dependencies
+RUN apt-get update -qq && \
+    apt-get install --no-install-recommends -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy built backend
+COPY --from=build /app/backend/dist ./backend/dist
+COPY --from=build /app/backend/package.json ./backend/package.json
+
+# Copy backend's public directory (contains the copied UI)
+COPY --from=build /app/backend/public ./backend/public
+
+# Copy root node_modules (monorepo structure)
+COPY --from=build /app/node_modules ./node_modules
+
+# Expose backend port
+EXPOSE 8445
+
+# Start the backend (which serves the UI static files from /public)
+WORKDIR /app/backend
+CMD ["bun", "run", "dist/index.js"]
