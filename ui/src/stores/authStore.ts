@@ -91,7 +91,7 @@ export const useAuthStore = create<AuthState>()(
       error: null,
       isAuthenticated: false,
       isInitializing: true,
-      clientApis: createClientApis(), // Initialize with no token
+      clientApis: {} as ReturnType<typeof createClientApis>, // Will be properly initialized in initialize()
 
       // Proper initialization method that handles all auth setup
       initialize: async () => {

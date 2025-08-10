@@ -161,9 +161,10 @@ runs:
         -e "INFERNO_HOST=0.0.0.0" \
         -e "INFERNO_PORT=4567" \
         -e "BASE_URL=http://localhost:4567" \
-        -e "EXTERNAL_VALIDATOR_URL=" \
-        -e "VALIDATOR_BASE_PATH=" \
-        -e "DATABASE_URL=sqlite:///opt/app/data/inferno.db" \
+        -e "DATABASE_URL=sqlite:////opt/app/data/inferno.db" \
+        -e "DISABLE_TLS_TESTS=true" \
+        -e "FHIR_REFERENCE_SERVER=false" \
+        -e "RAILS_ENV=production" \
         onc-inferno:${{ inputs.test_stage }})
 
       echo "container_id=$CONTAINER_ID" >> $GITHUB_OUTPUT
