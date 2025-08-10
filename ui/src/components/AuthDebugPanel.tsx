@@ -63,6 +63,21 @@ export const AuthDebugPanel: React.FC = () => {
     updateStorageInfo();
   }, []);
 
+  const handleClearSessionOnly = async () => {
+    try {
+      // Clear only session storage data (PKCE and OAuth state)
+      removeSessionItem('pkce_code_verifier');
+      removeSessionItem('oauth_state');
+      
+      // Update storage info
+      await updateStorageInfo();
+      
+      console.log('✅ Session data cleared successfully');
+    } catch (error) {
+      console.error('Failed to clear session data:', error);
+    }
+  };
+
   const handleClearCaches = async () => {
     try {
       // Clear encrypted storage (new system)
@@ -188,6 +203,15 @@ export const AuthDebugPanel: React.FC = () => {
             <Button
               variant="outline"
               size="sm"
+              onClick={handleClearSessionOnly}
+              className="w-full flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Clear Session Data
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleClearCaches}
               className="w-full flex items-center gap-2"
             >
@@ -205,7 +229,7 @@ export const AuthDebugPanel: React.FC = () => {
             </Button>
           </div>
           <p className="text-xs text-gray-500">
-            Use "Clear All Caches" if you see "Code not valid" or expired code errors. Use "Force Logout" for persistent login issues.
+            Use "Clear Session Data" for PKCE/OAuth state issues. Use "Clear All Caches" for "Code not valid" errors. Use "Force Logout" for persistent login issues.
           </p>
         </div>
       </CardContent>

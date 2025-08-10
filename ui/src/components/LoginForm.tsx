@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { openidService } from '../service/openid-service';
-import { getSessionItem } from '@/lib/storage';
+import { getSessionItem, removeSessionItem } from '@/lib/storage';
 import type { GetAuthIdentityProviders200ResponseInner } from '../lib/api-client/models';
 import { KeycloakConfigForm } from './KeycloakConfigForm';
 import { AuthDebugPanel } from './AuthDebugPanel';
@@ -106,16 +106,24 @@ export function LoginForm() {
       const storedState = getSessionItem('oauth_state');
 
       if (!codeVerifier) {
-        throw new Error('Missing PKCE code verifier');
+        // Clean up stale session data
+        removeSessionItem('oauth_state');
+        throw new Error('Missing PKCE code verifier - please try logging in again');
       }
 
       // Verify state for CSRF protection
       if (state !== storedState) {
-        throw new Error('Invalid state parameter - possible CSRF attack');
+        // Clean up stale session data
+        removeSessionItem('pkce_code_verifier');
+        removeSessionItem('oauth_state');
+        throw new Error('Invalid state parameter - please try logging in again');
       }
 
       await exchangeCodeForToken(code, codeVerifier);
     } catch (err) {
+      // Ensure session data is cleaned up on any error
+      removeSessionItem('pkce_code_verifier');
+      removeSessionItem('oauth_state');
       setError(err instanceof Error ? err.message : 'Authentication failed');
     } finally {
       setLoading(false);
@@ -137,7 +145,7 @@ export function LoginForm() {
     
     if (error) {
       console.error('OAuth error:', error, errorDescription);
-      setError(errorDescription || error);
+      setError(`Authentication failed: ${errorDescription || error}. Please try again or use the troubleshooting panel below.`);
       // Clear the URL parameters
       window.history.replaceState({}, document.title, window.location.pathname);
       return;

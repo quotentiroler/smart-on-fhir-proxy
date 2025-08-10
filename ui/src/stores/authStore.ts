@@ -200,6 +200,10 @@ export const useAuthStore = create<AuthState>()(
         set({ loading: true, error: null });
         
         try {
+          // Clean up any existing session data before starting new login
+          removeSessionItem('pkce_code_verifier');
+          removeSessionItem('oauth_state');
+          
           const { url, codeVerifier, state } = await openidService.getAuthorizationUrl(idpHint);
           
           // Store PKCE parameters for callback
@@ -214,6 +218,9 @@ export const useAuthStore = create<AuthState>()(
           window.location.href = url;
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Failed to initiate login';
+          // Clean up on error
+          removeSessionItem('pkce_code_verifier');
+          removeSessionItem('oauth_state');
           set({ loading: false, error: errorMessage });
         }
       },
@@ -255,6 +262,11 @@ export const useAuthStore = create<AuthState>()(
           console.error('❌ Token exchange failed:', error);
           console.log('🔍 Failed with code:', code.substring(0, 10) + '...');
           console.log('🔍 Failed with verifier:', codeVerifier.substring(0, 10) + '...');
+          
+          // IMPORTANT: Clean up session data even on error to prevent contamination
+          removeSessionItem('pkce_code_verifier');
+          removeSessionItem('oauth_state');
+          
           const errorMessage = error instanceof Error ? error.message : 'Token exchange failed';
           set({ 
             profile: null, 
