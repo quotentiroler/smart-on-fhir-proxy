@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
 import { useAuthStore } from '../stores/authStore';
-import { getItem, removeItem, getSessionItem, removeSessionItem } from '../lib/storage';
+import { getItem, removeItem, getSessionItem, removeSessionItem, clearAuthorizationCodeData } from '../lib/storage';
 import { AlertCircle, RefreshCw, Trash2 } from 'lucide-react';
 
 interface TokenData {
@@ -69,10 +69,13 @@ export const AuthDebugPanel: React.FC = () => {
       removeSessionItem('pkce_code_verifier');
       removeSessionItem('oauth_state');
       
+      // Clear any authorization code data
+      clearAuthorizationCodeData();
+      
       // Update storage info
       await updateStorageInfo();
       
-      console.log('✅ Session data cleared successfully');
+      console.log('✅ Session data and authorization codes cleared successfully');
     } catch (error) {
       console.error('Failed to clear session data:', error);
     }

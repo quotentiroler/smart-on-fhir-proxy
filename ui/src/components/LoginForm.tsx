@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { openidService } from '../service/openid-service';
 import { getSessionItem, removeSessionItem } from '@/lib/storage';
@@ -31,6 +31,8 @@ export function LoginForm() {
   const [authAvailable, setAuthAvailable] = useState<boolean | null>(null);
   const [showConfigForm, setShowConfigForm] = useState(false);
   const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const isProcessingCodeExchange = useRef(false);
+  const processedUrl = useRef<string | null>(null);
   const { initiateLogin, exchangeCodeForToken, clientApis } = useAuthStore();
 
   // Fetch available identity providers
@@ -97,6 +99,13 @@ export function LoginForm() {
   }, [checkAuthAvailability]);
 
   const handleCodeExchange = useCallback(async (code: string, state: string) => {
+    // Prevent multiple simultaneous token exchange attempts
+    if (isProcessingCodeExchange.current) {
+      console.log('🔒 Code exchange already in progress, skipping...');
+      return;
+    }
+
+    isProcessingCodeExchange.current = true;
     setLoading(true);
     setError(null);
 
@@ -127,13 +136,22 @@ export function LoginForm() {
       setError(err instanceof Error ? err.message : 'Authentication failed');
     } finally {
       setLoading(false);
+      isProcessingCodeExchange.current = false;
     }
   }, [exchangeCodeForToken]);
 
   // Handle OAuth callback on component mount
   useEffect(() => {
+    const currentUrl = window.location.href;
+    
+    // Prevent processing the same URL multiple times
+    if (processedUrl.current === currentUrl) {
+      console.log('🔒 URL already processed, skipping:', currentUrl);
+      return;
+    }
+
     console.log('LoginForm mounted, checking for OAuth callback...');
-    console.log('Current URL:', window.location.href);
+    console.log('Current URL:', currentUrl);
     
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
@@ -141,20 +159,23 @@ export function LoginForm() {
     const error = urlParams.get('error');
     const errorDescription = urlParams.get('error_description');
     
-    console.log('URL params:', { code, state, error, errorDescription });
+    console.log('URL params:', { code: code ? `${code.substring(0, 10)}...` : null, state, error, errorDescription });
+    
+    // Clear URL parameters immediately after extraction to prevent reuse
+    if (code || error) {
+      console.log('🧹 Clearing URL parameters to prevent code reuse...');
+      window.history.replaceState({}, document.title, window.location.pathname);
+      processedUrl.current = currentUrl;
+    }
     
     if (error) {
       console.error('OAuth error:', error, errorDescription);
       setError(`Authentication failed: ${errorDescription || error}. Please try again or use the troubleshooting panel below.`);
-      // Clear the URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
       return;
     }
 
     if (code && state) {
       console.log('Authorization code received, exchanging for tokens...');
-      // Clear the URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
       
       // Exchange code for token
       handleCodeExchange(code, state);

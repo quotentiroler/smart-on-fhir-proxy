@@ -5,6 +5,11 @@
   "displayNameHtml": "<div class=\"kc-logo-text\"><span>SMART on FHIR</span></div>",
   "accessTokenLifespan": 3600,
   "accessTokenLifespanForImplicitFlow": 900,
+  "accessCodeLifespan": 300,
+  "accessCodeLifespanLogin": 1800,
+  "accessCodeLifespanUserAction": 300,
+  "actionTokenGeneratedByAdminLifespan": 43200,
+  "actionTokenGeneratedByUserLifespan": 300,
   "ssoSessionIdleTimeout": 1800,
   "ssoSessionMaxLifespan": 36000,
   "clients": [
@@ -50,7 +55,13 @@
         "microprofile-jwt"
       ],
       "attributes": {
-        "pkce.code.challenge.method": "S256"
+        "pkce.code.challenge.method": "S256",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "use.refresh.tokens": "true",
+        "exclude.session.state.from.auth.response": "false"
       }
     },
     {
