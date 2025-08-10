@@ -91,18 +91,51 @@ export const clearAllAuthData = async (): Promise<void> => {
         console.warn('Failed to clear encrypted tokens:', error);
     }
 
-    // Clear session storage
+    // Clear session storage - OAuth and PKCE data
     removeSessionItem('pkce_code_verifier');
     removeSessionItem('oauth_state');
+    removeSessionItem('authorization_code'); // Clear any leftover auth codes
+    removeSessionItem('oauth_code_verifier'); // Alternative naming
+    removeSessionItem('oauth_callback_processed'); // Clear processed flags
 
     // Clear any cached OAuth state in localStorage
     try {
         Object.keys(localStorage).forEach(key => {
-            if (key.includes('oauth') || key.includes('pkce') || key.includes('auth')) {
+            if (key.includes('oauth') || key.includes('pkce') || key.includes('auth') || key.includes('code')) {
                 localStorage.removeItem(key);
             }
         });
     } catch (error) {
         console.warn('Failed to clear localStorage oauth data:', error);
+    }
+
+    // Clear any cached OAuth state in sessionStorage  
+    try {
+        Object.keys(sessionStorage).forEach(key => {
+            if (key.includes('oauth') || key.includes('pkce') || key.includes('auth') || key.includes('code')) {
+                sessionStorage.removeItem(key);
+            }
+        });
+    } catch (error) {
+        console.warn('Failed to clear sessionStorage oauth data:', error);
+    }
+};
+
+// Utility to immediately clear authorization code data after use
+export const clearAuthorizationCodeData = (): void => {
+    console.log('🧹 Clearing authorization code data...');
+    
+    // Clear any potential authorization code storage
+    removeSessionItem('authorization_code');
+    removeSessionItem('oauth_code');
+    removeSessionItem('auth_code');
+    
+    // Clear URL-based storage if any component stored it
+    try {
+        if (window.history && window.location.search.includes('code=')) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    } catch (error) {
+        console.warn('Failed to clear URL parameters:', error);
     }
 };

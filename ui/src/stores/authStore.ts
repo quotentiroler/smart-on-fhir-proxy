@@ -10,7 +10,8 @@ import {
   getSessionItem, 
   setSessionItem, 
   removeSessionItem,
-  clearAllAuthData 
+  clearAllAuthData,
+  clearAuthorizationCodeData
 } from '../lib/storage';
 import type { UserProfile } from '@/lib/types/api';
 
@@ -245,6 +246,9 @@ export const useAuthStore = create<AuthState>()(
           
           await storeTokens(tokenData);
           set({ isAuthenticated: true });
+          
+          // Immediately clear authorization code data to prevent reuse
+          clearAuthorizationCodeData();
           
           // Update client APIs with new token
           await get().updateClientApis();
