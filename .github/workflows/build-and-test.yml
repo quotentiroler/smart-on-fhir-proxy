@@ -184,7 +184,6 @@ jobs:
             else
               echo "⚠️ Invalid or empty fixes JSON - no fallback available"
             fi
-            fi
 
             # Only commit & push if patch was applied successfully AND there are actual code changes
             if [ "$PATCH_SUCCESS" = "true" ]; then
