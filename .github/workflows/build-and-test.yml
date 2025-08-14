@@ -81,118 +81,109 @@ jobs:
               LOG_FILE="retry-build-$((RETRY_COUNT - 1)).log"
             fi
             
-            # Ask GPT-4o for a unified diff patch via API
-            echo "📝 Analyzing build errors with AI..."
-            BUILD_ERRORS=$(sed -n '1,2000p' "$LOG_FILE" | sed 's/"/\\"/g' | tr '\n' ' ')
+            # Ask GPT-4o for structured code fixes via API
+            echo "📝 Analyzing build errors with AI (Structured Outputs)..."
+            BUILD_ERRORS=$(sed -n '1,2000p' "$LOG_FILE" | sed 's/"/\\"/g' | tr '\n' '\\n')
             
             curl -s -X POST "https://api.openai.com/v1/chat/completions" \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer $OPENAI_API_KEY" \
               -d "{
-                \"model\": \"gpt-4o\",
+                \"model\": \"gpt-4o-2024-08-06\",
                 \"messages\": [
                   {
                     \"role\": \"system\",
-                    \"content\": \"You are a code fixing assistant. Create ONLY a valid unified diff patch. Format must be exactly:\\n--- a/path/to/file\\n+++ b/path/to/file\\n@@ -start,count +start,count @@\\n-removed line\\n+added line\\nUse correct paths like 'ui/src/' or 'backend/src/'. NO markdown, NO explanations, NO code blocks.\"
+                    \"content\": \"You are a code fixing assistant. Analyze build errors and provide structured fixes.\"
                   },
                   {
                     \"role\": \"user\",
-                    \"content\": \"Fix build errors:\\n\\n$BUILD_ERRORS\"
+                    \"content\": \"Fix these build errors:\\n\\n$BUILD_ERRORS\"
                   }
                 ],
                 \"temperature\": 0.1,
-                \"max_tokens\": 2000
-              }" | jq -r '.choices[0].message.content' > fix-$RETRY_COUNT.patch
+                \"response_format\": {
+                  \"type\": \"json_schema\",
+                  \"json_schema\": {
+                    \"name\": \"code_fixes\",
+                    \"strict\": true,
+                    \"schema\": {
+                      \"type\": \"object\",
+                      \"properties\": {
+                        \"fixes\": {
+                          \"type\": \"array\",
+                          \"items\": {
+                            \"type\": \"object\",
+                            \"properties\": {
+                              \"file_path\": {
+                                \"type\": \"string\",
+                                \"description\": \"Path to the file to fix\"
+                              },
+                              \"line_number\": {
+                                \"type\": \"number\",
+                                \"description\": \"Line number where the fix should be applied\"
+                              },
+                              \"search_text\": {
+                                \"type\": \"string\",
+                                \"description\": \"Exact text to search for and replace\"
+                              },
+                              \"replacement_text\": {
+                                \"type\": \"string\",
+                                \"description\": \"Text to replace the search text with\"
+                              },
+                              \"description\": {
+                                \"type\": \"string\",
+                                \"description\": \"Description of what this fix does\"
+                              }
+                            },
+                            \"required\": [\"file_path\", \"search_text\", \"replacement_text\", \"description\"],
+                            \"additionalProperties\": false
+                          }
+                        }
+                      },
+                      \"required\": [\"fixes\"],
+                      \"additionalProperties\": false
+                    }
+                  }
+                }
+              }" | jq -r '.choices[0].message.content' > fix-$RETRY_COUNT.json
 
             # Debug: show what the AI generated
-            echo "🔍 AI generated patch:"
-            cat fix-$RETRY_COUNT.patch
-            echo "--- End of patch ---"
+            echo "🔍 AI generated structured fixes:"
+            cat fix-$RETRY_COUNT.json
+            echo "--- End of fixes ---"
 
-            # Clean up the patch - remove markdown code blocks if present
-            sed -i '/^```/d' fix-$RETRY_COUNT.patch 2>/dev/null || true
-            sed -i '/^diff$/d' fix-$RETRY_COUNT.patch 2>/dev/null || true
-            
-            # Validate patch format before applying
-            if ! grep -q "^--- " fix-$RETRY_COUNT.patch || ! grep -q "^+++ " fix-$RETRY_COUNT.patch || ! grep -q "^@@ " fix-$RETRY_COUNT.patch; then
-              echo "⚠️ Invalid patch format detected, trying to fix..."
-              
-              # Try to extract just the diff content if it's wrapped
-              if grep -q "^--- a/" fix-$RETRY_COUNT.patch; then
-                echo "✅ Found proper patch headers"
-              else
-                echo "❌ No proper patch headers found, patch is malformed"
-                echo "Patch content:"
-                head -20 fix-$RETRY_COUNT.patch
-                # Clear the patch so fallback logic runs
-                > fix-$RETRY_COUNT.patch
-              fi
-            fi
-            
-            # Apply the patch with intelligent fallback
+            # Apply structured fixes
             PATCH_SUCCESS=false
-            if [ -s fix-$RETRY_COUNT.patch ] && patch -p1 < fix-$RETRY_COUNT.patch; then
-              PATCH_SUCCESS=true
-              echo "✅ Patch applied successfully"
-            else
-              echo "❌ Patch failed to apply, trying intelligent error parsing..."
+            if [ -s fix-$RETRY_COUNT.json ] && jq -e '.fixes' fix-$RETRY_COUNT.json > /dev/null 2>&1; then
+              echo "✅ Valid structured fixes received"
               
-              # Generic error parsing for any build system
-              while IFS= read -r error_line; do
-                echo "🔍 Analyzing error: $error_line"
+              # Apply each fix
+              jq -r '.fixes[] | @json' fix-$RETRY_COUNT.json | while read fix_json; do
+                file_path=$(echo "$fix_json" | jq -r '.file_path')
+                search_text=$(echo "$fix_json" | jq -r '.search_text')
+                replacement_text=$(echo "$fix_json" | jq -r '.replacement_text')
+                description=$(echo "$fix_json" | jq -r '.description')
                 
-                # Generic pattern: extract file paths from error messages
-                if [[ "$error_line" =~ ([a-zA-Z0-9_./\\-]+\.(ts|tsx|js|jsx|py|java|cpp|c|h|go|rs|php|rb|cs|kt|swift|scala|dart))[[:space:]]*[\(:]?[[:space:]]*([0-9]+)? ]]; then
-                  file_path="${BASH_REMATCH[1]}"
-                  line_num="${BASH_REMATCH[3]}"
-                  
-                  echo "📁 Found file reference: $file_path"
-                  
-                  # Generic property/variable name mismatches
-                  if [[ "$error_line" =~ \'([^\']+)\'.*does\ not\ exist && "$error_line" =~ \'([^\']+)\' ]]; then
-                    # Extract all quoted strings from error message
-                    quoted_strings=($(echo "$error_line" | grep -oP "'[^']+'" | tr -d "'"))
-                    if [ ${#quoted_strings[@]} -ge 2 ]; then
-                      wrong_name="${quoted_strings[0]}"
-                      possible_correct="${quoted_strings[1]}"
-                      
-                      echo "� Property/variable mismatch detected: '$wrong_name' -> '$possible_correct'"
-                      
-                      if [ -f "$file_path" ] && [ -n "$wrong_name" ] && [ -n "$possible_correct" ]; then
-                        # Try various common patterns
-                        for pattern in "${wrong_name}:" "${wrong_name} =" "= ${wrong_name}" "var ${wrong_name}" "let ${wrong_name}" "const ${wrong_name}" "${wrong_name}(" ".${wrong_name}"; do
-                          replacement="${pattern/${wrong_name}/${possible_correct}}"
-                          if grep -q "$pattern" "$file_path" 2>/dev/null; then
-                            echo "� Replacing pattern '$pattern' with '$replacement'"
-                            if sed -i "s/${pattern}/${replacement}/g" "$file_path" 2>/dev/null; then
-                              PATCH_SUCCESS=true
-                              echo "✅ Applied generic name fix"
-                              break
-                            fi
-                          fi
-                        done
-                      fi
-                    fi
+                echo "🔧 Applying fix: $description"
+                echo "📁 File: $file_path"
+                echo "🔍 Search: $search_text"
+                echo "🔄 Replace: $replacement_text"
+                
+                if [ -f "$file_path" ]; then
+                  # Use sed to replace the exact text
+                  if sed -i "s|${search_text}|${replacement_text}|g" "$file_path" 2>/dev/null; then
+                    echo "✅ Fix applied successfully"
+                    PATCH_SUCCESS=true
+                  else
+                    echo "❌ Failed to apply fix"
                   fi
-                  
-                  # Generic "undefined" or "not found" errors
-                  if [[ "$error_line" =~ (undefined|not\ found|cannot\ find|unresolved).*\'([^\']+)\' ]]; then
-                    missing_item="${BASH_REMATCH[2]}"
-                    echo "🔍 Missing item detected: '$missing_item'"
-                    
-                    # Common fix patterns for missing imports/references
-                    if [ -f "$file_path" ]; then
-                      # Check if it might be a typo by looking for similar names in the file
-                      similar_names=$(grep -oP '\b\w*'"${missing_item:0:3}"'\w*\b' "$file_path" 2>/dev/null | sort -u | head -5)
-                      echo "🔍 Similar names found: $similar_names"
-                    fi
-                  fi
+                else
+                  echo "❌ File not found: $file_path"
                 fi
-              done < <(grep -E "(error|Error|ERROR|warning|Warning|WARN)" "$LOG_FILE")
-              
-              if [ "$PATCH_SUCCESS" = "false" ]; then
-                echo "⚠️ Could not automatically fix errors with generic parsing"
-              fi
+              done
+            else
+              echo "⚠️ Invalid or empty fixes JSON - no fallback available"
+            fi
             fi
 
             # Only commit & push if patch was applied successfully AND there are actual code changes
@@ -218,7 +209,7 @@ jobs:
             fi
             
             # Retry the build
-            echo "� Retrying build (attempt $RETRY_COUNT)..."
+            echo "🔄 Retrying build (attempt $RETRY_COUNT)..."
             set +e  # Don't exit on error
             (
               echo "=== Retrying Backend Build (attempt $RETRY_COUNT) ==="
@@ -300,4 +291,5 @@ jobs:
         run: |
           echo "Running backend tests..."
           cd backend
-          echo "⏭️ Skipping backend tests in CI for no, TODO later"
+          echo "⏭️ Skipping backend tests in CI for now, TODO later"
+          cd ..
