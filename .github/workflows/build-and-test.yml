@@ -42,6 +42,19 @@ jobs:
           cd backend && bun install && cd ..
           cd ui && bun install && cd ..
           bun run generate:ui:normalized
+          
+          # Configure git for potential commits
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # Check if there are changes to commit (files should already be staged by generate:ui:normalized)
+          if git diff --staged --quiet; then
+            echo "No API client changes to commit"
+          else
+            git commit -m "🤖 Update client APIs from build process"
+            git push
+            echo "✅ API client changes committed and pushed"
+          fi
 
       - name: Combined Build & Log
         id: build
@@ -101,11 +114,11 @@ jobs:
               "messages": [
                 {
                   "role": "system",
-                  "content": "You are a code fixing assistant. Analyze build errors and provide structured fixes. Always return valid JSON with fixes array, even if empty."
+                  "content": "You are a code fixing assistant. Analyze build errors and provide structured fixes. Always return valid JSON with fixes array, even if empty. IMPORTANT: File paths in build errors are relative to project folders (backend/ or ui/). When providing file_path, include the full path from repository root (e.g., 'ui/src/file.tsx' not 'src/file.tsx')."
                 },
                 {
                   "role": "user",
-                  "content": ("Fix these TypeScript/JavaScript build errors:\n\n" + $errors)
+                  "content": ("Fix these TypeScript/JavaScript build errors. Note: This is a monorepo with backend/ and ui/ folders. Build errors from the UI are run from the ui/ directory, so file paths like 'src/file.tsx' should be 'ui/src/file.tsx' in your fixes. Build errors from backend are run from backend/ directory, so 'src/file.ts' should be 'backend/src/file.ts':\n\n" + $errors)
                 }
               ],
               "temperature": 0.1,
