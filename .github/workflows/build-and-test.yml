@@ -81,7 +81,7 @@ jobs:
               LOG_FILE="retry-build-$((RETRY_COUNT - 1)).log"
             fi
             
-            # Ask GPT-5 for a unified diff patch via API
+            # Ask GPT-4o for a unified diff patch via API
             echo "📝 Analyzing build errors with AI..."
             BUILD_ERRORS=$(sed -n '1,2000p' "$LOG_FILE" | sed 's/"/\\"/g' | tr '\n' ' ')
             
@@ -93,11 +93,11 @@ jobs:
                 \"messages\": [
                   {
                     \"role\": \"system\",
-                    \"content\": \"You are a code fixing assistant. Analyze build errors and respond with ONLY a unified diff patch to fix them. No explanations, just the patch.\"
+                    \"content\": \"You are a code fixing assistant. Analyze build errors and respond with ONLY a unified diff patch to fix them. IMPORTANT: This is a monorepo with backend/ and ui/ folders. Use correct file paths like 'ui/src/...' or 'backend/src/...'. No explanations, just the patch.\"
                   },
                   {
                     \"role\": \"user\",
-                    \"content\": \"Build errors (attempt $RETRY_COUNT/$MAX_RETRIES):\n\n$BUILD_ERRORS\"
+                    \"content\": \"Project structure: backend/ (Node.js, ElysiaJS/TypeScript) and ui/ (React/TypeScript). Build errors (attempt $RETRY_COUNT/$MAX_RETRIES):\\n\\n$BUILD_ERRORS\"
                   }
                 ],
                 \"temperature\": 0.1,
