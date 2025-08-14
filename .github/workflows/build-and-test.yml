@@ -63,7 +63,8 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITHUB_TOKEN: ${{ steps.app-auth.outputs.token }}
         run: |
-          npm install -g openai
+          # Install OpenAI Codex CLI
+          npm install -g @openai/codex
           
           MAX_RETRIES=3
           RETRY_COUNT=0
@@ -80,16 +81,21 @@ jobs:
               LOG_FILE="retry-build-$((RETRY_COUNT - 1)).log"
             fi
             
-            # Ask GPT-5 for a unified diff patch
-            echo "📝 Analyzing build errors with AI..."
-            openai chat.completions.create \
-              -m gpt-5 \
-              --stream false \
-              -p "The following build log shows errors (attempt $RETRY_COUNT/$MAX_RETRIES). Please reply with ONLY a unified diff patch to fix them:\n\n$(sed -n '1,2000p' $LOG_FILE)" \
-              > fix-$RETRY_COUNT.patch
-
-            # Apply the patch (ignore failures if patch is empty)
-            patch -p1 < fix-$RETRY_COUNT.patch || true
+            # Use OpenAI Codex CLI in full-auto mode for automated fixing
+            echo "📝 Analyzing build errors with OpenAI Codex..."
+            echo "Build failed with the following errors (attempt $RETRY_COUNT/$MAX_RETRIES):" > codex-prompt.txt
+            echo "" >> codex-prompt.txt
+            sed -n '1,2000p' "$LOG_FILE" >> codex-prompt.txt
+            echo "" >> codex-prompt.txt
+            echo "Please analyze these build errors and fix them. Focus on:" >> codex-prompt.txt
+            echo "1. TypeScript compilation errors" >> codex-prompt.txt
+            echo "2. Missing dependencies or imports" >> codex-prompt.txt
+            echo "3. Configuration issues" >> codex-prompt.txt
+            echo "4. Syntax errors" >> codex-prompt.txt
+            
+            # Run Codex in full-auto mode to automatically fix issues
+            export OPENAI_API_KEY="$OPENAI_API_KEY"
+            timeout 300 codex --full-auto < codex-prompt.txt || echo "Codex timeout or completed"
 
             # Commit & push if there are changes
             git config user.name "github-actions[bot]"
