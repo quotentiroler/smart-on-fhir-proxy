@@ -131,9 +131,10 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
         apiResponseTime: number;
         databaseStatus: string;
         systemUptime: string;
-        lastBackup: Date | null;
+        lastBsackup: Date | null;
         serverVersion: string;
         keycloakStatus: string;
+        keycloakLastConnected: string;
         memoryUsage: string;
         aiAgentStatus: string;
         aiAgentSearchType: string;
@@ -144,6 +145,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
         lastBackup: null,
         serverVersion: 'unknown',
         keycloakStatus: 'checking',
+        keycloakLastConnected: 'unknown',
         memoryUsage: 'unknown',
         aiAgentStatus: 'checking',
         aiAgentSearchType: 'checking'
@@ -233,6 +235,28 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                         memoryUsage = `${statusData.memory.used}MB / ${statusData.memory.total}MB`;
                     }
 
+                    // Format last connected time
+                    let keycloakLastConnected = 'never';
+                    if (statusData.keycloak?.lastConnected) {
+                        const lastConnectedDate = new Date(statusData.keycloak.lastConnected);
+                        const now = new Date();
+                        const timeDiff = now.getTime() - lastConnectedDate.getTime();
+                        const seconds = Math.floor(timeDiff / 1000);
+                        const minutes = Math.floor(seconds / 60);
+                        const hours = Math.floor(minutes / 60);
+                        const days = Math.floor(hours / 24);
+
+                        if (days > 0) {
+                            keycloakLastConnected = `${days}d ago`;
+                        } else if (hours > 0) {
+                            keycloakLastConnected = `${hours}h ago`;
+                        } else if (minutes > 0) {
+                            keycloakLastConnected = `${minutes}m ago`;
+                        } else {
+                            keycloakLastConnected = 'just now';
+                        }
+                    }
+
                     setSystemHealth(prev => ({
                         ...prev,
                         databaseStatus: 'healthy', // We know it's healthy if we got a response
@@ -240,6 +264,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                         lastBackup: null, // Remove mock backup timestamp
                         serverVersion: statusData.version,
                         keycloakStatus: statusData.keycloak?.status || 'unknown',
+                        keycloakLastConnected,
                         memoryUsage,
                         aiAgentStatus,
                         aiAgentSearchType
@@ -254,6 +279,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                         ...prev,
                         databaseStatus: 'error',
                         keycloakStatus: 'error',
+                        keycloakLastConnected: 'unknown',
                         aiAgentStatus,
                         aiAgentSearchType
                     }));
@@ -340,7 +366,8 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
         setSystemHealth(prev => ({ 
             ...prev, 
             aiAgentStatus: 'checking', 
-            aiAgentSearchType: 'checking' 
+            aiAgentSearchType: 'checking',
+            keycloakLastConnected: 'checking...'
         }));
         // The useEffect will handle the refresh
     };
@@ -731,7 +758,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                             }`}
                         >
                             <Shield className="w-4 h-4 mr-2" />
-                            {keycloakConfig.hasAdminClient ? t('Keycloak Config') : t('Setup Keycloak')}
+                            {keycloakConfig.hasAdminClient ? t('Admin Client Config') : t('Setup Dynamic Registration')}
                         </Button>
                     </div>
                     <DescriptionList>
@@ -753,7 +780,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                                 </div>
                             </div>
                             <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
-                                <span className="text-sm font-medium text-muted-foreground">{t('Keycloak Auth')}</span>
+                                <span className="text-sm font-medium text-muted-foreground">{t('Dynamic Client Registration')}</span>
                                 <div className="flex items-center">
                                     {keycloakConfig.hasAdminClient ? (
                                         <CheckCircle className="w-5 h-5 text-emerald-500 dark:text-emerald-400 mr-2" />
@@ -767,8 +794,8 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                                         {keycloakConfig.loading 
                                             ? t('Checking...') 
                                             : keycloakConfig.hasAdminClient 
-                                                ? t('Configured') 
-                                                : t('Not Configured')
+                                                ? t('Enabled') 
+                                                : t('Disabled')
                                         }
                                     </span>
                                 </div>
@@ -791,6 +818,12 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                                             ? keycloakConfig.baseUrl.replace(/\/$/, '') // Remove trailing slash
                                             : t('Not Set')
                                     }
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
+                                <span className="text-sm font-medium text-muted-foreground">{t('Keycloak Last Connected')}</span>
+                                <span className="text-foreground font-semibold">
+                                    {systemHealth.keycloakLastConnected}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
@@ -950,7 +983,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                     <DialogHeader>
                         <DialogTitle className="flex items-center space-x-2">
                             <Shield className="w-5 h-5 text-primary" />
-                            <span>{t('Keycloak Configuration')}</span>
+                            <span>{t('Dynamic Client Registration Setup')}</span>
                         </DialogTitle>
                     </DialogHeader>
                     <div className="mt-4">

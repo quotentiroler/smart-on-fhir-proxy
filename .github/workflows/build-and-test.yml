@@ -28,23 +28,56 @@ jobs:
         with:
           checkout: 'false'  # Skip checkout since we already did it
 
-      - name: Build backend
+      - name: Combined Build & Log
+        id: build
         run: |
-          echo "Building backend..."
-          cd backend
-          bun install
-          bun run build
-          cd ..
+          set -o pipefail
+          (
+            echo "=== Building backend ==="
+            cd backend && bun install && bun run build && cd ..
+            echo "=== Building UI ==="
+            cd ui && bun install && bun run build && cd ..
+          ) 2>&1 | tee build.log
 
-      - name: Build UI
+      - name: Authenticate as GitHub App
+        if: failure()
+        id: app-auth
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Auto-fix build errors via OpenAI
+        if: failure()
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ steps.app-auth.outputs.token }}
         run: |
-          echo "Building UI..."
-          cd ui
-          bun install
-          bun run build
-          cd ..
+          npm install -g openai
+          
+          # Ask GPT-5 for a unified diff patch
+          openai chat.completions.create \
+            -m gpt-5 \
+            --stream false \
+            -p "The following build log shows errors. Please reply with ONLY a unified diff patch to fix them:\n\n$(sed -n '1,2000p' build.log)" \
+            > fix.patch
+
+          # Apply the patch (ignore failures if patch is empty)
+          patch -p1 < fix.patch || true
+
+          # Commit & push if there are changes
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "chore: auto-fix build errors via OpenAI [skip ci]"
+            git push
+          else
+            echo "✅ No fixes applied."
+          fi
 
       - name: Upload build artifacts
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts

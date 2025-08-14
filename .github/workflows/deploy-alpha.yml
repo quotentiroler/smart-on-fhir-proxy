@@ -1,0 +1,178 @@
+name: Deploy Alpha
+
+on:
+  workflow_call:
+    inputs:
+      app_version:
+        description: 'Version of the application to deploy'
+        required: true
+        type: string
+      source_branch:
+        description: 'Source branch for deployment'
+        required: true
+        type: string
+    outputs:
+      fhir_server_url:
+        description: "FHIR server URL after deployment"
+        value: ${{ jobs.deploy.outputs.fhir_server_url }}
+      keycloak_url:
+        description: "Keycloak URL after deployment"
+        value: ${{ jobs.deploy.outputs.keycloak_url }}
+      app_url:
+        description: "Main application URL after deployment"
+        value: ${{ jobs.deploy.outputs.app_url }}
+      deployment_status:
+        description: "Status of the deployment"
+        value: ${{ jobs.deploy.outputs.deployment_status }}
+      deployment_target:
+        description: "Target platform where app was deployed"
+        value: ${{ jobs.deploy.outputs.deployment_target }}
+    secrets:
+      FLY_API_TOKEN:
+        required: true
+      ALPHA_DB_PASSWORD:
+        required: false
+
+jobs:
+  deploy:
+    name: Deploy Alpha (Fly.io)
+    runs-on: ubuntu-latest
+    outputs:
+      fhir_server_url: ${{ steps.deploy.outputs.fhir_server_url }}
+      keycloak_url: ${{ steps.deploy.outputs.keycloak_url }}
+      app_url: ${{ steps.deploy.outputs.app_url }}
+      deployment_status: ${{ steps.deploy.outputs.deployment_status }}
+      deployment_target: ${{ steps.deploy.outputs.deployment_target }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_branch }}
+      
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun-version
+      
+      - name: Setup Fly.io CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+      
+      - name: Check Keycloak Changes
+        id: check-keycloak-changes
+        run: |
+          echo "🔍 Checking if Keycloak realm configuration has changed..."
+          
+          # Check if realm export file has changed in this commit
+          REALM_CHANGED=$(git diff HEAD~1 HEAD --name-only | grep -E "keycloak/.*\.json$|fly\.keycloak\.toml$|Dockerfile\.keycloak$" || true)
+          
+          if [ -n "$REALM_CHANGED" ]; then
+            echo "📝 Keycloak configuration files changed:"
+            echo "$REALM_CHANGED"
+            echo "keycloak_changed=true" >> $GITHUB_OUTPUT
+            echo "🔄 Keycloak deployment required"
+          else
+            echo "keycloak_changed=false" >> $GITHUB_OUTPUT
+            echo "✅ No Keycloak changes detected - skipping Keycloak deployment"
+          fi
+
+      - name: Deploy Alpha Keycloak (Fly.io)
+        id: deploy-keycloak
+        if: steps.check-keycloak-changes.outputs.keycloak_changed == 'true'
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          echo "🔐 Deploying Keycloak for Alpha environment (configuration changed)..."
+          
+          # Verify flyctl is available and authenticate
+          echo "🔧 Setting up Fly.io authentication..."
+          flyctl auth token $FLY_API_TOKEN
+          
+          # Create Keycloak app if it doesn't exist
+          echo "🏗️ Creating Fly.io Keycloak app..."
+          flyctl apps create proxy-smart-alpha-auth --org personal || echo "Keycloak app already exists"
+
+          # Create Postgres database for Keycloak first
+          echo "🗄️ Setting up Keycloak database..."
+          flyctl postgres create \
+            --name proxy-smart-alpha-db \
+            --region fra \
+            --initial-cluster-size 1 \
+            --vm-size shared-cpu-1x \
+            --volume-size 3 \
+            --password alphapassword123 || echo "Database already exists"
+          
+          # Deploy Keycloak using our existing configuration
+          echo "🚀 Deploying Keycloak app..."
+          flyctl deploy --config fly.keycloak.toml
+
+          # Try 10 times to ping Keycloak to ensure it's ready every 5 seconds
+          echo "⏳ Waiting for Keycloak to be ready..."
+          for i in {1..10}; do
+            if curl -s -o /dev/null -w "%{http_code}" https://proxy-smart-alpha-auth.fly.dev/ > /dev/null; then
+              echo "✅ Keycloak is ready!"
+              break
+            else
+              echo "🔄 Keycloak not ready yet, retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+          
+          echo "✅ Keycloak deployed at https://proxy-smart-alpha-auth.fly.dev"
+          echo "✅ Realm 'proxy-smart' imported and available"
+
+      - name: Skip Keycloak Deployment
+        if: steps.check-keycloak-changes.outputs.keycloak_changed == 'false'
+        run: |
+          echo "⏭️ Skipping Keycloak deployment - no configuration changes detected"
+          echo "🔐 Existing Keycloak instance at https://proxy-smart-alpha-auth.fly.dev will be used"
+      
+      - name: Deploy Alpha Backend (Fly.io)
+        id: deploy
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          echo "🚀 Deploying Alpha version ${{ inputs.app_version }} to Fly.io..."
+
+          # Create Backend App if it doesn't exist
+          echo "🏗️ Creating Fly.io backend app..."
+          flyctl apps create proxy-smart-alpha --org personal || echo "Backend app already exists"
+          
+          # Deploy backend to its own Fly.io app
+          flyctl deploy --config fly.toml
+          
+          # Wait for deployment to be ready
+          echo "⏳ Waiting for backend deployment to be ready..."
+          for i in {1..10}; do
+            if curl -s -o /dev/null -w "%{http_code}" https://proxy-smart-alpha.fly.dev/ > /dev/null; then
+              echo "✅ Backend is ready!"
+              break
+            else
+              echo "🔄 Backend not ready yet, retrying in 5 seconds..."
+              sleep 5
+            fi
+          done
+
+          # Get deployed URLs
+          BACKEND_URL="https://proxy-smart-alpha.fly.dev"
+          KEYCLOAK_URL="https://proxy-smart-alpha-auth.fly.dev"
+          
+          # Set outputs
+          echo "fhir_server_url=$BACKEND_URL/proxy-smart-backend/hapi-fhir-server/R4" >> $GITHUB_OUTPUT
+          echo "keycloak_url=$KEYCLOAK_URL" >> $GITHUB_OUTPUT
+          echo "app_url=$BACKEND_URL" >> $GITHUB_OUTPUT
+          echo "deployment_status=success" >> $GITHUB_OUTPUT
+          echo "deployment_target=fly.io" >> $GITHUB_OUTPUT
+          
+          echo "✅ Alpha deployment completed successfully"
+          echo "📍 Backend: $BACKEND_URL"
+          echo "📍 FHIR Server (Proxied): $BACKEND_URL/proxy-smart-backend/hapi-fhir-server/R4"
+          echo "📍 Keycloak: $KEYCLOAK_URL"
+          echo "📍 Keycloak Admin: $KEYCLOAK_URL (admin/admin)"
+          echo "📍 SMART Realm: $KEYCLOAK_URL/realms/proxy-smart"
+          echo "📍 OIDC Discovery: $KEYCLOAK_URL/realms/proxy-smart/.well-known/openid_configuration"
+          
+          # Log deployment efficiency information
+          if [ "${{ steps.check-keycloak-changes.outputs.keycloak_changed }}" = "true" ]; then
+            echo "🔄 Keycloak was redeployed due to configuration changes"
+          else
+            echo "⚡ Deployment optimized - reused existing Keycloak instance"
+          fi
