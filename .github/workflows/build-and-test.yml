@@ -93,19 +93,41 @@ jobs:
                 \"messages\": [
                   {
                     \"role\": \"system\",
-                    \"content\": \"You are a code fixing assistant. Analyze build errors and respond with ONLY a valid unified diff patch in proper format. IMPORTANT: 1) Use correct file paths like 'ui/src/...' or 'backend/src/...', 2) Generate a proper unified diff with @@ lines, 3) No explanations or markdown code blocks, just the raw patch.\"
+                    \"content\": \"You are a code fixing assistant. Create ONLY a valid unified diff patch. Format must be exactly:\\n--- a/path/to/file\\n+++ b/path/to/file\\n@@ -start,count +start,count @@\\n-removed line\\n+added line\\nUse correct paths like 'ui/src/' or 'backend/src/'. NO markdown, NO explanations, NO code blocks.\"
                   },
                   {
                     \"role\": \"user\",
-                    \"content\": \"Project structure: backend/ (Node.js/Elysia/TypeScript) and ui/ (React/TypeScript). Fix this TypeScript error - the object has 'lastBackup' but type expects 'lastBsackup' (typo). Build errors (attempt $RETRY_COUNT/$MAX_RETRIES):\\n\\n$BUILD_ERRORS\"
+                    \"content\": \"Fix build errors:\\n\\n$BUILD_ERRORS\"
                   }
                 ],
                 \"temperature\": 0.1,
                 \"max_tokens\": 2000
               }" | jq -r '.choices[0].message.content' > fix-$RETRY_COUNT.patch
 
+            # Debug: show what the AI generated
+            echo "🔍 AI generated patch:"
+            cat fix-$RETRY_COUNT.patch
+            echo "--- End of patch ---"
+
             # Clean up the patch - remove markdown code blocks if present
             sed -i '/^```/d' fix-$RETRY_COUNT.patch 2>/dev/null || true
+            sed -i '/^diff$/d' fix-$RETRY_COUNT.patch 2>/dev/null || true
+            
+            # Validate patch format before applying
+            if ! grep -q "^--- " fix-$RETRY_COUNT.patch || ! grep -q "^+++ " fix-$RETRY_COUNT.patch || ! grep -q "^@@ " fix-$RETRY_COUNT.patch; then
+              echo "⚠️ Invalid patch format detected, trying to fix..."
+              
+              # Try to extract just the diff content if it's wrapped
+              if grep -q "^--- a/" fix-$RETRY_COUNT.patch; then
+                echo "✅ Found proper patch headers"
+              else
+                echo "❌ No proper patch headers found, patch is malformed"
+                echo "Patch content:"
+                head -20 fix-$RETRY_COUNT.patch
+                # Clear the patch so fallback logic runs
+                > fix-$RETRY_COUNT.patch
+              fi
+            fi
             
             # Apply the patch with intelligent fallback
             PATCH_SUCCESS=false
