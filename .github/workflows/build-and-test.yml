@@ -63,8 +63,8 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITHUB_TOKEN: ${{ steps.app-auth.outputs.token }}
         run: |
-          # Install OpenAI Codex CLI
-          npm install -g @openai/codex
+          # Install curl for API calls
+          curl --version || (apt-get update && apt-get install -y curl)
           
           MAX_RETRIES=3
           RETRY_COUNT=0
@@ -81,21 +81,31 @@ jobs:
               LOG_FILE="retry-build-$((RETRY_COUNT - 1)).log"
             fi
             
-            # Use OpenAI Codex CLI in full-auto mode for automated fixing
-            echo "📝 Analyzing build errors with OpenAI Codex..."
-            echo "Build failed with the following errors (attempt $RETRY_COUNT/$MAX_RETRIES):" > codex-prompt.txt
-            echo "" >> codex-prompt.txt
-            sed -n '1,2000p' "$LOG_FILE" >> codex-prompt.txt
-            echo "" >> codex-prompt.txt
-            echo "Please analyze these build errors and fix them. Focus on:" >> codex-prompt.txt
-            echo "1. TypeScript compilation errors" >> codex-prompt.txt
-            echo "2. Missing dependencies or imports" >> codex-prompt.txt
-            echo "3. Configuration issues" >> codex-prompt.txt
-            echo "4. Syntax errors" >> codex-prompt.txt
+            # Ask GPT-5 for a unified diff patch via API
+            echo "📝 Analyzing build errors with AI..."
+            BUILD_ERRORS=$(sed -n '1,2000p' "$LOG_FILE" | sed 's/"/\\"/g' | tr '\n' ' ')
             
-            # Run Codex in full-auto mode to automatically fix issues
-            export OPENAI_API_KEY="$OPENAI_API_KEY"
-            timeout 300 codex --full-auto < codex-prompt.txt || echo "Codex timeout or completed"
+            curl -s -X POST "https://api.openai.com/v1/chat/completions" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $OPENAI_API_KEY" \
+              -d "{
+                \"model\": \"gpt-4o\",
+                \"messages\": [
+                  {
+                    \"role\": \"system\",
+                    \"content\": \"You are a code fixing assistant. Analyze build errors and respond with ONLY a unified diff patch to fix them. No explanations, just the patch.\"
+                  },
+                  {
+                    \"role\": \"user\",
+                    \"content\": \"Build errors (attempt $RETRY_COUNT/$MAX_RETRIES):\n\n$BUILD_ERRORS\"
+                  }
+                ],
+                \"temperature\": 0.1,
+                \"max_tokens\": 2000
+              }" | jq -r '.choices[0].message.content' > fix-$RETRY_COUNT.patch
+
+            # Apply the patch (ignore failures if patch is empty)
+            patch -p1 < fix-$RETRY_COUNT.patch || true
 
             # Commit & push if there are changes
             git config user.name "github-actions[bot]"
@@ -140,7 +150,7 @@ jobs:
           done
 
       - name: Upload build artifacts
-        if: success() || steps.auto-fix-retry.outputs.build_success == 'true'
+        if: (success() || steps.auto-fix-retry.outputs.build_success == 'true') && !startsWith(github.ref, 'refs/heads/dev/')
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
