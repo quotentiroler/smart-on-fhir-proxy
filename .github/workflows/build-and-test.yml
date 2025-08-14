@@ -105,18 +105,34 @@ jobs:
               }" | jq -r '.choices[0].message.content' > fix-$RETRY_COUNT.patch
 
             # Apply the patch (ignore failures if patch is empty)
-            patch -p1 < fix-$RETRY_COUNT.patch || true
-
-            # Commit & push if there are changes
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            if [ -n "$(git status --porcelain)" ]; then
-              git add .
-              git commit -m "chore: auto-fix build errors (attempt $RETRY_COUNT/$MAX_RETRIES) via OpenAI [skip ci]"
-              git push
-              echo "✅ Fixes applied and pushed (attempt $RETRY_COUNT)"
+            PATCH_SUCCESS=false
+            if patch -p1 < fix-$RETRY_COUNT.patch; then
+              PATCH_SUCCESS=true
+              echo "✅ Patch applied successfully"
             else
-              echo "⚠️ No fixes applied in attempt $RETRY_COUNT"
+              echo "❌ Patch failed to apply"
+            fi
+
+            # Only commit & push if patch was applied successfully AND there are actual code changes
+            if [ "$PATCH_SUCCESS" = "true" ]; then
+              # Remove build artifacts and patch files from staging
+              git reset build.log fix-*.patch retry-build-*.log codex-prompt.txt 2>/dev/null || true
+              rm -f build.log fix-*.patch retry-build-*.log codex-prompt.txt 2>/dev/null || true
+              
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              
+              # Check if there are actual code changes (excluding build artifacts)
+              if [ -n "$(git status --porcelain | grep -v build.log | grep -v fix-.*\.patch | grep -v retry-build-.*\.log | grep -v codex-prompt.txt)" ]; then
+                git add .
+                git commit -m "chore: auto-fix build errors (attempt $RETRY_COUNT/$MAX_RETRIES) via OpenAI [skip ci]"
+                git push
+                echo "✅ Code fixes applied and pushed (attempt $RETRY_COUNT)"
+              else
+                echo "⚠️ No actual code changes to commit"
+              fi
+            else
+              echo "⚠️ Skipping commit - patch failed to apply"
             fi
             
             # Retry the build
