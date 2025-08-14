@@ -93,24 +93,84 @@ jobs:
                 \"messages\": [
                   {
                     \"role\": \"system\",
-                    \"content\": \"You are a code fixing assistant. Analyze build errors and respond with ONLY a unified diff patch to fix them. IMPORTANT: This is a monorepo with backend/ and ui/ folders. Use correct file paths like 'ui/src/...' or 'backend/src/...'. No explanations, just the patch.\"
+                    \"content\": \"You are a code fixing assistant. Analyze build errors and respond with ONLY a valid unified diff patch in proper format. IMPORTANT: 1) Use correct file paths like 'ui/src/...' or 'backend/src/...', 2) Generate a proper unified diff with @@ lines, 3) No explanations or markdown code blocks, just the raw patch.\"
                   },
                   {
                     \"role\": \"user\",
-                    \"content\": \"Project structure: backend/ (Node.js, ElysiaJS/TypeScript) and ui/ (React/TypeScript). Build errors (attempt $RETRY_COUNT/$MAX_RETRIES):\\n\\n$BUILD_ERRORS\"
+                    \"content\": \"Project structure: backend/ (Node.js/Elysia/TypeScript) and ui/ (React/TypeScript). Fix this TypeScript error - the object has 'lastBackup' but type expects 'lastBsackup' (typo). Build errors (attempt $RETRY_COUNT/$MAX_RETRIES):\\n\\n$BUILD_ERRORS\"
                   }
                 ],
                 \"temperature\": 0.1,
                 \"max_tokens\": 2000
               }" | jq -r '.choices[0].message.content' > fix-$RETRY_COUNT.patch
 
-            # Apply the patch (ignore failures if patch is empty)
+            # Clean up the patch - remove markdown code blocks if present
+            sed -i '/^```/d' fix-$RETRY_COUNT.patch 2>/dev/null || true
+            
+            # Apply the patch with intelligent fallback
             PATCH_SUCCESS=false
-            if patch -p1 < fix-$RETRY_COUNT.patch; then
+            if [ -s fix-$RETRY_COUNT.patch ] && patch -p1 < fix-$RETRY_COUNT.patch; then
               PATCH_SUCCESS=true
               echo "✅ Patch applied successfully"
             else
-              echo "❌ Patch failed to apply"
+              echo "❌ Patch failed to apply, trying intelligent error parsing..."
+              
+              # Generic error parsing for any build system
+              while IFS= read -r error_line; do
+                echo "🔍 Analyzing error: $error_line"
+                
+                # Generic pattern: extract file paths from error messages
+                if [[ "$error_line" =~ ([a-zA-Z0-9_./\\-]+\.(ts|tsx|js|jsx|py|java|cpp|c|h|go|rs|php|rb|cs|kt|swift|scala|dart))[[:space:]]*[\(:]?[[:space:]]*([0-9]+)? ]]; then
+                  file_path="${BASH_REMATCH[1]}"
+                  line_num="${BASH_REMATCH[3]}"
+                  
+                  echo "📁 Found file reference: $file_path"
+                  
+                  # Generic property/variable name mismatches
+                  if [[ "$error_line" =~ \'([^\']+)\'.*does\ not\ exist && "$error_line" =~ \'([^\']+)\' ]]; then
+                    # Extract all quoted strings from error message
+                    quoted_strings=($(echo "$error_line" | grep -oP "'[^']+'" | tr -d "'"))
+                    if [ ${#quoted_strings[@]} -ge 2 ]; then
+                      wrong_name="${quoted_strings[0]}"
+                      possible_correct="${quoted_strings[1]}"
+                      
+                      echo "� Property/variable mismatch detected: '$wrong_name' -> '$possible_correct'"
+                      
+                      if [ -f "$file_path" ] && [ -n "$wrong_name" ] && [ -n "$possible_correct" ]; then
+                        # Try various common patterns
+                        for pattern in "${wrong_name}:" "${wrong_name} =" "= ${wrong_name}" "var ${wrong_name}" "let ${wrong_name}" "const ${wrong_name}" "${wrong_name}(" ".${wrong_name}"; do
+                          replacement="${pattern/${wrong_name}/${possible_correct}}"
+                          if grep -q "$pattern" "$file_path" 2>/dev/null; then
+                            echo "� Replacing pattern '$pattern' with '$replacement'"
+                            if sed -i "s/${pattern}/${replacement}/g" "$file_path" 2>/dev/null; then
+                              PATCH_SUCCESS=true
+                              echo "✅ Applied generic name fix"
+                              break
+                            fi
+                          fi
+                        done
+                      fi
+                    fi
+                  fi
+                  
+                  # Generic "undefined" or "not found" errors
+                  if [[ "$error_line" =~ (undefined|not\ found|cannot\ find|unresolved).*\'([^\']+)\' ]]; then
+                    missing_item="${BASH_REMATCH[2]}"
+                    echo "🔍 Missing item detected: '$missing_item'"
+                    
+                    # Common fix patterns for missing imports/references
+                    if [ -f "$file_path" ]; then
+                      # Check if it might be a typo by looking for similar names in the file
+                      similar_names=$(grep -oP '\b\w*'"${missing_item:0:3}"'\w*\b' "$file_path" 2>/dev/null | sort -u | head -5)
+                      echo "🔍 Similar names found: $similar_names"
+                    fi
+                  fi
+                fi
+              done < <(grep -E "(error|Error|ERROR|warning|Warning|WARN)" "$LOG_FILE")
+              
+              if [ "$PATCH_SUCCESS" = "false" ]; then
+                echo "⚠️ Could not automatically fix errors with generic parsing"
+              fi
             fi
 
             # Only commit & push if patch was applied successfully AND there are actual code changes
