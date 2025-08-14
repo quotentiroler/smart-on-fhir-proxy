@@ -13,6 +13,13 @@ on:
         required: false
         type: boolean
         default: false
+    secrets:
+      APP_ID:
+        required: false
+      APP_PRIVATE_KEY:
+        required: false
+      OPENAI_API_KEY:
+        required: false
 
 jobs:
   build:
@@ -46,38 +53,88 @@ jobs:
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
 
-      - name: Auto-fix build errors via OpenAI
-        if: failure()
+      - name: Auto-fix and retry build (up to 3 attempts)
+        if: failure() && steps.app-auth.outputs.token
+        id: auto-fix-retry
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITHUB_TOKEN: ${{ steps.app-auth.outputs.token }}
         run: |
           npm install -g openai
           
-          # Ask GPT-5 for a unified diff patch
-          openai chat.completions.create \
-            -m gpt-5 \
-            --stream false \
-            -p "The following build log shows errors. Please reply with ONLY a unified diff patch to fix them:\n\n$(sed -n '1,2000p' build.log)" \
-            > fix.patch
+          MAX_RETRIES=3
+          RETRY_COUNT=0
+          BUILD_SUCCESS=false
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ] && [ "$BUILD_SUCCESS" = "false" ]; do
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "🔄 Auto-fix attempt $RETRY_COUNT of $MAX_RETRIES"
+            
+            # Get the latest build log (either from initial build or previous retry)
+            if [ $RETRY_COUNT -eq 1 ]; then
+              LOG_FILE="build.log"
+            else
+              LOG_FILE="retry-build-$((RETRY_COUNT - 1)).log"
+            fi
+            
+            # Ask GPT-5 for a unified diff patch
+            echo "📝 Analyzing build errors with AI..."
+            openai chat.completions.create \
+              -m gpt-5 \
+              --stream false \
+              -p "The following build log shows errors (attempt $RETRY_COUNT/$MAX_RETRIES). Please reply with ONLY a unified diff patch to fix them:\n\n$(sed -n '1,2000p' $LOG_FILE)" \
+              > fix-$RETRY_COUNT.patch
 
-          # Apply the patch (ignore failures if patch is empty)
-          patch -p1 < fix.patch || true
+            # Apply the patch (ignore failures if patch is empty)
+            patch -p1 < fix-$RETRY_COUNT.patch || true
 
-          # Commit & push if there are changes
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          if [ -n "$(git status --porcelain)" ]; then
-            git add .
-            git commit -m "chore: auto-fix build errors via OpenAI [skip ci]"
-            git push
-          else
-            echo "✅ No fixes applied."
-          fi
+            # Commit & push if there are changes
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            if [ -n "$(git status --porcelain)" ]; then
+              git add .
+              git commit -m "chore: auto-fix build errors (attempt $RETRY_COUNT/$MAX_RETRIES) via OpenAI [skip ci]"
+              git push
+              echo "✅ Fixes applied and pushed (attempt $RETRY_COUNT)"
+            else
+              echo "⚠️ No fixes applied in attempt $RETRY_COUNT"
+            fi
+            
+            # Retry the build
+            echo "� Retrying build (attempt $RETRY_COUNT)..."
+            set +e  # Don't exit on error
+            (
+              echo "=== Retrying Backend Build (attempt $RETRY_COUNT) ==="
+              cd backend && bun install && bun run build && cd ..
+              echo "=== Retrying UI Build (attempt $RETRY_COUNT) ==="
+              cd ui && bun install && bun run build && cd ..
+            ) 2>&1 | tee retry-build-$RETRY_COUNT.log
+            
+            BUILD_EXIT_CODE=$?
+            set -e  # Re-enable exit on error
+            
+            if [ $BUILD_EXIT_CODE -eq 0 ]; then
+              BUILD_SUCCESS=true
+              echo "✅ Build succeeded on attempt $RETRY_COUNT!"
+              echo "build_success=true" >> $GITHUB_OUTPUT
+              echo "attempts_used=$RETRY_COUNT" >> $GITHUB_OUTPUT
+              break
+            else
+              echo "❌ Build failed on attempt $RETRY_COUNT"
+              if [ $RETRY_COUNT -eq $MAX_RETRIES ]; then
+                echo "💥 All $MAX_RETRIES attempts failed. Giving up."
+                echo "build_success=false" >> $GITHUB_OUTPUT
+                echo "attempts_used=$RETRY_COUNT" >> $GITHUB_OUTPUT
+                exit 1
+              fi
+            fi
+          done
 
       - name: Upload build artifacts
-        if: success()
+        if: success() || steps.auto-fix-retry.outputs.build_success == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
