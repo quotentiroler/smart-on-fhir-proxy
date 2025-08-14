@@ -37,6 +37,12 @@ export interface GetStatus200ResponseKeycloak {
      * @memberof GetStatus200ResponseKeycloak
      */
     realm: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof GetStatus200ResponseKeycloak
+     */
+    lastConnected?: string;
 }
 
 /**
@@ -62,6 +68,7 @@ export function GetStatus200ResponseKeycloakFromJSONTyped(json: any, ignoreDiscr
         'status': json['status'],
         'accessible': json['accessible'],
         'realm': json['realm'],
+        'lastConnected': json['lastConnected'] == null ? undefined : json['lastConnected'],
     };
 }
 
@@ -79,6 +86,7 @@ export function GetStatus200ResponseKeycloakToJSONTyped(value?: GetStatus200Resp
         'status': value['status'],
         'accessible': value['accessible'],
         'realm': value['realm'],
+        'lastConnected': value['lastConnected'],
     };
 }
 

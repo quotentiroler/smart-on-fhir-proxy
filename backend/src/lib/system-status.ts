@@ -1,5 +1,6 @@
 import { getFHIRServerInfo, getServerIdentifier } from './fhir-utils';
 import { config } from '../config';
+import { keycloakConnectionLogger } from './keycloak-connection-logger';
 
 interface FhirServerEntry {
   name: string;
@@ -27,6 +28,7 @@ export interface SystemStatus {
     status: string;
     accessible: boolean;
     realm: string;
+    lastConnected?: string;
   };
   memory: {
     used: number;
@@ -84,12 +86,56 @@ async function collectKeycloakStatus(): Promise<SystemStatus['keycloak']> {
   if (!base) {
     return { status: 'unhealthy', accessible: false, realm };
   }
+
+  const startTime = performance.now();
+  
   try {
     const kcUrl = `${base}/realms/${realm}/.well-known/openid-configuration`;
     const resp = await fetch(kcUrl, { method: 'GET', signal: AbortSignal.timeout(4000) });
-    if (resp.ok) return { status: 'healthy', accessible: true, realm };
+    const responseTime = Math.round(performance.now() - startTime);
+    
+    if (resp.ok) {
+      // Log successful connection
+      await keycloakConnectionLogger.logConnectionAttempt(
+        'connected',
+        realm,
+        base,
+        responseTime
+      );
+
+      // Get last connected time from logs
+      const lastConnected = await keycloakConnectionLogger.getLastConnectedTime();
+      
+      return { 
+        status: 'healthy', 
+        accessible: true, 
+        realm, 
+        lastConnected: lastConnected || undefined 
+      };
+    }
+    
+    // Log failed connection (non-200 response)
+    await keycloakConnectionLogger.logConnectionAttempt(
+      'failed',
+      realm,
+      base,
+      responseTime,
+      `HTTP ${resp.status}: ${resp.statusText}`
+    );
+    
     return { status: 'degraded', accessible: false, realm };
-  } catch {
+  } catch (error) {
+    const responseTime = Math.round(performance.now() - startTime);
+    
+    // Log failed connection (network error)
+    await keycloakConnectionLogger.logConnectionAttempt(
+      'failed',
+      realm,
+      base,
+      responseTime,
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+    
     return { status: 'unhealthy', accessible: false, realm };
   }
 }

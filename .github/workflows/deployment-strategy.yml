@@ -58,363 +58,40 @@ on:
 jobs:
   deploy-alpha:
     name: Deploy Alpha (Fly.io)
-    runs-on: ubuntu-latest
     if: inputs.deployment_stage == 'alpha'
-    outputs:
-      fhir_server_url: ${{ steps.deploy.outputs.fhir_server_url }}
-      keycloak_url: ${{ steps.deploy.outputs.keycloak_url }}
-      app_url: ${{ steps.deploy.outputs.app_url }}
-      deployment_status: ${{ steps.deploy.outputs.deployment_status }}
-      deployment_target: ${{ steps.deploy.outputs.deployment_target }}
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.source_branch }}
-      
-      - name: Setup Bun
-        uses: ./.github/actions/setup-bun-version
-      
-      - name: Setup Fly.io CLI
-        uses: superfly/flyctl-actions/setup-flyctl@master
-      
-      - name: Check Keycloak Changes
-        id: check-keycloak-changes
-        run: |
-          echo "🔍 Checking if Keycloak realm configuration has changed..."
-          
-          # Check if realm export file has changed in this commit
-          REALM_CHANGED=$(git diff HEAD~1 HEAD --name-only | grep -E "keycloak/.*\.json$|fly\.keycloak\.toml$|Dockerfile\.keycloak$" || true)
-          
-          if [ -n "$REALM_CHANGED" ]; then
-            echo "📝 Keycloak configuration files changed:"
-            echo "$REALM_CHANGED"
-            echo "keycloak_changed=true" >> $GITHUB_OUTPUT
-            echo "🔄 Keycloak deployment required"
-          else
-            echo "keycloak_changed=false" >> $GITHUB_OUTPUT
-            echo "✅ No Keycloak changes detected - skipping Keycloak deployment"
-          fi
-
-      - name: Deploy Alpha Keycloak (Fly.io)
-        id: deploy-keycloak
-        if: steps.check-keycloak-changes.outputs.keycloak_changed == 'true'
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          echo "🔐 Deploying Keycloak for Alpha environment (configuration changed)..."
-          
-          # Verify flyctl is available and authenticate
-          echo "🔧 Setting up Fly.io authentication..."
-          flyctl auth token $FLY_API_TOKEN
-          
-          # Create Keycloak app if it doesn't exist
-          echo "🏗️ Creating Fly.io Keycloak app..."
-          flyctl apps create proxy-smart-alpha-auth --org personal || echo "Keycloak app already exists"
-
-          # Create Postgres database for Keycloak first
-          echo "🗄️ Setting up Keycloak database..."
-          flyctl postgres create \
-            --name proxy-smart-alpha-db \
-            --region fra \
-            --initial-cluster-size 1 \
-            --vm-size shared-cpu-1x \
-            --volume-size 3 \
-            --password alphapassword123 || echo "Database already exists"
-          
-          # Deploy Keycloak using our existing configuration
-          echo "🚀 Deploying Keycloak app..."
-          flyctl deploy --config fly.keycloak.toml
-
-          # Try 10 times to ping Keycloak to ensure it's ready every 5 seconds
-          echo "⏳ Waiting for Keycloak to be ready..."
-          for i in {1..10}; do
-            if curl -s -o /dev/null -w "%{http_code}" https://proxy-smart-alpha-auth.fly.dev/ > /dev/null; then
-              echo "✅ Keycloak is ready!"
-              break
-            else
-              echo "🔄 Keycloak not ready yet, retrying in 5 seconds..."
-              sleep 5
-            fi
-          done
-          
-          echo "✅ Keycloak deployed at https://proxy-smart-alpha-auth.fly.dev"
-          echo "✅ Realm 'proxy-smart' imported and available"
-
-      - name: Skip Keycloak Deployment
-        if: steps.check-keycloak-changes.outputs.keycloak_changed == 'false'
-        run: |
-          echo "⏭️ Skipping Keycloak deployment - no configuration changes detected"
-          echo "🔐 Existing Keycloak instance at https://proxy-smart-alpha-auth.fly.dev will be used"
-      
-      - name: Deploy Alpha Backend (Fly.io)
-        id: deploy
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: |
-          echo "� Deploying Alpha version ${{ inputs.app_version }} to Fly.io..."
-
-          # Create Backend App if it doesn't exist
-          echo "🏗️ Creating Fly.io backend app..."
-          flyctl apps create proxy-smart-alpha --org personal || echo "Backend app already exists"
-          
-          # Deploy backend to its own Fly.io app
-          flyctl deploy --config fly.toml
-          
-          # Wait for deployment to be ready
-          echo "⏳ Waiting for backend deployment to be ready..."
-          for i in {1..10}; do
-            if curl -s -o /dev/null -w "%{http_code}" https://proxy-smart-alpha.fly.dev/ > /dev/null; then
-              echo "✅ Backend is ready!"
-              break
-            else
-              echo "🔄 Backend not ready yet, retrying in 5 seconds..."
-              sleep 5
-            fi
-          done
-
-          # Get deployed URLs
-          BACKEND_URL="https://proxy-smart-alpha.fly.dev"
-          KEYCLOAK_URL="https://proxy-smart-alpha-auth.fly.dev"
-          
-          # Set outputs
-          echo "fhir_server_url=$BACKEND_URL/proxy-smart-backend/hapi-fhir-server/R4" >> $GITHUB_OUTPUT
-          echo "keycloak_url=$KEYCLOAK_URL" >> $GITHUB_OUTPUT
-          echo "app_url=$BACKEND_URL" >> $GITHUB_OUTPUT
-          echo "deployment_status=success" >> $GITHUB_OUTPUT
-          echo "deployment_target=fly.io" >> $GITHUB_OUTPUT
-          
-          echo "✅ Alpha deployment completed successfully"
-          echo "📍 Backend: $BACKEND_URL"
-          echo "📍 FHIR Server (Proxied): $BACKEND_URL/proxy-smart-backend/hapi-fhir-server/R4"
-          echo "📍 Keycloak: $KEYCLOAK_URL"
-          echo "📍 Keycloak Admin: $KEYCLOAK_URL (admin/admin)"
-          echo "📍 SMART Realm: $KEYCLOAK_URL/realms/proxy-smart"
-          echo "📍 OIDC Discovery: $KEYCLOAK_URL/realms/proxy-smart/.well-known/openid_configuration"
-          
-          # Log deployment efficiency information
-          if [ "${{ steps.check-keycloak-changes.outputs.keycloak_changed }}" = "true" ]; then
-            echo "🔄 Keycloak was redeployed due to configuration changes"
-          else
-            echo "⚡ Deployment optimized - reused existing Keycloak instance"
-          fi
+    uses: ./.github/workflows/deploy-alpha.yml
+    with:
+      app_version: ${{ inputs.app_version }}
+      source_branch: ${{ inputs.source_branch }}
+    secrets:
+      FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+      ALPHA_DB_PASSWORD: ${{ secrets.ALPHA_DB_PASSWORD }}
 
   deploy-beta:
     name: Deploy Beta (VPS)
-    runs-on: ubuntu-latest
     if: inputs.deployment_stage == 'beta'
-    outputs:
-      fhir_server_url: ${{ steps.deploy.outputs.fhir_server_url }}
-      keycloak_url: ${{ steps.deploy.outputs.keycloak_url }}
-      deployment_status: ${{ steps.deploy.outputs.deployment_status }}
-      deployment_target: ${{ steps.deploy.outputs.deployment_target }}
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.source_branch }}
-      
-      - name: Setup Bun
-        uses: ./.github/actions/setup-bun-version
-      
-      - name: Deploy Beta (VPS)
-        id: deploy
-        run: |
-          echo "🚀 Deploying Beta version ${{ inputs.app_version }} to VPS..."
-          
-          # Setup SSH key
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
-          
-          # Create deployment script
-          cat > deploy-to-vps.sh << 'EOF'
-          #!/bin/bash
-          set -e
-          
-          echo "📦 Updating application on VPS..."
-          
-          # Navigate to application directory
-          cd /opt/proxy-smart-beta
-          
-          # Pull latest changes
-          git fetch origin
-          git checkout ${{ inputs.source_branch }}
-          git pull origin ${{ inputs.source_branch }}
-          
-          # Install dependencies and build
-          bun install --frozen-lockfile
-          cd backend
-          bun install --frozen-lockfile
-          bun run build
-          cd ..
-          
-          # Update environment variables
-          cat > backend/.env << ENVEOF
-          NODE_ENV=beta
-          VERSION=${{ inputs.app_version }}
-          BASE_URL=https://beta.proxy-smart.your-domain.com
-          PORT=3002
-          FHIR_SERVER_BASE=https://hapi.fhir.org/baseR4
-          KEYCLOAK_BASE_URL=https://auth-beta.proxy-smart.your-domain.com
-          KEYCLOAK_REALM=proxy-smart
-          DATABASE_URL=postgresql://proxyuser:secure_password@localhost:5432/proxy_smart_beta
-          ENVEOF
-          
-          # Restart services
-          sudo systemctl restart proxy-smart-beta
-          sudo systemctl restart nginx
-          
-          # Wait for service to be ready
-          sleep 10
-          
-          echo "✅ Beta deployment completed"
-          EOF
-          
-          # Execute deployment script on VPS
-          scp deploy-to-vps.sh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}:/tmp/
-          ssh ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} "chmod +x /tmp/deploy-to-vps.sh && /tmp/deploy-to-vps.sh"
-          
-          # Test deployment
-          VPS_URL="https://beta.proxy-smart.com"
-          
-          # Wait for deployment to be ready
-          echo "⏳ Waiting for VPS deployment to be ready..."
-          timeout 300s bash -c "until curl -f $VPS_URL/health; do sleep 10; done"
-          
-          # Set outputs
-          echo "fhir_server_url=$VPS_URL/proxy-smart-backend/hapi-fhir-server/R4" >> $GITHUB_OUTPUT
-          echo "keycloak_url=https://auth-beta.proxy-smart.your-domain.com" >> $GITHUB_OUTPUT
-          echo "deployment_status=success" >> $GITHUB_OUTPUT
-          echo "deployment_target=vps" >> $GITHUB_OUTPUT
-          
-          echo "✅ Beta deployment completed successfully"
-          echo "📍 FHIR Server (Proxied): $VPS_URL/proxy-smart-backend/hapi-fhir-server/R4"
-          echo "📍 Keycloak: https://auth-beta.proxy-smart.your-domain.com"
+    uses: ./.github/workflows/deploy-beta.yml
+    with:
+      app_version: ${{ inputs.app_version }}
+      source_branch: ${{ inputs.source_branch }}
+    secrets:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
 
   deploy-production:
     name: Deploy Production (Azure/AWS)
-    runs-on: ubuntu-latest
     if: inputs.deployment_stage == 'production'
-    outputs:
-      fhir_server_url: ${{ steps.deploy.outputs.fhir_server_url }}
-      keycloak_url: ${{ steps.deploy.outputs.keycloak_url }}
-      deployment_status: ${{ steps.deploy.outputs.deployment_status }}
-      deployment_target: ${{ steps.deploy.outputs.deployment_target }}
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.source_branch }}
-      
-      - name: Setup Bun
-        uses: ./.github/actions/setup-bun-version
-      
-      - name: Setup Cloud CLI (Azure/AWS)
-        run: |
-          # Install Azure CLI
-          curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
-          
-          # Install AWS CLI
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          sudo ./aws/install
-      
-      - name: Deploy Production (Azure/AWS)
-        id: deploy
-        env:
-          AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-        run: |
-          echo "🚀 Deploying Production version ${{ inputs.app_version }} to Azure/AWS..."
-          
-          # Determine deployment target based on available credentials
-          if [ -n "$AZURE_CREDENTIALS" ]; then
-            echo "📱 Using Azure for production deployment..."
-            DEPLOYMENT_TARGET="azure"
-            
-            # Login to Azure
-            echo "$AZURE_CREDENTIALS" | az login --service-principal -u "$(echo "$AZURE_CREDENTIALS" | jq -r .clientId)" -p "$(echo "$AZURE_CREDENTIALS" | jq -r .clientSecret)" --tenant "$(echo "$AZURE_CREDENTIALS" | jq -r .tenantId)"
-            
-            # Deploy to Azure Container Apps or Azure App Service
-            RESOURCE_GROUP="proxy-smart-production"
-            APP_NAME="proxy-smart-prod"
-            
-            # Build and push container image to Azure Container Registry
-            az acr build --registry proxysmartregistry --image proxy-smart:${{ inputs.app_version }} .
-            
-            # Deploy to Azure Container Apps
-            az containerapp update \
-              --name $APP_NAME \
-              --resource-group $RESOURCE_GROUP \
-              --image proxysmartregistry.azurecr.io/proxy-smart:${{ inputs.app_version }} \
-              --set-env-vars \
-                NODE_ENV=production \
-                VERSION=${{ inputs.app_version }} \
-                BASE_URL=https://proxy-smart.your-production-domain.com \
-                FHIR_SERVER_BASE=https://hapi.fhir.org/baseR4 \
-                KEYCLOAK_BASE_URL=https://auth.your-production-domain.com
-            
-            PRODUCTION_URL="https://proxy-smart.your-production-domain.com"
-            KEYCLOAK_URL="https://auth.your-production-domain.com"
-            
-          elif [ -n "$AWS_ACCESS_KEY_ID" ]; then
-            echo "☁️ Using AWS for production deployment..."
-            DEPLOYMENT_TARGET="aws"
-            
-            # Configure AWS CLI
-            aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
-            aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
-            aws configure set default.region $AWS_REGION
-            
-            # Deploy to AWS ECS or AWS App Runner
-            CLUSTER_NAME="proxy-smart-production"
-            SERVICE_NAME="proxy-smart-prod"
-            
-            # Build and push to ECR
-            aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com
-            
-            docker build -t proxy-smart:${{ inputs.app_version }} .
-            docker tag proxy-smart:${{ inputs.app_version }} ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/proxy-smart:${{ inputs.app_version }}
-            docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.$AWS_REGION.amazonaws.com/proxy-smart:${{ inputs.app_version }}
-            
-            # Update ECS service
-            aws ecs update-service \
-              --cluster $CLUSTER_NAME \
-              --service $SERVICE_NAME \
-              --force-new-deployment
-            
-            # Wait for deployment to complete
-            aws ecs wait services-stable --cluster $CLUSTER_NAME --services $SERVICE_NAME
-            
-            PRODUCTION_URL="https://proxy-smart.your-production-domain.com"
-            KEYCLOAK_URL="https://auth.your-production-domain.com"
-            
-          else
-            echo "❌ No cloud credentials found for production deployment"
-            exit 1
-          fi
-          
-          # Wait for deployment to be ready
-          echo "⏳ Waiting for production deployment to be ready..."
-          timeout 300s bash -c "until curl -f $PRODUCTION_URL/health; do sleep 10; done"
-          
-          # Set outputs
-          echo "fhir_server_url=$PRODUCTION_URL/proxy-smart-backend/hapi-fhir-server/R4" >> $GITHUB_OUTPUT
-          echo "keycloak_url=$KEYCLOAK_URL" >> $GITHUB_OUTPUT
-          echo "deployment_status=success" >> $GITHUB_OUTPUT
-          echo "deployment_target=$DEPLOYMENT_TARGET" >> $GITHUB_OUTPUT
-          
-          echo "✅ Production deployment completed successfully"
-          echo "📍 FHIR Server (Proxied): $PRODUCTION_URL/proxy-smart-backend/hapi-fhir-server/R4"
-          echo "📍 Keycloak: $KEYCLOAK_URL"
-          echo "🎯 Deployment Target: $DEPLOYMENT_TARGET"
+    uses: ./.github/workflows/deploy-production.yml
+    with:
+      app_version: ${{ inputs.app_version }}
+      source_branch: ${{ inputs.source_branch }}
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
 
   output-deployment-urls:
     name: Output Deployment URLs
@@ -461,6 +138,7 @@ jobs:
             if [ "$BETA_RESULT" = "success" ]; then
               echo "fhir_server_url=${{ needs.deploy-beta.outputs.fhir_server_url }}" >> $GITHUB_OUTPUT
               echo "keycloak_url=${{ needs.deploy-beta.outputs.keycloak_url }}" >> $GITHUB_OUTPUT
+              echo "app_url=${{ needs.deploy-beta.outputs.app_url }}" >> $GITHUB_OUTPUT
               echo "deployment_status=${{ needs.deploy-beta.outputs.deployment_status }}" >> $GITHUB_OUTPUT
               echo "deployment_target=${{ needs.deploy-beta.outputs.deployment_target }}" >> $GITHUB_OUTPUT
             else
@@ -475,6 +153,7 @@ jobs:
             if [ "$PROD_RESULT" = "success" ]; then
               echo "fhir_server_url=${{ needs.deploy-production.outputs.fhir_server_url }}" >> $GITHUB_OUTPUT
               echo "keycloak_url=${{ needs.deploy-production.outputs.keycloak_url }}" >> $GITHUB_OUTPUT
+              echo "app_url=${{ needs.deploy-production.outputs.app_url }}" >> $GITHUB_OUTPUT
               echo "deployment_status=${{ needs.deploy-production.outputs.deployment_status }}" >> $GITHUB_OUTPUT
               echo "deployment_target=${{ needs.deploy-production.outputs.deployment_target }}" >> $GITHUB_OUTPUT
             else
@@ -482,204 +161,6 @@ jobs:
               echo "deployment_target=azure-or-aws" >> $GITHUB_OUTPUT
             fi
           fi
-      
-      - name: Deployment Summary
-        run: |
-          # Get current timestamp
-          TIMESTAMP=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
-          
-          echo "# 🚀 Deployment Summary for ${{ inputs.deployment_stage }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          # Deployment Status Section
-          DEPLOYMENT_STATUS="${{ steps.set-outputs.outputs.deployment_status }}"
-          echo "Deployment status: $DEPLOYMENT_STATUS"
-          
-          if [ "$DEPLOYMENT_STATUS" = "success" ]; then
-            echo "## ✅ Deployment Successful" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Your ${{ inputs.deployment_stage }} environment has been successfully deployed and is ready for use!" >> $GITHUB_STEP_SUMMARY
-          elif [ "$DEPLOYMENT_STATUS" = "cancelled" ]; then
-            echo "## 🚫 Deployment Cancelled" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "The deployment to ${{ inputs.deployment_stage }} environment was cancelled manually or due to a timeout." >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "**Possible reasons:**" >> $GITHUB_STEP_SUMMARY
-            echo "- Manual cancellation by user" >> $GITHUB_STEP_SUMMARY
-            echo "- Workflow timeout (usually after 6 hours)" >> $GITHUB_STEP_SUMMARY
-            echo "- Resource constraints on the target platform" >> $GITHUB_STEP_SUMMARY
-            echo "- Network connectivity issues" >> $GITHUB_STEP_SUMMARY
-          elif [ "$DEPLOYMENT_STATUS" = "failure" ] || [ "$DEPLOYMENT_STATUS" = "failed" ]; then
-            echo "## ❌ Deployment Failed" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "The deployment to ${{ inputs.deployment_stage }} environment has failed. Please check the logs for details." >> $GITHUB_STEP_SUMMARY
-          else
-            echo "## ⚠️ Deployment Status Unknown" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "The deployment to ${{ inputs.deployment_stage }} environment finished with status: \`$DEPLOYMENT_STATUS\`" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Please check the deployment logs for more information." >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 📋 Deployment Details" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Field | Value |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|-------|" >> $GITHUB_STEP_SUMMARY
-          echo "| **Environment** | \`${{ inputs.deployment_stage }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Version** | \`${{ inputs.app_version }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Source Branch** | \`${{ inputs.source_branch }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Target Platform** | \`${{ steps.set-outputs.outputs.deployment_target }}\` |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Deployed At** | $TIMESTAMP |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Run ID** | [\`${{ github.run_id }}\`](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) |" >> $GITHUB_STEP_SUMMARY
-          echo "| **Commit** | [\`${{ github.sha }}\`](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}) |" >> $GITHUB_STEP_SUMMARY
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 🔗 Service URLs" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          
-          if [ "$DEPLOYMENT_STATUS" = "success" ]; then
-            echo "### 🏥 FHIR API Endpoints" >> $GITHUB_STEP_SUMMARY
-            echo "- **FHIR Server (Proxied)**: [${{ steps.set-outputs.outputs.fhir_server_url }}](${{ steps.set-outputs.outputs.fhir_server_url }})" >> $GITHUB_STEP_SUMMARY
-            echo "- **Health Check**: [${{ steps.set-outputs.outputs.fhir_server_url }}/metadata](${{ steps.set-outputs.outputs.fhir_server_url }}/metadata)" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            echo "### 🔐 Authentication & Authorization" >> $GITHUB_STEP_SUMMARY
-            echo "- **Keycloak Console**: [${{ steps.set-outputs.outputs.keycloak_url }}](${{ steps.set-outputs.outputs.keycloak_url }})" >> $GITHUB_STEP_SUMMARY
-            echo "- **SMART Realm**: [${{ steps.set-outputs.outputs.keycloak_url }}/realms/proxy-smart](${{ steps.set-outputs.outputs.keycloak_url }}/realms/proxy-smart)" >> $GITHUB_STEP_SUMMARY
-            echo "- **OIDC Discovery**: [${{ steps.set-outputs.outputs.keycloak_url }}/realms/proxy-smart/.well-known/openid_configuration](${{ steps.set-outputs.outputs.keycloak_url }}/realms/proxy-smart/.well-known/openid_configuration)" >> $GITHUB_STEP_SUMMARY
-            
-            # Environment-specific information
-            if [ "${{ inputs.deployment_stage }}" = "alpha" ]; then
-              BACKEND_URL="https://proxy-smart-alpha.fly.dev"
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "### 🧪 Alpha Environment Specifics" >> $GITHUB_STEP_SUMMARY
-              echo "- **Backend Health**: [$BACKEND_URL/health]($BACKEND_URL/health)" >> $GITHUB_STEP_SUMMARY
-              echo "- **Admin Interface**: [$BACKEND_URL/admin]($BACKEND_URL/admin)" >> $GITHUB_STEP_SUMMARY
-              echo "- **Platform**: Fly.io (Frankfurt region)" >> $GITHUB_STEP_SUMMARY
-              echo "- **Admin Credentials**: admin/admin (for testing only)" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "🔬 **Testing**: This is an alpha environment. Use for development and integration testing." >> $GITHUB_STEP_SUMMARY
-              
-            elif [ "${{ inputs.deployment_stage }}" = "beta" ]; then
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "### 🧪 Beta Environment Specifics" >> $GITHUB_STEP_SUMMARY
-              echo "- **Platform**: VPS (Self-hosted)" >> $GITHUB_STEP_SUMMARY
-              echo "- **Database**: PostgreSQL" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "🔍 **Testing**: This is a beta environment. Use for pre-production testing and validation." >> $GITHUB_STEP_SUMMARY
-              
-            elif [ "${{ inputs.deployment_stage }}" = "production" ]; then
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "### 🏭 Production Environment Specifics" >> $GITHUB_STEP_SUMMARY
-              echo "- **Platform**: ${{ steps.set-outputs.outputs.deployment_target }}" >> $GITHUB_STEP_SUMMARY
-              echo "- **High Availability**: Enabled" >> $GITHUB_STEP_SUMMARY
-              echo "- **Monitoring**: Active" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "🚨 **Production**: This is the live production environment. Use with caution!" >> $GITHUB_STEP_SUMMARY
-            fi
-            
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "## 🧪 Quick Test Commands" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "Test your deployment with these curl commands:" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-            echo "# Test FHIR server capability statement" >> $GITHUB_STEP_SUMMARY
-            echo "curl -H \"Accept: application/fhir+json\" \"${{ steps.set-outputs.outputs.fhir_server_url }}/metadata\"" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "# Test OIDC discovery endpoint" >> $GITHUB_STEP_SUMMARY
-            echo "curl \"${{ steps.set-outputs.outputs.keycloak_url }}/realms/proxy-smart/.well-known/openid_configuration\"" >> $GITHUB_STEP_SUMMARY
-            
-            if [ "${{ inputs.deployment_stage }}" = "alpha" ]; then
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "# Test backend health (Alpha only)" >> $GITHUB_STEP_SUMMARY
-              echo "curl \"https://proxy-smart-alpha.fly.dev/health\"" >> $GITHUB_STEP_SUMMARY
-            fi
-            
-            echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
-            
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "## 📊 Next Steps" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            if [ "${{ inputs.deployment_stage }}" = "alpha" ]; then
-              echo "- 🧪 Run integration tests against the alpha environment" >> $GITHUB_STEP_SUMMARY
-              echo "- 🔍 Test SMART on FHIR app launches with the Keycloak realm" >> $GITHUB_STEP_SUMMARY
-              echo "- 📝 Validate FHIR operations through the proxy" >> $GITHUB_STEP_SUMMARY
-              echo "- 🚀 Consider promoting to beta if all tests pass" >> $GITHUB_STEP_SUMMARY
-              
-            elif [ "${{ inputs.deployment_stage }}" = "beta" ]; then
-              echo "- 🔍 Perform thorough testing and validation" >> $GITHUB_STEP_SUMMARY
-              echo "- 📋 Run security and performance tests" >> $GITHUB_STEP_SUMMARY
-              echo "- 👥 Invite stakeholders for user acceptance testing" >> $GITHUB_STEP_SUMMARY
-              echo "- 📈 Monitor logs and performance metrics" >> $GITHUB_STEP_SUMMARY
-              echo "- 🚀 Consider promoting to production if validation passes" >> $GITHUB_STEP_SUMMARY
-              
-            elif [ "${{ inputs.deployment_stage }}" = "production" ]; then
-              echo "- 📊 Monitor application health and performance" >> $GITHUB_STEP_SUMMARY
-              echo "- 🔔 Set up alerts for any issues" >> $GITHUB_STEP_SUMMARY
-              echo "- 📋 Update documentation with production URLs" >> $GITHUB_STEP_SUMMARY
-              echo "- 👥 Notify users that the new version is available" >> $GITHUB_STEP_SUMMARY
-              echo "- 📈 Monitor usage analytics and user feedback" >> $GITHUB_STEP_SUMMARY
-            fi
-            
-          else
-            echo "❌ **Deployment unsuccessful** - No service URLs available" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "## 🔧 Troubleshooting Guide" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            
-            if [ "$DEPLOYMENT_STATUS" = "cancelled" ]; then
-              echo "### 🚫 Deployment was cancelled" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "**Quick Recovery Steps:**" >> $GITHUB_STEP_SUMMARY
-              echo "1. 🔄 **Re-run the workflow** - Click 'Re-run all jobs' button above" >> $GITHUB_STEP_SUMMARY
-              echo "2. 🕐 **Check timeouts** - Ensure sufficient time for deployment (Fly.io deployments can take 10-15 minutes)" >> $GITHUB_STEP_SUMMARY
-              echo "3. 📊 **Monitor resources** - Check if the target platform has sufficient resources" >> $GITHUB_STEP_SUMMARY
-              echo "4. 🌐 **Verify connectivity** - Ensure GitHub can reach the deployment target" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              
-              if [ "${{ inputs.deployment_stage }}" = "alpha" ]; then
-                echo "**Alpha-specific troubleshooting:**" >> $GITHUB_STEP_SUMMARY
-                echo "- Check Fly.io status at https://status.fly.io/" >> $GITHUB_STEP_SUMMARY
-                echo "- Verify FLY_API_TOKEN secret is properly configured" >> $GITHUB_STEP_SUMMARY
-                echo "- Consider using a different Fly.io region if Frankfurt (fra) is having issues" >> $GITHUB_STEP_SUMMARY
-              elif [ "${{ inputs.deployment_stage }}" = "beta" ]; then
-                echo "**Beta-specific troubleshooting:**" >> $GITHUB_STEP_SUMMARY
-                echo "- Check VPS connectivity and SSH access" >> $GITHUB_STEP_SUMMARY
-                echo "- Verify VPS_SSH_KEY, VPS_HOST, and VPS_USER secrets" >> $GITHUB_STEP_SUMMARY
-                echo "- Ensure the VPS has sufficient disk space and memory" >> $GITHUB_STEP_SUMMARY
-              elif [ "${{ inputs.deployment_stage }}" = "production" ]; then
-                echo "**Production-specific troubleshooting:**" >> $GITHUB_STEP_SUMMARY
-                echo "- Check Azure/AWS service status" >> $GITHUB_STEP_SUMMARY
-                echo "- Verify cloud provider credentials and permissions" >> $GITHUB_STEP_SUMMARY
-                echo "- Ensure container registry is accessible" >> $GITHUB_STEP_SUMMARY
-              fi
-              
-            else
-              echo "### ❌ Deployment failed with errors" >> $GITHUB_STEP_SUMMARY
-              echo "" >> $GITHUB_STEP_SUMMARY
-              echo "**Investigation Steps:**" >> $GITHUB_STEP_SUMMARY
-              echo "1. 📋 **Check the deployment logs** above for specific error messages" >> $GITHUB_STEP_SUMMARY
-              echo "2. 🔐 **Verify secrets** - Ensure all required secrets are properly configured" >> $GITHUB_STEP_SUMMARY
-              echo "3. 🌐 **Test connectivity** - Check if the target platform (${{ steps.set-outputs.outputs.deployment_target }}) is accessible" >> $GITHUB_STEP_SUMMARY
-              echo "4. 🏗️ **Validate configuration** - Review deployment configuration files and environment variables" >> $GITHUB_STEP_SUMMARY
-              echo "5. 🔄 **Re-run deployment** after addressing the identified issues" >> $GITHUB_STEP_SUMMARY
-            fi
-            
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "### 📞 Need Help?" >> $GITHUB_STEP_SUMMARY
-            echo "" >> $GITHUB_STEP_SUMMARY
-            echo "- 📖 **Documentation**: Check the deployment docs in \`docs/\` directory" >> $GITHUB_STEP_SUMMARY
-            echo "- 🐛 **Create an issue**: [Report deployment problems](${{ github.server_url }}/${{ github.repository }}/issues/new)" >> $GITHUB_STEP_SUMMARY
-            echo "- 💬 **Discussion**: Start a [discussion](${{ github.server_url }}/${{ github.repository }}/discussions) for general help" >> $GITHUB_STEP_SUMMARY
-            echo "- 🔍 **Previous runs**: [Check workflow history](${{ github.server_url }}/${{ github.repository }}/actions/workflows/deployment-strategy.yml)" >> $GITHUB_STEP_SUMMARY
-          fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "*Deployment completed at $TIMESTAMP*" >> $GITHUB_STEP_SUMMARY
 
   # Discord notification on successful deployment
   notify-deployment-success:
@@ -691,57 +172,50 @@ jobs:
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Send Discord deployment success notification
-        if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
+      - name: Discord Deployment Success Notification
         uses: ./.github/actions/discord-notify
+        if: env.DISCORD_WEBHOOK_URL != ''
         with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          notification-type: 'deployment'
-          title: '🚀 Deployment Successful: ${{ inputs.deployment_stage }} v${{ inputs.app_version }}'
-          description: 'Successfully deployed to ${{ inputs.deployment_stage }} environment on ${{ needs.output-deployment-urls.outputs.deployment_target }}!'
-          version: ${{ inputs.app_version }}
-          deployment-stage: ${{ inputs.deployment_stage }}
-          deployment-target: ${{ needs.output-deployment-urls.outputs.deployment_target }}
-          fhir-server-url: ${{ needs.output-deployment-urls.outputs.fhir_server_url }}
-          keycloak-url: ${{ needs.output-deployment-urls.outputs.keycloak_url }}
-          app-url: ${{ needs.output-deployment-urls.outputs.app_url }}
-          repository: ${{ github.repository }}
-          commit-sha: ${{ github.sha }}
-          actor: ${{ github.actor }}
-          color: '00FF00'
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          username: "Proxy Smart Bot"
+          avatar_url: "https://avatars.githubusercontent.com/u/9919?s=200&v=4"
+          title: "🚀 Deployment Successful!"
+          description: |
+            **Environment**: `${{ inputs.deployment_stage }}`
+            **Version**: `${{ inputs.app_version }}`
+            **Target**: `${{ needs.output-deployment-urls.outputs.deployment_target }}`
+            
+            **Service URLs**:
+            🏥 [FHIR Server](${{ needs.output-deployment-urls.outputs.fhir_server_url }})
+            🔐 [Keycloak Auth](${{ needs.output-deployment-urls.outputs.keycloak_url }})
+            📱 [Main App](${{ needs.output-deployment-urls.outputs.app_url }})
+          color: "3066993"
+          timestamp: true
 
   # Discord notification on deployment failure
   notify-deployment-failure:
     name: Discord Deployment Failure Notification
     needs: [output-deployment-urls]
-    if: ${{ always() && needs.output-deployment-urls.outputs.deployment_status != 'success' && needs.output-deployment-urls.outputs.deployment_status != '' }}
+    if: ${{ always() && needs.output-deployment-urls.outputs.deployment_status != 'success' }}
     runs-on: ubuntu-latest
     env:
       DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
     
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-
-      - name: Send Discord deployment failure notification
-        if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
+      - name: Discord Deployment Failure Notification
         uses: ./.github/actions/discord-notify
+        if: env.DISCORD_WEBHOOK_URL != ''
         with:
-          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          notification-type: 'error'
-          title: '❌ Deployment Failed: ${{ inputs.deployment_stage }} v${{ inputs.app_version }}'
-          description: 'Failed to deploy to ${{ inputs.deployment_stage }} environment. Please check the workflow logs for details.'
-          version: ${{ inputs.app_version }}
-          deployment-stage: ${{ inputs.deployment_stage }}
-          deployment-target: ${{ needs.output-deployment-urls.outputs.deployment_target || 'unknown' }}
-          repository: ${{ github.repository }}
-          commit-sha: ${{ github.sha }}
-          actor: ${{ github.actor }}
-          color: 'FF0000'
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          username: "Proxy Smart Bot"
+          avatar_url: "https://avatars.githubusercontent.com/u/9919?s=200&v=4"
+          title: "❌ Deployment Failed"
+          description: |
+            **Environment**: `${{ inputs.deployment_stage }}`
+            **Version**: `${{ inputs.app_version }}`
+            **Status**: `${{ needs.output-deployment-urls.outputs.deployment_status }}`
+            **Target**: `${{ needs.output-deployment-urls.outputs.deployment_target }}`
+            
+            [View Logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          color: "15158332"
+          timestamp: true

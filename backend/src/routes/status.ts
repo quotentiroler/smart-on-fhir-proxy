@@ -77,7 +77,8 @@ export const statusRoutes = new Elysia({ tags: ['server', 'info', 'health'] })
         keycloak: t.Object({
           status: t.String(),
           accessible: t.Boolean(),
-          realm: t.String()
+          realm: t.String(),
+          lastConnected: t.Optional(t.String())
         }),
         memory: t.Object({
           used: t.Number(),

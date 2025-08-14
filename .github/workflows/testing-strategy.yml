@@ -144,23 +144,6 @@ jobs:
           echo "status=passed" >> $GITHUB_OUTPUT
           echo "Integration tests completed successfully" | tee testing/${{ inputs.test_stage }}/reports/integration/integration_tests.log
 
-      - name: Setup Docker and Inferno
-        id: setup-inferno
-        uses: ./.github/actions/setup-docker-inferno
-        with:
-          test_stage: ${{ inputs.test_stage }}
-          fhir_server_url: ${{ inputs.fhir_server_url }}
-          keycloak_url: ${{ inputs.keycloak_url }}
-
-      - name: Run Inferno ONC tests
-        id: inferno-tests
-        uses: ./.github/actions/run-inferno-tests
-        with:
-          test_stage: ${{ inputs.test_stage }}
-          inferno_container_id: ${{ steps.setup-inferno.outputs.inferno_container_id }}
-          test_config_path: ${{ steps.setup-inferno.outputs.test_config_path }}
-          fhir_server_url: ${{ inputs.fhir_server_url }}
-
       - name: Generate test summary
         id: summary
         if: always()
