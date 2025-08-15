@@ -253,6 +253,11 @@ def main():
     api_key = os.environ.get("OPENAI_API_KEY")
     repo_root = os.environ.get("GITHUB_WORKSPACE", ".")
     
+    # Validate API key
+    if not api_key:
+        print("❌ OPENAI_API_KEY environment variable is required")
+        sys.exit(1)
+    
     print("🔄 Applying reviewed backend fixes")
     print(f"📝 Reading fixes from: {fixes_file}")
     
