@@ -173,15 +173,7 @@ jobs:
 
       - name: Setup Python for Frontend AI fixes
         if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.frontend-build.outcome == 'failure') && steps.frontend-app-auth.outputs.token }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Python dependencies for Frontend AI fixes
-        if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.frontend-build.outcome == 'failure') && steps.frontend-app-auth.outputs.token }}
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r scripts/requirements.txt
+        uses: ./.github/actions/setup-python-ai
 
       - name: Auto-fix Frontend and retry build
         if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.frontend-build.outcome == 'failure') && steps.frontend-app-auth.outputs.token }}
@@ -288,15 +280,7 @@ jobs:
 
       - name: Setup Python for Frontend Test AI fixes
         if: ${{ inputs.run_tests }} && steps.test-status.outputs.TEST_FAILED == 'true' && steps.frontend-test-app-auth.outputs.token
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Python dependencies for Frontend Test AI fixes
-        if: ${{ inputs.run_tests }} && steps.test-status.outputs.TEST_FAILED == 'true' && steps.frontend-test-app-auth.outputs.token
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r scripts/requirements.txt
+        uses: ./.github/actions/setup-python-ai
 
       - name: Auto-fix Frontend Tests and retry
         if: ${{ inputs.run_tests }} && steps.test-status.outputs.TEST_FAILED == 'true' && steps.frontend-test-app-auth.outputs.token

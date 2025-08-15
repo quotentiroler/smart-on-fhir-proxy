@@ -125,15 +125,7 @@ jobs:
 
       - name: Setup Python for Backend AI fixes
         if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') && steps.backend-app-auth.outputs.token }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Python dependencies for Backend AI fixes
-        if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') && steps.backend-app-auth.outputs.token }}
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r scripts/requirements.txt
+        uses: ./.github/actions/setup-python-ai
 
       - name: Propose Backend Fixes with Junior AI
         if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') && steps.backend-app-auth.outputs.token }}
@@ -242,15 +234,7 @@ jobs:
 
       - name: Setup Python for Backend Test AI fixes
         if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token }}
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Python dependencies for Backend Test AI fixes
-        if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token }}
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r scripts/requirements.txt
+        uses: ./.github/actions/setup-python-ai
 
       - name: Propose Backend Test Fixes with Junior AI
         if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token }}
