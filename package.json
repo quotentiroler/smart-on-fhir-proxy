@@ -91,6 +91,7 @@
     "version:set": "node scripts/version.js set",
     "version:check": "node scripts/version.js check",
     "version:base": "node scripts/version.js base",
+    "ai:commit-comment": "node scripts/ai-commit-comment.mjs",
     "precommit": "bun run version:sync"
   },
   "type": "module",

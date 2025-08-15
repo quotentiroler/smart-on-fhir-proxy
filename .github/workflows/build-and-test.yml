@@ -1,4 +1,4 @@
-name: Build
+name: Build & Test
 
 on:
   workflow_call:
@@ -13,6 +13,19 @@ on:
         required: false
         type: boolean
         default: false
+    outputs:
+      backend_success:
+        description: "Whether backend build was successful"
+        value: ${{ jobs.backend.outputs.backend_success }}
+      frontend_success:
+        description: "Whether frontend build was successful"
+        value: ${{ jobs.frontend.outputs.frontend_success }}
+      backend_tests_success:
+        description: "Whether backend tests were successful"
+        value: ${{ jobs.backend.outputs.backend_tests_success }}
+      frontend_tests_success:
+        description: "Whether frontend tests were successful"
+        value: ${{ jobs.frontend.outputs.frontend_tests_success }}
     secrets:
       APP_ID:
         required: false
@@ -22,313 +35,26 @@ on:
         required: false
 
 jobs:
-  build:
-    name: Build Project
-    runs-on: ubuntu-latest
-    outputs:
-      backend_success: ${{ steps.backend-build.outcome == 'success' || steps.backend-fix-retry.outputs.backend_build_success == 'true' }}
-      frontend_success: ${{ steps.frontend-build.outputs.FRONTEND_BUILD_FAILED != 'true' || steps.frontend-fix-retry.outputs.frontend_build_success == 'true' }}
+  backend:
+    name: Backend Build & Test
+    uses: ./.github/workflows/build-test-backend.yml
+    with:
+      run_tests: ${{ inputs.run_tests }}
+      fail_on_test_failure: ${{ inputs.fail_on_test_failure }}
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Bun with version scripts
-        uses: ./.github/actions/setup-bun-version
-        with:
-          checkout: 'false'  # Skip checkout since we already did it
-
-      # === BACKEND BUILD PHASE ===
-      - name: Build Backend
-        id: backend-build
-        continue-on-error: true
-        run: |
-          echo "=== Building Backend ==="
-          cd backend
-          bun install
-          bun run build 2>&1 | tee ../backend-build.log
-
-      - name: Authenticate as GitHub App (Backend)
-        if: steps.backend-build.outcome == 'failure'
-        id: backend-app-auth
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-
-      - name: Setup Python for Backend AI fixes
-        if: steps.backend-build.outcome == 'failure' && steps.backend-app-auth.outputs.token
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Python dependencies for Backend AI fixes
-        if: steps.backend-build.outcome == 'failure' && steps.backend-app-auth.outputs.token
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r scripts/requirements.txt
-
-      - name: Propose Backend Fixes with Junior AI
-        if: steps.backend-build.outcome == 'failure' && steps.backend-app-auth.outputs.token
-        id: backend-propose
-        continue-on-error: true
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          echo "🤖 Junior AI proposing initial backend fixes..."
-          python scripts/propose-backend-fixes.py backend-build.log > scripts/proposed-backend-fixes.json
-
-      - name: Review Proposed Backend Fixes with Senior AI
-        if: steps.backend-build.outcome == 'failure' && steps.backend-app-auth.outputs.token
-        id: backend-review
-        continue-on-error: true
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          echo "🎓 Senior AI reviewing proposed backend fixes..."
-          python scripts/review-backend-fixes.py scripts/proposed-backend-fixes.json backend-build.log > scripts/reviewed-backend-fixes.json
-
-      - name: Apply Reviewed Backend Fixes and retry build
-        if: steps.backend-build.outcome == 'failure' && steps.backend-app-auth.outputs.token
-        id: backend-fix-retry
-        continue-on-error: true
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GITHUB_TOKEN: ${{ steps.backend-app-auth.outputs.token }}
-        run: |
-          echo "🔧 Applying reviewed backend fixes..."
-          python scripts/apply-backend-fixes.py scripts/reviewed-backend-fixes.json
-
-      - name: Fail if backend build failed and AI couldn't fix it
-        if: steps.backend-build.outcome == 'failure' && steps.backend-fix-retry.outputs.backend_build_success != 'true'
-        run: |
-          echo "❌ Backend build failed and AI fixes did not resolve the issues"
-          exit 1
-
-      
-      - name: Generate client APIs
-        run: |
-          echo "Generating client APIs..."
-          bun install
-          cd backend && bun install && cd ..
-          cd ui && bun install && cd ..
-          bun run generate:ui:normalized
-          
-          # Configure git for potential commits
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          
-          # Check if there are changes to commit (files should already be staged by generate:ui:normalized)
-          if git diff --staged --quiet; then
-            echo "No API client changes to commit"
-          else
-            git commit -m "🤖 Update client APIs from build process"
-            git push
-            echo "✅ API client changes committed and pushed"
-          fi
-
-      # === FRONTEND BUILD PHASE ===
-      - name: Build Frontend
-        id: frontend-build
-        continue-on-error: true
-        run: |
-          echo "=== Building Frontend ==="
-          cd ui
-          bun install
-          if ! bun run build 2>&1 | tee ../frontend-build.log; then
-            echo "FRONTEND_BUILD_FAILED=true" >> $GITHUB_OUTPUT
-            exit 1
-          else
-            echo "FRONTEND_BUILD_FAILED=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Authenticate as GitHub App (Frontend)
-        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true'
-        id: frontend-app-auth
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-
-      - name: Setup Python for Frontend AI fixes
-        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Python dependencies for Frontend AI fixes
-        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r scripts/requirements.txt
-
-      - name: Auto-fix Frontend and retry build
-        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token
-        id: frontend-fix-retry
-        continue-on-error: true
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GITHUB_TOKEN: ${{ steps.frontend-app-auth.outputs.token }}
-        run: |
-          python scripts/apply-frontend-fixes.py frontend-build.log
-
-      - name: Fail if frontend build failed and AI couldn't fix it
-        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true' && steps.frontend-fix-retry.outputs.frontend_build_success != 'true'
-        run: |
-          echo "❌ Frontend build failed and AI fixes did not resolve the issues"
-          exit 1
-
-      - name: Upload build artifacts
-        if: ${{ !startsWith(github.ref, 'refs/heads/dev/') }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifacts
-          path: |
-            backend/dist/
-            ui/dist/
-          retention-days: 1
-
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    needs: build
-    if: ${{ inputs.run_tests && needs.build.outputs.backend_success == 'true' && needs.build.outputs.frontend_success == 'true' }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Bun with version scripts
-        uses: ./.github/actions/setup-bun-version
-        with:
-          checkout: 'false'  # Skip checkout since we already did it
-
-      - name: Install dependencies
-        run: |
-          echo "Installing dependencies for testing..."
-          cd backend && bun install && cd ..
-          cd ui && bun install && cd ..
-
-      - name: Test backend
-        continue-on-error: true
-        id: test-backend
-        run: |
-          echo "Running backend tests..."
-          cd backend
-          bun test 2>&1 | tee ../backend-test.log
-
-      - name: Test UI
-        continue-on-error: true
-        timeout-minutes: 5
-        id: test-ui
-        env:
-          CI: true
-        run: |
-          echo "Running UI tests..."
-          cd ui
-          bun test 2>&1 | tee ../frontend-test.log
-
-      # === BACKEND TEST FIX PHASE ===
-      - name: Authenticate as GitHub App (Backend Tests)
-        if: steps.test-backend.outcome == 'failure'
-        id: backend-test-app-auth
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-
-      - name: Setup Python for Backend Test AI fixes
-        if: steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Python dependencies for Backend Test AI fixes
-        if: steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r scripts/requirements.txt
-
-      - name: Propose Backend Test Fixes with Junior AI
-        if: steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
-        id: backend-test-propose
-        continue-on-error: true
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          echo "🤖 Junior AI proposing initial backend test fixes..."
-          python scripts/propose-backend-fixes.py backend-test.log > scripts/proposed-backend-test-fixes.json
-
-      - name: Review Proposed Backend Test Fixes with Senior AI
-        if: steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
-        id: backend-test-review
-        continue-on-error: true
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          echo "🎓 Senior AI reviewing proposed backend test fixes..."
-          python scripts/review-backend-fixes.py scripts/proposed-backend-test-fixes.json backend-test.log > scripts/reviewed-backend-test-fixes.json
-
-      - name: Apply Reviewed Backend Test Fixes and retry tests
-        if: steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
-        id: backend-test-fix-retry
-        continue-on-error: true
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GITHUB_TOKEN: ${{ steps.backend-test-app-auth.outputs.token }}
-        run: |
-          echo "� Applying reviewed backend test fixes..."
-          python scripts/apply-backend-fixes.py scripts/reviewed-backend-test-fixes.json
-
-      # === FRONTEND TEST FIX PHASE ===
-      - name: Authenticate as GitHub App (Frontend Tests)
-        if: steps.test-ui.outcome == 'failure'
-        id: frontend-test-app-auth
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-
-      - name: Setup Python for Frontend Test AI fixes
-        if: steps.test-ui.outcome == 'failure' && steps.frontend-test-app-auth.outputs.token
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-
-      - name: Install Python dependencies for Frontend Test AI fixes
-        if: steps.test-ui.outcome == 'failure' && steps.frontend-test-app-auth.outputs.token
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r scripts/requirements.txt
-
-      - name: Auto-fix Frontend Tests and retry
-        if: steps.test-ui.outcome == 'failure' && steps.frontend-test-app-auth.outputs.token
-        id: frontend-test-fix-retry
-        continue-on-error: true
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GITHUB_TOKEN: ${{ steps.frontend-test-app-auth.outputs.token }}
-        run: |
-          echo "� Applying frontend test fixes..."
-          python scripts/apply-frontend-fixes.py frontend-test.log
-
-      # === TEST FAILURE HANDLING ===
-      - name: Handle test failures based on input
-        if: |
-          (steps.test-backend.outcome == 'failure' && steps.backend-test-fix-retry.outputs.backend_build_success != 'true') ||
-          (steps.test-ui.outcome == 'failure' && steps.frontend-test-fix-retry.outputs.frontend_build_success != 'true')
-        run: |
-          if [ "${{ inputs.fail_on_test_failure }}" == "true" ]; then
-            echo "❌ Tests failed and AI fixes did not resolve the issues. Failing workflow as requested."
-            exit 1
-          else
-            echo "⚠️ Tests failed and AI fixes did not resolve the issues, but continuing workflow as requested."
-          fi
+  frontend:
+    name: Frontend Build & Test
+    needs: backend
+    if: ${{ needs.backend.outputs.backend_success == 'true' }}
+    uses: ./.github/workflows/build-test-frontend.yml
+    with:
+      run_tests: ${{ inputs.run_tests }}
+      fail_on_test_failure: ${{ inputs.fail_on_test_failure }}
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

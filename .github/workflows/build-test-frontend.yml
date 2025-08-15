@@ -1,0 +1,170 @@
+name: Build & Test Frontend
+
+on:
+  workflow_call:
+    inputs:
+      run_tests:
+        description: "Whether to run tests"
+        required: false
+        type: boolean
+        default: true
+      fail_on_test_failure:
+        description: "Whether to fail the workflow if tests fail"
+        required: false
+        type: boolean
+        default: false
+    outputs:
+      frontend_success:
+        description: "Whether frontend build was successful"
+        value: ${{ jobs.frontend.outputs.build_success }}
+      frontend_tests_success:
+        description: "Whether frontend tests were successful"
+        value: ${{ jobs.frontend.outputs.tests_success }}
+    secrets:
+      APP_ID:
+        required: false
+      APP_PRIVATE_KEY:
+        required: false
+      OPENAI_API_KEY:
+        required: false
+
+jobs:
+  frontend:
+    name: Frontend Build & Test
+    runs-on: ubuntu-latest
+    outputs:
+      build_success: ${{ steps.frontend-build.outputs.FRONTEND_BUILD_FAILED != 'true' || steps.frontend-fix-retry.outputs.frontend_build_success == 'true' }}
+      tests_success: ${{ steps.test-frontend.outputs.FRONTEND_TEST_FAILED != 'true' || steps.frontend-test-fix-retry.outputs.frontend_build_success == 'true' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun with version scripts
+        uses: ./.github/actions/setup-bun-version
+        with:
+          checkout: 'false'  # Skip checkout since we already did it
+
+      # === FRONTEND BUILD PHASE ===
+      - name: Build Frontend
+        id: frontend-build
+        continue-on-error: true
+        run: |
+          echo "=== Building Frontend ==="
+          cd ui
+          bun install
+          if ! bun run build 2>&1 | tee ../frontend-build.log; then
+            echo "FRONTEND_BUILD_FAILED=true" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "FRONTEND_BUILD_FAILED=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Authenticate as GitHub App (Frontend Build)
+        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true'
+        id: frontend-app-auth
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
+      - name: Setup Python for Frontend AI fixes
+        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies for Frontend AI fixes
+        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
+      - name: Auto-fix Frontend and retry build
+        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token
+        id: frontend-fix-retry
+        continue-on-error: true
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ steps.frontend-app-auth.outputs.token }}
+        run: |
+          echo "🔧 Applying frontend fixes..."
+          python scripts/apply-frontend-fixes.py frontend-build.log
+
+      - name: Fail if frontend build failed and AI couldn't fix it
+        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true' && steps.frontend-fix-retry.outputs.frontend_build_success != 'true'
+        run: |
+          echo "❌ Frontend build failed and AI fixes did not resolve the issues"
+          exit 1
+
+      # === FRONTEND TEST PHASE ===
+      - name: Test Frontend
+        if: ${{ inputs.run_tests }}
+        continue-on-error: true
+        timeout-minutes: 5
+        id: test-frontend
+        env:
+          CI: true
+        run: |
+          echo "Running frontend tests..."
+          cd ui
+          if ! bun test 2>&1 | tee ../frontend-test.log; then
+            echo "FRONTEND_TEST_FAILED=true" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "FRONTEND_TEST_FAILED=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Authenticate as GitHub App (Frontend Tests)
+        if: steps.test-frontend.outputs.FRONTEND_TEST_FAILED == 'true'
+        id: frontend-test-app-auth
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
+      - name: Setup Python for Frontend Test AI fixes
+        if: steps.test-frontend.outputs.FRONTEND_TEST_FAILED == 'true' && steps.frontend-test-app-auth.outputs.token
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies for Frontend Test AI fixes
+        if: steps.test-frontend.outputs.FRONTEND_TEST_FAILED == 'true' && steps.frontend-test-app-auth.outputs.token
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
+      - name: Auto-fix Frontend Tests and retry
+        if: steps.test-frontend.outputs.FRONTEND_TEST_FAILED == 'true' && steps.frontend-test-app-auth.outputs.token
+        id: frontend-test-fix-retry
+        continue-on-error: true
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ steps.frontend-test-app-auth.outputs.token }}
+        run: |
+          echo "🔧 Applying frontend test fixes..."
+          python scripts/apply-frontend-fixes.py frontend-test.log
+
+      - name: Fail if frontend tests failed and AI couldn't fix it
+        if: steps.test-frontend.outputs.FRONTEND_TEST_FAILED == 'true' && steps.frontend-test-fix-retry.outputs.frontend_build_success != 'true'
+        run: |
+          if [ "${{ inputs.fail_on_test_failure }}" == "true" ]; then
+            echo "❌ Frontend tests failed and AI fixes did not resolve the issues. Failing workflow as requested."
+            exit 1
+          else
+            echo "⚠️ Frontend tests failed and AI fixes did not resolve the issues, but continuing workflow as requested."
+          fi
+
+      - name: Upload frontend build artifacts
+        if: ${{ !startsWith(github.ref, 'refs/heads/dev/') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-artifacts
+          path: |
+            ui/dist/
+          retention-days: 1
