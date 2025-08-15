@@ -27,7 +27,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       backend_success: ${{ steps.backend-build.outcome == 'success' || steps.backend-fix-retry.outputs.backend_build_success == 'true' }}
-      frontend_success: ${{ steps.frontend-build.outcome == 'success' || steps.frontend-fix-retry.outputs.frontend_build_success == 'true' }}
+      frontend_success: ${{ steps.frontend-build.outputs.FRONTEND_BUILD_FAILED != 'true' || steps.frontend-fix-retry.outputs.frontend_build_success == 'true' }}
 
     steps:
       - name: Checkout code
@@ -137,10 +137,15 @@ jobs:
           echo "=== Building Frontend ==="
           cd ui
           bun install
-          bun run build 2>&1 | tee ../frontend-build.log
+          if ! bun run build 2>&1 | tee ../frontend-build.log; then
+            echo "FRONTEND_BUILD_FAILED=true" >> $GITHUB_OUTPUT
+            exit 1
+          else
+            echo "FRONTEND_BUILD_FAILED=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Authenticate as GitHub App (Frontend)
-        if: steps.frontend-build.outcome == 'failure'
+        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true'
         id: frontend-app-auth
         uses: actions/create-github-app-token@v2
         with:
@@ -150,19 +155,19 @@ jobs:
           repositories: ${{ github.event.repository.name }}
 
       - name: Setup Python for Frontend AI fixes
-        if: steps.frontend-build.outcome == 'failure' && steps.frontend-app-auth.outputs.token
+        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
       - name: Install Python dependencies for Frontend AI fixes
-        if: steps.frontend-build.outcome == 'failure' && steps.frontend-app-auth.outputs.token
+        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token
         run: |
           python -m pip install --upgrade pip
           pip install -r scripts/requirements.txt
 
       - name: Auto-fix Frontend and retry build
-        if: steps.frontend-build.outcome == 'failure' && steps.frontend-app-auth.outputs.token
+        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token
         id: frontend-fix-retry
         continue-on-error: true
         env:
@@ -172,7 +177,7 @@ jobs:
           python scripts/apply-frontend-fixes.py frontend-build.log
 
       - name: Fail if frontend build failed and AI couldn't fix it
-        if: steps.frontend-build.outcome == 'failure' && steps.frontend-fix-retry.outputs.frontend_build_success != 'true'
+        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true' && steps.frontend-fix-retry.outputs.frontend_build_success != 'true'
         run: |
           echo "❌ Frontend build failed and AI fixes did not resolve the issues"
           exit 1
