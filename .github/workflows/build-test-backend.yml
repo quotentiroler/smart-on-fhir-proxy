@@ -171,7 +171,7 @@ jobs:
           # bun test 2>&1 | tee ../backend-test.log
 
       - name: Authenticate as GitHub App (Backend Tests)
-        if: ${{ inputs.run_tests }} && steps.test-backend.outcome == 'failure'
+        if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' }}
         id: backend-test-app-auth
         uses: actions/create-github-app-token@v2
         with:
@@ -181,7 +181,7 @@ jobs:
           repositories: ${{ github.event.repository.name }}
 
       - name: Debug Test Failure
-        if: ${{ inputs.run_tests }} && steps.test-backend.outcome == 'failure'
+        if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' }}
         run: |
           echo "🐛 Backend tests failed, checking details..."
           echo "Test outcome: ${{ steps.test-backend.outcome }}"
@@ -189,19 +189,19 @@ jobs:
           cat backend-test.log || echo "No test log found"
 
       - name: Setup Python for Backend Test AI fixes
-        if: ${{ inputs.run_tests }} && steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
+        if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token }}
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
       - name: Install Python dependencies for Backend Test AI fixes
-        if: ${{ inputs.run_tests }} && steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
+        if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token }}
         run: |
           python -m pip install --upgrade pip
           pip install -r scripts/requirements.txt
 
       - name: Propose Backend Test Fixes with Junior AI
-        if: ${{ inputs.run_tests }} && steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
+        if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token }}
         id: backend-test-propose
         continue-on-error: true
         env:
@@ -218,7 +218,7 @@ jobs:
           fi
 
       - name: Review Proposed Backend Test Fixes with Senior AI
-        if: ${{ inputs.run_tests }} && steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
+        if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token }}
         id: backend-test-review
         continue-on-error: true
         env:
@@ -235,7 +235,7 @@ jobs:
           fi
 
       - name: Apply Reviewed Backend Test Fixes and retry tests
-        if: ${{ inputs.run_tests }} && steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
+        if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token }}
         id: backend-test-fix-retry
         continue-on-error: true
         env:
@@ -249,7 +249,7 @@ jobs:
           python scripts/apply-backend-fixes.py scripts/reviewed-backend-test-fixes.json
 
       - name: Fail if backend tests failed and AI couldn't fix it
-        if: ${{ inputs.run_tests }} && steps.test-backend.outcome == 'failure' && steps.backend-test-fix-retry.outcome != 'success' && inputs.fail_on_test_failure
+        if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' && steps.backend-test-fix-retry.outcome != 'success' && inputs.fail_on_test_failure }}
         run: |
           echo "❌ Backend tests failed and AI fixes did not resolve the issues. Failing workflow as requested."
           echo "Test outcome: ${{ steps.test-backend.outcome }}"
