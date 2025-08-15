@@ -114,7 +114,7 @@ Focus on frontend-specific issues like:
 - Vite/build tool issues"""
         
         payload = {
-            "model": "gpt-4o-2024-08-06",
+            "model": "gpt-5",
             "messages": [
                 {
                     "role": "system",

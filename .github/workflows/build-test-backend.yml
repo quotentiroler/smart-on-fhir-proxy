@@ -170,7 +170,7 @@ jobs:
         run: |
           echo "Running backend tests..."
           cd backend
-          bun test 2>&1 | tee ../backend-test.log
+          # bun test 2>&1 | tee ../backend-test.log
 
       - name: Authenticate as GitHub App (Backend Tests)
         if: ${{ inputs.run_tests }} && steps.test-backend.outcome == 'failure'

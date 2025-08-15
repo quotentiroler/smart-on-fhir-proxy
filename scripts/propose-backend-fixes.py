@@ -55,7 +55,7 @@ As a junior developer AI, propose fixes for backend-specific issues like:
 Be creative and propose multiple potential solutions even if you're not 100% certain. The goal is to generate good starting points that can be refined by a senior reviewer."""
         
         payload = {
-            "model": "gpt-4o-2024-08-06",
+            "model": "gpt-5",
             "messages": [
                 {
                     "role": "system",
