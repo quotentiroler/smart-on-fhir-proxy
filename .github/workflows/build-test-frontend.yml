@@ -93,7 +93,9 @@ jobs:
 
       - name: Check Build Status
         id: build-status
+        if: always()
         run: |
+          echo "Checking build outcome: ${{ steps.frontend-build.outcome }}"
           if [ "${{ steps.frontend-build.outcome }}" == "success" ]; then
             echo "✅ Frontend build successful"
             echo "BUILD_FAILED=false" >> $GITHUB_OUTPUT
@@ -101,7 +103,7 @@ jobs:
             echo "❌ Frontend build failed"
             echo "BUILD_FAILED=true" >> $GITHUB_OUTPUT
             echo "=== BUILD ERROR DETAILS ==="
-            cat frontend-build.log
+            cat frontend-build.log || echo "No build log found"
             echo "=========================="
           fi
 
