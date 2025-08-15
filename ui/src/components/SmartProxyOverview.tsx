@@ -33,7 +33,8 @@ import { KeycloakConfigForm } from './KeycloakConfigForm';
 import type { 
     DashboardData,
     FhirServersListResponse,
-    KeycloakConfigurationStatus
+    KeycloakConfigurationStatus,
+    SystemStatus
 } from '../lib/types/api';
 import { config } from '../config';
 
@@ -42,7 +43,7 @@ interface SmartProxyOverviewProps {
 }
 
 export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
-    const { profile, fetchProfile, apiClients } = useAuth();
+    const { profile, fetchProfile, clientApis } = useAuth();
     const { t } = useTranslation();
 
     // Modal state for Keycloak configuration
@@ -133,6 +134,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
         lastBackup: Date | null;
         serverVersion: string;
         keycloakStatus: string;
+        keycloakLastConnected: string;
         memoryUsage: string;
         aiAgentStatus: string;
         aiAgentSearchType: string;
@@ -143,6 +145,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
         lastBackup: null,
         serverVersion: 'unknown',
         keycloakStatus: 'checking',
+        keycloakLastConnected: 'unknown',
         memoryUsage: 'unknown',
         aiAgentStatus: 'checking',
         aiAgentSearchType: 'checking'
@@ -169,13 +172,13 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
 
                 // Fetch data in parallel with correct API methods
                 const [smartApps, users, servers, identityProvidersCount, analytics, systemStatus, keycloakStatus] = await Promise.allSettled([
-                    apiClients.smartApps.getAdminSmartApps(),
-                    apiClients.healthcareUsers.getAdminHealthcareUsers(),
-                    apiClients.servers.getFhirServers(),
-                    apiClients.identityProviders.getAdminIdpsCount(),
-                    apiClients.oauthMonitoring.getMonitoringOauthAnalytics(),
-                    apiClients.server.getStatus(),
-                    apiClients.admin.getAdminKeycloakConfigStatus()
+                    clientApis.smartApps.getAdminSmartApps(),
+                    clientApis.healthcareUsers.getAdminHealthcareUsers(),
+                    clientApis.servers.getFhirServers(),
+                    clientApis.identityProviders.getAdminIdpsCount(),
+                    clientApis.oauthMonitoring.getMonitoringOauthAnalytics(),
+                    clientApis.server.getStatus(),
+                    clientApis.admin.getAdminKeycloakConfigStatus()
                 ]);
 
                 // Update dashboard data with proper type checking
@@ -214,13 +217,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
 
                 // Update system health with real data
                 if (systemStatus.status === 'fulfilled') {
-                    const statusData = systemStatus.value as {
-                        timestamp?: string;
-                        uptime?: number;
-                        server?: { status?: string; version?: string };
-                        fhir?: { status?: string; totalServers?: number; healthyServers?: number };
-                        keycloak?: { status?: string; accessible?: boolean };
-                    };
+                    const statusData = systemStatus.value as SystemStatus;
 
                     // Format uptime
                     const uptimeSeconds = statusData.uptime || 0;
@@ -232,15 +229,32 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                     const aiAgentStatus = isOpenAIConnected ? 'connected' : 'fallback';
                     const aiAgentSearchType = isOpenAIConnected ? 'openai_powered' : 'semantic_search';
 
-                    // Get real memory usage from health endpoint
+                    // Get memory usage from status endpoint instead of health
                     let memoryUsage = 'unknown';
-                    try {
-                        const healthData = await apiClients.server.getHealth();
-                        if (healthData.memory) {
-                            memoryUsage = `${healthData.memory.used}MB / ${healthData.memory.total}MB`;
+                    if (statusData.memory) {
+                        memoryUsage = `${statusData.memory.used}MB / ${statusData.memory.total}MB`;
+                    }
+
+                    // Format last connected time
+                    let keycloakLastConnected = 'never';
+                    if (statusData.keycloak?.lastConnected) {
+                        const lastConnectedDate = new Date(statusData.keycloak.lastConnected);
+                        const now = new Date();
+                        const timeDiff = now.getTime() - lastConnectedDate.getTime();
+                        const seconds = Math.floor(timeDiff / 1000);
+                        const minutes = Math.floor(seconds / 60);
+                        const hours = Math.floor(minutes / 60);
+                        const days = Math.floor(hours / 24);
+
+                        if (days > 0) {
+                            keycloakLastConnected = `${days}d ago`;
+                        } else if (hours > 0) {
+                            keycloakLastConnected = `${hours}h ago`;
+                        } else if (minutes > 0) {
+                            keycloakLastConnected = `${minutes}m ago`;
+                        } else {
+                            keycloakLastConnected = 'just now';
                         }
-                    } catch (error) {
-                        console.warn('Failed to fetch memory usage:', error);
                     }
 
                     setSystemHealth(prev => ({
@@ -248,8 +262,9 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                         databaseStatus: 'healthy', // We know it's healthy if we got a response
                         systemUptime: uptimeFormatted,
                         lastBackup: null, // Remove mock backup timestamp
-                        serverVersion: statusData.server?.version || 'unknown',
+                        serverVersion: statusData.version,
                         keycloakStatus: statusData.keycloak?.status || 'unknown',
+                        keycloakLastConnected,
                         memoryUsage,
                         aiAgentStatus,
                         aiAgentSearchType
@@ -264,6 +279,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                         ...prev,
                         databaseStatus: 'error',
                         keycloakStatus: 'error',
+                        keycloakLastConnected: 'unknown',
                         aiAgentStatus,
                         aiAgentSearchType
                     }));
@@ -291,7 +307,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                 // Measure API response time with a simple call
                 const startTime = performance.now();
                 try {
-                    await apiClients.smartApps.getAdminSmartApps();
+                    await clientApis.smartApps.getAdminSmartApps();
                     const endTime = performance.now();
 
                     setSystemHealth(prev => ({
@@ -340,17 +356,18 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
         };
 
         fetchDashboardData();
-    }, [apiClients]);
+    }, [clientApis]);
 
-    const handleRefresh = () => {
-        fetchProfile();
+    const handleRefresh = async () => {
+        await fetchProfile();
         // Trigger dashboard data refresh
         setDashboardData(prev => ({ ...prev, loading: true }));
         // Reset AI Agent status to checking
         setSystemHealth(prev => ({ 
             ...prev, 
             aiAgentStatus: 'checking', 
-            aiAgentSearchType: 'checking' 
+            aiAgentSearchType: 'checking',
+            keycloakLastConnected: 'checking...'
         }));
         // The useEffect will handle the refresh
     };
@@ -374,7 +391,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
             },
             onConfirm: async (reason) => {
                 try {
-                    await apiClients.server.postShutdown();
+                    await clientApis.admin.postAdminShutdown();
                     alert({
                         title: t('Server Shutdown Initiated'),
                         message: t('Server shutdown has been initiated successfully. Reason: {{reason}}', { reason }),
@@ -412,7 +429,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
             },
             onConfirm: async (reason) => {
                 try {
-                    await apiClients.server.postRestart();
+                    await clientApis.admin.postAdminRestart();
                     alert({
                         title: t('Server Restart Initiated'),
                         message: t('Server restart has been initiated successfully. Reason: {{reason}}', { reason }),
@@ -433,7 +450,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
 
     const handleHealthCheck = async () => {
         try {
-            const data = await apiClients.server.getHealth();
+            const data = await clientApis.server.getHealth();
             setNotification({
                 type: 'success',
                 message: t('Health check completed: Server is {{status}}', {
@@ -741,7 +758,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                             }`}
                         >
                             <Shield className="w-4 h-4 mr-2" />
-                            {keycloakConfig.hasAdminClient ? t('Keycloak Config') : t('Setup Keycloak')}
+                            {keycloakConfig.hasAdminClient ? t('Admin Client Config') : t('Setup Dynamic Registration')}
                         </Button>
                     </div>
                     <DescriptionList>
@@ -763,7 +780,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                                 </div>
                             </div>
                             <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
-                                <span className="text-sm font-medium text-muted-foreground">{t('Keycloak Auth')}</span>
+                                <span className="text-sm font-medium text-muted-foreground">{t('Dynamic Client Registration')}</span>
                                 <div className="flex items-center">
                                     {keycloakConfig.hasAdminClient ? (
                                         <CheckCircle className="w-5 h-5 text-emerald-500 dark:text-emerald-400 mr-2" />
@@ -777,8 +794,8 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                                         {keycloakConfig.loading 
                                             ? t('Checking...') 
                                             : keycloakConfig.hasAdminClient 
-                                                ? t('Configured') 
-                                                : t('Not Configured')
+                                                ? t('Enabled') 
+                                                : t('Disabled')
                                         }
                                     </span>
                                 </div>
@@ -801,6 +818,12 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                                             ? keycloakConfig.baseUrl.replace(/\/$/, '') // Remove trailing slash
                                             : t('Not Set')
                                     }
+                                </span>
+                            </div>
+                            <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
+                                <span className="text-sm font-medium text-muted-foreground">{t('Keycloak Last Connected')}</span>
+                                <span className="text-foreground font-semibold">
+                                    {systemHealth.keycloakLastConnected}
                                 </span>
                             </div>
                             <div className="flex justify-between items-center p-4 bg-muted/30 rounded-xl">
@@ -960,7 +983,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                     <DialogHeader>
                         <DialogTitle className="flex items-center space-x-2">
                             <Shield className="w-5 h-5 text-primary" />
-                            <span>{t('Keycloak Configuration')}</span>
+                            <span>{t('Dynamic Client Registration Setup')}</span>
                         </DialogTitle>
                     </DialogHeader>
                     <div className="mt-4">

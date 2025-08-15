@@ -39,7 +39,7 @@ interface MtlsConfig {
 }
 
 export function FhirServersManager() {
-  const { apiClients } = useAuth();
+  const { clientApis } = useAuth();
   const [servers, setServers] = useState<FhirServerWithState[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +103,7 @@ export function FhirServersManager() {
     try {
       setLoading(true);
       setError(null);
-      const response = await apiClients.servers.getFhirServers();
+      const response = await clientApis.servers.getFhirServers();
       
       const mappedServers: FhirServerWithState[] = response.servers.map((server) => ({
         ...server,
@@ -135,7 +135,7 @@ export function FhirServersManager() {
     } finally {
       setLoading(false);
     }
-  }, [apiClients, checkServerSecurity]);
+  }, [clientApis, checkServerSecurity]);
 
   const handleAddServer = async (url: string) => {
     const existingServer = servers.find(server => server.url === url);
@@ -148,7 +148,7 @@ export function FhirServersManager() {
       setError(null);
       setUrlError(null);
       
-      await apiClients.servers.postFhirServers({
+      await clientApis.servers.postFhirServers({
         postFhirServersRequest: {
           url: url
         } as CreateFhirServerRequest
@@ -197,7 +197,7 @@ export function FhirServersManager() {
       setError(null);
       setUrlError(null);
       
-      await apiClients.servers.putFhirServersByServerId({
+      await clientApis.servers.putFhirServersByServerId({
         serverId: server.id,
         putFhirServersByServerIdRequest: {
           url: newUrl
@@ -226,7 +226,7 @@ export function FhirServersManager() {
   const fetchServerDetail = useCallback(async (serverId: string) => {
     try {
       setLoadingServerDetail(true);
-      const response = await apiClients.servers.getFhirServersByServerId({ serverId });
+      const response = await clientApis.servers.getFhirServersByServerId({ serverId });
       setSelectedServer({id: serverId, ...response});
       setActiveTab('details');
     } catch (err) {
@@ -235,7 +235,7 @@ export function FhirServersManager() {
     } finally {
       setLoadingServerDetail(false);
     }
-  }, [apiClients]);
+  }, [clientApis]);
 
   const handleConfigureMtls = (server: FhirServerWithState) => {
     setSelectedServerForMtls(server);

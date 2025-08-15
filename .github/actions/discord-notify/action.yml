@@ -47,6 +47,30 @@ inputs:
     description: 'Embed color (hex without #)'
     required: false
     default: ''
+  deployment-stage:
+    description: 'Deployment stage (alpha, beta, production)'
+    required: false
+    default: ''
+  deployment-target:
+    description: 'Deployment target (local, fly.io, vps)'
+    required: false
+    default: ''
+  fhir-server-url:
+    description: 'FHIR server URL'
+    required: false
+    default: ''
+  keycloak-url:
+    description: 'Keycloak URL'
+    required: false
+    default: ''
+  release-url:
+    description: 'GitHub release URL'
+    required: false
+    default: ''
+  app-url:
+    description: 'Main application URL'
+    required: false
+    default: ''
 
 runs:
   using: 'composite'
@@ -69,6 +93,7 @@ runs:
               esac
               ;;
             "deployment") COLOR="00D4AA" ;;     # Teal
+            "testing") COLOR="9932CC" ;;        # Purple
             "error") COLOR="FF0000" ;;          # Red
             "success") COLOR="00FF00" ;;        # Green
             *) COLOR="7289DA" ;;                # Discord Blurple
@@ -105,13 +130,30 @@ runs:
           FIELDS="$FIELDS{\"name\": \"Type\", \"value\": \"\`${{ inputs.release-type }}\`\", \"inline\": true},"
         fi
         
+        if [ -n "${{ inputs.deployment-stage }}" ]; then
+          FIELDS="$FIELDS{\"name\": \"Stage\", \"value\": \"\`${{ inputs.deployment-stage }}\`\", \"inline\": true},"
+        fi
+        
+        if [ -n "${{ inputs.deployment-target }}" ]; then
+          FIELDS="$FIELDS{\"name\": \"Target\", \"value\": \"\`${{ inputs.deployment-target }}\`\", \"inline\": true},"
+        fi
+        
         if [ -n "${{ inputs.actor }}" ]; then
-          FIELDS="$FIELDS{\"name\": \"Released by\", \"value\": \"${{ inputs.actor }}\", \"inline\": true},"
+          FIELDS="$FIELDS{\"name\": \"Triggered by\", \"value\": \"${{ inputs.actor }}\", \"inline\": true},"
         fi
         
         # Add commit info
         SHORT_SHA=$(echo "${{ inputs.commit-sha }}" | cut -c1-8)
         FIELDS="$FIELDS{\"name\": \"Commit\", \"value\": \"[\`$SHORT_SHA\`](https://github.com/${{ inputs.repository }}/commit/${{ inputs.commit-sha }})\", \"inline\": true},"
+        
+        # Add deployment URLs if available
+        if [ -n "${{ inputs.fhir-server-url }}" ]; then
+          FIELDS="$FIELDS{\"name\": \"🏥 FHIR Server\", \"value\": \"[FHIR Server](${{ inputs.fhir-server-url }})\", \"inline\": true},"
+        fi
+        
+        if [ -n "${{ inputs.keycloak-url }}" ]; then
+          FIELDS="$FIELDS{\"name\": \"🔐 Keycloak\", \"value\": \"[Keycloak](${{ inputs.keycloak-url }})\", \"inline\": true},"
+        fi
         
         # Remove trailing comma
         FIELDS=$(echo "$FIELDS" | sed 's/,$//')
@@ -148,6 +190,18 @@ runs:
           WORKFLOW_FIELD=",{\"name\": \"🔗 View Workflow\", \"value\": \"[GitHub Actions](${{ inputs.workflow-url }})\", \"inline\": true}"
         fi
         
+        # Add release URL field if provided
+        RELEASE_FIELD=""
+        if [ -n "${{ inputs.release-url }}" ]; then
+          RELEASE_FIELD=",{\"name\": \"📦 View Release\", \"value\": \"[GitHub Release](${{ inputs.release-url }})\", \"inline\": true}"
+        fi
+        
+        # Add app URL field if provided (prominent for deployments)
+        APP_FIELD=""
+        if [ -n "${{ inputs.app-url }}" ]; then
+          APP_FIELD=",{\"name\": \"🚀 Proxy Smart\", \"value\": \"[Proxy Smart](${{ inputs.app-url }})\", \"inline\": true}"
+        fi
+        
         # Rebuild payload with additional fields
         PAYLOAD=$(cat << EOF
         {
@@ -157,7 +211,7 @@ runs:
               "description": "${{ inputs.description }}",
               "color": $((0x${{ steps.color.outputs.color }})),
               "timestamp": "$TIMESTAMP",
-              "fields": [$FIELDS$CHANGELOG_FIELD$WORKFLOW_FIELD],
+              "fields": [$FIELDS$CHANGELOG_FIELD$WORKFLOW_FIELD$RELEASE_FIELD$APP_FIELD],
               "footer": {
                 "text": "${{ inputs.repository }}",
                 "icon_url": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"

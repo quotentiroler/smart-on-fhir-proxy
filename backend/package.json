@@ -1,13 +1,13 @@
 {
   "name": "proxy-smart-backend",
   "displayName": "Proxy Smart Backend",
-  "version": "0.0.1-RELEASE.202508052034.70b6fe5",
+  "version": "0.0.1-alpha.202508151735.a205e19",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
-    "build": "bun build src/index.ts --outdir dist --target node",
+    "build": "tsc --noEmit && bun build src/index.ts --outdir dist --target node",
     "export-openapi": "mkdir -p dist && bun run src/export-openapi.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"

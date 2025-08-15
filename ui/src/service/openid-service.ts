@@ -1,3 +1,4 @@
+import { config } from '@/config';
 import { AuthenticationApi, Configuration } from '../lib/api-client';
 import type { PostAuthTokenRequest } from '../lib/api-client';
 
@@ -15,9 +16,9 @@ class OpenIDService {
 
   constructor() {
     this.config = {
-      baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8445',
+      baseUrl: config.api.baseUrl,
       clientId: 'admin-ui',
-      redirectUri: window.location.origin + '/',
+      redirectUri: window.location.origin + config.app.baseUrl,
       scope: 'openid profile email',
     };
 
@@ -83,6 +84,13 @@ class OpenIDService {
     expires_in?: number;
   }> {
     console.debug('OpenID Service: Starting token exchange...');
+    console.debug('Token exchange request details:', {
+      codeLength: code.length,
+      codeVerifierLength: codeVerifier.length,
+      clientId: this.config.clientId,
+      redirectUri: this.config.redirectUri,
+      hasClientSecret: !!this.config.clientSecret
+    });
     
     const tokenRequest: PostAuthTokenRequest = {
       grantType: 'authorization_code',
@@ -113,6 +121,47 @@ class OpenIDService {
       };
     } catch (error) {
       console.error('Token exchange API call failed:', error);
+      
+      // Try to extract more detailed error information
+      if (error && typeof error === 'object') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const errorObj = error as any;
+        
+        // Check if it's a ResponseError with response details
+        if (errorObj.response) {
+          try {
+            const responseText = await errorObj.response.text();
+            console.error('🚨 Token exchange error response body:', responseText);
+            
+            // Try to parse as JSON
+            try {
+              const errorDetails = JSON.parse(responseText);
+              console.error('📋 Parsed error details:', errorDetails);
+              
+              // Create a more descriptive error message
+              if (errorDetails.error) {
+                const message = `OAuth error: ${errorDetails.error}${errorDetails.error_description ? ` - ${errorDetails.error_description}` : ''}`;
+                throw new Error(message);
+              }
+            } catch (parseError) {
+              console.error('Could not parse error response as JSON:', parseError);
+            }
+          } catch (textError) {
+            console.error('Could not read error response text:', textError);
+          }
+        }
+        
+        // Log the error structure for debugging
+        console.error('🔍 Error object details:', {
+          name: errorObj.name,
+          message: errorObj.message,
+          status: errorObj.status,
+          statusText: errorObj.statusText,
+          url: errorObj.url,
+          keys: Object.keys(errorObj)
+        });
+      }
+      
       throw error;
     }
   }
@@ -132,36 +181,63 @@ class OpenIDService {
     refresh_token?: string;
     expires_in?: number;
   }> {
-    // The generated API doesn't support refresh tokens via the same endpoint
-    // Fall back to direct API call
-    const tokenUrl = new URL('/auth/token', this.config.baseUrl);
+    console.debug('OpenID Service: Starting token refresh...');
     
-    const body = new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: refreshToken,
-      client_id: this.config.clientId,
-    });
+    try {
+      const response = await this.authApi.postAuthToken({
+        postAuthTokenRequest: {
+          grantType: 'refresh_token',
+          refreshToken,
+          clientId: this.config.clientId,
+          clientSecret: this.config.clientSecret,
+        },
+      });
 
-    const response = await fetch(tokenUrl.href, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json',
-      },
-      body: body.toString(),
-    });
+      console.debug('Refresh token response received:', {
+        hasAccessToken: !!response.accessToken,
+        hasIdToken: !!response.idToken,
+        hasRefreshToken: !!response.refreshToken,
+        expiresIn: response.expiresIn
+      });
 
-    if (!response.ok) {
-      throw new Error(`Token refresh failed: ${response.status} ${response.statusText}`);
+      return {
+        access_token: response.accessToken || '',
+        id_token: response.idToken,
+        refresh_token: response.refreshToken,
+        expires_in: response.expiresIn,
+      };
+    } catch (error) {
+      console.error('Token refresh API call failed:', error);
+      
+      // Try to extract more detailed error information for refresh token errors
+      if (error && typeof error === 'object') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const errorObj = error as any;
+        
+        if (errorObj.response) {
+          try {
+            const responseText = await errorObj.response.text();
+            console.error('🚨 Token refresh error response body:', responseText);
+            
+            try {
+              const errorDetails = JSON.parse(responseText);
+              console.error('📋 Parsed refresh error details:', errorDetails);
+              
+              if (errorDetails.error) {
+                const message = `Token refresh failed: ${errorDetails.error}${errorDetails.error_description ? ` - ${errorDetails.error_description}` : ''}`;
+                throw new Error(message);
+              }
+            } catch (parseError) {
+              console.error('Could not parse refresh error response as JSON:', parseError);
+            }
+          } catch (textError) {
+            console.error('Could not read refresh error response text:', textError);
+          }
+        }
+      }
+      
+      throw error;
     }
-
-    const tokens = await response.json();
-    return {
-      access_token: tokens.access_token,
-      id_token: tokens.id_token,
-      refresh_token: tokens.refresh_token,
-      expires_in: tokens.expires_in,
-    };
   }
 
   getLogoutUrl(idToken?: string): string {
@@ -172,6 +248,13 @@ class OpenIDService {
     if (idToken) {
       logoutUrl.searchParams.set('id_token_hint', idToken);
     }
+    
+    // Add additional parameters to ensure complete logout
+    // This helps with Keycloak session cleanup, especially on shared deployments
+    logoutUrl.searchParams.set('logout_hint', 'complete');
+    
+    // Add a timestamp to prevent caching issues
+    logoutUrl.searchParams.set('_t', Date.now().toString());
     
     return logoutUrl.href;
   }

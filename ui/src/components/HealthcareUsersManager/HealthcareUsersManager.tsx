@@ -147,7 +147,7 @@ function transformApiUser(apiUser: GetAdminHealthcareUsers200ResponseInner): Hea
 }
 
 export function HealthcareUsersManager() {
-  const { isAuthenticated, apiClients } = useAuth();
+  const { isAuthenticated, clientApis } = useAuth();
   
   // Store hooks for FHIR servers and healthcare users
   const { servers: fhirServers } = useFhirServers();
@@ -169,7 +169,7 @@ export function HealthcareUsersManager() {
       setLoading(true);
       setError(null);
       
-      const apiUsers = await apiClients.healthcareUsers.getAdminHealthcareUsers();
+      const apiUsers = await clientApis.healthcareUsers.getAdminHealthcareUsers();
       
       const transformedUsers = apiUsers.map(transformApiUser);
       setUsers(transformedUsers);
@@ -180,7 +180,7 @@ export function HealthcareUsersManager() {
     } finally {
       setLoading(false);
     }
-  }, [apiClients.healthcareUsers]);
+  }, [clientApis.healthcareUsers]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -197,7 +197,7 @@ export function HealthcareUsersManager() {
     try {
       const newEnabled = currentStatus === 'inactive';
       
-      await apiClients.healthcareUsers.putAdminHealthcareUsersByUserId({
+      await clientApis.healthcareUsers.putAdminHealthcareUsersByUserId({
         userId: id,
         putAdminHealthcareUsersByUserIdRequest: {
           enabled: newEnabled
@@ -218,7 +218,7 @@ export function HealthcareUsersManager() {
 
   const deleteUser = async (id: string) => {
     try {
-      await apiClients.healthcareUsers.deleteAdminHealthcareUsersByUserId({ userId: id });
+      await clientApis.healthcareUsers.deleteAdminHealthcareUsersByUserId({ userId: id });
       
       // Remove user from local state
       setUsers(users.filter(user => user.id !== id));
@@ -304,7 +304,7 @@ export function HealthcareUsersManager() {
               clientRoles: (formData.clientRoles && Object.keys(formData.clientRoles).length > 0) ? formData.clientRoles : undefined,
             };
 
-            const createdUser = await apiClients.healthcareUsers.postAdminHealthcareUsers({
+            const createdUser = await clientApis.healthcareUsers.postAdminHealthcareUsers({
               postAdminHealthcareUsersRequest: createRequest
             });
 
@@ -349,7 +349,7 @@ export function HealthcareUsersManager() {
               clientRoles: Object.keys(formData.clientRoles).length > 0 ? formData.clientRoles : undefined,
             };
 
-            const updatedUser = await apiClients.healthcareUsers.putAdminHealthcareUsersByUserId({
+            const updatedUser = await clientApis.healthcareUsers.putAdminHealthcareUsersByUserId({
               userId: formData.id,
               putAdminHealthcareUsersByUserIdRequest: updateRequest
             });

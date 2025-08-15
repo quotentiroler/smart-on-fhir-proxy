@@ -1,0 +1,46 @@
+{
+  "test_stage": "beta",
+  "description": "Beta testing with comprehensive FHIR compliance and API testing",
+  "fhir_server": {
+    "url": "http://proxy-smart-backend:3001",
+    "name": "Proxy Smart FHIR Server (Beta)"
+  },
+  "inferno": {
+    "module": "onc_program",
+    "sequences": [
+      "UsCoreR4CapabilityStatement",
+      "USCore311Patient",
+      "USCore311AllergyIntolerance",
+      "USCore311Condition",
+      "USCore311DiagnosticReport",
+      "USCore311DocumentReference",
+      "USCore311Encounter",
+      "USCore311Immunization",
+      "USCore311Medication",
+      "USCore311MedicationRequest",
+      "USCore311Observation",
+      "USCore311Organization",
+      "USCore311Practitioner",
+      "USCore311Procedure",
+      "SMARTDiscovery"
+    ],
+    "test_focus": "us_core_profiles"
+  },
+  "client": {
+    "client_id": "beta_test_client",
+    "client_secret": "beta_test_secret",
+    "scopes": "patient/*.read user/*.read",
+    "redirect_uri": "http://inferno:4567/inferno/callback"
+  },
+  "endpoints": {
+    "authorization": "http://keycloak:8080/realms/proxy-smart/protocol/openid-connect/auth",
+    "token": "http://keycloak:8080/realms/proxy-smart/protocol/openid-connect/token",
+    "introspection": "http://keycloak:8080/realms/proxy-smart/protocol/openid-connect/token/introspect"
+  },
+  "test_settings": {
+    "timeout": 60,
+    "retries": 5,
+    "validate_ssl": false,
+    "smart_app_launch": true
+  }
+}

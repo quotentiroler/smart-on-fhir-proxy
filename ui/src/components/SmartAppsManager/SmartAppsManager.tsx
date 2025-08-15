@@ -35,6 +35,7 @@ import { SmartAppsStatistics } from './SmartAppsStatistics';
 import { DynamicClientRegistrationSettings } from '../DynamicClientRegistrationSettings';
 import { useAuth } from '@/stores/authStore';
 import { useAppStore } from '@/stores/appStore';
+import { getItem } from '@/lib/storage';
 import type { SmartApp, ScopeSet, SmartAppFormData } from '@/lib/types/api';
 
 // Mock data for SMART on FHIR applications
@@ -145,7 +146,7 @@ const mockApps: SmartApp[] = [
 
 export function SmartAppsManager() {
   const { smartAppsManagerTab, setSmartAppsManagerTab } = useAppStore();
-  const { apiClients } = useAuth();
+  const { clientApis } = useAuth();
   const [apps, setApps] = useState<SmartApp[]>([]);
   const [loading, setLoading] = useState(true);
   const [backendApps, setBackendApps] = useState<SmartApp[]>([]);
@@ -156,11 +157,11 @@ export function SmartAppsManager() {
 
   // Load scope sets from ScopeManager
   useEffect(() => {
-    const loadScopeSets = () => {
+    const loadScopeSets = async () => {
       try {
-        const saved = localStorage.getItem('smart-scope-sets');
+        const saved = await getItem<ScopeSet[]>('smart-scope-sets');
         if (saved) {
-          setScopeSets(JSON.parse(saved));
+          setScopeSets(saved);
         }
       } catch (error) {
         console.error('Failed to load scope sets:', error);
@@ -174,7 +175,7 @@ export function SmartAppsManager() {
     const fetchApps = async () => {
       try {
         setLoading(true);
-        const fetchedApps = await apiClients.smartApps.getAdminSmartApps();
+        const fetchedApps = await clientApis.smartApps.getAdminSmartApps();
         
         setBackendApps(fetchedApps);
         
@@ -207,7 +208,7 @@ export function SmartAppsManager() {
     };
 
     fetchApps();
-  }, [apiClients.smartApps]);
+  }, [clientApis.smartApps]);
 
   const handleAddApp = (appData: SmartAppFormData) => {
     // Convert form data to SmartApp format for UI display

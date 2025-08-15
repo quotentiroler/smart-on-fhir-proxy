@@ -79,7 +79,7 @@ export const keycloakPlugin = new Elysia()
       }
       
       // Create admin client with user's token
-      logger.auth.debug('Creating Keycloak admin client...')
+      logger.auth.debug('Instantiating Keycloak admin client...')
       const kcAdminClient = new KcAdminClient({
         baseUrl: config.keycloak.baseUrl!,
         realmName: config.keycloak.realm!,
@@ -89,7 +89,7 @@ export const keycloakPlugin = new Elysia()
       logger.auth.debug('Setting access token on admin client...')
       kcAdminClient.setAccessToken(userToken)
       
-      logger.auth.debug('Keycloak admin client created successfully', {
+      logger.auth.debug('Keycloak admin client instantiated successfully', {
         username: tokenPayload.preferred_username,
         baseUrl: process.env.KEYCLOAK_BASE_URL,
         realm: process.env.KEYCLOAK_REALM

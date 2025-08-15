@@ -12,11 +12,12 @@ export const config = {
 
     // API configuration - UI connects to backend, not directly to Keycloak
     api: {
-        baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8445',
+        baseUrl: import.meta.env.VITE_API_BASE_URL || window.location.origin,
     },
 
     // Application settings
     app: {
+        baseUrl: import.meta.env.VITE_BASE || '/',
         title: packageJson.displayName || packageJson.name,
         description: packageJson.description || 'Healthcare Administration Platform',
         environment: import.meta.env.MODE || 'development',

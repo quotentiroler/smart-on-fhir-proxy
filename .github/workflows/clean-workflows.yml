@@ -87,3 +87,37 @@ jobs:
                 });
               }
             }
+
+            // 4) Delete all auto PR creation workflows
+            console.log('Looking for auto PR creation workflows to delete…');
+            const allRuns = await github.rest.actions.listWorkflowRunsForRepo({
+              owner, 
+              repo,
+              per_page: 100
+            });
+            for (const run of allRuns.data.workflow_runs) {
+              if (run.name === 'Auto PR Creation' || 
+                  run.name.includes('Create/Update PR') ||
+                  run.name.includes('Auto-PR')) {
+                console.log(`Deleting auto PR workflow run ${run.id} (${run.name})`);
+                await github.rest.actions.deleteWorkflowRun({
+                  owner,
+                  repo,
+                  run_id: run.id
+                });
+              }
+            }
+
+            // 5) Delete all workflows where commit message contains "Updated "
+            console.log('Looking for workflows with "Updated " commit messages to delete…');
+            for (const run of allRuns.data.workflow_runs) {
+              if (run.head_commit && run.head_commit.message && 
+                  run.head_commit.message.includes('Updated ')) {
+                console.log(`Deleting workflow run ${run.id} with "Updated " commit: "${run.head_commit.message}"`);
+                await github.rest.actions.deleteWorkflowRun({
+                  owner,
+                  repo,
+                  run_id: run.id
+                });
+              }
+            }

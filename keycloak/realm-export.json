@@ -2,9 +2,14 @@
   "realm": "proxy-smart",
   "enabled": true,
   "displayName": "Proxy Smart",
-  "displayNameHtml": "<div class=\"kc-logo-text\"><span>SMART on FHIR</span></div>",
+  "displayNameHtml": "<div class=\"kc-logo-text\"><span>Proxy Smart</span></div>",
   "accessTokenLifespan": 3600,
   "accessTokenLifespanForImplicitFlow": 900,
+  "accessCodeLifespan": 300,
+  "accessCodeLifespanLogin": 1800,
+  "accessCodeLifespanUserAction": 300,
+  "actionTokenGeneratedByAdminLifespan": 43200,
+  "actionTokenGeneratedByUserLifespan": 300,
   "ssoSessionIdleTimeout": 1800,
   "ssoSessionMaxLifespan": 36000,
   "clients": [
@@ -15,11 +20,17 @@
       "clientAuthenticatorType": "client-dummy",
       "redirectUris": [
         "http://localhost:5173/*",
-        "http://localhost:3000/*"
+        "http://localhost:3000/*",
+        "http://localhost:8445/*",
+        "https://proxy-smart-alpha.fly.dev/*",
+        "https://proxy-smart.fly.dev/*"
       ],
       "webOrigins": [
         "http://localhost:5173",
-        "http://localhost:3000"
+        "http://localhost:3000",
+        "http://localhost:8445",
+        "https://proxy-smart-alpha.fly.dev",
+        "https://proxy-smart-alpha.fly.dev"
       ],
       "protocol": "openid-connect",
       "publicClient": true,
@@ -44,7 +55,13 @@
         "microprofile-jwt"
       ],
       "attributes": {
-        "pkce.code.challenge.method": "S256"
+        "pkce.code.challenge.method": "S256",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "false",
+        "use.refresh.tokens": "true",
+        "exclude.session.state.from.auth.response": "false"
       }
     },
     {

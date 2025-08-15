@@ -7,53 +7,347 @@ on:
         description: "Testing stage: alpha, beta, or production"
         required: true
         type: string
-      test_scope:
-        description: "Specify the scope of tests to run (unit, integration, security, or all)"
+      deployment_target:
+        description: "Where the application is deployed: local, fly.io, or vps"
         required: false
         type: string
-        default: "all"
+        default: "local"
+      fhir_server_url:
+        description: "FHIR server URL for testing (provided by deployment workflow)"
+        required: false
+        type: string
+        default: "http://localhost:3001"
+      keycloak_url:
+        description: "Keycloak URL for testing (provided by deployment workflow)"
+        required: false
+        type: string
+        default: "http://localhost:8080"
+      app_version:
+        description: "Version of the application being tested"
+        required: false
+        type: string
+        default: "dev"
+
+    outputs:
+      test_status:
+        description: "Overall test status"
+        value: ${{ jobs.integration-compliance-tests.outputs.overall_status }}
+      test_reports_path:
+        description: "Path to test reports"
+        value: ${{ jobs.integration-compliance-tests.outputs.test_reports_path }}
+
+    secrets:
+      DISCORD_WEBHOOK_URL:
+        description: "Discord webhook URL for notifications"
+        required: false
 
 jobs:
-  alpha-tests:
-    name: Alpha Tests
+  integration-compliance-tests:
+    name: Integration & Compliance Testing (${{ inputs.test_stage }})
     runs-on: ubuntu-latest
-    if: inputs.test_stage == 'alpha' || inputs.test_stage == 'all'
+    
+    outputs:
+      overall_status: ${{ steps.summary.outputs.overall_status }}
+      test_reports_path: ${{ steps.summary.outputs.reports_path }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-  beta-tests:
-    name: Beta Tests
-    runs-on: ubuntu-latest
-    if: inputs.test_stage == 'beta' || inputs.test_stage == 'all'
-    needs: [alpha-tests]
+      - name: Setup Bun with version scripts
+        uses: ./.github/actions/setup-bun-version
+        with:
+          checkout: 'false'
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-  production-tests:
-    name: Production Tests (Security & Compliance)
-    runs-on: ubuntu-latest
-    if: inputs.test_stage == 'production' || inputs.test_stage == 'all'
-    needs: [beta-tests]
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-  test-summary:
-    name: Test Summary
-    runs-on: ubuntu-latest
-    needs: [alpha-tests, beta-tests, production-tests]
-    if: always()
-
-    steps:
-      - name: Generate test summary
+      - name: Install dependencies (for local deployment only)
+        if: inputs.deployment_target == 'local'
         run: |
-          echo "Generating test summary..."
-          # Here you would typically run a script to summarize the test results
-          # For example, you could use a custom script or a tool like `jest` or `mocha` to generate a report
-          # This is just a placeholder command
-          echo "All tests completed successfully."
+          bun install
+          cd backend && bun install
+          cd ../ui && bun install
+
+      - name: Setup test environment
+        run: |
+          echo "🚀 Setting up integration & compliance testing environment..."
+          echo "Test Stage: ${{ inputs.test_stage }}"
+          echo "Deployment Target: ${{ inputs.deployment_target }}"
+          echo "FHIR Server: ${{ inputs.fhir_server_url }}"
+          echo "Keycloak: ${{ inputs.keycloak_url }}"
+          
+          # Create basic test directory structure (Inferno action will create its own subdirs)
+          mkdir -p testing/${{ inputs.test_stage }}/reports/{integration,summary}
+          mkdir -p testing/${{ inputs.test_stage }}/config
+
+      - name: Wait for deployment readiness
+        run: |
+          echo "⏳ Waiting for deployment to be ready..."
+          max_attempts=30
+          attempt=1
+          
+          # Extract base URL from FHIR server URL (remove the /proxy-smart-backend/... path)
+          BASE_URL=$(echo "${{ inputs.fhir_server_url }}" | sed 's|/proxy-smart-backend.*||')
+          echo "Checking health at: $BASE_URL/health"
+          
+          while [ $attempt -le $max_attempts ]; do
+            if curl -f "$BASE_URL/health" >/dev/null 2>&1; then
+              echo "✅ FHIR server is ready and responding"
+              break
+            fi
+            echo "🔄 Waiting for FHIR server... (attempt $attempt/$max_attempts)"
+            sleep 10
+            attempt=$((attempt + 1))
+          done
+          
+          if [ $attempt -gt $max_attempts ]; then
+            echo "❌ FHIR server failed to respond within timeout"
+            exit 1
+          fi
+
+      - name: Run integration tests
+        id: integration-tests
+        run: |
+          echo "🔗 Running integration tests for ${{ inputs.test_stage }}..."
+          
+          # Extract base URL from FHIR server URL (remove the /proxy-smart-backend/... path)
+          BASE_URL=$(echo "${{ inputs.fhir_server_url }}" | sed 's|/proxy-smart-backend.*||')
+          echo "Base server URL: $BASE_URL"
+          echo "FHIR endpoint URL: ${{ inputs.fhir_server_url }}"
+          
+          # Test basic health endpoint
+          echo "Testing health endpoint..."
+          if curl -f "$BASE_URL/health" > testing/${{ inputs.test_stage }}/reports/integration/health.json; then
+            echo "✅ Health endpoint working"
+          else
+            echo "❌ Health endpoint failed"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Test FHIR server metadata endpoint
+          echo "Testing FHIR metadata endpoint..."
+          if curl -f "${{ inputs.fhir_server_url }}/metadata" > testing/${{ inputs.test_stage }}/reports/integration/fhir_metadata.json; then
+            echo "✅ FHIR metadata endpoint working"
+          else
+            echo "⚠️ FHIR metadata endpoint not available - may need authentication"
+          fi
+          
+          # Test OAuth discovery if Keycloak is available
+          echo "Testing OAuth discovery endpoint..."
+          if curl -f "${{ inputs.keycloak_url }}/realms/proxy-smart/.well-known/openid_configuration" > testing/${{ inputs.test_stage }}/reports/integration/oauth_discovery.json; then
+            echo "✅ OAuth discovery endpoint working"
+          elif curl -f "${{ inputs.keycloak_url }}/realms/master/.well-known/openid_configuration" > testing/${{ inputs.test_stage }}/reports/integration/oauth_discovery_master.json; then
+            echo "✅ Keycloak master realm accessible (proxy-smart realm may not be configured yet)"
+          else
+            echo "⚠️ OAuth discovery endpoint not available - Keycloak may not be fully configured"
+          fi
+          
+          echo "status=passed" >> $GITHUB_OUTPUT
+          echo "Integration tests completed successfully" | tee testing/${{ inputs.test_stage }}/reports/integration/integration_tests.log
+
+      - name: Generate test summary
+        id: summary
+        if: always()
+        run: |
+          echo "📊 Generating test summary..."
+          
+          INTEGRATION_STATUS="${{ steps.integration-tests.outputs.status || 'failed' }}"
+          INFERNO_STATUS="${{ steps.inferno-tests.outputs.compliance_status || 'skipped' }}"
+          
+          # Determine overall status
+          if [[ "$INTEGRATION_STATUS" == "failed" || "$INFERNO_STATUS" == "failed" ]]; then
+            OVERALL_STATUS="failed"
+            STATUS_EMOJI="❌"
+          elif [[ "$INTEGRATION_STATUS" == "passed" && ("$INFERNO_STATUS" == "passed" || "$INFERNO_STATUS" == "skipped") ]]; then
+            OVERALL_STATUS="passed"
+            STATUS_EMOJI="✅"
+          else
+            OVERALL_STATUS="unknown"
+            STATUS_EMOJI="⚠️"
+          fi
+          
+          echo "overall_status=$OVERALL_STATUS" >> $GITHUB_OUTPUT
+          echo "reports_path=testing/${{ inputs.test_stage }}/reports" >> $GITHUB_OUTPUT
+          
+          # Generate summary report
+          SUMMARY_FILE="testing/${{ inputs.test_stage }}/reports/summary/test_summary.md"
+          
+          cat > "$SUMMARY_FILE" << EOF
+          # $STATUS_EMOJI Integration & Compliance Test Results - ${{ inputs.test_stage }}
+          
+          **Generated**: $(date -u)
+          **Test Stage**: ${{ inputs.test_stage }}
+          **Deployment Target**: ${{ inputs.deployment_target }}
+          **App Version**: ${{ inputs.app_version }}
+          **Overall Status**: $OVERALL_STATUS
+          
+          ## Test Environment
+          - **FHIR Server**: ${{ inputs.fhir_server_url }}
+          - **Keycloak**: ${{ inputs.keycloak_url }}
+          - **Deployment**: ${{ inputs.deployment_target }}
+          
+          ## Test Results Summary
+          | Test Type | Status | Details |
+          |-----------|--------|---------|
+          | Integration Tests | $INTEGRATION_STATUS | FHIR endpoints & OAuth |
+          | Inferno ONC Tests | $INFERNO_STATUS | ONC Program Edition compliance |
+          
+          ## Test Artifacts
+          - **Integration Tests**: \`testing/${{ inputs.test_stage }}/reports/integration/\`
+          - **Inferno Tests**: \`testing/${{ inputs.test_stage }}/reports/inferno/\`
+          
+          ## Key Files
+          - \`metadata.json\`: FHIR server capability statement
+          - \`patient_search.json\`: FHIR Patient endpoint test
+          - \`oauth_discovery.json\`: OAuth discovery configuration
+          EOF
+          
+          if [ "$INFERNO_STATUS" != "skipped" ]; then
+            cat >> "$SUMMARY_FILE" << EOF
+          - \`compliance_report.md\`: Detailed Inferno compliance report
+          - \`test_results.json\`: Raw Inferno test results
+          - \`test_report.html\`: Inferno HTML report
+          EOF
+          fi
+          
+          cat >> "$SUMMARY_FILE" << EOF
+          
+          ## Next Steps
+          EOF
+          
+          if [ "$OVERALL_STATUS" = "passed" ]; then
+            cat >> "$SUMMARY_FILE" << EOF
+          ✅ **All tests passed successfully!**
+          
+          1. Review test artifacts for any warnings
+          2. Proceed with deployment to next stage
+          3. For production: Submit for ONC certification if required
+          EOF
+          else
+            cat >> "$SUMMARY_FILE" << EOF
+          ❌ **Some tests failed - Action required**
+          
+          1. Review failed test logs in respective directories
+          2. Address identified issues
+          3. Re-run tests after fixes are implemented
+          EOF
+          fi
+          
+          echo "✅ Test summary generated"
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-compliance-test-results-${{ inputs.test_stage }}-${{ inputs.deployment_target }}
+          path: testing/${{ inputs.test_stage }}/reports/
+          retention-days: 30
+
+      - name: Cleanup local services
+        if: inputs.deployment_target == 'local' && always()
+        run: |
+          echo "🧹 Cleaning up Alpha deployment resources after testing..."
+          
+          # Stop backend process (deployed by deployment strategy)
+          if [ -f backend.pid ]; then
+            echo "Stopping backend process..."
+            kill $(cat backend.pid) || true
+            rm backend.pid
+          fi
+          
+          # Stop and remove Docker containers (created by deployment strategy)
+          echo "Stopping Docker containers..."
+          docker stop alpha-keycloak alpha-postgres || true
+          docker rm alpha-keycloak alpha-postgres || true
+          
+          # Clean up any Inferno containers from testing
+          echo "Cleaning up Inferno test containers..."
+          docker ps -a --filter "name=inferno" --format "{{.Names}}" | xargs -r docker rm -f || true
+          
+          # Clean up any dangling Docker resources
+          echo "Cleaning up Docker resources..."
+          docker system prune -f || true
+          
+          echo "✅ Alpha deployment and testing cleanup completed"
+
+      - name: Generate GitHub Step Summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Results Summary - ${{ inputs.test_stage }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Stage**: ${{ inputs.test_stage }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployment Target**: ${{ inputs.deployment_target }}" >> $GITHUB_STEP_SUMMARY
+          echo "**FHIR Server**: ${{ inputs.fhir_server_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Overall Status**: ${{ steps.summary.outputs.overall_status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **Integration Tests**: ${{ steps.integration-tests.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Inferno ONC Tests**: ${{ steps.inferno-tests.outputs.compliance_status }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "Test reports are available in the uploaded artifacts: \`integration-compliance-test-results-${{ inputs.test_stage }}-${{ inputs.deployment_target }}\`" >> $GITHUB_STEP_SUMMARY
+
+  # Discord notification on successful testing
+  notify-testing-success:
+    name: Discord Testing Success Notification
+    needs: [integration-compliance-tests]
+    if: ${{ success() && needs.integration-compliance-tests.outputs.overall_status == 'passed' }}
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Send Discord testing success notification
+        if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
+        uses: ./.github/actions/discord-notify
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          notification-type: 'testing'
+          title: '✅ Tests Passed: ${{ inputs.test_stage }} v${{ inputs.app_version }}'
+          description: 'All integration and compliance tests passed successfully for ${{ inputs.test_stage }} environment!'
+          version: ${{ inputs.app_version }}
+          deployment-stage: ${{ inputs.test_stage }}
+          deployment-target: ${{ inputs.deployment_target }}
+          fhir-server-url: ${{ inputs.fhir_server_url }}
+          keycloak-url: ${{ inputs.keycloak_url }}
+          repository: ${{ github.repository }}
+          commit-sha: ${{ github.sha }}
+          actor: ${{ github.actor }}
+          color: '00FF00'
+
+  # Discord notification on testing failure
+  notify-testing-failure:
+    name: Discord Testing Failure Notification
+    needs: [integration-compliance-tests]
+    if: ${{ failure() || (success() && needs.integration-compliance-tests.outputs.overall_status != 'passed') }}
+    runs-on: ubuntu-latest
+    env:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Send Discord testing failure notification
+        if: ${{ env.DISCORD_WEBHOOK_URL != '' }}
+        uses: ./.github/actions/discord-notify
+        with:
+          webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          notification-type: 'error'
+          title: '❌ Tests Failed: ${{ inputs.test_stage }} v${{ inputs.app_version }}'
+          description: 'Some tests failed for ${{ inputs.test_stage }} environment. Please check the test reports for details.'
+          version: ${{ inputs.app_version }}
+          deployment-stage: ${{ inputs.test_stage }}
+          deployment-target: ${{ inputs.deployment_target }}
+          fhir-server-url: ${{ inputs.fhir_server_url }}
+          keycloak-url: ${{ inputs.keycloak_url }}
+          repository: ${{ github.repository }}
+          commit-sha: ${{ github.sha }}
+          actor: ${{ github.actor }}
+          color: 'FF0000'

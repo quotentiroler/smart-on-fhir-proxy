@@ -1,0 +1,26 @@
+name: Dev Branch Build & Test
+
+on:
+  push:
+    branches:
+      - "dev/*"
+  pull_request:
+    branches:
+      - "dev/*"
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  build-and-test:
+    if: "${{ !contains(github.event.head_commit.message, 'chore: auto-fix') }}"
+    name: Build & Test Dev Branch
+    uses: ./.github/workflows/build-and-test.yml
+    with:
+      run_tests: true
+      fail_on_test_failure: false
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

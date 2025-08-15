@@ -1,0 +1,41 @@
+name: 'Setup Python with AI Dependencies'
+description: 'Setup Python with caching and install AI dependencies for error fixing'
+
+inputs:
+  python-version:
+    description: 'Python version to setup'
+    required: false
+    default: '3.11'
+  cache-dependency-path:
+    description: 'Path to dependency file for cache key'
+    required: false
+    default: 'scripts/requirements.txt'
+
+runs:
+  using: 'composite'
+  steps:
+  - name: Setup Python
+    uses: actions/setup-python@v4
+    with:
+      python-version: ${{ inputs.python-version }}
+      cache: 'pip'
+      cache-dependency-path: ${{ inputs.cache-dependency-path }}
+
+  - name: Cache pip dependencies
+    uses: actions/cache@v4
+    with:
+      path: |
+        ~/.cache/pip
+        ~/.local/lib/python${{ inputs.python-version }}/site-packages
+      key: ${{ runner.os }}-python-${{ inputs.python-version }}-pip-${{ hashFiles(inputs.cache-dependency-path) }}
+      restore-keys: |
+        ${{ runner.os }}-python-${{ inputs.python-version }}-pip-
+        ${{ runner.os }}-python-${{ inputs.python-version }}-
+
+  - name: Install AI dependencies
+    shell: bash
+    run: |
+      echo "📦 Installing Python AI dependencies..."
+      python -m pip install --upgrade pip
+      pip install -r ${{ inputs.cache-dependency-path }}
+      echo "✅ Python AI dependencies installed and cached"

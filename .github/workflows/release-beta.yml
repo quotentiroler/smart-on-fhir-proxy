@@ -1,0 +1,64 @@
+name: Beta Release
+
+on:
+  push:
+    branches: [test]
+    paths-ignore:
+      - 'ui/src/lib/api-client/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: releases
+  cancel-in-progress: false
+
+jobs:
+  beta-release:
+    name: Beta Release
+    # Only run if the last commit is not a release commit to avoid infinite loops
+    if: ${{ !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update client APIs') && !contains(github.event.head_commit.message, 'Beta release') && !contains(github.event.head_commit.message, '🚀') && !contains(github.event.head_commit.message, 'proxy-smart-releaser') }}
+    uses: ./.github/workflows/release-orchestrator.yml
+    with:
+      release_type: 'beta'
+      source_branch: 'test'
+      target_branch: 'test'
+      should_bump_version: false
+      is_prerelease: true
+      commit_limit: 10
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+  # Deploy after successful release
+  deploy-beta:
+    name: Deploy Beta to VPS
+    needs: [beta-release]
+    uses: ./.github/workflows/deployment-strategy.yml
+    with:
+      deployment_stage: 'beta'
+      app_version: ${{ needs.beta-release.outputs.version }}
+      source_branch: 'test'
+    secrets:
+      VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+  # Test the deployed beta application
+  test-beta-deployment:
+    name: Test Beta Deployment
+    needs: [beta-release, deploy-beta]
+    uses: ./.github/workflows/testing-strategy.yml
+    with:
+      test_stage: 'beta'
+      deployment_target: ${{ needs.deploy-beta.outputs.deployment_target }}
+      fhir_server_url: ${{ needs.deploy-beta.outputs.fhir_server_url }}
+      keycloak_url: ${{ needs.deploy-beta.outputs.keycloak_url }}
+      app_version: ${{ needs.beta-release.outputs.version }}
+    secrets:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
