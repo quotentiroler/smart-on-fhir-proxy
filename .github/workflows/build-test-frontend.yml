@@ -124,7 +124,7 @@ jobs:
           fi
 
       - name: Debug Frontend Build Failure and Secrets
-        if: steps.build-status.outputs.BUILD_FAILED == 'true'
+        if: ${{ steps.build-status.outputs.BUILD_FAILED == 'true' }}
         run: |
           echo "🐛 Frontend build failed, checking AI fix prerequisites..."
           echo "Build failed with specific errors:"
@@ -142,7 +142,7 @@ jobs:
           echo "Will attempt authentication next..."
 
       - name: Authenticate as GitHub App (Frontend Build)
-        if: steps.build-status.outputs.BUILD_FAILED == 'true'
+        if: ${{ steps.build-status.outputs.BUILD_FAILED == 'true' }}
         id: frontend-app-auth
         continue-on-error: true
         uses: actions/create-github-app-token@v2
@@ -153,7 +153,7 @@ jobs:
           repositories: ${{ github.event.repository.name }}
 
       - name: Check GitHub App Authentication
-        if: steps.build-status.outputs.BUILD_FAILED == 'true'
+        if: ${{ steps.build-status.outputs.BUILD_FAILED == 'true' }}
         run: |
           echo "🔐 Checking authentication results..."
           echo "Authentication step outcome: ${{ steps.frontend-app-auth.outcome }}"
@@ -172,19 +172,19 @@ jobs:
           fi
 
       - name: Setup Python for Frontend AI fixes
-        if: steps.build-status.outputs.BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token
+        if: ${{ steps.build-status.outputs.BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token }}
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
       - name: Install Python dependencies for Frontend AI fixes
-        if: steps.build-status.outputs.BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token
+        if: ${{ steps.build-status.outputs.BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token }}
         run: |
           python -m pip install --upgrade pip
           pip install -r scripts/requirements.txt
 
       - name: Auto-fix Frontend and retry build
-        if: steps.build-status.outputs.BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token
+        if: ${{ steps.build-status.outputs.BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token }}
         id: frontend-fix-retry
         continue-on-error: true
         env:
@@ -215,7 +215,7 @@ jobs:
           fi
 
       - name: Fail if frontend build failed and AI couldn't fix it
-        if: steps.build-status.outputs.BUILD_FAILED == 'true' && steps.frontend-fix-retry.outputs.BUILD_RETRY_SUCCESS != 'true'
+        if: ${{ steps.build-status.outputs.BUILD_FAILED == 'true' && steps.frontend-fix-retry.outputs.BUILD_RETRY_SUCCESS != 'true' }}
         run: |
           echo "❌ Frontend BUILD failed and AI fixes did not resolve the issues"
           echo "Build status: ${{ steps.build-status.outputs.BUILD_FAILED }}"
