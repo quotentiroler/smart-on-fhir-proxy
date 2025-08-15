@@ -54,8 +54,38 @@ jobs:
           bun install
           bun run build 2>&1 | tee ../backend-build.log
 
+      - name: Check Build Status
+        id: build-status
+        if: always()
+        run: |
+          echo "Checking build outcome: ${{ steps.backend-build.outcome }}"
+          
+          # Check if build log exists and contains errors
+          if [ -f "backend-build.log" ]; then
+            echo "Build log found, checking for errors..."
+            if grep -q "error TS\|Error:" backend-build.log; then
+              echo "❌ Backend build failed - TypeScript errors found in log"
+              echo "BUILD_FAILED=true" >> $GITHUB_OUTPUT
+              echo "=== BUILD ERROR DETAILS ==="
+              cat backend-build.log
+              echo "=========================="
+            elif [ "${{ steps.backend-build.outcome }}" == "success" ]; then
+              echo "✅ Backend build successful"
+              echo "BUILD_FAILED=false" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Backend build failed - step outcome: ${{ steps.backend-build.outcome }}"
+              echo "BUILD_FAILED=true" >> $GITHUB_OUTPUT
+              echo "=== BUILD ERROR DETAILS ==="
+              cat backend-build.log
+              echo "=========================="
+            fi
+          else
+            echo "❌ No build log found - assuming build failed"
+            echo "BUILD_FAILED=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Debug Build Failure and Secrets
-        if: failure()
+        if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') }}
         run: |
           echo "🐛 Backend build failed, checking AI fix prerequisites..."
           echo "Build outcome: ${{ steps.backend-build.outcome }}"
@@ -69,7 +99,7 @@ jobs:
           echo "Actor: ${{ github.actor }}"
 
       - name: Authenticate as GitHub App (Backend Build)
-        if: failure()
+        if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') }}
         id: backend-app-auth
         continue-on-error: true
         uses: actions/create-github-app-token@v2
@@ -80,7 +110,7 @@ jobs:
           repositories: ${{ github.event.repository.name }}
 
       - name: Check GitHub App Authentication
-        if: failure()
+        if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') }}
         run: |
           if [ "${{ steps.backend-app-auth.outputs.token }}" != "" ]; then
             echo "✅ GitHub App authentication successful"
@@ -94,19 +124,19 @@ jobs:
           fi
 
       - name: Setup Python for Backend AI fixes
-        if: failure() && steps.backend-app-auth.outputs.token
+        if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') && steps.backend-app-auth.outputs.token }}
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
       - name: Install Python dependencies for Backend AI fixes
-        if: failure() && steps.backend-app-auth.outputs.token
+        if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') && steps.backend-app-auth.outputs.token }}
         run: |
           python -m pip install --upgrade pip
           pip install -r scripts/requirements.txt
 
       - name: Propose Backend Fixes with Junior AI
-        if: failure() && steps.backend-app-auth.outputs.token
+        if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') && steps.backend-app-auth.outputs.token }}
         id: backend-propose
         continue-on-error: true
         env:
@@ -123,7 +153,7 @@ jobs:
           fi
 
       - name: Review Proposed Backend Fixes with Senior AI
-        if: failure() && steps.backend-app-auth.outputs.token
+        if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') && steps.backend-app-auth.outputs.token }}
         id: backend-review
         continue-on-error: true
         env:
@@ -140,7 +170,7 @@ jobs:
           fi
 
       - name: Apply Reviewed Backend Fixes and retry build
-        if: failure() && steps.backend-app-auth.outputs.token
+        if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') && steps.backend-app-auth.outputs.token }}
         id: backend-fix-retry
         continue-on-error: true
         env:
@@ -151,11 +181,13 @@ jobs:
           python scripts/apply-backend-fixes.py scripts/reviewed-backend-fixes.json
 
       - name: Fail if backend build failed and AI couldn't fix it
-        if: failure() && steps.backend-fix-retry.outcome != 'success'
+        if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') && steps.backend-fix-retry.outputs.backend_build_success != 'true' }}
         run: |
           echo "❌ Backend build failed and AI fixes did not resolve the issues"
-          echo "Build outcome: ${{ steps.backend-build.outcome }}"
-          echo "Fix retry outcome: ${{ steps.backend-fix-retry.outcome }}"
+          echo "Build status: ${{ steps.build-status.outputs.BUILD_FAILED }}"
+          echo "Fix retry success: ${{ steps.backend-fix-retry.outputs.backend_build_success }}"
+          echo "=== FINAL BUILD ERRORS ==="
+          cat backend-build.log
           exit 1
 
       # === BACKEND TEST PHASE ===

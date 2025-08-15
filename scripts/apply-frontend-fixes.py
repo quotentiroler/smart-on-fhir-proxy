@@ -269,7 +269,7 @@ Focus on frontend-specific issues like:
             
             # Stage, commit and push
             subprocess.run(["git", "add", "."], cwd=self.repo_root, check=True)
-            subprocess.run(["git", "commit", "-m", "chore: auto-fix frontend build errors via OpenAI [skip ci]"], 
+            subprocess.run(["git", "commit", "-m", "chore: auto-fix frontend build errors via OpenAI"], 
                          cwd=self.repo_root, check=True)
             subprocess.run(["git", "push"], cwd=self.repo_root, check=True)
             
