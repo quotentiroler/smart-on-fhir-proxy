@@ -155,7 +155,9 @@ def create_system_message(component: Literal["frontend", "backend"],
         "backend": "File paths in build errors are relative to the backend/ folder. When providing file_path, include the full path from repository root (e.g., 'backend/src/file.ts' not 'src/file.ts')."
     }
     
-    return f"""You are a code fixing assistant specialized in {base_expertise[component]}. {step_guidance[step]} Always return valid JSON with fixes array, even if empty. IMPORTANT: {path_guidance[component]} Focus on {component}-specific issues and best practices."""
+    return f"""You are a code fixing assistant specialized in {base_expertise[component]}. {step_guidance[step]} Always return valid JSON with fixes array, even if empty. IMPORTANT: {path_guidance[component]} Focus on {component}-specific issues and best practices.
+
+CRITICAL: For search_text, extract the EXACT code pattern from the error context. For method calls or property access, include the complete chain (e.g., 'logger.auth.error(' not just 'logger.error(') to ensure precise matching."""
 
 
 def create_user_content_base(component: Literal["frontend", "backend"], 
@@ -226,6 +228,8 @@ def create_user_content_base(component: Literal["frontend", "backend"],
 {errors}
 
 Focus on {component}-specific issues like:
-{focus_list}"""
+{focus_list}
+
+IMPORTANT: When creating search_text patterns, extract the EXACT code from the error context including complete property chains, method calls, and surrounding punctuation. For example, if the error shows 'logger.auth.ersror(' then use that exact pattern, not just 'logger.ersror('."""
     
     return content
