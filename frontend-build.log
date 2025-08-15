@@ -1,2 +1,0 @@
-$ tsc -b && vite build
-src/components/SmartProxyOverview.tsx(145,9): error TS2353: Object literal may only specify known properties, and 'lastBackup' does not exist in type '{ apiResponseTime: number; databaseStatus: string; systemUptime: string; lastBsackup: Date | null; serverVersion: string; keycloakStatus: string; keycloakLastConnected: string; memoryUsage: string; aiAgentStatus: string; aiAgentSearchType: string; } | (() => { ...; })'.

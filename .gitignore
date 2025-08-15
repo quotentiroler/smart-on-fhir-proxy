@@ -3,3 +3,11 @@
 **/dist
 **/build
 .vscode
+
+# Build and test log files (should not be committed)
+*-build.log
+*-test.log
+backend-build.log
+frontend-build.log
+backend-test.log
+frontend-test.log

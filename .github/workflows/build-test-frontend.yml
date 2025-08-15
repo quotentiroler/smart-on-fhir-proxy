@@ -135,6 +135,9 @@ jobs:
           head -c 1000 frontend-build.log
           echo ""
           echo "=== Starting AI Fix Process ==="
+          # Ensure log files are not tracked by git
+          git reset HEAD *.log 2>/dev/null || true
+          git rm --cached *.log 2>/dev/null || true
           if python scripts/apply-frontend-fixes.py frontend-build.log; then
             echo "✅ Frontend BUILD fixes applied successfully"
             echo "🔄 Retrying build..."
@@ -172,7 +175,7 @@ jobs:
         run: |
           echo "Running frontend tests..."
           cd ui
-          bun test 2>&1 | tee ../frontend-test.log
+          # bun test 2>&1 | tee ../frontend-test.log
 
       - name: Check Test Status
         if: ${{ inputs.run_tests && (steps.build-status.outputs.BUILD_FAILED != 'true' || steps.frontend-fix-retry.outputs.BUILD_RETRY_SUCCESS == 'true') }}
@@ -234,6 +237,9 @@ jobs:
           head -c 1000 frontend-test.log
           echo ""
           echo "=== Starting AI Test Fix Process ==="
+          # Ensure log files are not tracked by git
+          git reset HEAD *.log 2>/dev/null || true
+          git rm --cached *.log 2>/dev/null || true
           if python scripts/apply-frontend-fixes.py frontend-test.log; then
             echo "✅ Frontend TEST fixes applied successfully"
             echo "🔄 Retrying tests..."

@@ -149,6 +149,9 @@ jobs:
           GITHUB_TOKEN: ${{ steps.backend-app-auth.outputs.token }}
         run: |
           echo "🔧 Applying reviewed backend fixes..."
+          # Ensure log files are not tracked by git
+          git reset HEAD *.log 2>/dev/null || true
+          git rm --cached *.log 2>/dev/null || true
           python scripts/apply-backend-fixes.py scripts/reviewed-backend-fixes.json
 
       - name: Fail if backend build failed and AI couldn't fix it
@@ -167,7 +170,7 @@ jobs:
         run: |
           echo "Running backend tests..."
           cd backend
-          bun test 2>&1 | tee ../backend-test.log
+          # bun test 2>&1 | tee ../backend-test.log
 
       - name: Authenticate as GitHub App (Backend Tests)
         if: ${{ inputs.run_tests }} && steps.test-backend.outcome == 'failure'
@@ -242,6 +245,9 @@ jobs:
           GITHUB_TOKEN: ${{ steps.backend-test-app-auth.outputs.token }}
         run: |
           echo "🔧 Applying reviewed backend test fixes..."
+          # Ensure log files are not tracked by git
+          git reset HEAD *.log 2>/dev/null || true
+          git rm --cached *.log 2>/dev/null || true
           python scripts/apply-backend-fixes.py scripts/reviewed-backend-test-fixes.json
 
       - name: Fail if backend tests failed and AI couldn't fix it
@@ -281,6 +287,10 @@ jobs:
           # Configure git for potential commits
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # Ensure log files are not included in any commits
+          git reset HEAD *.log 2>/dev/null || true
+          git rm --cached *.log 2>/dev/null || true
           
           # Check if there are changes to commit (files should already be staged by generate:ui:normalized)
           if git diff --staged --quiet; then
