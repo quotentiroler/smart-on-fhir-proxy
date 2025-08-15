@@ -77,224 +77,34 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
 
+      - name: Setup Python for AI fixes
+        if: failure() && steps.app-auth.outputs.token
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies for AI fixes
+        if: failure() && steps.app-auth.outputs.token
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
       - name: Auto-fix and retry build (single attempt)
         if: failure() && steps.app-auth.outputs.token
         id: auto-fix-retry
+        continue-on-error: true
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITHUB_TOKEN: ${{ steps.app-auth.outputs.token }}
         run: |
-          # Install curl for API calls
-          curl --version || (apt-get update && apt-get install -y curl)
-          
-          echo "🔄 Auto-fix attempt after build failure"
-          
-          # Ask GPT-4o for structured code fixes via API
-          echo "📝 Analyzing build errors with AI (Structured Outputs)..."
-          
-          # Read build errors and create a proper JSON payload file
-          BUILD_ERRORS=$(sed -n '1,2000p' "build.log")
-          
-          # Debug: show what we're sending to AI
-          echo "🔍 Build errors being sent to AI (first 500 chars):"
-          echo "$BUILD_ERRORS" | head -c 500
-          echo "..."
-          
-          # Check if we have OpenAI API key
-          if [ -z "$OPENAI_API_KEY" ]; then
-            echo "❌ OPENAI_API_KEY is not set - skipping AI fixes"
-            echo "⚠️ No AI fixes available - continuing without fixes"
-          else
-            echo "✅ OpenAI API key is available, making request..."
-            
-            # Create JSON payload with proper escaping using jq
-            ESCAPED_ERRORS=$(echo "$BUILD_ERRORS" | jq -Rs .)
-            jq -n --argjson errors "$ESCAPED_ERRORS" '{
-              "model": "gpt-4o-2024-08-06",
-              "messages": [
-                {
-                  "role": "system",
-                  "content": "You are a code fixing assistant. Analyze build errors and provide structured fixes. Always return valid JSON with fixes array, even if empty. IMPORTANT: File paths in build errors are relative to project folders (backend/ or ui/). When providing file_path, include the full path from repository root (e.g., 'ui/src/file.tsx' not 'src/file.tsx')."
-                },
-                {
-                  "role": "user",
-                  "content": ("Fix these TypeScript/JavaScript build errors. Note: This is a monorepo with backend/ and ui/ folders. Build errors from the UI are run from the ui/ directory, so file paths like 'src/file.tsx' should be 'ui/src/file.tsx' in your fixes. Build errors from backend are run from backend/ directory, so 'src/file.ts' should be 'backend/src/file.ts':\n\n" + $errors)
-                }
-              ],
-              "temperature": 0.1,
-              "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                  "name": "code_fixes",
-                  "strict": true,
-                  "schema": {
-                    "type": "object",
-                    "properties": {
-                      "fixes": {
-                        "type": "array",
-                        "items": {
-                          "type": "object",
-                          "properties": {
-                            "file_path": {
-                              "type": "string",
-                              "description": "Path to the file to fix"
-                            },
-                            "line_number": {
-                              "type": "number",
-                              "description": "Line number where the fix should be applied"
-                            },
-                            "search_text": {
-                              "type": "string",
-                              "description": "Exact text to search for and replace"
-                            },
-                            "replacement_text": {
-                              "type": "string",
-                              "description": "Text to replace the search text with"
-                            },
-                            "description": {
-                              "type": "string",
-                              "description": "Description of what this fix does"
-                            }
-                          },
-                          "required": ["file_path", "line_number", "search_text", "replacement_text", "description"],
-                          "additionalProperties": false
-                        }
-                      }
-                    },
-                    "required": ["fixes"],
-                    "additionalProperties": false
-                  }
-                }
-              }
-            }' > openai-request.json
-            
-            # Make the API call using the JSON file
-            API_RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "https://api.openai.com/v1/chat/completions" \
-              -H "Content-Type: application/json" \
-              -H "Authorization: Bearer $OPENAI_API_KEY" \
-              -d @openai-request.json)
-            
-            # Extract HTTP status and response body
-            HTTP_STATUS=$(echo "$API_RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
-            RESPONSE_BODY=$(echo "$API_RESPONSE" | sed '/HTTP_STATUS:/d')
-            
-            echo "🌐 OpenAI API HTTP Status: $HTTP_STATUS"
-            
-            if [ "$HTTP_STATUS" = "200" ]; then
-              echo "$RESPONSE_BODY" | jq -r '.choices[0].message.content' > ai-fixes.json
-              echo "✅ OpenAI API call successful"
-            else
-              echo "❌ OpenAI API call failed with status $HTTP_STATUS"
-              echo "Response: $RESPONSE_BODY"
-              echo '{"fixes":[]}' > ai-fixes.json
-            fi
-            
-            # Clean up temporary files
-            rm -f openai-request.json
-          fi
+          # Run the Python AI fix script
+          python scripts/apply-ai-fixes.py build.log
 
-          # Debug: show what the AI generated
-          echo "🔍 AI generated structured fixes:"
-          if [ -f "ai-fixes.json" ]; then
-            cat ai-fixes.json
-          else
-            echo "❌ No fix file generated"
-          fi
-          echo "--- End of fixes ---"
-
-          # Apply structured fixes
-          PATCH_SUCCESS=false
-          if [ -s ai-fixes.json ]; then
-            echo "📁 Fix file exists and is not empty"
-            
-            # Validate JSON structure
-            if jq -e '.fixes' ai-fixes.json > /dev/null 2>&1; then
-              echo "✅ Valid structured fixes received"
-              
-              # Check if fixes array is not empty
-              FIX_COUNT=$(jq '.fixes | length' ai-fixes.json)
-              echo "🔢 Number of fixes: $FIX_COUNT"
-              
-              if [ "$FIX_COUNT" -gt 0 ]; then
-                # Apply each fix
-                jq -r '.fixes[] | @json' ai-fixes.json | while read fix_json; do
-                  file_path=$(echo "$fix_json" | jq -r '.file_path')
-                  search_text=$(echo "$fix_json" | jq -r '.search_text')
-                  replacement_text=$(echo "$fix_json" | jq -r '.replacement_text')
-                  description=$(echo "$fix_json" | jq -r '.description')
-                  
-                  echo "🔧 Applying fix: $description"
-                  echo "📁 File: $file_path"
-                  echo "🔍 Search: $search_text"
-                  echo "🔄 Replace: $replacement_text"
-                  
-                  if [ -f "$file_path" ]; then
-                    # Use sed to replace the exact text (escape special characters)
-                    if sed -i "s|$(echo "$search_text" | sed 's/[[\.*^$()+?{|]/\\&/g')|$(echo "$replacement_text" | sed 's/[[\.*^$()+?{|]/\\&/g')|g" "$file_path" 2>/dev/null; then
-                      echo "✅ Fix applied successfully"
-                      PATCH_SUCCESS=true
-                    else
-                      echo "❌ Failed to apply fix"
-                    fi
-                  else
-                    echo "❌ File not found: $file_path"
-                  fi
-                done
-              else
-                echo "ℹ️ AI returned valid JSON but no fixes were suggested"
-              fi
-            else
-              echo "❌ Invalid JSON structure in AI response"
-              echo "Raw content:"
-              cat ai-fixes.json
-            fi
-          else
-            echo "⚠️ Fix file is empty or does not exist"
-          fi
-
-          # Commit fixes if any were applied
-          if [ "$PATCH_SUCCESS" = "true" ]; then
-            # Remove build artifacts from staging
-            git reset build.log ai-fixes.json openai-request.json 2>/dev/null || true
-            rm -f build.log ai-fixes.json openai-request.json 2>/dev/null || true
-            
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            
-            # Check if there are actual code changes
-            if [ -n "$(git status --porcelain | grep -v build.log | grep -v ai-fixes.json | grep -v openai-request.json)" ]; then
-              git add .
-              git commit -m "chore: auto-fix build errors via OpenAI [skip ci]"
-              git push
-              echo "✅ Code fixes applied and pushed"
-            else
-              echo "⚠️ No actual code changes to commit"
-            fi
-          else
-            echo "⚠️ Skipping commit - no patches applied"
-          fi
-          
-          # Retry the build once
-          echo "🔄 Retrying build after AI fixes..."
-          set +e  # Don't exit on error
-          (
-            echo "=== Retrying Backend Build ==="
-            cd backend && bun install && bun run build && cd ..
-            echo "=== Retrying UI Build ==="
-            cd ui && bun install && bun run build && cd ..
-          ) 2>&1 | tee retry-build.log
-          
-          BUILD_EXIT_CODE=$?
-          set -e  # Re-enable exit on error
-          
-          if [ $BUILD_EXIT_CODE -eq 0 ]; then
-            echo "✅ Build succeeded after AI fixes!"
-            echo "build_success=true" >> $GITHUB_OUTPUT
-          else
-            echo "❌ Build still failed after AI fixes"
-            echo "build_success=false" >> $GITHUB_OUTPUT
-            # Don't exit here, let the workflow continue to upload artifacts if needed
-          fi
+      - name: Mark workflow as successful if AI fixes worked
+        if: steps.auto-fix-retry.outputs.build_success == 'true'
+        run: |
+          echo "✅ Build was successfully fixed by AI - marking workflow as successful"
+          exit 0
 
       - name: Upload build artifacts
         if: (success() || steps.auto-fix-retry.outputs.build_success == 'true') && !startsWith(github.ref, 'refs/heads/dev/')
