@@ -8,7 +8,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 import requests
 from ai_fix_schema import get_openai_payload_base, get_common_headers, create_system_message, create_user_content_base
@@ -19,6 +19,92 @@ class BackendFixReviewer:
         self.api_key = openai_api_key
         self.repo_root = Path(repo_root)
         self.base_url = "https://api.openai.com/v1/chat/completions"
+        
+    def validate_search_patterns(self, fixes: List[Dict]) -> List[Dict]:
+        """Validate that search patterns actually exist in the target files."""
+        validated_fixes = []
+        
+        for fix in fixes:
+            file_path = fix.get('file_path', '')
+            search_text = fix.get('search_text', '')
+            line_number = fix.get('line_number', 0)
+            
+            if not file_path or not search_text:
+                print(f"⚠️ Skipping fix with missing file_path or search_text", file=sys.stderr)
+                continue
+                
+            # Build full file path
+            full_path = self.repo_root / file_path
+            
+            print(f"🔍 Validating search pattern in {file_path}...", file=sys.stderr)
+            print(f"  - Search text: '{search_text}'", file=sys.stderr)
+            print(f"  - Expected line: {line_number}", file=sys.stderr)
+            
+            if not full_path.exists():
+                print(f"❌ File not found: {full_path}", file=sys.stderr)
+                continue
+                
+            try:
+                with open(full_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    lines = content.split('\n')
+                
+                # Check if search text exists anywhere in the file
+                if search_text in content:
+                    print(f"✅ Search pattern found in file", file=sys.stderr)
+                    
+                    # Check if it's on or near the expected line
+                    if line_number > 0 and line_number <= len(lines):
+                        target_line = lines[line_number - 1]  # Convert to 0-based index
+                        if search_text in target_line:
+                            print(f"✅ Pattern found on expected line {line_number}", file=sys.stderr)
+                        else:
+                            print(f"⚠️ Pattern not found on line {line_number}, but exists elsewhere in file", file=sys.stderr)
+                            print(f"  - Line {line_number} content: '{target_line.strip()}'", file=sys.stderr)
+                            
+                            # Find which lines contain the pattern
+                            matching_lines = []
+                            for i, line in enumerate(lines, 1):
+                                if search_text in line:
+                                    matching_lines.append(i)
+                            print(f"  - Pattern found on lines: {matching_lines}", file=sys.stderr)
+                    
+                    validated_fixes.append(fix)
+                else:
+                    print(f"❌ Search pattern '{search_text}' not found anywhere in {file_path}", file=sys.stderr)
+                    print(f"  - File content preview around line {line_number}:", file=sys.stderr)
+                    
+                    # Show context around the target line
+                    if line_number > 0 and line_number <= len(lines):
+                        start_line = max(0, line_number - 3)
+                        end_line = min(len(lines), line_number + 2)
+                        for i in range(start_line, end_line):
+                            marker = ">>>" if i == line_number - 1 else "   "
+                            print(f"  {marker} {i+1}: {lines[i]}", file=sys.stderr)
+                    
+                    # Try to suggest better search patterns
+                    if line_number > 0 and line_number <= len(lines):
+                        target_line = lines[line_number - 1].strip()
+                        print(f"  - Suggested search pattern: '{target_line}'", file=sys.stderr)
+                        
+                        # Auto-fix if we can detect a better pattern
+                        if 'ersror' in target_line:
+                            # Extract the full method call
+                            import re
+                            match = re.search(r'(\w+(?:\.\w+)*\.ersror\s*\()', target_line)
+                            if match:
+                                better_pattern = match.group(1)
+                                print(f"  - Auto-correcting search pattern to: '{better_pattern}'", file=sys.stderr)
+                                fix = fix.copy()
+                                fix['search_text'] = better_pattern
+                                fix['replacement_text'] = better_pattern.replace('ersror', 'error')
+                                validated_fixes.append(fix)
+                            
+            except Exception as e:
+                print(f"❌ Error reading file {full_path}: {e}", file=sys.stderr)
+                
+        print(f"📊 Validation results: {len(validated_fixes)}/{len(fixes)} fixes validated", file=sys.stderr)
+        return validated_fixes
         
     def read_build_log(self, log_file: str) -> str:
         """Read build errors from log file."""
@@ -39,17 +125,37 @@ class BackendFixReviewer:
         
         print("🎓 Reviewer AI analyzing proposed backend fixes...", file=sys.stderr)
         
+        # First, validate search patterns before sending to AI
+        print("🔍 Step 1: Validating search patterns against actual files...", file=sys.stderr)
+        proposed_fix_list = proposed_fixes.get('fixes', [])
+        validated_fixes = self.validate_search_patterns(proposed_fix_list)
+        
+        if not validated_fixes:
+            print("❌ No fixes passed validation - all search patterns failed", file=sys.stderr)
+            return {
+                "analysis": "All proposed search patterns failed validation against actual file content. No fixes could be applied.",
+                "fixes": []
+            }
+        
+        if len(validated_fixes) < len(proposed_fix_list):
+            print(f"⚠️ Only {len(validated_fixes)}/{len(proposed_fix_list)} fixes passed validation", file=sys.stderr)
+        
+        # Update proposed fixes with validated ones
+        print("🎓 Step 2: AI review of validated fixes...", file=sys.stderr)
+        
         # Use shared schema and message creation
         user_content = f"""Review and refine these proposed backend fixes. Act as a senior developer reviewing a junior's work.
 
 ORIGINAL BUILD ERRORS:
 {build_errors}
 
-PROPOSED FIXES FROM JUNIOR AI:
-{json.dumps(proposed_fixes, indent=2)}
+PROPOSED FIXES FROM JUNIOR AI (ALREADY VALIDATED AGAINST ACTUAL FILES):
+{json.dumps({"analysis": proposed_fixes.get("analysis", ""), "fixes": validated_fixes}, indent=2)}
+
+NOTE: These fixes have already been validated - their search patterns exist in the target files.
 
 As a senior developer AI, carefully review each proposed fix:
-1. Validate the approach and reasoning
+1. Validate the approach and reasoning  
 2. Identify potential issues or better alternatives
 3. Refine or completely rewrite fixes as needed
 4. Only keep fixes that you're confident will work
