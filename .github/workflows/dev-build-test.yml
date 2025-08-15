@@ -14,8 +14,8 @@ permissions:
 
 jobs:
   build-and-test:
+    if: "${{ !contains(github.event.head_commit.message, 'chore: auto-fix') }}"
     name: Build & Test Dev Branch
-    if: ${{ !contains(github.event.head_commit.message, 'chore: auto-fix') }}
     uses: ./.github/workflows/build-and-test.yml
     with:
       run_tests: true
