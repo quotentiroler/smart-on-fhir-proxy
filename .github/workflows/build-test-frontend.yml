@@ -89,22 +89,42 @@ jobs:
           echo "=== Building Frontend ==="
           cd ui
           bun install
+          set -o pipefail  # Ensure pipeline fails if any command fails
           bun run build 2>&1 | tee ../frontend-build.log
+          # Explicitly check for build errors in the log
+          if grep -q "error TS\|Error:" ../frontend-build.log; then
+            echo "❌ Build failed with TypeScript errors"
+            exit 1
+          fi
 
       - name: Check Build Status
         id: build-status
         if: always()
         run: |
           echo "Checking build outcome: ${{ steps.frontend-build.outcome }}"
-          if [ "${{ steps.frontend-build.outcome }}" == "success" ]; then
-            echo "✅ Frontend build successful"
-            echo "BUILD_FAILED=false" >> $GITHUB_OUTPUT
+          
+          # Check if build log exists and contains errors
+          if [ -f "frontend-build.log" ]; then
+            echo "Build log found, checking for errors..."
+            if grep -q "error TS\|Error:" frontend-build.log; then
+              echo "❌ Frontend build failed - TypeScript errors found in log"
+              echo "BUILD_FAILED=true" >> $GITHUB_OUTPUT
+              echo "=== BUILD ERROR DETAILS ==="
+              cat frontend-build.log
+              echo "=========================="
+            elif [ "${{ steps.frontend-build.outcome }}" == "success" ]; then
+              echo "✅ Frontend build successful"
+              echo "BUILD_FAILED=false" >> $GITHUB_OUTPUT
+            else
+              echo "❌ Frontend build failed - step outcome: ${{ steps.frontend-build.outcome }}"
+              echo "BUILD_FAILED=true" >> $GITHUB_OUTPUT
+              echo "=== BUILD ERROR DETAILS ==="
+              cat frontend-build.log
+              echo "=========================="
+            fi
           else
-            echo "❌ Frontend build failed"
+            echo "❌ No build log found - assuming build failed"
             echo "BUILD_FAILED=true" >> $GITHUB_OUTPUT
-            echo "=== BUILD ERROR DETAILS ==="
-            cat frontend-build.log || echo "No build log found"
-            echo "=========================="
           fi
 
       - name: Debug Frontend Build Failure and Secrets
