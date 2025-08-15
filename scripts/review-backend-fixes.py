@@ -76,23 +76,64 @@ Focus on:
         
         headers = get_common_headers(self.api_key)
         
+        print(f"🔍 Review request details:")
+        print(f"  - API Key length: {len(self.api_key)}")
+        print(f"  - Payload size: {len(json.dumps(payload))} chars")
+        print(f"  - Proposed fixes count: {len(proposed_fixes.get('fixes', []))}")
+        print(f"  - Build errors length: {len(build_errors)} chars")
+        
         try:
+            print("📡 Making request to OpenAI API...")
             response = requests.post(self.base_url, json=payload, headers=headers, timeout=60)
             print(f"🌐 Reviewer AI HTTP Status: {response.status_code}")
             
             if response.status_code == 200:
                 result = response.json()
-                fixes_json = result['choices'][0]['message']['content']
-                fixes_data = json.loads(fixes_json)
-                print("✅ Reviewer AI analysis successful")
-                return fixes_data  # Return full data structure like propose step
+                print(f"📥 Response structure: {list(result.keys())}")
+                
+                if 'choices' in result and len(result['choices']) > 0:
+                    choice = result['choices'][0]
+                    print(f"📝 Choice structure: {list(choice.keys())}")
+                    
+                    if 'message' in choice and 'content' in choice['message']:
+                        fixes_json = choice['message']['content']
+                        print(f"📄 Response content length: {len(fixes_json)} chars")
+                        print(f"📄 Response content preview: {fixes_json[:200]}...")
+                        
+                        try:
+                            fixes_data = json.loads(fixes_json)
+                            print("✅ Reviewer AI analysis successful")
+                            print(f"📊 Parsed response structure: {list(fixes_data.keys())}")
+                            return fixes_data  # Return full data structure like propose step
+                        except json.JSONDecodeError as je:
+                            print(f"❌ JSON decode error: {je}")
+                            print(f"Raw content: {fixes_json}")
+                            return {"analysis": "JSON parse error", "fixes": []}
+                    else:
+                        print("❌ Missing message content in response")
+                        print(f"Choice content: {choice}")
+                        return {"analysis": "Missing response content", "fixes": []}
+                else:
+                    print("❌ Missing choices in response")
+                    print(f"Result content: {result}")
+                    return {"analysis": "Missing choices", "fixes": []}
             else:
                 print(f"❌ Reviewer AI call failed with status {response.status_code}")
+                print(f"Response headers: {dict(response.headers)}")
                 print(f"Response: {response.text}")
                 return {"analysis": "API call failed", "fixes": []}
                 
+        except requests.exceptions.Timeout:
+            print("❌ Request timed out after 60 seconds")
+            return {"analysis": "Timeout error", "fixes": []}
+        except requests.exceptions.RequestException as re:
+            print(f"❌ Request error: {re}")
+            return {"analysis": "Request error", "fixes": []}
         except Exception as e:
-            print(f"❌ Error calling Reviewer AI: {e}")
+            print(f"❌ Unexpected error calling Reviewer AI: {e}")
+            print(f"Error type: {type(e).__name__}")
+            import traceback
+            print(f"Traceback: {traceback.format_exc()}")
             return {"analysis": "Error occurred", "fixes": []}
 
 
@@ -112,26 +153,39 @@ def main():
         sys.exit(1)
     
     print("🎓 Reviewer AI starting backend fix review...")
+    print(f"📁 Proposed fixes file: {proposed_fixes_file}")
+    print(f"📁 Build log file: {build_log_file}")
+    print(f"🔑 API key available: {bool(api_key)}")
+    print(f"📂 Repo root: {repo_root}")
     
     # Initialize the reviewer
     reviewer = BackendFixReviewer(api_key, repo_root)
     
     # Read proposed fixes
     try:
+        print("📖 Reading proposed fixes...")
         with open(proposed_fixes_file, 'r', encoding='utf-8') as f:
             proposed_fixes = json.load(f)
+        print(f"✅ Loaded proposed fixes: {len(proposed_fixes.get('fixes', []))} fixes")
+        print(f"📊 Proposed fixes structure: {list(proposed_fixes.keys())}")
     except Exception as e:
         print(f"❌ Error reading proposed fixes: {e}")
         sys.exit(1)
     
     # Read build errors
+    print("📖 Reading build errors...")
     build_errors = reviewer.read_build_log(build_log_file)
     if not build_errors:
         print("❌ No backend build errors found")
         sys.exit(1)
+    print(f"✅ Loaded build errors: {len(build_errors)} chars")
     
     # Review and refine fixes
+    print("🎓 Starting AI review process...")
     reviewed_data = reviewer.review_fixes(proposed_fixes, build_errors)
+    
+    print(f"📤 Review completed, outputting results...")
+    print(f"📊 Reviewed data structure: {list(reviewed_data.keys()) if isinstance(reviewed_data, dict) else 'Not a dict'}")
     
     # Output as JSON for the application step - consistent with propose step
     print(json.dumps(reviewed_data, indent=2))
