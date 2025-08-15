@@ -4,7 +4,7 @@ import { TestHelpers } from '../test-helpers';
 describe('Authentication Flow', () => {
   let helpers: TestHelpers;
 
-  test.beforeEach(async ({ page }) => {
+  beforeEach(async ({ page }) => {
     helpers = new TestHelpers(page);
   });
 

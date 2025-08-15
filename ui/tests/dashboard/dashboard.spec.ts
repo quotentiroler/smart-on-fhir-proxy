@@ -4,7 +4,7 @@ import { TestHelpers } from '../test-helpers';
 describe('Dashboard', () => {
   let helpers: TestHelpers;
 
-  test.beforeEach(async ({ page }) => {
+  beforeEach(async ({ page }) => {
     helpers = new TestHelpers(page);
     await helpers.auth.login();
     await helpers.navigation.navigateToDashboard();
