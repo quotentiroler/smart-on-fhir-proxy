@@ -131,7 +131,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
         apiResponseTime: number;
         databaseStatus: string;
         systemUptime: string;
-        lastBsackup: Date | null;
+        lastBackup: Date | null;
         serverVersion: string;
         keycloakStatus: string;
         keycloakLastConnected: string;

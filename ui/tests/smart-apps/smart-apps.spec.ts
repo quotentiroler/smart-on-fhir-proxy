@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { TestHelpers } from '../test-helpers';
 
-test.describe('SMART Apps Manager', () => {
+describe('SMART Apps Manager', () => {
   let helpers: TestHelpers;
 
-  test.beforeEach(async ({ page }) => {
+  beforeEach(async ({ page }) => {
     helpers = new TestHelpers(page);
     await helpers.auth.login();
     await helpers.navigation.navigateToSmartApps();

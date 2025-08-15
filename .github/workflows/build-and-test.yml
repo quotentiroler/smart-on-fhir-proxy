@@ -1,4 +1,4 @@
-name: Build
+name: Build & Test
 
 on:
   workflow_call:
@@ -12,121 +12,49 @@ on:
         description: "Whether to fail the workflow if tests fail"
         required: false
         type: boolean
-        default: false
+        default: true
+    outputs:
+      backend_success:
+        description: "Whether backend build was successful"
+        value: ${{ jobs.backend.outputs.backend_success }}
+      frontend_success:
+        description: "Whether frontend build was successful"
+        value: ${{ jobs.frontend.outputs.frontend_success }}
+      backend_tests_success:
+        description: "Whether backend tests were successful"
+        value: ${{ jobs.backend.outputs.backend_tests_success }}
+      frontend_tests_success:
+        description: "Whether frontend tests were successful"
+        value: ${{ jobs.frontend.outputs.frontend_tests_success }}
+    secrets:
+      APP_ID:
+        required: false
+      APP_PRIVATE_KEY:
+        required: false
+      OPENAI_API_KEY:
+        required: false
 
 jobs:
-  build:
-    name: Build Project
-    runs-on: ubuntu-latest
+  backend:
+    name: Backend
+    uses: ./.github/workflows/build-test-backend.yml
+    with:
+      run_tests: ${{ inputs.run_tests }}
+      fail_on_test_failure: ${{ inputs.fail_on_test_failure }}
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Bun with version scripts
-        uses: ./.github/actions/setup-bun-version
-        with:
-          checkout: 'false'  # Skip checkout since we already did it
-
-      - name: Combined Build & Log
-        id: build
-        run: |
-          set -o pipefail
-          (
-            echo "=== Building backend ==="
-            cd backend && bun install && bun run build && cd ..
-            echo "=== Building UI ==="
-            cd ui && bun install && bun run build && cd ..
-          ) 2>&1 | tee build.log
-
-      - name: Authenticate as GitHub App
-        if: failure()
-        id: app-auth
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-
-      - name: Auto-fix build errors via OpenAI
-        if: failure()
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GITHUB_TOKEN: ${{ steps.app-auth.outputs.token }}
-        run: |
-          npm install -g openai
-          
-          # Ask GPT-5 for a unified diff patch
-          openai chat.completions.create \
-            -m gpt-5 \
-            --stream false \
-            -p "The following build log shows errors. Please reply with ONLY a unified diff patch to fix them:\n\n$(sed -n '1,2000p' build.log)" \
-            > fix.patch
-
-          # Apply the patch (ignore failures if patch is empty)
-          patch -p1 < fix.patch || true
-
-          # Commit & push if there are changes
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          if [ -n "$(git status --porcelain)" ]; then
-            git add .
-            git commit -m "chore: auto-fix build errors via OpenAI [skip ci]"
-            git push
-          else
-            echo "✅ No fixes applied."
-          fi
-
-      - name: Upload build artifacts
-        if: success()
-        uses: actions/upload-artifact@v4
-        with:
-          name: build-artifacts
-          path: |
-            backend/dist/
-            ui/dist/
-          retention-days: 1
-
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    needs: build
-    if: ${{ inputs.run_tests }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Bun with version scripts
-        uses: ./.github/actions/setup-bun-version
-        with:
-          checkout: 'false'  # Skip checkout since we already did it
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-
-      - name: Install dependencies
-        run: |
-          echo "Installing dependencies for testing..."
-          cd backend && bun install && cd ..
-          cd ui && bun install && cd ..
-
-      - name: Test UI
-        continue-on-error: ${{ !inputs.fail_on_test_failure }}
-        timeout-minutes: 5
-        env:
-          CI: true
-        run: |
-          echo "Running UI tests (quick mode for CI)..."
-          cd ui
-          # Skip Playwright tests in CI for now since they're too slow
-          echo "✅ UI tests completed (skipped), TODO later"
-          cd ..
-
-      - name: Test backend
-        continue-on-error: ${{ !inputs.fail_on_test_failure }}
-        run: |
-          echo "Running backend tests..."
-          cd backend
-          echo "⏭️ Skipping backend tests in CI for no, TODO later"
+  frontend:
+    name: Frontend
+    needs: backend
+    if: ${{ needs.backend.outputs.backend_success == 'true' }}
+    uses: ./.github/workflows/build-test-frontend.yml
+    with:
+      run_tests: ${{ inputs.run_tests }}
+      fail_on_test_failure: ${{ inputs.fail_on_test_failure }}
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

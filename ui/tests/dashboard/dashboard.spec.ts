@@ -1,10 +1,10 @@
 import { test, expect } from '@playwright/test';
 import { TestHelpers } from '../test-helpers';
 
-test.describe('Dashboard', () => {
+describe('Dashboard', () => {
   let helpers: TestHelpers;
 
-  test.beforeEach(async ({ page }) => {
+  beforeEach(async ({ page }) => {
     helpers = new TestHelpers(page);
     await helpers.auth.login();
     await helpers.navigation.navigateToDashboard();
