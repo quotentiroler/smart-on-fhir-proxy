@@ -202,11 +202,6 @@ jobs:
         with:
           checkout: 'false'  # Skip checkout since we already did it
 
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts
-
       - name: Install dependencies
         run: |
           echo "Installing dependencies for testing..."
