@@ -25,6 +25,9 @@ jobs:
   build:
     name: Build Project
     runs-on: ubuntu-latest
+    outputs:
+      backend_success: ${{ steps.backend-build.outcome == 'success' || steps.backend-fix-retry.outputs.backend_build_success == 'true' }}
+      frontend_success: ${{ steps.frontend-build.outcome == 'success' || steps.frontend-fix-retry.outputs.frontend_build_success == 'true' }}
 
     steps:
       - name: Checkout code
@@ -35,6 +38,76 @@ jobs:
         with:
           checkout: 'false'  # Skip checkout since we already did it
 
+      # === BACKEND BUILD PHASE ===
+      - name: Build Backend
+        id: backend-build
+        continue-on-error: true
+        run: |
+          echo "=== Building Backend ==="
+          cd backend
+          bun install
+          bun run build 2>&1 | tee ../backend-build.log
+
+      - name: Authenticate as GitHub App (Backend)
+        if: steps.backend-build.outcome == 'failure'
+        id: backend-app-auth
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
+      - name: Setup Python for Backend AI fixes
+        if: steps.backend-build.outcome == 'failure' && steps.backend-app-auth.outputs.token
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies for Backend AI fixes
+        if: steps.backend-build.outcome == 'failure' && steps.backend-app-auth.outputs.token
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
+      - name: Propose Backend Fixes with Junior AI
+        if: steps.backend-build.outcome == 'failure' && steps.backend-app-auth.outputs.token
+        id: backend-propose
+        continue-on-error: true
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          echo "🤖 Junior AI proposing initial backend fixes..."
+          python scripts/propose-backend-fixes.py backend-build.log > scripts/proposed-backend-fixes.json
+
+      - name: Review Proposed Backend Fixes with Senior AI
+        if: steps.backend-build.outcome == 'failure' && steps.backend-app-auth.outputs.token
+        id: backend-review
+        continue-on-error: true
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          echo "🎓 Senior AI reviewing proposed backend fixes..."
+          python scripts/review-backend-fixes.py scripts/proposed-backend-fixes.json backend-build.log > scripts/reviewed-backend-fixes.json
+
+      - name: Apply Reviewed Backend Fixes and retry build
+        if: steps.backend-build.outcome == 'failure' && steps.backend-app-auth.outputs.token
+        id: backend-fix-retry
+        continue-on-error: true
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ steps.backend-app-auth.outputs.token }}
+        run: |
+          echo "🔧 Applying reviewed backend fixes..."
+          python scripts/apply-backend-fixes.py scripts/reviewed-backend-fixes.json
+
+      - name: Fail if backend build failed and AI couldn't fix it
+        if: steps.backend-build.outcome == 'failure' && steps.backend-fix-retry.outputs.backend_build_success != 'true'
+        run: |
+          echo "❌ Backend build failed and AI fixes did not resolve the issues"
+          exit 1
+
+      
       - name: Generate client APIs
         run: |
           echo "Generating client APIs..."
@@ -56,20 +129,19 @@ jobs:
             echo "✅ API client changes committed and pushed"
           fi
 
-      - name: Combined Build & Log
-        id: build
+      # === FRONTEND BUILD PHASE ===
+      - name: Build Frontend
+        id: frontend-build
+        continue-on-error: true
         run: |
-          set -o pipefail
-          (
-            echo "=== Building backend ==="
-            cd backend && bun install && bun run build && cd ..
-            echo "=== Building UI ==="
-            cd ui && bun install && bun run build && cd ..
-          ) 2>&1 | tee build.log
+          echo "=== Building Frontend ==="
+          cd ui
+          bun install
+          bun run build 2>&1 | tee ../frontend-build.log
 
-      - name: Authenticate as GitHub App
-        if: failure()
-        id: app-auth
+      - name: Authenticate as GitHub App (Frontend)
+        if: steps.frontend-build.outcome == 'failure'
+        id: frontend-app-auth
         uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ secrets.APP_ID }}
@@ -77,37 +149,36 @@ jobs:
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
 
-      - name: Setup Python for AI fixes
-        if: failure() && steps.app-auth.outputs.token
+      - name: Setup Python for Frontend AI fixes
+        if: steps.frontend-build.outcome == 'failure' && steps.frontend-app-auth.outputs.token
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Install Python dependencies for AI fixes
-        if: failure() && steps.app-auth.outputs.token
+      - name: Install Python dependencies for Frontend AI fixes
+        if: steps.frontend-build.outcome == 'failure' && steps.frontend-app-auth.outputs.token
         run: |
           python -m pip install --upgrade pip
           pip install -r scripts/requirements.txt
 
-      - name: Auto-fix and retry build (single attempt)
-        if: failure() && steps.app-auth.outputs.token
-        id: auto-fix-retry
+      - name: Auto-fix Frontend and retry build
+        if: steps.frontend-build.outcome == 'failure' && steps.frontend-app-auth.outputs.token
+        id: frontend-fix-retry
         continue-on-error: true
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GITHUB_TOKEN: ${{ steps.app-auth.outputs.token }}
+          GITHUB_TOKEN: ${{ steps.frontend-app-auth.outputs.token }}
         run: |
-          # Run the Python AI fix script
-          python scripts/apply-ai-fixes.py build.log
+          python scripts/apply-frontend-fixes.py frontend-build.log
 
-      - name: Mark workflow as successful if AI fixes worked
-        if: steps.auto-fix-retry.outputs.build_success == 'true'
+      - name: Fail if frontend build failed and AI couldn't fix it
+        if: steps.frontend-build.outcome == 'failure' && steps.frontend-fix-retry.outputs.frontend_build_success != 'true'
         run: |
-          echo "✅ Build was successfully fixed by AI - marking workflow as successful"
-          exit 0
+          echo "❌ Frontend build failed and AI fixes did not resolve the issues"
+          exit 1
 
       - name: Upload build artifacts
-        if: (success() || steps.auto-fix-retry.outputs.build_success == 'true') && !startsWith(github.ref, 'refs/heads/dev/')
+        if: ${{ !startsWith(github.ref, 'refs/heads/dev/') }}
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
@@ -120,7 +191,7 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
     needs: build
-    if: ${{ inputs.run_tests }}
+    if: ${{ inputs.run_tests && needs.build.outputs.backend_success == 'true' && needs.build.outputs.frontend_success == 'true' }}
 
     steps:
       - name: Checkout code
@@ -142,6 +213,14 @@ jobs:
           cd backend && bun install && cd ..
           cd ui && bun install && cd ..
 
+      - name: Test backend
+        continue-on-error: true
+        id: test-backend
+        run: |
+          echo "Running backend tests..."
+          cd backend
+          bun test 2>&1 | tee ../backend-test.log
+
       - name: Test UI
         continue-on-error: true
         timeout-minutes: 5
@@ -149,49 +228,107 @@ jobs:
         env:
           CI: true
         run: |
-          echo "Running UI tests (quick mode for CI)..."
+          echo "Running UI tests..."
           cd ui
-          # Skip Playwright tests in CI for now since they're too slow
-          echo "✅ UI tests completed (skipped), TODO later"
-          cd ..
+          bun test 2>&1 | tee ../frontend-test.log
 
-      - name: Test backend
-        continue-on-error: true
-        id: test-backend
+      # === BACKEND TEST FIX PHASE ===
+      - name: Authenticate as GitHub App (Backend Tests)
+        if: steps.test-backend.outcome == 'failure'
+        id: backend-test-app-auth
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
+      - name: Setup Python for Backend Test AI fixes
+        if: steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies for Backend Test AI fixes
+        if: steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
         run: |
-          echo "Running backend tests..."
-          cd backend
-          echo "⏭️ Skipping backend tests in CI for now, TODO later"
-          cd ..
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
 
-      - name: Auto-fix test failures (if any)
-        if: steps.test-ui.outcome == 'failure' || steps.test-backend.outcome == 'failure'
-        id: auto-fix-tests
+      - name: Propose Backend Test Fixes with Junior AI
+        if: steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
+        id: backend-test-propose
+        continue-on-error: true
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "🔄 Auto-fix attempt after test failures"
-          
-          # Collect test error logs (when we have real tests)
-          echo "📝 Analyzing test errors with AI (placeholder for now)..."
-          echo "Test error analysis would go here when tests are implemented"
-          
-          # For now, just indicate no fixes needed since tests are skipped
-          echo "ℹ️ No test fixes needed - tests are currently skipped"
-          echo "test_fix_success=false" >> $GITHUB_OUTPUT
+          echo "🤖 Junior AI proposing initial backend test fixes..."
+          python scripts/propose-backend-fixes.py backend-test.log > scripts/proposed-backend-test-fixes.json
 
-      - name: Retry tests after fixes
-        if: steps.auto-fix-tests.outputs.test_fix_success == 'true'
+      - name: Review Proposed Backend Test Fixes with Senior AI
+        if: steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
+        id: backend-test-review
+        continue-on-error: true
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          echo "🔄 Retrying tests after AI fixes..."
-          
-          echo "Running UI tests (retry)..."
-          cd ui
-          echo "✅ UI tests retry completed (skipped), TODO later"
-          cd ..
-          
-          echo "Running backend tests (retry)..."
-          cd backend
-          echo "⏭️ Backend tests retry completed (skipped), TODO later"
-          cd ..
+          echo "🎓 Senior AI reviewing proposed backend test fixes..."
+          python scripts/review-backend-fixes.py scripts/proposed-backend-test-fixes.json backend-test.log > scripts/reviewed-backend-test-fixes.json
+
+      - name: Apply Reviewed Backend Test Fixes and retry tests
+        if: steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token
+        id: backend-test-fix-retry
+        continue-on-error: true
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ steps.backend-test-app-auth.outputs.token }}
+        run: |
+          echo "� Applying reviewed backend test fixes..."
+          python scripts/apply-backend-fixes.py scripts/reviewed-backend-test-fixes.json
+
+      # === FRONTEND TEST FIX PHASE ===
+      - name: Authenticate as GitHub App (Frontend Tests)
+        if: steps.test-ui.outcome == 'failure'
+        id: frontend-test-app-auth
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
+      - name: Setup Python for Frontend Test AI fixes
+        if: steps.test-ui.outcome == 'failure' && steps.frontend-test-app-auth.outputs.token
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies for Frontend Test AI fixes
+        if: steps.test-ui.outcome == 'failure' && steps.frontend-test-app-auth.outputs.token
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
+      - name: Auto-fix Frontend Tests and retry
+        if: steps.test-ui.outcome == 'failure' && steps.frontend-test-app-auth.outputs.token
+        id: frontend-test-fix-retry
+        continue-on-error: true
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ steps.frontend-test-app-auth.outputs.token }}
+        run: |
+          echo "� Applying frontend test fixes..."
+          python scripts/apply-frontend-fixes.py frontend-test.log
+
+      # === TEST FAILURE HANDLING ===
+      - name: Handle test failures based on input
+        if: |
+          (steps.test-backend.outcome == 'failure' && steps.backend-test-fix-retry.outputs.backend_build_success != 'true') ||
+          (steps.test-ui.outcome == 'failure' && steps.frontend-test-fix-retry.outputs.frontend_build_success != 'true')
+        run: |
+          if [ "${{ inputs.fail_on_test_failure }}" == "true" ]; then
+            echo "❌ Tests failed and AI fixes did not resolve the issues. Failing workflow as requested."
+            exit 1
+          else
+            echo "⚠️ Tests failed and AI fixes did not resolve the issues, but continuing workflow as requested."
+          fi

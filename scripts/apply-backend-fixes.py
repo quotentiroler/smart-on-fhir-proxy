@@ -1,24 +1,27 @@
 #!/usr/bin/env python3
 """
-AI-powered build error fixing script for GitHub Actions.
-This script analyzes build errors and applies structured fixes using OpenAI's API.
+AI-powered backend build error fixing script for GitHub Actions.
+This script analyzes backend build errors and applies structured fixes using OpenAI's API.
 """
 
 import json
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
 import requests
 
+# Constants
+GITHUB_OUTPUT_DEFAULT = "/dev/null"
 
-class AIFixApplier:
+
+class BackendAIFixApplier:
     def __init__(self, openai_api_key: str, repo_root: str):
         self.api_key = openai_api_key
         self.repo_root = Path(repo_root)
+        self.backend_root = self.repo_root / "backend"
         self.base_url = "https://api.openai.com/v1/chat/completions"
         
     def read_build_log(self, log_file: str) -> str:
@@ -34,30 +37,44 @@ class AIFixApplier:
             return ""
     
     def get_ai_fixes(self, build_errors: str) -> List[Dict]:
-        """Get structured fixes from OpenAI API."""
+        """Get structured fixes from OpenAI API for backend issues."""
         if not self.api_key:
             print("❌ OPENAI_API_KEY is not set - skipping AI fixes")
             return []
         
         print("✅ OpenAI API key is available, making request...")
         
+        # Build the user content focused on backend
+        user_content = f"""Fix these TypeScript/Node.js backend build errors. This is the backend part of a monorepo. Build errors are run from the backend/ directory, so file paths like 'src/file.ts' should be 'backend/src/file.ts' in your fixes.
+
+BACKEND BUILD ERRORS:
+{build_errors}
+
+Focus on backend-specific issues like:
+- TypeScript compilation errors
+- Import/export issues  
+- Type definitions
+- Node.js/Express/Fastify related problems
+- Database/ORM issues
+- API route problems"""
+        
         payload = {
             "model": "gpt-4o-2024-08-06",
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are a code fixing assistant. Analyze build errors and provide structured fixes. Always return valid JSON with fixes array, even if empty. IMPORTANT: File paths in build errors are relative to project folders (backend/ or ui/). When providing file_path, include the full path from repository root (e.g., 'ui/src/file.tsx' not 'src/file.tsx')."
+                    "content": "You are a code fixing assistant specialized in TypeScript/Node.js backend applications. Analyze backend build errors and provide structured fixes. Always return valid JSON with fixes array, even if empty. IMPORTANT: File paths in build errors are relative to the backend/ folder. When providing file_path, include the full path from repository root (e.g., 'backend/src/file.ts' not 'src/file.ts'). Focus on backend-specific TypeScript, Node.js, API, and server-side issues."
                 },
                 {
                     "role": "user",
-                    "content": f"Fix these TypeScript/JavaScript build errors. Note: This is a monorepo with backend/ and ui/ folders. Build errors from the UI are run from the ui/ directory, so file paths like 'src/file.tsx' should be 'ui/src/file.tsx' in your fixes. Build errors from backend are run from backend/ directory, so 'src/file.ts' should be 'backend/src/file.ts':\n\n{build_errors}"
+                    "content": user_content
                 }
             ],
             "temperature": 0.1,
             "response_format": {
                 "type": "json_schema",
                 "json_schema": {
-                    "name": "code_fixes",
+                    "name": "backend_fixes",
                     "strict": True,
                     "schema": {
                         "type": "object",
@@ -69,7 +86,7 @@ class AIFixApplier:
                                     "properties": {
                                         "file_path": {
                                             "type": "string",
-                                            "description": "Path to the file to fix"
+                                            "description": "Path to the file to fix (from repo root)"
                                         },
                                         "line_number": {
                                             "type": "number",
@@ -131,7 +148,7 @@ class AIFixApplier:
         replacement_text = fix['replacement_text']
         description = fix['description']
         
-        print(f"🔧 Applying fix: {description}")
+        print(f"🔧 Applying backend fix: {description}")
         print(f"📁 File: {file_path}")
         print(f"🔍 Search: {search_text}")
         print(f"🔄 Replace: {replacement_text}")
@@ -156,31 +173,31 @@ class AIFixApplier:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(new_content)
             
-            print("✅ Fix applied successfully")
+            print("✅ Backend fix applied successfully")
             return True
             
         except Exception as e:
-            print(f"❌ Failed to apply fix: {e}")
+            print(f"❌ Failed to apply backend fix: {e}")
             return False
     
     def apply_fixes(self, fixes: List[Dict]) -> bool:
         """Apply all fixes and return True if any were successfully applied."""
         if not fixes:
-            print("ℹ️ No fixes to apply")
+            print("ℹ️ No backend fixes to apply")
             return False
         
-        print(f"🔢 Number of fixes: {len(fixes)}")
+        print(f"🔢 Number of backend fixes: {len(fixes)}")
         applied_count = 0
         
         for fix in fixes:
             if self.apply_fix(fix):
                 applied_count += 1
         
-        print(f"✅ Successfully applied {applied_count}/{len(fixes)} fixes")
+        print(f"✅ Successfully applied {applied_count}/{len(fixes)} backend fixes")
         return applied_count > 0
     
     def git_commit_and_push(self) -> bool:
-        """Commit and push changes if any exist."""
+        """Commit and push backend changes if any exist."""
         try:
             # Configure git
             subprocess.run(["git", "config", "user.name", "github-actions[bot]"], 
@@ -193,81 +210,74 @@ class AIFixApplier:
                                   cwd=self.repo_root, capture_output=True, text=True)
             
             if not result.stdout.strip():
-                print("⚠️ No changes to commit")
+                print("⚠️ No backend changes to commit")
                 return False
             
             # Stage, commit and push
             subprocess.run(["git", "add", "."], cwd=self.repo_root, check=True)
-            subprocess.run(["git", "commit", "-m", "chore: auto-fix build errors via OpenAI [skip ci]"], 
+            subprocess.run(["git", "commit", "-m", "chore: auto-fix backend build errors via OpenAI [skip ci]"], 
                          cwd=self.repo_root, check=True)
             subprocess.run(["git", "push"], cwd=self.repo_root, check=True)
             
-            print("✅ Code fixes committed and pushed")
+            print("✅ Backend fixes committed and pushed")
             return True
             
         except subprocess.CalledProcessError as e:
             print(f"❌ Git operation failed: {e}")
             return False
     
-    def retry_build(self) -> bool:
-        """Retry the build process."""
-        print("🔄 Retrying build after AI fixes...")
+    def retry_backend_build(self) -> bool:
+        """Retry the backend build process."""
+        print("🔄 Retrying backend build after AI fixes...")
         
         try:
-            # Backend build
             print("=== Retrying Backend Build ===")
-            subprocess.run(["bun", "install"], cwd=self.repo_root / "backend", check=True)
-            subprocess.run(["bun", "run", "build"], cwd=self.repo_root / "backend", check=True)
+            subprocess.run(["bun", "install"], cwd=self.backend_root, check=True)
+            subprocess.run(["bun", "run", "build"], cwd=self.backend_root, check=True)
             
-            # UI build
-            print("=== Retrying UI Build ===")
-            subprocess.run(["bun", "install"], cwd=self.repo_root / "ui", check=True)
-            subprocess.run(["bun", "run", "build"], cwd=self.repo_root / "ui", check=True)
-            
-            print("✅ Build succeeded after AI fixes!")
+            print("✅ Backend build succeeded after AI fixes!")
             return True
             
         except subprocess.CalledProcessError as e:
-            print(f"❌ Build still failed after AI fixes: {e}")
+            print(f"❌ Backend build still failed after AI fixes: {e}")
             return False
 
 
 def main():
     """Main entry point."""
     if len(sys.argv) != 2:
-        print("Usage: python apply-ai-fixes.py <build-log-file>")
+        print("Usage: python apply-backend-fixes.py <fixes-json-file>")
         sys.exit(1)
     
-    build_log_file = sys.argv[1]
+    fixes_file = sys.argv[1]
     api_key = os.environ.get("OPENAI_API_KEY")
     repo_root = os.environ.get("GITHUB_WORKSPACE", ".")
     
-    if not api_key:
-        print("❌ OPENAI_API_KEY environment variable is required")
-        sys.exit(1)
-    
-    print(f"🔄 Auto-fix attempt after build failure")
-    print(f"📝 Analyzing build errors from: {build_log_file}")
+    print("🔄 Applying reviewed backend fixes")
+    print(f"📝 Reading fixes from: {fixes_file}")
     
     # Initialize the fixer
-    fixer = AIFixApplier(api_key, repo_root)
+    fixer = BackendAIFixApplier(api_key, repo_root)
     
-    # Read build errors
-    build_errors = fixer.read_build_log(build_log_file)
-    if not build_errors:
-        print("❌ No build errors found")
+    # Read fixes from JSON file
+    try:
+        with open(fixes_file, 'r', encoding='utf-8') as f:
+            fixes_data = json.load(f)
+        fixes = fixes_data.get('fixes', [])
+    except Exception as e:
+        print(f"❌ Error reading fixes file: {e}")
         sys.exit(1)
     
-    # Debug: show what we're sending to AI
-    print("🔍 Build errors being sent to AI (first 500 chars):")
-    print(build_errors[:500] + "...")
+    if not fixes:
+        print("ℹ️ No fixes provided - exiting")
+        with open(os.environ.get("GITHUB_OUTPUT", GITHUB_OUTPUT_DEFAULT), "a") as f:
+            f.write("backend_build_success=false\n")
+            f.write("backend_fixes_applied=false\n")
+        sys.exit(1)
     
-    # Get AI fixes
-    fixes = fixer.get_ai_fixes(build_errors)
-    
-    print("🔍 AI generated structured fixes:")
+    print("🔍 Backend fixes to apply:")
     print(json.dumps({"fixes": fixes}, indent=2))
-    print("--- End of fixes ---")
+    print("--- End of backend fixes ---")
     
     # Apply fixes
     fixes_applied = fixer.apply_fixes(fixes)
@@ -277,25 +287,25 @@ def main():
         commit_success = fixer.git_commit_and_push()
         
         # Retry build
-        build_success = fixer.retry_build()
+        build_success = fixer.retry_backend_build()
         
         # Set GitHub Actions output
-        with open(os.environ.get("GITHUB_OUTPUT", "/dev/null"), "a") as f:
-            f.write(f"build_success={'true' if build_success else 'false'}\n")
-            f.write("fixes_applied=true\n")
-            f.write(f"commit_success={'true' if commit_success else 'false'}\n")
+        with open(os.environ.get("GITHUB_OUTPUT", GITHUB_OUTPUT_DEFAULT), "a") as f:
+            f.write(f"backend_build_success={'true' if build_success else 'false'}\n")
+            f.write("backend_fixes_applied=true\n")
+            f.write(f"backend_commit_success={'true' if commit_success else 'false'}\n")
         
         if build_success:
-            print("🎉 AI fixes successfully resolved the build issues!")
+            print("🎉 AI fixes successfully resolved the backend build issues!")
             sys.exit(0)  # Success - fixes worked
         else:
-            print("⚠️ AI fixes applied but build still fails")
+            print("⚠️ Backend AI fixes applied but build still fails")
             sys.exit(1)  # Failure - fixes didn't work
     else:
-        print("⚠️ No patches were applied")
-        with open(os.environ.get("GITHUB_OUTPUT", "/dev/null"), "a") as f:
-            f.write("build_success=false\n")
-            f.write("fixes_applied=false\n")
+        print("⚠️ No backend patches were applied")
+        with open(os.environ.get("GITHUB_OUTPUT", GITHUB_OUTPUT_DEFAULT), "a") as f:
+            f.write("backend_build_success=false\n")
+            f.write("backend_fixes_applied=false\n")
         sys.exit(1)  # Failure - no fixes applied
 
 
