@@ -12,7 +12,7 @@ on:
         description: "Whether to fail the workflow if tests fail"
         required: false
         type: boolean
-        default: false
+        default: true
     outputs:
       backend_success:
         description: "Whether backend build was successful"
