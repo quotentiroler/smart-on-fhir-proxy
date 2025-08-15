@@ -166,7 +166,7 @@ jobs:
           echo "🚀 Starting review process..."
           
           # Run with explicit error handling and debugging
-          if python scripts/review-backend-fixes.py scripts/proposed-backend-fixes.json backend-build.log > scripts/reviewed-backend-fixes.json 2>&1; then
+          if python scripts/review-backend-fixes.py scripts/proposed-backend-fixes.json backend-build.log > scripts/reviewed-backend-fixes.json; then
             echo "✅ Fixes reviewed successfully"
             echo "📄 Reviewed fixes file size: $(wc -c < scripts/reviewed-backend-fixes.json) bytes"
             echo "Reviewed fixes:"
