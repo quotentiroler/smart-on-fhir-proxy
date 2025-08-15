@@ -132,12 +132,14 @@ jobs:
           grep -E "(error TS|Error:)" frontend-build.log || echo "No TypeScript errors found in log"
           echo "=========================="
           echo "Build outcome: ${{ steps.frontend-build.outcome }}"
+          echo "Build failed flag: ${{ steps.build-status.outputs.BUILD_FAILED }}"
           echo "APP_ID available: ${{ secrets.APP_ID != '' }}"
           echo "APP_PRIVATE_KEY available: ${{ secrets.APP_PRIVATE_KEY != '' }}"
           echo "OPENAI_API_KEY available: ${{ secrets.OPENAI_API_KEY != '' }}"
           echo "Repository: ${{ github.repository }}"
           echo "Event name: ${{ github.event_name }}"
           echo "Actor: ${{ github.actor }}"
+          echo "Will attempt authentication next..."
 
       - name: Authenticate as GitHub App (Frontend Build)
         if: steps.build-status.outputs.BUILD_FAILED == 'true'
@@ -153,8 +155,12 @@ jobs:
       - name: Check GitHub App Authentication
         if: steps.build-status.outputs.BUILD_FAILED == 'true'
         run: |
+          echo "🔐 Checking authentication results..."
+          echo "Authentication step outcome: ${{ steps.frontend-app-auth.outcome }}"
+          echo "Token available: ${{ steps.frontend-app-auth.outputs.token != '' }}"
           if [ "${{ steps.frontend-app-auth.outputs.token }}" != "" ]; then
             echo "✅ GitHub App authentication successful"
+            echo "Will proceed with AI fixes..."
           else
             echo "❌ GitHub App authentication failed - AI fixes will be skipped"
             echo "This could be due to:"
@@ -162,6 +168,7 @@ jobs:
             echo "  - Insufficient app permissions"
             echo "  - Running on a fork without access to secrets"
             echo "  - GitHub App not installed on this repository"
+            echo "Authentication step outcome: ${{ steps.frontend-app-auth.outcome }}"
           fi
 
       - name: Setup Python for Frontend AI fixes
