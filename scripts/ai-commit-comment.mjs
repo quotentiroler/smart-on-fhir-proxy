@@ -68,11 +68,11 @@ try {
     messages: [
       { 
         role: "system", 
-        content: "You are a concise code diff explainer. Focus on what changed and why it might be significant. Keep it under 200 words." 
+        content: "You are a concise code diff explainer. Focus on what changed and why it might be significant for developers and helpful when tracking changes." 
       },
       { 
         role: "user", 
-        content: `Review this git diff and give me a short but technically accurate summary:\n\n${diff}` 
+        content: `Review this git diff: \n\n${diff}\n\nProvide a concise summary starting with "The following changes were made in commit ${sha}:"`
       }
     ],
     max_tokens: 300
