@@ -29,16 +29,16 @@ class BackendFixProposer:
                 lines = content.split('\n')[:2000]
                 return '\n'.join(lines)
         except FileNotFoundError:
-            print(f"❌ Build log file not found: {log_file}")
+            print(f"❌ Build log file not found: {log_file}", file=sys.stderr)
             return ""
     
     def propose_fixes(self, build_errors: str) -> Dict:
         """Propose initial fixes using a 'junior developer' AI approach."""
         if not self.api_key:
-            print("❌ OPENAI_API_KEY is not set - skipping AI fixes")
+            print("❌ OPENAI_API_KEY is not set - skipping AI fixes", file=sys.stderr)
             return {"analysis": "No API key", "fixes": []}
         
-        print("🧠 Proposer AI analyzing backend build errors...")
+        print("🧠 Proposer AI analyzing backend build errors...", file=sys.stderr)
         
         # Use shared schema and message creation
         user_content = create_user_content_base("backend", build_errors, "propose")
@@ -62,28 +62,28 @@ As a junior developer AI, propose fixes for backend-specific issues. Be creative
         
         try:
             response = requests.post(self.base_url, json=payload, headers=headers, timeout=60)
-            print(f"🌐 Proposer AI HTTP Status: {response.status_code}")
+            print(f"🌐 Proposer AI HTTP Status: {response.status_code}", file=sys.stderr)
             
             if response.status_code == 200:
                 result = response.json()
                 fixes_json = result['choices'][0]['message']['content']
                 fixes_data = json.loads(fixes_json)
-                print("✅ Proposer AI analysis successful")
+                print("✅ Proposer AI analysis successful", file=sys.stderr)
                 return fixes_data
             else:
-                print(f"❌ Proposer AI call failed with status {response.status_code}")
-                print(f"Response: {response.text}")
+                print(f"❌ Proposer AI call failed with status {response.status_code}", file=sys.stderr)
+                print(f"Response: {response.text}", file=sys.stderr)
                 return {"analysis": "Failed to analyze", "fixes": []}
                 
         except Exception as e:
-            print(f"❌ Error calling Proposer AI: {e}")
+            print(f"❌ Error calling Proposer AI: {e}", file=sys.stderr)
             return {"analysis": "Error occurred", "fixes": []}
 
 
 def main():
     """Main entry point."""
     if len(sys.argv) != 2:
-        print("Usage: python propose-backend-fixes.py <build-log-file>")
+        print("Usage: python propose-backend-fixes.py <build-log-file>", file=sys.stderr)
         sys.exit(1)
     
     build_log_file = sys.argv[1]
@@ -91,10 +91,10 @@ def main():
     repo_root = os.environ.get("GITHUB_WORKSPACE", ".")
     
     if not api_key:
-        print("❌ OPENAI_API_KEY environment variable is required")
+        print("❌ OPENAI_API_KEY environment variable is required", file=sys.stderr)
         sys.exit(1)
     
-    print("🧠 Proposer AI starting backend analysis...")
+    print("🧠 Proposer AI starting backend analysis...", file=sys.stderr)
     
     # Initialize the proposer
     proposer = BackendFixProposer(api_key, repo_root)
@@ -102,13 +102,13 @@ def main():
     # Read build errors
     build_errors = proposer.read_build_log(build_log_file)
     if not build_errors:
-        print("❌ No backend build errors found")
+        print("❌ No backend build errors found", file=sys.stderr)
         sys.exit(1)
     
     # Get proposed fixes
     proposed_fixes = proposer.propose_fixes(build_errors)
     
-    # Output as JSON for the next step
+    # Output as JSON for the next step - ONLY JSON goes to stdout
     print(json.dumps(proposed_fixes, indent=2))
 
 
