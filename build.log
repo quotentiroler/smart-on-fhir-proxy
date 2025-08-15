@@ -1,0 +1,15 @@
+=== Building backend ===
+bun install v1.2.19 (aad3abea)
+
+Checked 658 installs across 732 packages (no changes) [15.00ms]
+$ bun build src/index.ts --outdir dist --target node
+Bundled 643 modules in 88ms
+
+  index.js  2.75 MB  (entry point)
+
+=== Building UI ===
+bun install v1.2.19 (aad3abea)
+
+Checked 658 installs across 732 packages (no changes) [14.00ms]
+$ tsc -b && vite build
+src/components/SmartProxyOverview.tsx(145,9): error TS2353: Object literal may only specify known properties, and 'lastBackup' does not exist in type '{ apiResponseTime: number; databaseStatus: string; systemUptime: string; lastBsackup: Date | null; serverVersion: string; keycloakStatus: string; keycloakLastConnected: string; memoryUsage: string; aiAgentStatus: string; aiAgentSearchType: string; } | (() => { ...; })'.

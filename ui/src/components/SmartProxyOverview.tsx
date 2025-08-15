@@ -142,7 +142,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
         apiResponseTime: 0,
         databaseStatus: 'checking',
         systemUptime: 'N/A %',
-        lastBackup: null,
+        lastBsackup: null,
         serverVersion: 'unknown',
         keycloakStatus: 'checking',
         keycloakLastConnected: 'unknown',
@@ -261,7 +261,7 @@ export function SmartProxyOverview({ onNavigate }: SmartProxyOverviewProps) {
                         ...prev,
                         databaseStatus: 'healthy', // We know it's healthy if we got a response
                         systemUptime: uptimeFormatted,
-                        lastBackup: null, // Remove mock backup timestamp
+                        lastBsackup: null, // Remove mock backup timestamp
                         serverVersion: statusData.version,
                         keycloakStatus: statusData.keycloak?.status || 'unknown',
                         keycloakLastConnected,
