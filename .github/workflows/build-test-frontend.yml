@@ -69,10 +69,6 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-          # Ensure log files are not included in any commits
-          git reset HEAD *.log 2>/dev/null || true
-          git rm --cached *.log 2>/dev/null || true
-          
           # Check if there are changes to commit (files should already be staged by generate:ui:normalized)
           if git diff --staged --quiet; then
             echo "📋 No API client changes to commit"
