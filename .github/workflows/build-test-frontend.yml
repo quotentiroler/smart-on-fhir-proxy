@@ -60,15 +60,42 @@ jobs:
             echo "FRONTEND_BUILD_FAILED=false" >> $GITHUB_OUTPUT
           fi
 
+      - name: Debug Frontend Build Failure and Secrets
+        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true'
+        run: |
+          echo "🐛 Frontend build failed, checking AI fix prerequisites..."
+          echo "Build failed: ${{ steps.frontend-build.outputs.FRONTEND_BUILD_FAILED }}"
+          echo "APP_ID available: ${{ secrets.APP_ID != '' }}"
+          echo "APP_PRIVATE_KEY available: ${{ secrets.APP_PRIVATE_KEY != '' }}"
+          echo "OPENAI_API_KEY available: ${{ secrets.OPENAI_API_KEY != '' }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Event name: ${{ github.event_name }}"
+          echo "Actor: ${{ github.actor }}"
+
       - name: Authenticate as GitHub App (Frontend Build)
         if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true'
         id: frontend-app-auth
+        continue-on-error: true
         uses: actions/create-github-app-token@v2
         with:
           app-id: ${{ secrets.APP_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
           repositories: ${{ github.event.repository.name }}
+
+      - name: Check GitHub App Authentication
+        if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true'
+        run: |
+          if [ "${{ steps.frontend-app-auth.outputs.token }}" != "" ]; then
+            echo "✅ GitHub App authentication successful"
+          else
+            echo "❌ GitHub App authentication failed - AI fixes will be skipped"
+            echo "This could be due to:"
+            echo "  - Missing APP_ID or APP_PRIVATE_KEY secrets"
+            echo "  - Insufficient app permissions"
+            echo "  - Running on a fork without access to secrets"
+            echo "  - GitHub App not installed on this repository"
+          fi
 
       - name: Setup Python for Frontend AI fixes
         if: steps.frontend-build.outputs.FRONTEND_BUILD_FAILED == 'true' && steps.frontend-app-auth.outputs.token
