@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { TestHelpers } from '../test-helpers';
 
-test.describe('Authentication Flow', () => {
+describe('Authentication Flow', () => {
   let helpers: TestHelpers;
 
   test.beforeEach(async ({ page }) => {

@@ -1,0 +1,84 @@
+bun test v1.2.19 (aad3abea)
+
+::group::tests/dashboard/dashboard.spec.ts:
+
+# Unhandled error between tests
+-------------------------------
+
+::error file=node_modules/playwright/lib/common/testType.js,line=74,col=13,title=error: Playwright Test did not expect test.describe() to be called here.::- You are calling test.describe() in a configuration file.%0A- You are calling test.describe() in a file that is imported by the configuration file.%0A- You have two different versions of @playwright/test. This usually happens%0A  when one of the dependencies in your package.json depends on @playwright/test.%0A      at _currentSuite (/home/runner/work/proxy-smart/proxy-smart/node_modules/playwright/lib/common/testType.js:74:13)%0A      at _describe (/home/runner/work/proxy-smart/proxy-smart/node_modules/playwright/lib/common/testType.js:114:24)%0A      at /home/runner/work/proxy-smart/proxy-smart/ui/tests/dashboard/dashboard.spec.ts:4:6%0A      at loadAndEvaluateModule (2:1)
+69 |     this.test = test;
+70 |   }
+71 |   _currentSuite(location, title) {
+72 |     const suite = (0, import_globals.currentlyLoadingFileSuite)();
+73 |     if (!suite) {
+74 |       throw new Error([
+                 ^
+error: Playwright Test did not expect test.describe() to be called here.
+Most common reasons include:
+- You are calling test.describe() in a configuration file.
+- You are calling test.describe() in a file that is imported by the configuration file.
+- You have two different versions of @playwright/test. This usually happens
+  when one of the dependencies in your package.json depends on @playwright/test.
+      at _currentSuite (/home/runner/work/proxy-smart/proxy-smart/node_modules/playwright/lib/common/testType.js:74:13)
+      at _describe (/home/runner/work/proxy-smart/proxy-smart/node_modules/playwright/lib/common/testType.js:114:24)
+      at /home/runner/work/proxy-smart/proxy-smart/ui/tests/dashboard/dashboard.spec.ts:4:6
+      at loadAndEvaluateModule (2:1)
+-------------------------------
+
+
+::group::tests/smart-apps/smart-apps.spec.ts:
+
+# Unhandled error between tests
+-------------------------------
+
+::error file=node_modules/playwright/lib/common/testType.js,line=74,col=13,title=error: Playwright Test did not expect test.describe() to be called here.::- You are calling test.describe() in a configuration file.%0A- You are calling test.describe() in a file that is imported by the configuration file.%0A- You have two different versions of @playwright/test. This usually happens%0A  when one of the dependencies in your package.json depends on @playwright/test.%0A      at _currentSuite (/home/runner/work/proxy-smart/proxy-smart/node_modules/playwright/lib/common/testType.js:74:13)%0A      at _describe (/home/runner/work/proxy-smart/proxy-smart/node_modules/playwright/lib/common/testType.js:114:24)%0A      at /home/runner/work/proxy-smart/proxy-smart/ui/tests/smart-apps/smart-apps.spec.ts:4:6%0A      at loadAndEvaluateModule (2:1)
+69 |     this.test = test;
+70 |   }
+71 |   _currentSuite(location, title) {
+72 |     const suite = (0, import_globals.currentlyLoadingFileSuite)();
+73 |     if (!suite) {
+74 |       throw new Error([
+                 ^
+error: Playwright Test did not expect test.describe() to be called here.
+Most common reasons include:
+- You are calling test.describe() in a configuration file.
+- You are calling test.describe() in a file that is imported by the configuration file.
+- You have two different versions of @playwright/test. This usually happens
+  when one of the dependencies in your package.json depends on @playwright/test.
+      at _currentSuite (/home/runner/work/proxy-smart/proxy-smart/node_modules/playwright/lib/common/testType.js:74:13)
+      at _describe (/home/runner/work/proxy-smart/proxy-smart/node_modules/playwright/lib/common/testType.js:114:24)
+      at /home/runner/work/proxy-smart/proxy-smart/ui/tests/smart-apps/smart-apps.spec.ts:4:6
+      at loadAndEvaluateModule (2:1)
+-------------------------------
+
+
+::group::tests/auth/auth.spec.ts:
+
+# Unhandled error between tests
+-------------------------------
+
+::error file=node_modules/playwright/lib/common/testType.js,line=74,col=13,title=error: Playwright Test did not expect test.describe() to be called here.::- You are calling test.describe() in a configuration file.%0A- You are calling test.describe() in a file that is imported by the configuration file.%0A- You have two different versions of @playwright/test. This usually happens%0A  when one of the dependencies in your package.json depends on @playwright/test.%0A      at _currentSuite (/home/runner/work/proxy-smart/proxy-smart/node_modules/playwright/lib/common/testType.js:74:13)%0A      at _describe (/home/runner/work/proxy-smart/proxy-smart/node_modules/playwright/lib/common/testType.js:114:24)%0A      at /home/runner/work/proxy-smart/proxy-smart/ui/tests/auth/auth.spec.ts:4:6%0A      at loadAndEvaluateModule (2:1)
+69 |     this.test = test;
+70 |   }
+71 |   _currentSuite(location, title) {
+72 |     const suite = (0, import_globals.currentlyLoadingFileSuite)();
+73 |     if (!suite) {
+74 |       throw new Error([
+                 ^
+error: Playwright Test did not expect test.describe() to be called here.
+Most common reasons include:
+- You are calling test.describe() in a configuration file.
+- You are calling test.describe() in a file that is imported by the configuration file.
+- You have two different versions of @playwright/test. This usually happens
+  when one of the dependencies in your package.json depends on @playwright/test.
+      at _currentSuite (/home/runner/work/proxy-smart/proxy-smart/node_modules/playwright/lib/common/testType.js:74:13)
+      at _describe (/home/runner/work/proxy-smart/proxy-smart/node_modules/playwright/lib/common/testType.js:114:24)
+      at /home/runner/work/proxy-smart/proxy-smart/ui/tests/auth/auth.spec.ts:4:6
+      at loadAndEvaluateModule (2:1)
+-------------------------------
+
+
+ 0 pass
+ 3 fail
+ 3 errors
+Ran 3 tests across 3 files. [552.00ms]
