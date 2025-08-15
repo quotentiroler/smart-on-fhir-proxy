@@ -2,6 +2,7 @@
 **/.env
 **/dist
 **/build
+**/__pycache__
 .vscode
 
 # Build and test log files (should not be committed)
@@ -11,3 +12,4 @@ backend-build.log
 frontend-build.log
 backend-test.log
 frontend-test.log
+scripts/**fixes.json

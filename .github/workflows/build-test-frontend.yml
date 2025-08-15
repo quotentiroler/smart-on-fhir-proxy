@@ -250,7 +250,7 @@ jobs:
           fi
 
       - name: Authenticate as GitHub App (Frontend Tests)
-        if: ${{ inputs.run_tests }} && steps.test-status.outputs.TEST_FAILED == 'true'
+        if: ${{ inputs.run_tests && steps.test-status.outputs.TEST_FAILED == 'true' }}
         id: frontend-test-app-auth
         uses: actions/create-github-app-token@v2
         with:
@@ -260,7 +260,7 @@ jobs:
           repositories: ${{ github.event.repository.name }}
 
       - name: Debug Test Failure
-        if: ${{ inputs.run_tests }} && steps.test-status.outputs.TEST_FAILED == 'true'
+        if: ${{ inputs.run_tests && steps.test-status.outputs.TEST_FAILED == 'true' }}
         run: |
           echo "🐛 Frontend tests failed, checking details..."
           echo "Test outcome: ${{ steps.test-frontend.outcome }}"
@@ -279,11 +279,11 @@ jobs:
           echo "  ✅ No fixes needed - continuing with workflow"
 
       - name: Setup Python for Frontend Test AI fixes
-        if: ${{ inputs.run_tests }} && steps.test-status.outputs.TEST_FAILED == 'true' && steps.frontend-test-app-auth.outputs.token
+        if: ${{ inputs.run_tests && steps.test-status.outputs.TEST_FAILED == 'true' && steps.frontend-test-app-auth.outputs.token }}
         uses: ./.github/actions/setup-python-ai
 
       - name: Auto-fix Frontend Tests and retry
-        if: ${{ inputs.run_tests }} && steps.test-status.outputs.TEST_FAILED == 'true' && steps.frontend-test-app-auth.outputs.token
+        if: ${{ inputs.run_tests && steps.test-status.outputs.TEST_FAILED == 'true' && steps.frontend-test-app-auth.outputs.token }}
         id: frontend-test-fix-retry
         continue-on-error: true
         env:
@@ -314,7 +314,7 @@ jobs:
           fi
 
       - name: Fail if frontend tests failed and AI couldn't fix it
-        if: ${{ inputs.run_tests }} && steps.test-status.outputs.TEST_FAILED == 'true' && steps.frontend-test-fix-retry.outputs.TEST_RETRY_SUCCESS != 'true' && inputs.fail_on_test_failure
+        if: ${{ inputs.run_tests && steps.test-status.outputs.TEST_FAILED == 'true' && steps.frontend-test-fix-retry.outputs.TEST_RETRY_SUCCESS != 'true' && inputs.fail_on_test_failure }}
         run: |
           echo "❌ Frontend tests failed and AI fixes did not resolve the issues. Failing workflow as requested."
           echo "Test status: ${{ steps.test-status.outputs.TEST_FAILED }}"
