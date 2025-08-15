@@ -172,9 +172,6 @@ jobs:
           head -c 1000 frontend-build.log
           echo ""
           echo "=== Starting AI Fix Process ==="
-          # Ensure log files are not tracked by git
-          git reset HEAD *.log 2>/dev/null || true
-          git rm --cached *.log 2>/dev/null || true
           if python scripts/apply-frontend-fixes.py frontend-build.log; then
             echo "✅ Frontend BUILD fixes applied successfully"
             echo "🔄 Retrying build..."
@@ -214,6 +211,20 @@ jobs:
           cd ui
           # bun test 2>&1 | tee ../frontend-test.log
 
+      - name: Check Test Results
+        if: ${{ inputs.run_tests && (steps.build-status.outputs.BUILD_FAILED != 'true' || steps.frontend-fix-retry.outputs.BUILD_RETRY_SUCCESS == 'true') }}
+        run: |
+          echo "📊 Frontend Test Results Summary:"
+          echo "  - Tests enabled: ${{ inputs.run_tests }}"
+          echo "  - Test step outcome: ${{ steps.test-frontend.outcome }}"
+          if [[ "${{ steps.test-frontend.outcome }}" == "success" ]]; then
+            echo "  ✅ Frontend tests passed - skipping AI fixes"
+          elif [[ "${{ steps.test-frontend.outcome }}" == "failure" ]]; then
+            echo "  ❌ Frontend tests failed - will attempt AI fixes if authentication succeeds"
+          else
+            echo "  ⚠️  Test outcome unclear: ${{ steps.test-frontend.outcome }}"
+          fi
+
       - name: Check Test Status
         if: ${{ inputs.run_tests && (steps.build-status.outputs.BUILD_FAILED != 'true' || steps.frontend-fix-retry.outputs.BUILD_RETRY_SUCCESS == 'true') }}
         id: test-status
@@ -248,6 +259,16 @@ jobs:
           grep -E "(FAIL|fail|error|Error)" frontend-test.log || echo "No test failures found in log"
           echo "=========================="
 
+      - name: Skip AI Fixes Info
+        if: ${{ inputs.run_tests && steps.test-status.outputs.TEST_FAILED != 'true' }}
+        run: |
+          echo "ℹ️  Skipping AI fixes for frontend tests because:"
+          echo "  - Tests enabled: ${{ inputs.run_tests }}"
+          echo "  - Test failed: ${{ steps.test-status.outputs.TEST_FAILED }}"
+          echo "  - Test outcome: ${{ steps.test-frontend.outcome }}"
+          echo "  - AI fixes only run when tests fail"
+          echo "  ✅ No fixes needed - continuing with workflow"
+
       - name: Setup Python for Frontend Test AI fixes
         if: ${{ inputs.run_tests }} && steps.test-status.outputs.TEST_FAILED == 'true' && steps.frontend-test-app-auth.outputs.token
         uses: actions/setup-python@v4
@@ -274,9 +295,6 @@ jobs:
           head -c 1000 frontend-test.log
           echo ""
           echo "=== Starting AI Test Fix Process ==="
-          # Ensure log files are not tracked by git
-          git reset HEAD *.log 2>/dev/null || true
-          git rm --cached *.log 2>/dev/null || true
           if python scripts/apply-frontend-fixes.py frontend-test.log; then
             echo "✅ Frontend TEST fixes applied successfully"
             echo "🔄 Retrying tests..."

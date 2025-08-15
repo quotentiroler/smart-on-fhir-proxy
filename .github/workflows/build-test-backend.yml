@@ -148,9 +148,6 @@ jobs:
           GITHUB_TOKEN: ${{ steps.backend-app-auth.outputs.token }}
         run: |
           echo "🔧 Applying reviewed backend fixes..."
-          # Ensure log files are not tracked by git
-          git reset HEAD *.log 2>/dev/null || true
-          git rm --cached *.log 2>/dev/null || true
           python scripts/apply-backend-fixes.py scripts/reviewed-backend-fixes.json
 
       - name: Fail if backend build failed and AI couldn't fix it
@@ -170,6 +167,20 @@ jobs:
           cd backend
           # bun test 2>&1 | tee ../backend-test.log
 
+      - name: Check Test Results
+        if: ${{ inputs.run_tests }}
+        run: |
+          echo "📊 Backend Test Results Summary:"
+          echo "  - Tests enabled: ${{ inputs.run_tests }}"
+          echo "  - Test step outcome: ${{ steps.test-backend.outcome }}"
+          if [[ "${{ steps.test-backend.outcome }}" == "success" ]]; then
+            echo "  ✅ Backend tests passed - skipping AI fixes"
+          elif [[ "${{ steps.test-backend.outcome }}" == "failure" ]]; then
+            echo "  ❌ Backend tests failed - will attempt AI fixes if authentication succeeds"
+          else
+            echo "  ⚠️  Test outcome unclear: ${{ steps.test-backend.outcome }}"
+          fi
+
       - name: Authenticate as GitHub App (Backend Tests)
         if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' }}
         id: backend-test-app-auth
@@ -187,6 +198,15 @@ jobs:
           echo "Test outcome: ${{ steps.test-backend.outcome }}"
           echo "Test logs:"
           cat backend-test.log || echo "No test log found"
+
+      - name: Skip AI Fixes Info
+        if: ${{ inputs.run_tests && steps.test-backend.outcome != 'failure' }}
+        run: |
+          echo "ℹ️  Skipping AI fixes for backend tests because:"
+          echo "  - Tests enabled: ${{ inputs.run_tests }}"
+          echo "  - Test outcome: ${{ steps.test-backend.outcome }}"
+          echo "  - AI fixes only run when test outcome is 'failure'"
+          echo "  ✅ No fixes needed - continuing with workflow"
 
       - name: Setup Python for Backend Test AI fixes
         if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' && steps.backend-test-app-auth.outputs.token }}
@@ -243,9 +263,6 @@ jobs:
           GITHUB_TOKEN: ${{ steps.backend-test-app-auth.outputs.token }}
         run: |
           echo "🔧 Applying reviewed backend test fixes..."
-          # Ensure log files are not tracked by git
-          git reset HEAD *.log 2>/dev/null || true
-          git rm --cached *.log 2>/dev/null || true
           python scripts/apply-backend-fixes.py scripts/reviewed-backend-test-fixes.json
 
       - name: Fail if backend tests failed and AI couldn't fix it
