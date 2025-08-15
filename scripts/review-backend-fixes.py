@@ -72,7 +72,6 @@ Focus on:
                     "content": user_content
                 }
             ],
-            "temperature": 0.1,  # Lower temperature for careful review
             "response_format": {
                 "type": "json_schema",
                 "json_schema": {

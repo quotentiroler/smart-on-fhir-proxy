@@ -36,7 +36,7 @@ on:
 
 jobs:
   backend:
-    name: Backend Build & Test
+    name: Backend
     uses: ./.github/workflows/build-test-backend.yml
     with:
       run_tests: ${{ inputs.run_tests }}
@@ -47,7 +47,7 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
   frontend:
-    name: Frontend Build & Test
+    name: Frontend
     needs: backend
     if: ${{ needs.backend.outputs.backend_success == 'true' }}
     uses: ./.github/workflows/build-test-frontend.yml

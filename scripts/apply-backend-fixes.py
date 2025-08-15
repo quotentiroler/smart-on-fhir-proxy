@@ -70,7 +70,6 @@ Focus on backend-specific issues like:
                     "content": user_content
                 }
             ],
-            "temperature": 0.1,
             "response_format": {
                 "type": "json_schema",
                 "json_schema": {

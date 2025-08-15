@@ -66,7 +66,6 @@ Be creative and propose multiple potential solutions even if you're not 100% cer
                     "content": user_content
                 }
             ],
-            "temperature": 0.3,  # Higher creativity for initial proposals
             "response_format": {
                 "type": "json_schema",
                 "json_schema": {
