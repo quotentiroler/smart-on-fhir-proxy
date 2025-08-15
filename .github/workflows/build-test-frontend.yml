@@ -45,6 +45,43 @@ jobs:
         with:
           checkout: 'false'  # Skip checkout since we already did it
 
+      # === CLIENT API GENERATION ===
+      - name: Authenticate as GitHub App for API Generation
+        id: api-app-auth
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
+      - name: Generate Frontend API Client
+        env:
+          GITHUB_TOKEN: ${{ steps.api-app-auth.outputs.token || secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔄 Generating frontend API client from backend OpenAPI spec..."
+          bun install
+          cd backend && bun install && cd ..
+          cd ui && bun install && cd ..
+          bun run generate:ui:normalized
+          
+          # Configure git for potential commits
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # Ensure log files are not included in any commits
+          git reset HEAD *.log 2>/dev/null || true
+          git rm --cached *.log 2>/dev/null || true
+          
+          # Check if there are changes to commit (files should already be staged by generate:ui:normalized)
+          if git diff --staged --quiet; then
+            echo "📋 No API client changes to commit"
+          else
+            git commit -m "🤖 Update frontend API client from backend OpenAPI spec"
+            git push
+            echo "✅ Frontend API client updated and committed"
+          fi
+
       # === FRONTEND BUILD PHASE ===
       - name: Build Frontend
         id: frontend-build
@@ -57,7 +94,7 @@ jobs:
       - name: Check Build Status
         id: build-status
         run: |
-          if [ ${{ steps.frontend-build.outcome }} == "success" ]; then
+          if [ "${{ steps.frontend-build.outcome }}" == "success" ]; then
             echo "✅ Frontend build successful"
             echo "BUILD_FAILED=false" >> $GITHUB_OUTPUT
           else
@@ -175,20 +212,20 @@ jobs:
         run: |
           echo "Running frontend tests..."
           cd ui
-          # bun test 2>&1 | tee ../frontend-test.log
+          bun test 2>&1 | tee ../frontend-test.log
 
       - name: Check Test Status
         if: ${{ inputs.run_tests && (steps.build-status.outputs.BUILD_FAILED != 'true' || steps.frontend-fix-retry.outputs.BUILD_RETRY_SUCCESS == 'true') }}
         id: test-status
         run: |
-          if [ ${{ steps.test-frontend.outcome }} == "success" ]; then
+          if [ "${{ steps.test-frontend.outcome }}" == "success" ]; then
             echo "✅ Frontend tests successful"
             echo "TEST_FAILED=false" >> $GITHUB_OUTPUT
           else
             echo "❌ Frontend tests failed"
             echo "TEST_FAILED=true" >> $GITHUB_OUTPUT
             echo "=== TEST ERROR DETAILS ==="
-            cat frontend-test.log
+            cat frontend-test.log || echo "No test log file found"
             echo "=========================="
           fi
 

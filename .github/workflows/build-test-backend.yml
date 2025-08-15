@@ -170,7 +170,7 @@ jobs:
         run: |
           echo "Running backend tests..."
           cd backend
-          # bun test 2>&1 | tee ../backend-test.log
+          bun test 2>&1 | tee ../backend-test.log
 
       - name: Authenticate as GitHub App (Backend Tests)
         if: ${{ inputs.run_tests }} && steps.test-backend.outcome == 'failure'
@@ -263,44 +263,6 @@ jobs:
           fi
 
       # === API GENERATION (only after successful backend build/test) ===
-      - name: Authenticate as GitHub App for API Generation
-        if: steps.backend-build.outcome == 'success' || steps.backend-fix-retry.outcome == 'success'
-        id: api-app-auth
-        uses: actions/create-github-app-token@v2
-        with:
-          app-id: ${{ secrets.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-          owner: ${{ github.repository_owner }}
-          repositories: ${{ github.event.repository.name }}
-
-      - name: Generate client APIs
-        if: steps.backend-build.outcome == 'success' || steps.backend-fix-retry.outcome == 'success'
-        env:
-          GITHUB_TOKEN: ${{ steps.api-app-auth.outputs.token || secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Generating client APIs..."
-          bun install
-          cd backend && bun install && cd ..
-          cd ui && bun install && cd ..
-          bun run generate:ui:normalized
-          
-          # Configure git for potential commits
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          
-          # Ensure log files are not included in any commits
-          git reset HEAD *.log 2>/dev/null || true
-          git rm --cached *.log 2>/dev/null || true
-          
-          # Check if there are changes to commit (files should already be staged by generate:ui:normalized)
-          if git diff --staged --quiet; then
-            echo "No API client changes to commit"
-          else
-            git commit -m "🤖 Update client APIs from backend build process"
-            git push
-            echo "✅ API client changes committed and pushed"
-          fi
-
       - name: Upload backend build artifacts
         if: ${{ !startsWith(github.ref, 'refs/heads/dev/') }}
         uses: actions/upload-artifact@v4
