@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import requests
+from ai_fix_schema import get_openai_payload_base, get_common_headers, create_system_message, create_user_content_base
 
 # Constants
 GITHUB_OUTPUT_DEFAULT = "/dev/null"

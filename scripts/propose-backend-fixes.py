@@ -8,9 +8,10 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
 import requests
+from ai_fix_schema import get_propose_payload_base, get_common_headers, create_system_message, create_user_content_base
 
 
 class BackendFixProposer:
@@ -39,96 +40,25 @@ class BackendFixProposer:
         
         print("🧠 Proposer AI analyzing backend build errors...")
         
-        user_content = f"""Analyze these TypeScript/Node.js backend build errors and propose fixes. This is the backend part of a monorepo.
+        # Use shared schema and message creation
+        user_content = create_user_content_base("backend", build_errors, "propose")
+        user_content += """
 
-BACKEND BUILD ERRORS:
-{build_errors}
-
-As a junior developer AI, propose fixes for backend-specific issues like:
-- TypeScript compilation errors
-- Import/export issues  
-- Type definitions
-- Node.js/Express/Fastify related problems
-- Database/ORM issues
-- API route problems
-
-Be creative and propose multiple potential solutions even if you're not 100% certain. The goal is to generate good starting points that can be refined by a senior reviewer."""
+As a junior developer AI, propose fixes for backend-specific issues. Be creative and propose multiple potential solutions even if you're not 100% certain. The goal is to generate good starting points that can be refined by a senior reviewer."""
         
-        payload = {
-            "model": "gpt-5",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are a junior developer AI assistant specializing in TypeScript/Node.js backend development. Your job is to propose initial fixes for build errors. Be creative and suggest multiple approaches even if uncertain - a senior AI will review your proposals. Always return valid JSON with fixes array. File paths should include full path from repository root (e.g., 'backend/src/file.ts'). Focus on generating helpful starting points rather than perfect solutions."
-                },
-                {
-                    "role": "user",
-                    "content": user_content
-                }
-            ],
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "proposed_backend_fixes",
-                    "strict": True,
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "analysis": {
-                                "type": "string",
-                                "description": "Brief analysis of the build errors"
-                            },
-                            "fixes": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_path": {
-                                            "type": "string",
-                                            "description": "Path to the file to fix (from repo root)"
-                                        },
-                                        "line_number": {
-                                            "type": "number",
-                                            "description": "Line number where the fix should be applied"
-                                        },
-                                        "search_text": {
-                                            "type": "string",
-                                            "description": "Exact text to search for and replace"
-                                        },
-                                        "replacement_text": {
-                                            "type": "string",
-                                            "description": "Text to replace the search text with"
-                                        },
-                                        "description": {
-                                            "type": "string",
-                                            "description": "Description of what this fix does"
-                                        },
-                                        "confidence": {
-                                            "type": "string",
-                                            "enum": ["high", "medium", "low"],
-                                            "description": "Confidence level in this fix"
-                                        },
-                                        "reasoning": {
-                                            "type": "string",
-                                            "description": "Why this fix might work"
-                                        }
-                                    },
-                                    "required": ["file_path", "line_number", "search_text", "replacement_text", "description", "confidence", "reasoning"],
-                                    "additionalProperties": False
-                                }
-                            }
-                        },
-                        "required": ["analysis", "fixes"],
-                        "additionalProperties": False
-                    }
-                }
+        payload = get_propose_payload_base("gpt-5")
+        payload["messages"] = [
+            {
+                "role": "system",
+                "content": create_system_message("backend", "propose")
+            },
+            {
+                "role": "user", 
+                "content": user_content
             }
-        }
+        ]
         
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}"
-        }
+        headers = get_common_headers(self.api_key)
         
         try:
             response = requests.post(self.base_url, json=payload, headers=headers, timeout=60)

@@ -8,9 +8,10 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict
 
 import requests
+from ai_fix_schema import get_openai_payload_base, get_common_headers, create_system_message, create_user_content_base
 
 
 class BackendFixReviewer:
@@ -30,14 +31,15 @@ class BackendFixReviewer:
             print(f"❌ Build log file not found: {log_file}")
             return ""
     
-    def review_fixes(self, proposed_fixes: Dict, build_errors: str) -> List[Dict]:
+    def review_fixes(self, proposed_fixes: Dict, build_errors: str) -> Dict:
         """Review and refine proposed fixes using a 'senior developer' AI approach."""
         if not self.api_key:
             print("❌ OPENAI_API_KEY is not set - skipping AI review")
-            return []
+            return {"analysis": "No API key", "fixes": []}
         
         print("🎓 Reviewer AI analyzing proposed backend fixes...")
         
+        # Use shared schema and message creation
         user_content = f"""Review and refine these proposed backend fixes. Act as a senior developer reviewing a junior's work.
 
 ORIGINAL BUILD ERRORS:
@@ -60,81 +62,19 @@ Focus on:
 - Missing edge cases
 - Code quality and maintainability"""
         
-        payload = {
-            "model": "gpt-5",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "You are a senior developer AI assistant with extensive TypeScript/Node.js expertise. Your job is to review and refine proposed fixes from a junior AI. Be critical and thorough - only approve fixes you're confident will work. You can modify, reject, or completely rewrite proposed fixes. You can also add entirely new fixes if needed. Always return valid JSON with the final fixes array. File paths should include full path from repository root (e.g., 'backend/src/file.ts'). Prioritize correctness over quantity."
-                },
-                {
-                    "role": "user",
-                    "content": user_content
-                }
-            ],
-            "response_format": {
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "reviewed_backend_fixes",
-                    "strict": True,
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "review_summary": {
-                                "type": "string",
-                                "description": "Summary of the review process and decisions"
-                            },
-                            "fixes": {
-                                "type": "array",
-                                "items": {
-                                    "type": "object",
-                                    "properties": {
-                                        "file_path": {
-                                            "type": "string",
-                                            "description": "Path to the file to fix (from repo root)"
-                                        },
-                                        "line_number": {
-                                            "type": "number",
-                                            "description": "Line number where the fix should be applied"
-                                        },
-                                        "search_text": {
-                                            "type": "string",
-                                            "description": "Exact text to search for and replace"
-                                        },
-                                        "replacement_text": {
-                                            "type": "string",
-                                            "description": "Text to replace the search text with"
-                                        },
-                                        "description": {
-                                            "type": "string",
-                                            "description": "Description of what this fix does"
-                                        },
-                                        "review_status": {
-                                            "type": "string",
-                                            "enum": ["approved", "modified", "rejected_and_replaced", "new"],
-                                            "description": "How this fix was processed during review"
-                                        },
-                                        "review_notes": {
-                                            "type": "string",
-                                            "description": "Notes about why this fix was approved/modified/replaced"
-                                        }
-                                    },
-                                    "required": ["file_path", "line_number", "search_text", "replacement_text", "description", "review_status", "review_notes"],
-                                    "additionalProperties": False
-                                }
-                            }
-                        },
-                        "required": ["review_summary", "fixes"],
-                        "additionalProperties": False
-                    }
-                }
+        payload = get_openai_payload_base("gpt-5")
+        payload["messages"] = [
+            {
+                "role": "system",
+                "content": create_system_message("backend", "review")
+            },
+            {
+                "role": "user",
+                "content": user_content
             }
-        }
+        ]
         
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}"
-        }
+        headers = get_common_headers(self.api_key)
         
         try:
             response = requests.post(self.base_url, json=payload, headers=headers, timeout=60)
@@ -145,15 +85,15 @@ Focus on:
                 fixes_json = result['choices'][0]['message']['content']
                 fixes_data = json.loads(fixes_json)
                 print("✅ Reviewer AI analysis successful")
-                return fixes_data.get('fixes', [])
+                return fixes_data  # Return full data structure like propose step
             else:
                 print(f"❌ Reviewer AI call failed with status {response.status_code}")
                 print(f"Response: {response.text}")
-                return []
+                return {"analysis": "API call failed", "fixes": []}
                 
         except Exception as e:
             print(f"❌ Error calling Reviewer AI: {e}")
-            return []
+            return {"analysis": "Error occurred", "fixes": []}
 
 
 def main():
@@ -191,10 +131,10 @@ def main():
         sys.exit(1)
     
     # Review and refine fixes
-    final_fixes = reviewer.review_fixes(proposed_fixes, build_errors)
+    reviewed_data = reviewer.review_fixes(proposed_fixes, build_errors)
     
-    # Output as JSON for the application step
-    print(json.dumps({"fixes": final_fixes}, indent=2))
+    # Output as JSON for the application step - consistent with propose step
+    print(json.dumps(reviewed_data, indent=2))
 
 
 if __name__ == "__main__":
