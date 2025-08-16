@@ -1132,17 +1132,17 @@ CONTEXT SEED (short excerpts from files referenced in errors):
 # Custom TypeScript analyzer
 def analyze_typescript_imports_and_exports():
     # Complex logic to map all imports/exports across the project
-    return {"import_graph": {...}, "circular_deps": [...], "unused_exports": [...]}
+    return {{"import_graph": {{}}, "circular_deps": [], "unused_exports": []}}
 
 # Build system inspector  
 def inspect_build_configuration():
     # Analyze package.json, tsconfig.json, vite.config.ts, etc.
-    return {"build_targets": [...], "dependencies": {...}, "potential_issues": [...]}
+    return {{"build_targets": [], "dependencies": {{}}, "potential_issues": []}}
 
 # Error pattern matcher
 def analyze_error_patterns():
     # Smart pattern matching across error logs
-    return {"error_categories": [...], "fix_suggestions": [...], "related_files": [...]}
+    return {{"error_categories": [], "fix_suggestions": [], "related_files": []}}
 ```
 
 Remember: You start with a solid foundation of BASE TOOLS, but your real power is in CREATING EXACTLY THE TOOLS YOU NEED for any specific problem! 🛠️✨
