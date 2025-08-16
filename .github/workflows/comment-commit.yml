@@ -4,30 +4,29 @@ on:
   push:
     branches:
       - "dev/*"
-      - "ai/*"
-  workflow_dispatch:
-  
+      - "ai/**"
+  workflow_run:
+    workflows: ["Build & Test", "Build & Test Backend", "Build & Test Frontend"]
+    types:
+      - completed
+    branches:
+      - "dev/*"
+      - "ai/**"
+
 jobs:
   ai-comment:
-    name: Review & Comment on Push
+    name: Review & Comment on HEAD Commit
     runs-on: ubuntu-latest
-    # Remove the if condition temporarily to ensure it runs
-    # if: ${{ contains(github.event.head_commit.message, 'update')}}
+    if: startsWith(github.ref, 'refs/heads/dev/') || (github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'dev/'))
     continue-on-error: true
 
     steps:
-      - name: Debug workflow trigger
-        run: |
-          echo "🔍 Workflow triggered!"
-          echo "Branch: ${{ github.ref_name }}"
-          echo "Commit message: ${{ github.event.head_commit.message }}"
-          echo "Event name: ${{ github.event_name }}"
-          echo "Repository: ${{ github.repository }}"
-          
       - name: Checkout full history
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          # For workflow_run events, checkout the head branch
+          ref: ${{ github.event.workflow_run.head_branch || github.ref }}
 
       - name: Authenticate as GitHub App
         id: app-auth
@@ -44,18 +43,13 @@ jobs:
           checkout: 'false'  # Skip checkout since we already did it
           fetch-depth: 0
 
-      - name: Comment on push via ChatGPT
+      - name: Comment on HEAD commit via ChatGPT
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GITHUB_TOKEN: ${{ steps.app-auth.outputs.token || secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          HEAD_SHA: ${{ github.sha }}
-          BEFORE_SHA: ${{ github.event.before }}
-          PUSH_COMMITS: ${{ toJSON(github.event.commits) }}
-          BRANCH_NAME: ${{ github.ref_name }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.event.head_commit.id || github.sha }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4o-mini' }}
         run: |
-          echo "🔍 Analyzing push to branch '$BRANCH_NAME'..."
-          echo "📊 Commits range: $BEFORE_SHA..$HEAD_SHA"
-          echo "Running AI push analysis script..."
+          echo "Running AI commit comment script..."
           node scripts/ai-commit-comment.mjs

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Junior AI: Propose Code Implementations / Changes / Fixes 
+Junior AI: Propose Code Implementations / Changes / Changes 
 This script analyzes an input (error logs, instructions) using MCP-enhanced exploration
 And proposes code changes based on the analysis.
 """
@@ -1551,10 +1551,10 @@ class UnifiedChangeProposer:
         return "\n\n".join(hints) if hints else "(no file excerpts found in errors)"
     
     def propose_changes(self, error_log: str) -> Dict:
-        """Propose initial fixes using MCP-enhanced AI with interactive code exploration."""
+        """Propose initial changes using MCP-enhanced AI with interactive code exploration."""
         if not self.api_key:
-            print("❌ OPENAI_API_KEY is not set - skipping AI fixes", file=sys.stderr)
-            return {"analysis": "No API key", "fixes": []}
+            print("❌ OPENAI_API_KEY is not set - skipping AI changes", file=sys.stderr)
+            return {"analysis": "No API key", "changes": []}
         
         print("🧠 Junior AI starting interactive code exploration...", file=sys.stderr)
         
@@ -1642,7 +1642,7 @@ CONTEXT SEED (short excerpts from files referenced in errors):
    - Web automation strategy discussions
 6. 📦 EXPERIMENT: Use sandboxes for risky operations:
    - Test experimental solutions safely
-   - Validate fixes before applying to main codebase
+   - Validate changes before applying to main codebase
    - Try different approaches without side effects
    - Run build/test commands in isolation
    - Test web scraping and automation scripts
@@ -1717,7 +1717,7 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
                 
                 if response.status_code != 200:
                     print(f"❌ API call failed: {response.text}", file=sys.stderr)
-                    return {"analysis": "API call failed", "fixes": []}
+                    return {"analysis": "API call failed", "changes": []}
                 
                 result = response.json()
                 choice = result['choices'][0]
@@ -1779,21 +1779,21 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
                 # AI has finished exploring and provided final response
                 if choice['finish_reason'] == 'stop':
                     try:
-                        fixes_json = message['content']
-                        fixes_data = json.loads(fixes_json)
+                        changes_json = message['content']
+                        changes_data = json.loads(changes_json)
                         print("✅ AI exploration and analysis complete", file=sys.stderr)
-                        return fixes_data
+                        return changes_data
                     except json.JSONDecodeError:
                         print("❌ Failed to parse final JSON response", file=sys.stderr)
                         print(f"Raw response: {message['content']}", file=sys.stderr)
-                        return {"analysis": "JSON parse error", "fixes": []}
+                        return {"analysis": "JSON parse error", "changes": []}
                 
             except Exception as e:
                 print(f"❌ Error in AI conversation: {e}", file=sys.stderr)
-                return {"analysis": "Error occurred", "fixes": []}
+                return {"analysis": "Error occurred", "changes": []}
         
         print("❌ Max iterations reached without completion", file=sys.stderr)
-        return {"analysis": "Max iterations reached", "fixes": []}
+        return {"analysis": "Max iterations reached", "changes": []}
 
 
 def main():

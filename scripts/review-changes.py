@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Senior AI: Review and validate proposed fixes
-This script reviews fixes and validates search patterns to ensure accuracy
+Senior AI: Review and validate proposed changes
+This script reviews changes and validates search patterns to ensure accuracy
 """
 
 import json
@@ -21,19 +21,19 @@ class UnifiedChangeReviewer:
         self.repo_root = Path(repo_root)
         self.base_url = "https://api.openai.com/v1/chat/completions"
         
-    def detect_component_type(self, fixes_data: Dict) -> str:
-        """Detect component type from fixes data"""
-        content_str = json.dumps(fixes_data).lower()
+    def detect_component_type(self, changes_data: Dict) -> str:
+        """Detect component type from changes data"""
+        content_str = json.dumps(changes_data).lower()
         
         if any(indicator in content_str for indicator in ['ui/', 'vite', 'react', 'jsx', 'tsx']):
             return "frontend"
         elif any(indicator in content_str for indicator in ['backend/', 'node', 'express', 'fastify']):
             return "backend"
         
-        # Check files mentioned in fixes
-        if 'fixes' in fixes_data:
-            for fix in fixes_data['fixes']:
-                file_path = fix.get('file', '').lower()
+        # Check files mentioned in changes
+        if 'changes' in changes_data:
+            for change in changes_data['changes']:
+                file_path = change.get('file', '').lower()
                 if 'ui/' in file_path or 'components' in file_path:
                     return "frontend"
                 elif 'backend/' in file_path or 'src/lib' in file_path or 'src/routes' in file_path:
@@ -41,24 +41,24 @@ class UnifiedChangeReviewer:
         
         return "unknown"
     
-    def validate_search_patterns(self, fixes_data: Dict) -> Dict:
+    def validate_search_patterns(self, changes_data: Dict) -> Dict:
         """
         Enhanced search pattern validation with auto-correction.
-        Validates that search patterns in fixes match actual file content.
+        Validates that search patterns in changes match actual file content.
         Auto-corrects common patterns and warns about mismatches.
         """
-        print("🔍 Validating search patterns in fixes...", file=sys.stderr)
+        print("🔍 Validating search patterns in changes...", file=sys.stderr)
         
-        if not isinstance(fixes_data, dict) or 'fixes' not in fixes_data:
-            return fixes_data
+        if not isinstance(changes_data, dict) or 'changes' not in changes_data:
+            return changes_data
         
         auto_corrections = 0
         warnings = []
         
-        for fix_idx, fix in enumerate(fixes_data['fixes']):
-            action = fix.get('action', 'modify')
-            file_path = fix.get('file', '')
-            search_pattern = fix.get('search', '')
+        for change_idx, change in enumerate(changes_data['changes']):
+            action = change.get('action', 'modify')
+            file_path = change.get('file', '')
+            search_pattern = change.get('search', '')
             
             # Skip validation for create actions (they don't need search patterns)
             if action == "create":
@@ -99,54 +99,54 @@ class UnifiedChangeReviewer:
             for warning in warnings[:5]:  # Limit output
                 print(f"  ⚠️ {warning}", file=sys.stderr)
         
-        return fixes_data
+        return changes_data
     
-    def review_changes(self, fixes_data: Dict, error_log: str) -> Dict:
+    def review_changes(self, changes_data: Dict, error_log: str) -> Dict:
         """Review and validate proposed changes."""
         if not self.api_key:
             print("❌ OPENAI_API_KEY is not set - skipping AI review", file=sys.stderr)
-            return fixes_data
+            return changes_data
         
         print("🧠 Senior AI starting review process...", file=sys.stderr)
         
         # Detect component type
-        component_type = self.detect_component_type(fixes_data)
+        component_type = self.detect_component_type(changes_data)
         print(f"🎯 Detected component type: {component_type}", file=sys.stderr)
         
         # Validate search patterns with auto-correction
-        validated_fixes = self.validate_search_patterns(fixes_data)
+        validated_changes = self.validate_search_patterns(changes_data)
         
         # Create review prompt
-        review_prompt = f"""You are a Senior Developer AI reviewing proposed fixes! 🎯
+        review_prompt = f"""You are a Senior Developer AI reviewing proposed changes! 🎯
 
 ORIGINAL ERROR LOG:
 {error_log}
 
 PROPOSED FIXES FROM JUNIOR AI:
-{json.dumps(validated_fixes, indent=2)}
+{json.dumps(validated_changes, indent=2)}
 
 COMPONENT TYPE: {component_type}
 
-Your task is to review these fixes carefully and provide a refined version.
+Your task is to review these changes carefully and provide a refined version.
 
 FOCUS AREAS:
-1. ✅ Verify the fixes address the actual errors
+1. ✅ Verify the changes address the actual errors
 2. 🔍 Check that search patterns are precise and will match exactly
 3. 🎯 Ensure replacements are syntactically correct
 4. 📋 Validate the reasoning makes sense
 5. 🚀 Suggest improvements or optimizations
 
-Be critical but constructive. If fixes look good, approve them. If they need changes, refine them.
+Be critical but constructive. If changes look good, approve them. If they need changes, refine them.
 
 Return the SAME JSON structure but with your improvements:
 {{
   "analysis": "Your enhanced analysis",
-  "fixes": [
+  "changes": [
     {{
       "file": "exact/file/path",
       "search": "exact code to find (must match exactly)",
       "replace": "exact replacement code",
-      "reasoning": "why this fix works"
+      "reasoning": "why this change works"
     }}
   ]
 }}"""
@@ -172,32 +172,32 @@ Return the SAME JSON structure but with your improvements:
             
             if response.status_code != 200:
                 print(f"❌ Senior AI API call failed: {response.text}", file=sys.stderr)
-                return validated_fixes
+                return validated_changes
             
             result = response.json()
             review_content = result['choices'][0]['message']['content']
             
             try:
-                reviewed_fixes = json.loads(review_content)
+                reviewed_changes = json.loads(review_content)
                 print("✅ Senior AI review complete", file=sys.stderr)
-                return reviewed_fixes
+                return reviewed_changes
             except json.JSONDecodeError:
                 print("❌ Failed to parse Senior AI response as JSON", file=sys.stderr)
                 print(f"Raw response: {review_content}", file=sys.stderr)
-                return validated_fixes
+                return validated_changes
                 
         except Exception as e:
             print(f"❌ Error during Senior AI review: {e}", file=sys.stderr)
-            return validated_fixes
+            return validated_changes
 
 
 def main():
     """Main entry point."""
     if len(sys.argv) < 2:
-        print("Usage: python review-changes.py <proposed-fixes-json> [error-log-file]", file=sys.stderr)
+        print("Usage: python review-changes.py <proposed-changes-json> [error-log-file]", file=sys.stderr)
         sys.exit(1)
     
-    fixes_json_file = sys.argv[1]
+    changes_json_file = sys.argv[1]
     error_log_file = sys.argv[2] if len(sys.argv) > 2 else ""
     
     api_key = os.environ.get("OPENAI_API_KEY")
@@ -209,12 +209,12 @@ def main():
     
     print("🧠 Senior AI starting unified review process...", file=sys.stderr)
     
-    # Read proposed fixes
+    # Read proposed changes
     try:
-        with open(fixes_json_file, 'r', encoding='utf-8') as f:
-            fixes_data = json.load(f)
+        with open(changes_json_file, 'r', encoding='utf-8') as f:
+            changes_data = json.load(f)
     except Exception as e:
-        print(f"❌ Failed to read proposed fixes: {e}", file=sys.stderr)
+        print(f"❌ Failed to read proposed changes: {e}", file=sys.stderr)
         sys.exit(1)
     
     # Read error log if provided
@@ -230,7 +230,7 @@ def main():
     reviewer = UnifiedChangeReviewer(api_key, repo_root)
     
     # Review changes
-    reviewed_changes = reviewer.review_changes(fixes_data, error_log)
+    reviewed_changes = reviewer.review_changes(changes_data, error_log)
     
     # Output as JSON - ONLY JSON goes to stdout
     print(json.dumps(reviewed_changes, indent=2))
