@@ -1,0 +1,10 @@
+{
+  "analysis": "Max iterations (100) reached without completion. Generated basic test structure as fallback.",
+  "changes": [
+    {
+      "file": "test/basic.test.ts",
+      "operation": "create",
+      "content": "import { describe, it, expect } from 'vitest';\n\ndescribe('Basic Test Suite', () => {\n  it('should pass basic assertion', () => {\n    expect(true).toBe(true);\n  });\n  \n  it('should handle async operations', async () => {\n    const result = await Promise.resolve('test');\n    expect(result).toBe('test');\n  });\n});\n"
+    }
+  ]
+}
