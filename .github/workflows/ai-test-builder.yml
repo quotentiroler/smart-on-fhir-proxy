@@ -215,7 +215,7 @@ jobs:
       id: fix-frontend-tests
       run: |
         echo "🤖 AI Frontend Test Error Resolution Pipeline Starting..."
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "================================================================================================================="
         echo "🎯 Pipeline Overview:"
         echo "   Phase 1: Enhanced Error Analysis & Context Preparation"
         echo "   Phase 2: Junior AI Interactive Code Exploration & Fix Generation"
@@ -228,7 +228,7 @@ jobs:
         
         # Phase 1: Enhanced Error Analysis & Context Preparation
         echo "📋 PHASE 1: Enhanced Error Analysis & Context Preparation"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "================================================================================================================="
         
         # Gather comprehensive context about the frontend environment
         echo "🔍 Gathering frontend environment context..."
@@ -319,7 +319,7 @@ jobs:
         # Phase 2: Junior AI Proposer - Interactive Code Exploration & Fix Generation
         echo ""
         echo "🧠 PHASE 2: Junior AI Proposer - Interactive Code Exploration & Fix Generation"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "================================================================================================================="
         echo "🤖 Junior AI Capabilities:"
         echo "   • 🔍 MCP-based code exploration tools (semantic search, file reading)"
         echo "   • 🧭 Dynamic workspace navigation and dependency analysis"  
@@ -401,7 +401,7 @@ jobs:
         # Phase 3: Senior AI Reviewer - Critical Review & Validation (Optional)
         echo ""
         echo "🎓 PHASE 3: Senior AI Reviewer - Critical Review & Validation"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "================================================================================================================="
         
         # Comprehensive validation of Junior AI output before Senior AI review
         echo "🔍 Pre-Review Validation of Junior AI Output..."
@@ -570,7 +570,7 @@ jobs:
         # Phase 4: Automated Applier - Precise File Modifications
         echo ""
         echo "🔧 PHASE 4: Automated Applier - Precise File Modifications"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "================================================================================================================="
         echo "⚙️ Applier Capabilities:"
         echo "   • 🎯 Precise string-based search and replace operations"
         echo "   • 📁 Intelligent file creation with directory structure"
@@ -676,7 +676,7 @@ jobs:
         # Phase 5: Git Operations & Result Verification  
         echo ""
         echo "🔄 PHASE 5: Git Operations & Result Verification"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "================================================================================================================="
         echo "🌐 Git Integration Analysis:"
         
         # Extract application metrics for git analysis
@@ -779,7 +779,7 @@ jobs:
         
         echo ""
         echo "🎉 FRONTEND TEST ERROR RESOLUTION PIPELINE COMPLETE!"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "================================================================================================================="
         echo "📊 Final Summary:"
         echo "   • Total runtime: $(($(date +%s) - start_time))s"
         echo "   • Changes successfully applied: $applied"
@@ -816,7 +816,7 @@ jobs:
         # Phase 1: Junior AI Proposer - Backend Test Architecture & Fixes
         echo ""
         echo "🧠 PHASE 1: Junior AI Proposer Starting Backend Test Analysis..."
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "================================================================================================================="
         echo "🎯 Junior AI will:"
         echo "   • Analyze backend test framework requirements"
         echo "   • Explore existing API routes and business logic"
@@ -848,7 +848,7 @@ jobs:
         # Phase 2: Senior AI Reviewer - Backend-Specific Validation (Optional)
         echo ""
         echo "🎓 PHASE 2: Senior AI Reviewer Validating Backend Changes (Optional)..."
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "================================================================================================================="
         
         # First validate Junior AI output before sending to Senior AI
         echo "🔍 Validating Junior AI output quality..."
@@ -917,7 +917,7 @@ jobs:
         # Phase 3: Automated Applier - Backend Implementation
         echo ""
         echo "🔧 PHASE 3: Applying Backend Test Infrastructure..."
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "================================================================================================================="
         
         python apply-changes.py "$backend_final_fixes_file" > backend-apply-result.json 2> backend-applier.log
         applier_exit_code=$?
@@ -935,7 +935,7 @@ jobs:
             # ADD DETAILED GIT PUSH LOGGING FOR BACKEND
             echo ""
             echo "🔄 BACKEND GIT COMMIT AND PUSH STATUS:"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "================================================================================================================="
             
             if [ "$applied" -gt "0" ]; then
               echo "📋 Checking git status after backend changes..."
