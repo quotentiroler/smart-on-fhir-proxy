@@ -43,6 +43,11 @@ class UnifiedChangeApplier:
         """Apply a single change to a file (modify existing or create new)."""
         full_path = self.repo_root / file_path
         
+        print(f"🔧 Processing {action} action for {file_path}", file=sys.stderr)
+        print(f"   Repo root: {self.repo_root}", file=sys.stderr)
+        print(f"   Full path: {full_path}", file=sys.stderr)
+        print(f"   Full path absolute: {full_path.resolve()}", file=sys.stderr)
+        
         if action == "create":
             # Create new file
             if full_path.exists():
@@ -55,9 +60,17 @@ class UnifiedChangeApplier:
                 # Write new file content
                 full_path.write_text(replacement, encoding='utf-8')
                 
-                print(f"✅ Created new file: {file_path}", file=sys.stderr)
-                print(f"   Reason: {reasoning}", file=sys.stderr)
-                print(f"   Size: {len(replacement)} characters", file=sys.stderr)
+                # Verify file was created
+                if full_path.exists():
+                    actual_size = len(full_path.read_text(encoding='utf-8'))
+                    print(f"✅ Created new file: {file_path}", file=sys.stderr)
+                    print(f"   Reason: {reasoning}", file=sys.stderr)
+                    print(f"   Expected size: {len(replacement)} characters", file=sys.stderr)
+                    print(f"   Actual size: {actual_size} characters", file=sys.stderr)
+                    print(f"   File exists: {full_path.exists()}", file=sys.stderr)
+                else:
+                    print(f"❌ File creation verification failed: {file_path}", file=sys.stderr)
+                    return False
                 
                 return True
                 
@@ -138,21 +151,53 @@ class UnifiedChangeApplier:
             
             # Check if there are any changes to commit
             print("📋 Checking for changes to commit...", file=sys.stderr)
+            
+            # First, let's see what git status shows
+            print("📊 Detailed git status:", file=sys.stderr)
+            status_result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+            status_output = status_result.stdout.strip()
+            if status_output:
+                print("   Git status output:", file=sys.stderr)
+                for line in status_output.split('\n'):
+                    print(f"   {line}", file=sys.stderr)
+            else:
+                print("   Git status shows no changes", file=sys.stderr)
+            
+            # Check git diff for unstaged changes
+            print("📋 Checking git diff for unstaged changes...", file=sys.stderr)
             result = subprocess.run([
                 "git", "diff", "--name-only"
             ], capture_output=True, text=True)
             
-            if not result.stdout.strip():
-                print("ℹ️ No changes to commit", file=sys.stderr)
+            # Also check for untracked files
+            print("📋 Checking for untracked files...", file=sys.stderr)
+            untracked_result = subprocess.run([
+                "git", "ls-files", "--others", "--exclude-standard"
+            ], capture_output=True, text=True)
+            
+            untracked_files = untracked_result.stdout.strip().split('\n') if untracked_result.stdout.strip() else []
+            changed_files = result.stdout.strip().split('\n') if result.stdout.strip() else []
+            
+            # Combine changed and untracked files
+            all_changed_files = []
+            if changed_files and changed_files[0]:  # Check if not empty
+                all_changed_files.extend(changed_files)
+            if untracked_files and untracked_files[0]:  # Check if not empty
+                all_changed_files.extend(untracked_files)
+            
+            print(f"📝 Found {len(changed_files)} modified files and {len(untracked_files)} untracked files", file=sys.stderr)
+            
+            if not all_changed_files:
+                print("ℹ️ No changes to commit (no modified or untracked files)", file=sys.stderr)
                 return True
             
-            changed_files = result.stdout.strip().split('\n')
-            print(f"📝 Found {len(changed_files)} changed files:", file=sys.stderr)
+            changed_files = all_changed_files
+            print(f"📝 Total files to commit: {len(changed_files)}", file=sys.stderr)
             for file in changed_files:
                 print(f"   • {file}", file=sys.stderr)
             
             # Check git status for additional info
-            print("📊 Git status before commit:", file=sys.stderr)
+            print("📊 Git status before adding files:", file=sys.stderr)
             status_result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
             for line in status_result.stdout.strip().split('\n'):
                 if line.strip():

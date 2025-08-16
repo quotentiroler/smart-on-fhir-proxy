@@ -17,7 +17,7 @@ jobs:
   ai-comment:
     name: Review & Comment on HEAD Commit
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/dev/') || (github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'dev/'))
+    if: startsWith(github.ref, 'refs/heads/dev/') || startsWith(github.ref, 'refs/heads/ai/') || (github.event.workflow_run.conclusion == 'success' && (startsWith(github.event.workflow_run.head_branch, 'dev/') || startsWith(github.event.workflow_run.head_branch, 'ai/')))
     continue-on-error: true
 
     steps:
