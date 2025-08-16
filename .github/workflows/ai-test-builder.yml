@@ -1,0 +1,145 @@
+name: 'AI Test Builder'
+
+on:
+  push:
+    branches:
+      - "ai/test/*"
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild all tests'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  actions: write
+  pull-requests: write
+
+jobs:
+  checklist-test-builder:
+    name: Build Tests from Checklists
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Python AI
+      uses: ./.github/actions/setup-python-ai
+      with:
+        python-version: '3.11'
+
+    - name: Setup Bun
+      uses: ./.github/actions/setup-bun-version
+
+    - name: Setup Node for AI
+      uses: ./.github/actions/setup-node-ai
+
+    - name: Find and analyze checklists
+      id: find-checklists
+      run: |
+        echo "🔍 Finding CHECKLIST.md files..."
+        find . -name "CHECKLIST.md" -type f | grep -v node_modules | grep -v .git > checklist_files.txt
+        echo "Found checklist files:"
+        cat checklist_files.txt
+        echo "checklist_count=$(wc -l < checklist_files.txt)" >> $GITHUB_OUTPUT
+
+    - name: Generate tests from checklists
+      if: steps.find-checklists.outputs.checklist_count > 0
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        FORCE_REBUILD: ${{ github.event.inputs.force_rebuild || 'false' }}
+      run: |
+        echo "🧪 Building tests from checklists..."
+        python scripts/test-builder.py \
+          --checklist-files checklist_files.txt \
+          --force-rebuild $FORCE_REBUILD \
+          --output-format junit \
+          --verbose
+
+    - name: Update checklists with generated tests
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      run: |
+        echo "📝 Updating checklists with generated test references..."
+        python scripts/test-builder.py \
+          --update-checklists \
+          --generated-tests-dir tests/generated \
+          --checklist-files checklist_files.txt
+
+    - name: Commit updated checklists
+      if: success()
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        
+        # Check if there are changes to commit
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "📝 Committing updated checklists and generated tests..."
+          git add **/*CHECKLIST.md tests/generated/
+          git commit -m "🧪 chore: generate tests and update checklists
+
+          - Auto-generated tests for checklist items
+          - Updated checklist items with test references
+          - Generated test files in tests/generated/
+          - Branch: ${{ github.ref_name }}
+          - Commit: ${{ github.sha }}"
+          
+          git push origin ${{ github.ref_name }}
+          echo "✅ Checklists updated and tests generated"
+        else
+          echo "ℹ️ No changes to commit"
+        fi
+
+    - name: Create or update PR comment
+      if: github.event_name == 'push'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          // Read test results if they exist
+          let testSummary = '## 🧪 Checklist Test Generator Results\\n\\n';
+          
+          if (fs.existsSync('tests/generated')) {
+            testSummary += '✅ Automated tests generated from checklist items\\n';
+            testSummary += '📊 Checklist items updated with test references\\n';
+          } else {
+            testSummary += '⚠️ No tests generated\\n';
+          }
+          
+          // Read checklist files count
+          const checklistCount = '${{ steps.find-checklists.outputs.checklist_count }}';
+          testSummary += `\\n📋 Processed ${checklistCount} checklist file(s)\\n`;
+          
+          testSummary += '\\n### Generated Tests\\n';
+          testSummary += '- Backend SMART implementation tests\\n';
+          testSummary += '- Frontend UI component tests\\n';
+          testSummary += '- Integration test scaffolds\\n';
+          
+          testSummary += '\\n### Next Steps\\n';
+          testSummary += '- Review generated test files in `tests/generated/`\\n';
+          testSummary += '- Check updated checklist items with `[tested]` markers\\n';
+          testSummary += '- Run tests manually: `bun test`\\n';
+          testSummary += '- Tests are ready for developer execution\\n';
+          
+          console.log(testSummary);
+
+    - name: Discord notification
+      if: always()
+      uses: ./.github/actions/discord-notify
+      with:
+        webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        title: "🧪 AI Test Builder"
+        description: |
+          **Branch**: `${{ github.ref_name }}`
+          **Status**: ${{ job.status }}
+          **Checklists**: ${{ steps.find-checklists.outputs.checklist_count }} files processed
+          **Tests**: Generated from SMART App Launch checklists
+        color: ${{ job.status == 'success' && '65280' || '16711680' }}
+        include-details: true

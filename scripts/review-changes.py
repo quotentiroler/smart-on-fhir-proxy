@@ -79,18 +79,6 @@ class UnifiedChangeReviewer:
             try:
                 file_content = full_path.read_text(encoding='utf-8')
                 
-                # Apply auto-corrections for known patterns
-                original_pattern = search_pattern
-                
-                # Auto-correct: logger.ersror → logger.auth.ersror (test pattern)
-                if 'logger.ersror' in search_pattern and 'logger.ersror' not in file_content:
-                    if 'logger.auth.ersror' in file_content:
-                        search_pattern = search_pattern.replace('logger.ersror', 'logger.auth.ersror')
-                        fix['search'] = search_pattern
-                        auto_corrections += 1
-                        print(f"✅ Auto-corrected pattern in {file_path}: logger.ersror → logger.auth.ersror", 
-                              file=sys.stderr)
-                
                 # Validate final pattern
                 if search_pattern not in file_content:
                     # Try with normalized whitespace

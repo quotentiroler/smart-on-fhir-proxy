@@ -3,6 +3,8 @@ requests>=2.31.0
 python-dotenv>=1.0.0  # For local .env file support
 beautifulsoup4>=4.12.0  # For web scraping
 playwright>=1.40.0  # For browser automation
+pytest>=7.4.0  # For test generation and execution
+selenium>=4.15.0  # For UI testing
 
 # ===== SEMANTIC SEARCH (OPTIONAL - CPU ONLY) =====
 # Uncomment the next 3 lines ONLY if you want semantic search:
