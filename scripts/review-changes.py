@@ -101,19 +101,77 @@ class UnifiedChangeReviewer:
         
         return changes_data
     
+    def validate_junior_output(self, changes_data: Dict) -> tuple[bool, str]:
+        """Validate Junior AI output before sending to Senior AI"""
+        print("🔍 Validating Junior AI output...", file=sys.stderr)
+        
+        # Check if it's a valid dict
+        if not isinstance(changes_data, dict):
+            return False, "Output is not a valid dictionary"
+        
+        # Check for error indicators in analysis
+        analysis = changes_data.get("analysis", "")
+        error_indicators = [
+            "error occurred", "timeout", "failed", "max iterations", 
+            "api call failed", "all attempts", "giving up"
+        ]
+        
+        if any(indicator in analysis.lower() for indicator in error_indicators):
+            print(f"⚠️ Junior AI encountered issues: {analysis}", file=sys.stderr)
+            
+            # Check if there are still useful changes despite the error
+            changes = changes_data.get("changes", [])
+            if not changes or len(changes) == 0:
+                return False, f"Junior AI failed with no useful changes: {analysis}"
+            
+            # If there are changes but with error indicators, it might still be worth reviewing
+            print(f"✅ Junior AI provided {len(changes)} changes despite issues", file=sys.stderr)
+        
+        # Check for changes array
+        changes = changes_data.get("changes", [])
+        if not isinstance(changes, list):
+            return False, "Changes is not a valid array"
+        
+        if len(changes) == 0:
+            return False, "No changes provided by Junior AI"
+        
+        # Validate each change has required fields
+        valid_changes = 0
+        for i, change in enumerate(changes):
+            if not isinstance(change, dict):
+                continue
+                
+            # Check for required fields
+            has_file = "file" in change and change["file"]
+            has_operation = "operation" in change or ("search" in change and "replace" in change)
+            
+            if has_file and has_operation:
+                valid_changes += 1
+        
+        if valid_changes == 0:
+            return False, "No valid changes found (missing required fields)"
+        
+        print(f"✅ Junior AI output validated: {valid_changes} valid changes", file=sys.stderr)
+        return True, f"Valid output with {valid_changes} changes"
+
     def review_changes(self, changes_data: Dict, error_log: str) -> Dict:
         """Review and validate proposed changes."""
         if not self.api_key:
             print("❌ OPENAI_API_KEY is not set - skipping AI review", file=sys.stderr)
             return changes_data
+
+        # First validate Junior AI output
+        is_valid, validation_message = self.validate_junior_output(changes_data)
         
+        if not is_valid:
+            print(f"❌ Junior AI output invalid, skipping Senior AI review: {validation_message}", file=sys.stderr)
+            return changes_data
+
         print("🧠 Senior AI starting review process...", file=sys.stderr)
-        
+
         # Detect component type
         component_type = self.detect_component_type(changes_data)
-        print(f"🎯 Detected component type: {component_type}", file=sys.stderr)
-        
-        # Validate search patterns with auto-correction
+        print(f"🎯 Detected component type: {component_type}", file=sys.stderr)        # Validate search patterns with auto-correction
         validated_changes = self.validate_search_patterns(changes_data)
         
         # Create review prompt

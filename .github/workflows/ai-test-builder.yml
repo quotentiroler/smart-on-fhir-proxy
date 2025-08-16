@@ -236,16 +236,43 @@ jobs:
         echo ""
         echo "🎓 PHASE 2: Senior AI Reviewer Starting Critical Analysis (Optional)..."
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "🔍 Senior AI will:"
-        echo "   • Critically review all proposed changes"
-        echo "   • Validate search patterns against actual file content"
-        echo "   • Check for syntax correctness and best practices"
-        echo "   • Refine or reject changes that might not work"
-        echo "   • Ensure changes address the root cause of errors"
-        echo "   • If review fails, we'll continue with original proposals"
         
-        python review-changes.py frontend-proposed-fixes.json enhanced-frontend-errors.log > frontend-reviewed-fixes.json 2> frontend-reviewer.log
-        reviewer_exit_code=$?
+        # First validate Junior AI output before sending to Senior AI
+        echo "🔍 Validating Junior AI output quality..."
+        junior_analysis=$(cat frontend-proposed-fixes.json | jq -r '.analysis // ""' 2>/dev/null || echo "")
+        junior_changes_count=$(cat frontend-proposed-fixes.json | jq -r '.changes | length' 2>/dev/null || echo "0")
+        
+        # Check for error indicators in Junior AI analysis
+        skip_senior_review=false
+        if echo "$junior_analysis" | grep -iE "(error occurred|timeout|failed|max iterations|api call failed|all attempts|giving up)" > /dev/null; then
+          echo "⚠️ Junior AI encountered issues, checking if output is still usable..."
+          echo "   Analysis excerpt: $(echo "$junior_analysis" | head -c 100)..."
+          
+          if [ "$junior_changes_count" = "0" ] || [ "$junior_changes_count" = "null" ]; then
+            echo "❌ Junior AI failed with no usable changes, skipping Senior AI review"
+            skip_senior_review=true
+          else
+            echo "✅ Junior AI provided $junior_changes_count changes despite issues, proceeding with review"
+          fi
+        else
+          echo "✅ Junior AI output looks good, proceeding with Senior AI review"
+        fi
+        
+        if [ "$skip_senior_review" = "false" ]; then
+          echo "🔍 Senior AI will:"
+          echo "   • Critically review all proposed changes"
+          echo "   • Validate search patterns against actual file content"
+          echo "   • Check for syntax correctness and best practices"
+          echo "   • Refine or reject changes that might not work"
+          echo "   • Ensure changes address the root cause of errors"
+          echo "   • If review fails, we'll continue with original proposals"
+          
+          python review-changes.py frontend-proposed-fixes.json enhanced-frontend-errors.log > frontend-reviewed-fixes.json 2> frontend-reviewer.log
+          reviewer_exit_code=$?
+        else
+          echo "🚫 Skipping Senior AI review due to Junior AI failure"
+          reviewer_exit_code=1  # Set to failed to use original proposals
+        fi
         
         # Set the file to use for application (reviewed if successful, original if failed)
         final_fixes_file="frontend-proposed-fixes.json"
@@ -408,16 +435,43 @@ jobs:
         echo ""
         echo "🎓 PHASE 2: Senior AI Reviewer Validating Backend Changes (Optional)..."
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "🔍 Senior AI will validate:"
-        echo "   • API testing patterns and best practices"
-        echo "   • Test database setup and teardown procedures"
-        echo "   • Mocking strategies for external dependencies"
-        echo "   • Integration test coverage for critical paths"
-        echo "   • Performance test considerations"
-        echo "   • If review fails, we'll continue with original proposals"
         
-        python review-changes.py backend-proposed-fixes.json enhanced-backend-errors.log > backend-reviewed-fixes.json 2> backend-reviewer.log
-        reviewer_exit_code=$?
+        # First validate Junior AI output before sending to Senior AI
+        echo "🔍 Validating Junior AI output quality..."
+        junior_analysis=$(cat backend-proposed-fixes.json | jq -r '.analysis // ""' 2>/dev/null || echo "")
+        junior_changes_count=$(cat backend-proposed-fixes.json | jq -r '.changes | length' 2>/dev/null || echo "0")
+        
+        # Check for error indicators in Junior AI analysis
+        skip_senior_review=false
+        if echo "$junior_analysis" | grep -iE "(error occurred|timeout|failed|max iterations|api call failed|all attempts|giving up)" > /dev/null; then
+          echo "⚠️ Junior AI encountered issues, checking if output is still usable..."
+          echo "   Analysis excerpt: $(echo "$junior_analysis" | head -c 100)..."
+          
+          if [ "$junior_changes_count" = "0" ] || [ "$junior_changes_count" = "null" ]; then
+            echo "❌ Junior AI failed with no usable changes, skipping Senior AI review"
+            skip_senior_review=true
+          else
+            echo "✅ Junior AI provided $junior_changes_count changes despite issues, proceeding with review"
+          fi
+        else
+          echo "✅ Junior AI output looks good, proceeding with Senior AI review"
+        fi
+        
+        if [ "$skip_senior_review" = "false" ]; then
+          echo "🔍 Senior AI will validate:"
+          echo "   • API testing patterns and best practices"
+          echo "   • Test database setup and teardown procedures"
+          echo "   • Mocking strategies for external dependencies"
+          echo "   • Integration test coverage for critical paths"
+          echo "   • Performance test considerations"
+          echo "   • If review fails, we'll continue with original proposals"
+          
+          python review-changes.py backend-proposed-fixes.json enhanced-backend-errors.log > backend-reviewed-fixes.json 2> backend-reviewer.log
+          reviewer_exit_code=$?
+        else
+          echo "🚫 Skipping Senior AI review due to Junior AI failure"
+          reviewer_exit_code=1  # Set to failed to use original proposals
+        fi
         
         # Set the file to use for application (reviewed if successful, original if failed)
         backend_final_fixes_file="backend-proposed-fixes.json"
