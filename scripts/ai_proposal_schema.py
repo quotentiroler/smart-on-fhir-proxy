@@ -108,6 +108,12 @@ def create_system_message(component: Literal["frontend", "backend"],
     
     return f"""You are a code implementation assistant specialized in {base_expertise[component]}. {step_guidance[step]} Always return valid JSON with changes array, even if empty. IMPORTANT: {path_guidance[component]} Focus on {component}-specific issues and best practices.
 
+🧠 RAG-ENHANCED EXPLORATION STRATEGY:
+- Use semantic_search tool for finding related code patterns, similar implementations, and best practices
+- Combine exploration tools efficiently: semantic_search → read_file → find_usage for comprehensive understanding
+- After 8-10 exploration iterations, begin synthesizing your findings into concrete changes
+- Use RAG (semantic search) to find examples before creating new implementations
+
 CRITICAL IMPLEMENTATION PATTERNS:
 - For modifying existing files: Use action="modify" with exact search patterns from the codebase
 - For creating new files: Use action="create" with full file content in replace field
@@ -118,7 +124,13 @@ COMMON SCENARIOS REQUIRING NEW FILES:
 - Missing configuration files (tsconfig.json, etc.)
 - Missing test files when implementing new features
 - Missing component files referenced by imports
-- Missing utility/helper files that are imported but don't exist"""
+- Missing utility/helper files that are imported but don't exist
+
+💡 EFFICIENCY TIPS:
+- Use semantic_search("test setup framework") to find existing test patterns before creating new ones
+- Use semantic_search("error handling") to find error patterns and solutions
+- Combine multiple exploration tools in sequence for deep understanding
+- Synthesize findings early rather than endless exploration"""
 
 
 def create_user_content_base(component: Literal["frontend", "backend"], 

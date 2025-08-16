@@ -889,38 +889,82 @@ class UnifiedChangeProposer:
         self.friend_conversations = []  # Store friend AI conversations
         self.collaboration_session = None  # Initialize on first use
         
-    def compress_conversation_context(self, messages: list, max_recent_tools: int = 3) -> list:
-        """Compress conversation context to stay within token limits"""
-        if len(messages) <= 5:  # System + user + a few exchanges
+    def compress_conversation_context(self, messages: list, max_recent_tools: int = 2) -> list:
+        """Enhanced RAG-aware compression to stay within token limits with intelligent summarization"""
+        if len(messages) <= 6:  # System + user + minimal exchanges
             return messages
         
         # Always keep system message and initial user message
         compressed = messages[:2]
         
-        # Keep only the most recent tool interactions
+        # Separate message types for intelligent processing
         tool_messages = []
         regular_messages = []
+        key_findings = []
         
         for msg in messages[2:]:
             if msg.get("role") in ["assistant", "tool"] and ("tool_calls" in msg or msg.get("role") == "tool"):
                 tool_messages.append(msg)
+                # Extract key insights from tool results
+                if msg.get("role") == "tool" and "content" in msg:
+                    content = str(msg["content"])
+                    # Look for important patterns in tool output
+                    if any(keyword in content.lower() for keyword in ["error", "failed", "missing", "coverage", "test", "issue", "bug"]):
+                        key_findings.append(content[:200] + "...")
             else:
                 regular_messages.append(msg)
         
-        # Keep only the last N tool interactions
+        # Keep only the most recent tool interactions (more aggressive compression)
         recent_tools = tool_messages[-max_recent_tools*2:] if tool_messages else []
         
-        # Add a summary of earlier exploration if we're compressing
+        # Create comprehensive summary of earlier exploration with RAG context
         if len(tool_messages) > max_recent_tools*2:
+            explored_files = []
+            explored_components = []
+            critical_issues = []
+            
+            # Extract context from earlier tool messages
+            for msg in tool_messages[:-max_recent_tools*2]:
+                if msg.get("role") == "tool" and "content" in msg:
+                    content = str(msg["content"])
+                    # Extract file paths
+                    if "file" in content.lower() or "/" in content:
+                        lines = content.split('\n')[:3]  # First few lines often contain paths
+                        explored_files.extend([line for line in lines if "/" in line or "\\" in line])
+                    # Extract error patterns
+                    if any(keyword in content.lower() for keyword in ["error", "failed", "coverage", "missing"]):
+                        critical_issues.append(content[:150])
+            
+            # Create intelligent summary with RAG context
+            summary_parts = [
+                f"🗜️ CONTEXT COMPRESSION ACTIVE: Processed {len(tool_messages)//2} exploration iterations",
+                f"📁 Files explored: {len(set(explored_files[:10]))} components",
+            ]
+            
+            if critical_issues:
+                summary_parts.append(f"⚠️ Key issues found: {len(critical_issues)} critical patterns identified")
+                summary_parts.append(f"📋 Issue samples: {'; '.join(critical_issues[:2])}")
+            
+            if key_findings:
+                summary_parts.append(f"🔍 Key findings: {'; '.join(key_findings[:3])}")
+            
+            summary_parts.extend([
+                "💡 RAG STATUS: semantic_search tool available for deep code analysis",
+                "🎯 FOCUS: Recent tool interactions contain the most relevant context",
+                "📈 STRATEGY: Use semantic_search if you need specific code patterns or functions"
+            ])
+            
             summary_msg = {
-                "role": "assistant",
-                "content": f"📋 Previous exploration summary: Analyzed {len(tool_messages)//2} components/files. Key findings preserved in working memory. Continuing with focused exploration..."
+                "role": "assistant", 
+                "content": "\n".join(summary_parts)
             }
             compressed.append(summary_msg)
         
-        # Add recent tool interactions and regular messages
+        # Add recent tool interactions and only the most recent regular message
         compressed.extend(recent_tools)
-        compressed.extend(regular_messages[-2:])  # Keep last 2 regular messages
+        compressed.extend(regular_messages[-1:])  # Only keep last regular message
+        
+        print(f"🗜️ Context compression: {len(messages)} → {len(compressed)} messages", file=sys.stderr)
         
         return compressed
         
@@ -1753,6 +1797,61 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
                 if compressed_count < original_count:
                     print(f"🗜️ Compressed context: {original_count} → {compressed_count} messages", file=sys.stderr)
             
+            # RAG-enhanced token management: If we've done significant exploration (>12 iterations),
+            # trigger aggressive RAG-based synthesis with focused context retrieval
+            if iteration > 12:
+                print(f"🧠 RAG-Enhanced Mode: Triggering focused synthesis after {iteration} iterations", file=sys.stderr)
+                
+                # Extract key search terms from the conversation for RAG
+                recent_content = ""
+                for msg in payload["messages"][-6:]:  # Last few messages
+                    if "content" in msg:
+                        recent_content += str(msg["content"]) + " "
+                
+                # Extract key terms for semantic search
+                search_terms = []
+                for term in ["test", "error", "coverage", "backend", "frontend", "api", "route", "component"]:
+                    if term in recent_content.lower():
+                        search_terms.append(term)
+                
+                if search_terms:
+                    # Use RAG to get focused context instead of full conversation history
+                    try:
+                        print(f"🔍 RAG: Searching for context with terms: {', '.join(search_terms[:3])}", file=sys.stderr)
+                        rag_query = f"testing framework setup {' '.join(search_terms[:3])} implementation"
+                        rag_result = self.semantic_search(rag_query, "*.ts", max_results=3, similarity_threshold=0.2)
+                        
+                        if "error" not in rag_result and "results" in rag_result:
+                            # Replace older messages with RAG-focused context
+                            rag_context_msg = {
+                                "role": "assistant",
+                                "content": f"🧠 RAG-ENHANCED CONTEXT (replacing earlier exploration):\n\nFound {len(rag_result.get('results', []))} relevant code patterns:\n" + 
+                                          "\n".join([f"• {r['file_context']['file']}: {r['code_snippet'][:200]}..." 
+                                                    for r in rag_result.get('results', [])[:2]])
+                            }
+                            
+                            # Keep only system, user, RAG context, and last few messages
+                            focused_messages = payload["messages"][:2]  # System + user
+                            focused_messages.append(rag_context_msg)    # RAG context
+                            focused_messages.extend(payload["messages"][-4:])  # Recent context
+                            
+                            payload["messages"] = focused_messages
+                            print(f"🗜️ RAG compression: Full conversation → {len(focused_messages)} focused messages", file=sys.stderr)
+                    except Exception as e:
+                        print(f"⚠️ RAG optimization failed, continuing with normal compression: {e}", file=sys.stderr)
+                
+                # Trigger chunked synthesis mode to avoid token limits in output
+                return self._chunked_synthesis_mode(payload, iteration)
+                
+            # Regular synthesis check for earlier iterations
+            if iteration > 8 and len(payload["messages"]) > 12:
+                # Try a lightweight synthesis check first
+                payload["messages"].append({
+                    "role": "user", 
+                    "content": f"🎯 SYNTHESIS CHECK (Iteration {iteration}): You've done substantial exploration. Can you provide a BRIEF summary of findings and 1-2 most critical changes needed? If you need more exploration, continue with tools. If ready, provide changes."
+                })
+                print(f"🔍 Synthesis check at iteration {iteration}", file=sys.stderr)
+            
             try:
                 # Use the retry helper function with increased timeout
                 response = make_api_call_with_retry(self.base_url, payload, headers, timeout=180)
@@ -1837,6 +1936,150 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
         
         print("❌ Max iterations reached without completion", file=sys.stderr)
         return {"analysis": "Max iterations reached", "changes": []}
+
+    def _chunked_synthesis_mode(self, payload: dict, iteration: int) -> dict:
+        """
+        Chunked synthesis mode: Generate changes in smaller batches to avoid token limits.
+        Instead of one massive output, break synthesis into focused chunks.
+        """
+        print(f"🧩 CHUNKED SYNTHESIS MODE: Breaking output into manageable pieces", file=sys.stderr)
+        
+        # Extract exploration context for chunking decisions
+        recent_content = ""
+        file_patterns = set()
+        for msg in payload["messages"][-8:]:
+            if "content" in msg:
+                content = str(msg["content"])
+                recent_content += content + " "
+                # Extract file patterns mentioned in exploration
+                import re
+                files = re.findall(r'[a-zA-Z0-9_/-]+\.(ts|tsx|js|jsx|json|test\.ts)', content)
+                file_patterns.update(files[:5])  # Limit to avoid too many
+        
+        # Determine synthesis chunks based on exploration patterns
+        chunks = []
+        if "test" in recent_content.lower() or "coverage" in recent_content.lower():
+            chunks.extend([
+                "test_setup_and_configuration", 
+                "missing_test_files",
+                "test_fixes_and_improvements"
+            ])
+        
+        if "error" in recent_content.lower() or "failed" in recent_content.lower():
+            chunks.extend([
+                "critical_error_fixes",
+                "dependency_and_import_fixes"
+            ])
+        
+        if "backend" in recent_content.lower():
+            chunks.append("backend_infrastructure")
+        if "frontend" in recent_content.lower():
+            chunks.append("frontend_components")
+        
+        # Fallback if no specific patterns detected
+        if not chunks:
+            chunks = ["core_fixes", "configuration_updates"]
+        
+        print(f"🎯 Synthesis chunks identified: {', '.join(chunks)}", file=sys.stderr)
+        
+        # Generate changes for each chunk separately
+        all_changes = []
+        analysis_parts = []
+        
+        for i, chunk in enumerate(chunks[:3]):  # Limit to 3 chunks to avoid infinite loops
+            print(f"🧩 Generating chunk {i+1}/{min(len(chunks), 3)}: {chunk}", file=sys.stderr)
+            
+            # Create focused prompt for this chunk
+            chunk_messages = payload["messages"][:2]  # Keep system + user
+            
+            # Add compression summary
+            chunk_messages.append({
+                "role": "assistant",
+                "content": f"🧩 CHUNKED SYNTHESIS - CHUNK {i+1}: {chunk.upper()}\n\nExploration Summary: Completed {iteration} iterations of codebase analysis. Focus area: {chunk.replace('_', ' ')}\n\nFiles explored: {', '.join(list(file_patterns)[:5])}"
+            })
+            
+            # Add recent context (last 2 messages only)
+            chunk_messages.extend(payload["messages"][-2:])
+            
+            # Add chunk-specific synthesis request
+            chunk_messages.append({
+                "role": "user",
+                "content": f"""🎯 CHUNK SYNTHESIS REQUEST - {chunk.upper()}
+
+Generate JSON for ONLY this specific area: {chunk.replace('_', ' ')}
+
+Requirements:
+- Focus ONLY on {chunk.replace('_', ' ')}-related changes
+- Maximum 3-5 changes per chunk to stay within token limits
+- Provide complete, actionable changes with exact search/replace patterns
+- If no changes needed for this area, return empty changes array
+
+Return valid JSON with this structure:
+{{
+    "chunk": "{chunk}",
+    "analysis": "Brief analysis specific to {chunk.replace('_', ' ')}",
+    "changes": [
+        // Only changes for {chunk.replace('_', ' ')} area
+    ]
+}}"""
+            })
+            
+            # Make API call for this chunk
+            try:
+                chunk_payload = get_propose_payload_base("gpt-5-mini")
+                chunk_payload["tools"] = self.get_mcp_tools_schema()
+                chunk_payload["messages"] = chunk_messages
+                
+                headers = get_common_headers(self.api_key)
+                
+                print(f"🌐 API call for chunk {chunk} (messages: {len(chunk_messages)})", file=sys.stderr)
+                response = requests.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers=headers,
+                    json=chunk_payload,
+                    timeout=120
+                )
+                
+                if response.status_code == 200:
+                    response_data = response.json()
+                    message = response_data['choices'][0]['message']
+                    
+                    if message.get('content'):
+                        try:
+                            chunk_result = json.loads(message['content'])
+                            if 'changes' in chunk_result:
+                                all_changes.extend(chunk_result['changes'])
+                                analysis_parts.append(f"[{chunk}] " + chunk_result.get('analysis', ''))
+                                print(f"✅ Chunk {chunk}: {len(chunk_result['changes'])} changes", file=sys.stderr)
+                            else:
+                                print(f"⚠️ Chunk {chunk}: No changes field in response", file=sys.stderr)
+                        except json.JSONDecodeError:
+                            print(f"❌ Chunk {chunk}: JSON parse error", file=sys.stderr)
+                            # Extract partial info if possible
+                            if "changes" in message['content'].lower():
+                                analysis_parts.append(f"[{chunk}] Partial response received")
+                else:
+                    print(f"❌ Chunk {chunk}: API error {response.status_code}", file=sys.stderr)
+                    
+            except Exception as e:
+                print(f"❌ Chunk {chunk}: Exception {e}", file=sys.stderr)
+                continue
+        
+        # Combine all chunks into final result
+        final_analysis = "CHUNKED SYNTHESIS RESULTS:\n" + "\n".join(analysis_parts)
+        if not analysis_parts:
+            final_analysis = "Chunked synthesis completed with limited results due to API constraints."
+        
+        final_result = {
+            "analysis": final_analysis,
+            "changes": all_changes,
+            "synthesis_method": "chunked",
+            "chunks_processed": len(analysis_parts),
+            "total_changes": len(all_changes)
+        }
+        
+        print(f"🎉 Chunked synthesis complete: {len(all_changes)} total changes from {len(analysis_parts)} chunks", file=sys.stderr)
+        return final_result
 
 
 def main():

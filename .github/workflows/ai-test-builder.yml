@@ -496,34 +496,33 @@ jobs:
           echo "   📊 Changes applied: $applied/$total"
           echo "   📄 Detailed application log saved to backend-applier.log"
             
-            # ADD DETAILED GIT PUSH LOGGING FOR BACKEND
-            echo ""
-            echo "🔄 BACKEND GIT COMMIT AND PUSH STATUS:"
-            echo "=============================="
+          # ADD DETAILED GIT PUSH LOGGING FOR BACKEND
+          echo ""
+          echo "🔄 BACKEND GIT COMMIT AND PUSH STATUS:"
+          echo "=============================="
+          
+          if [ "$applied" -gt "0" ]; then
+            echo "📋 Checking git status after backend changes..."
+            git status --porcelain
             
-            if [ "$applied" -gt "0" ]; then
-              echo "📋 Checking git status after backend changes..."
-              git status --porcelain
-              
-              echo "📝 Checking recent commits..."
-              git log --oneline -3
-              
-              echo "🌐 Checking if backend changes were pushed to remote..."
-              current_branch=$(git rev-parse --abbrev-ref HEAD)
-              local_commits=$(git rev-list --count HEAD ^origin/$current_branch 2>/dev/null || echo "0")
-              echo "   Local commits ahead of remote: $local_commits"
-              
-              if [ "$local_commits" -gt "0" ]; then
-                echo "   ⚠️ WARNING: Backend changes were NOT pushed to remote!"
-              else
-                echo "   ✅ Backend changes were pushed successfully"
-              fi
+            echo "📝 Checking recent commits..."
+            git log --oneline -3
+            
+            echo "🌐 Checking if backend changes were pushed to remote..."
+            current_branch=$(git rev-parse --abbrev-ref HEAD)
+            local_commits=$(git rev-list --count HEAD ^origin/$current_branch 2>/dev/null || echo "0")
+            echo "   Local commits ahead of remote: $local_commits"
+            
+            if [ "$local_commits" -gt "0" ]; then
+              echo "   ⚠️ WARNING: Backend changes were NOT pushed to remote!"
+            else
+              echo "   ✅ Backend changes were pushed successfully"
             fi
-            
-            echo "backend_fixes_applied=$applied" >> $GITHUB_OUTPUT
-            echo ""
-            echo "🎉 BACKEND TEST SETUP COMPLETE: $applied changes successfully applied!"
           fi
+          
+          echo "backend_fixes_applied=$applied" >> $GITHUB_OUTPUT
+          echo ""
+          echo "🎉 BACKEND TEST SETUP COMPLETE: $applied changes successfully applied!"
         else
           echo "❌ Backend applier failed with exit code: $applier_exit_code"
           tail -10 backend-applier.log 2>/dev/null || echo "   No error log available"
