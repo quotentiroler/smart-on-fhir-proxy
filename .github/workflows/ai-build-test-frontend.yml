@@ -299,7 +299,7 @@ jobs:
         run: |
           echo "Running frontend tests..."
           cd ui
-          # bun test 2>&1 | tee ../frontend-test.log
+          bun run test 2>&1 | tee ../frontend-test.log
 
       - name: Check Test Results
         if: ${{ inputs.run_tests && (steps.build-status.outputs.BUILD_FAILED != 'true' || steps.frontend-fix-retry.outputs.BUILD_RETRY_SUCCESS == 'true') }}
@@ -428,7 +428,7 @@ jobs:
             echo "✅ Frontend TEST fixes applied successfully"
             echo "🔄 Retrying tests..."
             cd ui
-            if bun test; then
+            if bun run test; then
               echo "✅ Tests successful after AI fixes!"
               echo "TEST_RETRY_SUCCESS=true" >> $GITHUB_OUTPUT
             else

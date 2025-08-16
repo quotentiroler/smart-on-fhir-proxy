@@ -89,7 +89,7 @@ jobs:
         cd ui
         
         # Run tests with coverage
-        bun run vitest run --coverage --reporter=verbose --reporter=json --outputFile=test-results.json 2>&1 | tee test-output.log
+        bun run test:coverage --reporter=verbose --reporter=json --outputFile=test-results.json 2>&1 | tee test-output.log
         
         # Capture exit code
         echo "frontend_test_exit_code=$?" >> $GITHUB_OUTPUT
@@ -490,7 +490,7 @@ jobs:
         if [ "${{ steps.fix-frontend-tests.outputs.frontend_fixes_applied || 0 }}" -gt "0" ] || [ "${{ steps.generate-frontend-tests.outputs.frontend_tests_added || 0 }}" -gt "0" ]; then
           echo "🧪 Re-running frontend tests..."
           cd ui
-          bun run vitest run --coverage --reporter=verbose 2>&1 | tee ../scripts/frontend-retest.log
+          bun run test:coverage --reporter=verbose 2>&1 | tee ../scripts/frontend-retest.log
           frontend_retest_exit=$?
           echo "frontend_retest_exit_code=$frontend_retest_exit" >> $GITHUB_OUTPUT
           
