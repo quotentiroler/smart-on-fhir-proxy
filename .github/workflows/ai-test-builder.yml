@@ -215,14 +215,6 @@ jobs:
       id: fix-frontend-tests
       run: |
         echo "🤖 AI Frontend Test Error Resolution Pipeline Starting..."
-        echo "================================================================================================================="
-        echo "🎯 Pipeline Overview:"
-        echo "   Phase 1: Enhanced Error Analysis & Context Preparation"
-        echo "   Phase 2: Junior AI Interactive Code Exploration & Fix Generation"
-        echo "   Phase 3: Senior AI Critical Review & Validation (Optional)"
-        echo "   Phase 4: Automated Applier - Precise File Modifications"
-        echo "   Phase 5: Git Operations & Result Verification"
-        echo ""
         
         cd scripts
         
@@ -328,13 +320,7 @@ jobs:
         echo "   • 📊 Real-time error analysis and root cause identification"
         echo "   • 🔧 Precise fix generation with validation"
         echo ""
-        echo "📋 Processing Steps:"
-        echo "   1. Load enhanced error context ($log_lines lines)"
-        echo "   2. Explore codebase structure and dependencies"
-        echo "   3. Identify error patterns and root causes"
-        echo "   4. Generate targeted fixes with search/replace patterns"
-        echo "   5. Validate proposed changes against best practices"
-        echo ""
+
         
         start_time=$(date +%s)
         echo "⏱️ Junior AI Proposer started at: $(date '+%H:%M:%S')"
@@ -578,14 +564,6 @@ jobs:
         echo "   • 🛡️ Backup and rollback mechanisms for safety"
         echo "   • 📝 Detailed operation logging and error reporting"
         echo "   • 🔄 Git integration with descriptive commit messages"
-        echo ""
-        echo "📋 Application Process:"
-        echo "   1. Load and validate final fixes file: $final_fixes_file"
-        echo "   2. Pre-validate all search patterns against target files"
-        echo "   3. Apply changes with atomic operations"
-        echo "   4. Verify each change was applied correctly"
-        echo "   5. Commit changes with detailed messages"
-        echo "   6. Attempt to push to remote repository"
         echo ""
         
         apply_start_time=$(date +%s)
