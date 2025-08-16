@@ -286,8 +286,27 @@ def main():
     
     # Read reviewed fixes
     try:
+        print(f"📖 Reading fixes from: {fixes_json_file}", file=sys.stderr)
+        
+        if not os.path.exists(fixes_json_file):
+            print(f"❌ File does not exist: {fixes_json_file}", file=sys.stderr)
+            sys.exit(1)
+            
         with open(fixes_json_file, 'r', encoding='utf-8') as f:
-            fixes_data = json.load(f)
+            content = f.read()
+            print(f"📄 File content (first 500 chars): {content[:500]}", file=sys.stderr)
+            
+            if not content.strip():
+                print("❌ File is empty", file=sys.stderr)
+                sys.exit(1)
+                
+            fixes_data = json.loads(content)
+            print(f"✅ Successfully parsed JSON with keys: {list(fixes_data.keys())}", file=sys.stderr)
+            
+    except json.JSONDecodeError as e:
+        print(f"❌ Failed to parse JSON: {e}", file=sys.stderr)
+        print(f"📄 Raw content: {content}", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
         print(f"❌ Failed to read fixes JSON: {e}", file=sys.stderr)
         sys.exit(1)
