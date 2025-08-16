@@ -207,24 +207,34 @@ class UnifiedChangeApplier:
                 if line.strip():
                     print(f"   {line}", file=sys.stderr)
             
-            # Add all changes
+            # Add all changes explicitly by file path to avoid .gitignore issues
             print("📦 Adding all changes to git...", file=sys.stderr)
-            subprocess.run(["git", "add", "."], check=True)
+            
+            # Add each file explicitly to ensure it's included
+            for file_path in changed_files:
+                try:
+                    subprocess.run(["git", "add", file_path], check=True, capture_output=True, text=True)
+                    print(f"   ✅ Added: {file_path}", file=sys.stderr)
+                except subprocess.CalledProcessError as e:
+                    print(f"   ⚠️ Failed to add {file_path}: {e.stderr}", file=sys.stderr)
+                    # Continue with other files
+            
             print("✅ Successfully added changes to git", file=sys.stderr)
             
             # Create commit message
-            commit_message = f"🤖 AI change: Apply {changes_applied} {component_type} changes\n\nChanged files:\n" + \
+            total_files = len(changed_files)
+            commit_message = f"🤖 AI change: Apply {changes_applied} {component_type} changes ({total_files} files)\n\nChanged files:\n" + \
                            "\n".join(f"- {file}" for file in changed_files)
             
             # Commit changes
-            print(f"💾 Committing {changes_applied} changes...", file=sys.stderr)
+            print(f"💾 Committing {total_files} files with {changes_applied} changes...", file=sys.stderr)
             first_line = commit_message.split('\n')[0]
             print(f"📝 Commit message: {first_line}", file=sys.stderr)
             subprocess.run([
                 "git", "commit", "-m", commit_message
             ], check=True)
             
-            print(f"✅ Successfully committed {changes_applied} changes", file=sys.stderr)
+            print(f"✅ Successfully committed {total_files} files with {changes_applied} changes", file=sys.stderr)
             
             # Check current branch and remote info
             branch_result = subprocess.run([
