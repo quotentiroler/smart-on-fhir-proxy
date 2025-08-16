@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Apply Changes: Apply reviewed fixes to actual files
+Apply Changes: Apply reviewed changes to actual files
 This script applies the final approved changes to both frontend and backend files
 """
 
@@ -19,19 +19,19 @@ class UnifiedChangeApplier:
         self.changes_applied = 0
         self.errors_encountered = 0
         
-    def detect_component_type(self, fixes_data: Dict) -> str:
-        """Detect component type from fixes data"""
-        content_str = json.dumps(fixes_data).lower()
+    def detect_component_type(self, changes_data: Dict) -> str:
+        """Detect component type from changes data"""
+        content_str = json.dumps(changes_data).lower()
         
         if any(indicator in content_str for indicator in ['ui/', 'vite', 'react', 'jsx', 'tsx']):
             return "frontend"
         elif any(indicator in content_str for indicator in ['backend/', 'node', 'express', 'fastify']):
             return "backend"
         
-        # Check files mentioned in fixes
-        if 'fixes' in fixes_data:
-            for fix in fixes_data['fixes']:
-                file_path = fix.get('file', '').lower()
+        # Check files mentioned in changes
+        if 'changes' in changes_data:
+            for change in changes_data['changes']:
+                file_path = change.get('file', '').lower()
                 if 'ui/' in file_path or 'components' in file_path:
                     return "frontend"
                 elif 'backend/' in file_path or 'src/lib' in file_path or 'src/routes' in file_path:
@@ -39,8 +39,8 @@ class UnifiedChangeApplier:
         
         return "mixed"
     
-    def apply_fix_to_file(self, action: str, file_path: str, search_pattern: str, replacement: str, reasoning: str) -> bool:
-        """Apply a single fix to a file (modify existing or create new)."""
+    def apply_change_to_file(self, action: str, file_path: str, search_pattern: str, replacement: str, reasoning: str) -> bool:
+        """Apply a single change to a file (modify existing or create new)."""
         full_path = self.repo_root / file_path
         
         if action == "create":
@@ -130,7 +130,7 @@ class UnifiedChangeApplier:
             print(f"❌ Failed to configure git: {e}", file=sys.stderr)
             return False
     
-    def commit_and_push_changes(self, component_type: str, fixes_applied: int):
+    def commit_and_push_changes(self, component_type: str, changes_applied: int):
         """Commit and push changes with proper GitHub App authentication."""
         try:
             # Check if there are any changes to commit
@@ -149,7 +149,7 @@ class UnifiedChangeApplier:
             subprocess.run(["git", "add", "."], check=True)
             
             # Create commit message
-            commit_message = f"🤖 AI Fix: Apply {fixes_applied} {component_type} fixes\n\nFixed files:\n" + \
+            commit_message = f"🤖 AI change: Apply {changes_applied} {component_type} changes\n\nchangeed files:\n" + \
                            "\n".join(f"- {file}" for file in changed_files)
             
             # Commit changes
@@ -157,7 +157,7 @@ class UnifiedChangeApplier:
                 "git", "commit", "-m", commit_message
             ], check=True)
             
-            print(f"✅ Committed {fixes_applied} changes", file=sys.stderr)
+            print(f"✅ Committed {changes_applied} changes", file=sys.stderr)
             
             # Push changes using GitHub App token
             github_token = os.environ.get("GITHUB_TOKEN")
@@ -184,23 +184,23 @@ class UnifiedChangeApplier:
             print(f"❌ Failed to commit/push changes: {e}", file=sys.stderr)
             return False
     
-    def apply_changes(self, fixes_data: Dict) -> Dict:
-        """Apply all fixes from the reviewed changes."""
-        if not isinstance(fixes_data, dict) or 'fixes' not in fixes_data:
-            print("❌ Invalid fixes data format", file=sys.stderr)
+    def apply_changes(self, changes_data: Dict) -> Dict:
+        """Apply all changes from the reviewed changes."""
+        if not isinstance(changes_data, dict) or 'changes' not in changes_data:
+            print("❌ Invalid changes data format", file=sys.stderr)
             return {
                 "success": False,
                 "changes_applied": 0,
-                "errors": ["Invalid fixes data format"]
+                "errors": ["Invalid changes data format"]
             }
         
         # Detect component type
-        component_type = self.detect_component_type(fixes_data)
-        print(f"🎯 Applying {component_type} fixes...", file=sys.stderr)
+        component_type = self.detect_component_type(changes_data)
+        print(f"🎯 Applying {component_type} changes...", file=sys.stderr)
         
-        fixes = fixes_data['fixes']
-        if not fixes:
-            print("ℹ️ No fixes to apply", file=sys.stderr)
+        changes = changes_data['changes']
+        if not changes:
+            print("ℹ️ No changes to apply", file=sys.stderr)
             return {
                 "success": True,
                 "changes_applied": 0,
@@ -209,45 +209,45 @@ class UnifiedChangeApplier:
         
         errors = []
         
-        # Apply each fix
-        for i, fix in enumerate(fixes, 1):
-            print(f"\n🔧 Applying fix {i}/{len(fixes)}...", file=sys.stderr)
+        # Apply each change
+        for i, change in enumerate(changes, 1):
+            print(f"\n🔧 Applying change {i}/{len(changes)}...", file=sys.stderr)
             
-            action = fix.get('action', 'modify')  # Default to modify for backward compatibility
-            file_path = fix.get('file', '')
-            search_pattern = fix.get('search', '')
-            replacement = fix.get('replace', '')
-            reasoning = fix.get('reasoning', 'No reasoning provided')
+            action = change.get('action', 'modify')  # Default to modify for backward compatibility
+            file_path = change.get('file', '')
+            search_pattern = change.get('search', '')
+            replacement = change.get('replace', '')
+            reasoning = change.get('reasoning', 'No reasoning provided')
             
             # Validate required fields based on action
             if action == "create":
                 if not all([file_path, replacement]):
-                    error_msg = f"Fix {i}: Missing required fields for create action (file, replace)"
+                    error_msg = f"change {i}: Missing required fields for create action (file, replace)"
                     print(f"❌ {error_msg}", file=sys.stderr)
                     errors.append(error_msg)
                     self.errors_encountered += 1
                     continue
             elif action == "modify":
                 if not all([file_path, search_pattern]):
-                    error_msg = f"Fix {i}: Missing required fields for modify action (file, search)"
+                    error_msg = f"change {i}: Missing required fields for modify action (file, search)"
                     print(f"❌ {error_msg}", file=sys.stderr)
                     errors.append(error_msg)
                     self.errors_encountered += 1
                     continue
             else:
-                error_msg = f"Fix {i}: Unknown action '{action}'"
+                error_msg = f"change {i}: Unknown action '{action}'"
                 print(f"❌ {error_msg}", file=sys.stderr)
                 errors.append(error_msg)
                 self.errors_encountered += 1
                 continue
             
-            success = self.apply_fix_to_file(action, file_path, search_pattern, replacement, reasoning)
+            success = self.apply_change_to_file(action, file_path, search_pattern, replacement, reasoning)
             
             if success:
                 self.changes_applied += 1
             else:
                 self.errors_encountered += 1
-                errors.append(f"Failed to apply fix to {file_path}")
+                errors.append(f"Failed to apply change to {file_path}")
         
         # Set up git and commit if we have changes
         if self.changes_applied > 0:
@@ -259,15 +259,15 @@ class UnifiedChangeApplier:
                     errors.append("Failed to commit/push changes")
         
         # Summary
-        total_fixes = len(fixes)
+        total_changes = len(changes)
         print(f"\n📊 Summary:", file=sys.stderr)
-        print(f"   ✅ Applied: {self.changes_applied}/{total_fixes}", file=sys.stderr)
-        print(f"   ❌ Errors: {self.errors_encountered}/{total_fixes}", file=sys.stderr)
+        print(f"   ✅ Applied: {self.changes_applied}/{total_changes}", file=sys.stderr)
+        print(f"   ❌ Errors: {self.errors_encountered}/{total_changes}", file=sys.stderr)
         
         return {
             "success": self.errors_encountered == 0,
             "changes_applied": self.changes_applied,
-            "total_fixes": total_fixes,
+            "total_changes": total_changes,
             "errors": errors,
             "component_type": component_type
         }
@@ -276,23 +276,23 @@ class UnifiedChangeApplier:
 def main():
     """Main entry point."""
     if len(sys.argv) != 2:
-        print("Usage: python apply-changes.py <reviewed-fixes-json>", file=sys.stderr)
+        print("Usage: python apply-changes.py <reviewed-changes-json>", file=sys.stderr)
         sys.exit(1)
     
-    fixes_json_file = sys.argv[1]
+    changes_json_file = sys.argv[1]
     repo_root = os.environ.get("GITHUB_WORKSPACE", ".")
     
     print("🤖 Starting unified change application...", file=sys.stderr)
     
-    # Read reviewed fixes
+    # Read reviewed changes
     try:
-        print(f"📖 Reading fixes from: {fixes_json_file}", file=sys.stderr)
+        print(f"📖 Reading changes from: {changes_json_file}", file=sys.stderr)
         
-        if not os.path.exists(fixes_json_file):
-            print(f"❌ File does not exist: {fixes_json_file}", file=sys.stderr)
+        if not os.path.exists(changes_json_file):
+            print(f"❌ File does not exist: {changes_json_file}", file=sys.stderr)
             sys.exit(1)
             
-        with open(fixes_json_file, 'r', encoding='utf-8') as f:
+        with open(changes_json_file, 'r', encoding='utf-8') as f:
             content = f.read()
             print(f"📄 File content (first 500 chars): {content[:500]}", file=sys.stderr)
             
@@ -300,22 +300,22 @@ def main():
                 print("❌ File is empty", file=sys.stderr)
                 sys.exit(1)
                 
-            fixes_data = json.loads(content)
-            print(f"✅ Successfully parsed JSON with keys: {list(fixes_data.keys())}", file=sys.stderr)
+            changes_data = json.loads(content)
+            print(f"✅ Successfully parsed JSON with keys: {list(changes_data.keys())}", file=sys.stderr)
             
     except json.JSONDecodeError as e:
         print(f"❌ Failed to parse JSON: {e}", file=sys.stderr)
         print(f"📄 Raw content: {content}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
-        print(f"❌ Failed to read fixes JSON: {e}", file=sys.stderr)
+        print(f"❌ Failed to read changes JSON: {e}", file=sys.stderr)
         sys.exit(1)
     
     # Initialize applier
     applier = UnifiedChangeApplier(repo_root)
     
     # Apply changes
-    result = applier.apply_changes(fixes_data)
+    result = applier.apply_changes(changes_data)
     
     # Output result as JSON - ONLY JSON goes to stdout
     print(json.dumps(result, indent=2))
