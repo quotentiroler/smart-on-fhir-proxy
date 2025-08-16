@@ -226,36 +226,51 @@ jobs:
           echo "needs_fixes=false" >> $GITHUB_OUTPUT
         fi
         
-        # Analyze backend coverage (similar to frontend)
-        if [ -f coverage/coverage-summary.json ]; then
-          # Extract overall coverage percentage
-          if jq . coverage/coverage-summary.json >/dev/null 2>&1; then
-            coverage_pct=$(jq -r '.total.lines.pct // 0' coverage/coverage-summary.json 2>/dev/null || echo "0")
-          else
-            coverage_pct="0"
-            echo "⚠️ Warning: backend coverage-summary.json is invalid"
+        # Analyze backend coverage (parse from Bun test output)
+        coverage_pct="0"
+        if [ -f test-output.log ]; then
+          # Extract coverage percentage from Bun test output
+          # Look for line like "All files | 52.38 |"
+          if grep -q "All files" test-output.log; then
+            coverage_line=$(grep "All files" test-output.log | head -1)
+            # Extract percentage using awk - it's the 3rd field in the table
+            coverage_pct=$(echo "$coverage_line" | awk '{print $4}' | sed 's/|//g' | sed 's/%//g' | sed 's/[^0-9.]//g')
+            if [ -z "$coverage_pct" ] || [ "$coverage_pct" = "0" ]; then
+              # Try alternative parsing method
+              coverage_pct=$(echo "$coverage_line" | grep -oE '[0-9]+\.[0-9]+' | head -1)
+            fi
           fi
-          echo "coverage_percentage=$coverage_pct" >> $GITHUB_OUTPUT
-          echo "📊 Backend coverage: $coverage_pct%"
+        fi
+        
+        # Fallback to 0 if parsing failed
+        if [ -z "$coverage_pct" ] || ! [[ "$coverage_pct" =~ ^[0-9]+\.?[0-9]*$ ]]; then
+          coverage_pct="0"
+        fi
+        
+        echo "coverage_percentage=$coverage_pct" >> $GITHUB_OUTPUT
+        echo "📊 Backend coverage: $coverage_pct%"
+        
+        # Check if below threshold
+        threshold="${{ inputs.coverage_threshold || 80 }}"
+        echo "🎯 Backend coverage threshold: $threshold%"
+        
+        # Use awk for comparison instead of bc
+        if awk "BEGIN {exit !($coverage_pct < $threshold)}"; then
+          echo "📉 Backend coverage below threshold ($threshold%), will add tests"
+          echo "needs_more_tests=true" >> $GITHUB_OUTPUT
           
-          # Check if below threshold
-          threshold="${{ inputs.coverage_threshold || 80 }}"
-          echo "🎯 Backend coverage threshold: $threshold%"
-          
-          # Use awk for comparison instead of bc
-          if awk "BEGIN {exit !($coverage_pct < $threshold)}"; then
-            echo "📉 Backend coverage below threshold ($threshold%), will add tests"
-            echo "needs_more_tests=true" >> $GITHUB_OUTPUT
-            
-            # Generate uncovered files report for backend
-            find coverage -name "*.json" -not -name "coverage-summary.json" | head -20 > backend-coverage-files.txt
+          # Generate uncovered files report for backend (if lcov.info exists)
+          if [ -f coverage/lcov.info ]; then
+            echo "📄 Found backend coverage report (lcov.info)"
+            # Extract source files from lcov for context
+            grep -E "^SF:" coverage/lcov.info | head -20 | sed 's/^SF://' > backend-coverage-files.txt
           else
-            echo "✅ Backend coverage meets threshold"
-            echo "needs_more_tests=false" >> $GITHUB_OUTPUT
+            echo "📄 No detailed coverage files found, but coverage percentage extracted"
+            touch backend-coverage-files.txt
           fi
         else
-          echo "⚠️ No backend coverage report found, will add tests"
-          echo "needs_more_tests=true" >> $GITHUB_OUTPUT
+          echo "✅ Backend coverage meets threshold"
+          echo "needs_more_tests=false" >> $GITHUB_OUTPUT
         fi
 
     # === AI-POWERED TEST FIXES & GENERATION ===

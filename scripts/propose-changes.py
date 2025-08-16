@@ -102,7 +102,7 @@ def load_base_tools() -> List[Dict]:
 class CodeExplorerMCP:
     """MCP tools for interactive code exploration with dynamic tool creation, persistence, and schema generation"""
     
-    MAX_CONTENT_CHARS = 20000  # Safety cap to avoid huge payloads
+    MAX_CONTENT_CHARS = 8000  # Reduced to avoid token limits during exploration
     
     def __init__(self, repo_root: Path):
         self.repo_root = repo_root
@@ -888,6 +888,41 @@ class UnifiedChangeProposer:
         self.mcp = CodeExplorerMCP(self.repo_root)
         self.friend_conversations = []  # Store friend AI conversations
         self.collaboration_session = None  # Initialize on first use
+        
+    def compress_conversation_context(self, messages: list, max_recent_tools: int = 3) -> list:
+        """Compress conversation context to stay within token limits"""
+        if len(messages) <= 5:  # System + user + a few exchanges
+            return messages
+        
+        # Always keep system message and initial user message
+        compressed = messages[:2]
+        
+        # Keep only the most recent tool interactions
+        tool_messages = []
+        regular_messages = []
+        
+        for msg in messages[2:]:
+            if msg.get("role") in ["assistant", "tool"] and ("tool_calls" in msg or msg.get("role") == "tool"):
+                tool_messages.append(msg)
+            else:
+                regular_messages.append(msg)
+        
+        # Keep only the last N tool interactions
+        recent_tools = tool_messages[-max_recent_tools*2:] if tool_messages else []
+        
+        # Add a summary of earlier exploration if we're compressing
+        if len(tool_messages) > max_recent_tools*2:
+            summary_msg = {
+                "role": "assistant",
+                "content": f"📋 Previous exploration summary: Analyzed {len(tool_messages)//2} components/files. Key findings preserved in working memory. Continuing with focused exploration..."
+            }
+            compressed.append(summary_msg)
+        
+        # Add recent tool interactions and regular messages
+        compressed.extend(recent_tools)
+        compressed.extend(regular_messages[-2:])  # Keep last 2 regular messages
+        
+        return compressed
         
     def detect_component_type(self, error_log: str) -> str:
         """Detect if errors are from frontend, backend, or other"""
@@ -1709,6 +1744,14 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
         while iteration < max_iterations:
             iteration += 1
             print(f"🔄 AI Iteration {iteration}", file=sys.stderr)
+            
+            # Compress context to manage token usage (every few iterations)
+            if iteration > 3 and len(payload["messages"]) > 8:
+                original_count = len(payload["messages"])
+                payload["messages"] = self.compress_conversation_context(payload["messages"])
+                compressed_count = len(payload["messages"])
+                if compressed_count < original_count:
+                    print(f"🗜️ Compressed context: {original_count} → {compressed_count} messages", file=sys.stderr)
             
             try:
                 # Use the retry helper function with increased timeout
