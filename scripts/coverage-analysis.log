@@ -1,0 +1,82 @@
+=== FRONTEND TEST COVERAGE ENHANCEMENT ===
+Component: Frontend (React/TypeScript)
+Task: Generate missing tests to improve code coverage
+Current coverage: 1.14%
+Target coverage: 80%
+Framework: Vitest + Testing Library + Jest DOM
+
+COVERAGE GAPS TO ADDRESS:
+- Create tests for untested components
+- Add edge case scenarios
+- Test error handling paths
+- Add integration tests where needed
+
+UNCOVERED/LOW COVERAGE FILES:
+
+EXISTING TEST PATTERNS (for reference):
+Example test file: ../ui/test/components/input.test.tsx
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import React from 'react'
+import { Input } from '@/components/ui/input'
+
+describe('Input', () => {
+  it('renders an input with provided placeholder and type', () => {
+    render(<Input placeholder="Enter name" type="text" />)
+
+    const input = screen.getByPlaceholderText(/enter name/i)
+    expect(input).toBeInTheDocument()
+    expect((input as HTMLInputElement).type).toBe('text')
+  })
+
+  it('accepts className and forwards props', () => {
+    render(<Input placeholder="p" className="test-class" data-testid="my-input" />)
+
+    const input = screen.getByTestId('my-input')
+    expect(input).toHaveClass('test-class')
+---
+Example test file: ../ui/test/components/button.test.tsx
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { Button } from '@/components/ui/button'
+
+describe('Button', () => {
+  it('renders with default props', () => {
+    render(<Button>Click me</Button>)
+    
+    const button = screen.getByRole('button', { name: /click me/i })
+    expect(button).toBeInTheDocument()
+    expect(button).toHaveClass('inline-flex', 'items-center', 'justify-center')
+  })
+
+  it('renders with different variants', () => {
+    const { rerender } = render(<Button variant="destructive">Delete</Button>)
+    
+    let button = screen.getByRole('button', { name: /delete/i })
+    expect(button).toHaveClass('bg-destructive')
+    
+---
+Example test file: ../ui/test/components/theme-provider.test.tsx
+import { describe, it, expect } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { ThemeProvider } from '@/components/theme-provider'
+import { useTheme } from '@/hooks/useTheme'
+
+function ThemeConsumer() {
+  const { theme, setTheme } = useTheme()
+  return (
+    <div>
+      <div aria-label="theme">{theme}</div>
+      <button onClick={() => setTheme('dark')}>Set Dark</button>
+    </div>
+  )
+}
+
+describe('ThemeProvider', () => {
+  it('initializes with defaultTheme and updates DOM and storage when setTheme is called', async () => {
+    const user = userEvent.setup()
+    // ensure no pre-existing theme
+---

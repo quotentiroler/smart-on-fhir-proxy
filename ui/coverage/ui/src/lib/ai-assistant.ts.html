@@ -1,0 +1,1981 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for ui/src/lib/ai-assistant.ts</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../../prettify.css" />
+    <link rel="stylesheet" href="../../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../../index.html">All files</a> / <a href="index.html">ui/src/lib</a> ai-assistant.ts</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>0/523</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>0/1</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">0% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>0/523</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line low'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a>
+<a name='L149'></a><a href='#L149'>149</a>
+<a name='L150'></a><a href='#L150'>150</a>
+<a name='L151'></a><a href='#L151'>151</a>
+<a name='L152'></a><a href='#L152'>152</a>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a>
+<a name='L206'></a><a href='#L206'>206</a>
+<a name='L207'></a><a href='#L207'>207</a>
+<a name='L208'></a><a href='#L208'>208</a>
+<a name='L209'></a><a href='#L209'>209</a>
+<a name='L210'></a><a href='#L210'>210</a>
+<a name='L211'></a><a href='#L211'>211</a>
+<a name='L212'></a><a href='#L212'>212</a>
+<a name='L213'></a><a href='#L213'>213</a>
+<a name='L214'></a><a href='#L214'>214</a>
+<a name='L215'></a><a href='#L215'>215</a>
+<a name='L216'></a><a href='#L216'>216</a>
+<a name='L217'></a><a href='#L217'>217</a>
+<a name='L218'></a><a href='#L218'>218</a>
+<a name='L219'></a><a href='#L219'>219</a>
+<a name='L220'></a><a href='#L220'>220</a>
+<a name='L221'></a><a href='#L221'>221</a>
+<a name='L222'></a><a href='#L222'>222</a>
+<a name='L223'></a><a href='#L223'>223</a>
+<a name='L224'></a><a href='#L224'>224</a>
+<a name='L225'></a><a href='#L225'>225</a>
+<a name='L226'></a><a href='#L226'>226</a>
+<a name='L227'></a><a href='#L227'>227</a>
+<a name='L228'></a><a href='#L228'>228</a>
+<a name='L229'></a><a href='#L229'>229</a>
+<a name='L230'></a><a href='#L230'>230</a>
+<a name='L231'></a><a href='#L231'>231</a>
+<a name='L232'></a><a href='#L232'>232</a>
+<a name='L233'></a><a href='#L233'>233</a>
+<a name='L234'></a><a href='#L234'>234</a>
+<a name='L235'></a><a href='#L235'>235</a>
+<a name='L236'></a><a href='#L236'>236</a>
+<a name='L237'></a><a href='#L237'>237</a>
+<a name='L238'></a><a href='#L238'>238</a>
+<a name='L239'></a><a href='#L239'>239</a>
+<a name='L240'></a><a href='#L240'>240</a>
+<a name='L241'></a><a href='#L241'>241</a>
+<a name='L242'></a><a href='#L242'>242</a>
+<a name='L243'></a><a href='#L243'>243</a>
+<a name='L244'></a><a href='#L244'>244</a>
+<a name='L245'></a><a href='#L245'>245</a>
+<a name='L246'></a><a href='#L246'>246</a>
+<a name='L247'></a><a href='#L247'>247</a>
+<a name='L248'></a><a href='#L248'>248</a>
+<a name='L249'></a><a href='#L249'>249</a>
+<a name='L250'></a><a href='#L250'>250</a>
+<a name='L251'></a><a href='#L251'>251</a>
+<a name='L252'></a><a href='#L252'>252</a>
+<a name='L253'></a><a href='#L253'>253</a>
+<a name='L254'></a><a href='#L254'>254</a>
+<a name='L255'></a><a href='#L255'>255</a>
+<a name='L256'></a><a href='#L256'>256</a>
+<a name='L257'></a><a href='#L257'>257</a>
+<a name='L258'></a><a href='#L258'>258</a>
+<a name='L259'></a><a href='#L259'>259</a>
+<a name='L260'></a><a href='#L260'>260</a>
+<a name='L261'></a><a href='#L261'>261</a>
+<a name='L262'></a><a href='#L262'>262</a>
+<a name='L263'></a><a href='#L263'>263</a>
+<a name='L264'></a><a href='#L264'>264</a>
+<a name='L265'></a><a href='#L265'>265</a>
+<a name='L266'></a><a href='#L266'>266</a>
+<a name='L267'></a><a href='#L267'>267</a>
+<a name='L268'></a><a href='#L268'>268</a>
+<a name='L269'></a><a href='#L269'>269</a>
+<a name='L270'></a><a href='#L270'>270</a>
+<a name='L271'></a><a href='#L271'>271</a>
+<a name='L272'></a><a href='#L272'>272</a>
+<a name='L273'></a><a href='#L273'>273</a>
+<a name='L274'></a><a href='#L274'>274</a>
+<a name='L275'></a><a href='#L275'>275</a>
+<a name='L276'></a><a href='#L276'>276</a>
+<a name='L277'></a><a href='#L277'>277</a>
+<a name='L278'></a><a href='#L278'>278</a>
+<a name='L279'></a><a href='#L279'>279</a>
+<a name='L280'></a><a href='#L280'>280</a>
+<a name='L281'></a><a href='#L281'>281</a>
+<a name='L282'></a><a href='#L282'>282</a>
+<a name='L283'></a><a href='#L283'>283</a>
+<a name='L284'></a><a href='#L284'>284</a>
+<a name='L285'></a><a href='#L285'>285</a>
+<a name='L286'></a><a href='#L286'>286</a>
+<a name='L287'></a><a href='#L287'>287</a>
+<a name='L288'></a><a href='#L288'>288</a>
+<a name='L289'></a><a href='#L289'>289</a>
+<a name='L290'></a><a href='#L290'>290</a>
+<a name='L291'></a><a href='#L291'>291</a>
+<a name='L292'></a><a href='#L292'>292</a>
+<a name='L293'></a><a href='#L293'>293</a>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a>
+<a name='L298'></a><a href='#L298'>298</a>
+<a name='L299'></a><a href='#L299'>299</a>
+<a name='L300'></a><a href='#L300'>300</a>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a>
+<a name='L307'></a><a href='#L307'>307</a>
+<a name='L308'></a><a href='#L308'>308</a>
+<a name='L309'></a><a href='#L309'>309</a>
+<a name='L310'></a><a href='#L310'>310</a>
+<a name='L311'></a><a href='#L311'>311</a>
+<a name='L312'></a><a href='#L312'>312</a>
+<a name='L313'></a><a href='#L313'>313</a>
+<a name='L314'></a><a href='#L314'>314</a>
+<a name='L315'></a><a href='#L315'>315</a>
+<a name='L316'></a><a href='#L316'>316</a>
+<a name='L317'></a><a href='#L317'>317</a>
+<a name='L318'></a><a href='#L318'>318</a>
+<a name='L319'></a><a href='#L319'>319</a>
+<a name='L320'></a><a href='#L320'>320</a>
+<a name='L321'></a><a href='#L321'>321</a>
+<a name='L322'></a><a href='#L322'>322</a>
+<a name='L323'></a><a href='#L323'>323</a>
+<a name='L324'></a><a href='#L324'>324</a>
+<a name='L325'></a><a href='#L325'>325</a>
+<a name='L326'></a><a href='#L326'>326</a>
+<a name='L327'></a><a href='#L327'>327</a>
+<a name='L328'></a><a href='#L328'>328</a>
+<a name='L329'></a><a href='#L329'>329</a>
+<a name='L330'></a><a href='#L330'>330</a>
+<a name='L331'></a><a href='#L331'>331</a>
+<a name='L332'></a><a href='#L332'>332</a>
+<a name='L333'></a><a href='#L333'>333</a>
+<a name='L334'></a><a href='#L334'>334</a>
+<a name='L335'></a><a href='#L335'>335</a>
+<a name='L336'></a><a href='#L336'>336</a>
+<a name='L337'></a><a href='#L337'>337</a>
+<a name='L338'></a><a href='#L338'>338</a>
+<a name='L339'></a><a href='#L339'>339</a>
+<a name='L340'></a><a href='#L340'>340</a>
+<a name='L341'></a><a href='#L341'>341</a>
+<a name='L342'></a><a href='#L342'>342</a>
+<a name='L343'></a><a href='#L343'>343</a>
+<a name='L344'></a><a href='#L344'>344</a>
+<a name='L345'></a><a href='#L345'>345</a>
+<a name='L346'></a><a href='#L346'>346</a>
+<a name='L347'></a><a href='#L347'>347</a>
+<a name='L348'></a><a href='#L348'>348</a>
+<a name='L349'></a><a href='#L349'>349</a>
+<a name='L350'></a><a href='#L350'>350</a>
+<a name='L351'></a><a href='#L351'>351</a>
+<a name='L352'></a><a href='#L352'>352</a>
+<a name='L353'></a><a href='#L353'>353</a>
+<a name='L354'></a><a href='#L354'>354</a>
+<a name='L355'></a><a href='#L355'>355</a>
+<a name='L356'></a><a href='#L356'>356</a>
+<a name='L357'></a><a href='#L357'>357</a>
+<a name='L358'></a><a href='#L358'>358</a>
+<a name='L359'></a><a href='#L359'>359</a>
+<a name='L360'></a><a href='#L360'>360</a>
+<a name='L361'></a><a href='#L361'>361</a>
+<a name='L362'></a><a href='#L362'>362</a>
+<a name='L363'></a><a href='#L363'>363</a>
+<a name='L364'></a><a href='#L364'>364</a>
+<a name='L365'></a><a href='#L365'>365</a>
+<a name='L366'></a><a href='#L366'>366</a>
+<a name='L367'></a><a href='#L367'>367</a>
+<a name='L368'></a><a href='#L368'>368</a>
+<a name='L369'></a><a href='#L369'>369</a>
+<a name='L370'></a><a href='#L370'>370</a>
+<a name='L371'></a><a href='#L371'>371</a>
+<a name='L372'></a><a href='#L372'>372</a>
+<a name='L373'></a><a href='#L373'>373</a>
+<a name='L374'></a><a href='#L374'>374</a>
+<a name='L375'></a><a href='#L375'>375</a>
+<a name='L376'></a><a href='#L376'>376</a>
+<a name='L377'></a><a href='#L377'>377</a>
+<a name='L378'></a><a href='#L378'>378</a>
+<a name='L379'></a><a href='#L379'>379</a>
+<a name='L380'></a><a href='#L380'>380</a>
+<a name='L381'></a><a href='#L381'>381</a>
+<a name='L382'></a><a href='#L382'>382</a>
+<a name='L383'></a><a href='#L383'>383</a>
+<a name='L384'></a><a href='#L384'>384</a>
+<a name='L385'></a><a href='#L385'>385</a>
+<a name='L386'></a><a href='#L386'>386</a>
+<a name='L387'></a><a href='#L387'>387</a>
+<a name='L388'></a><a href='#L388'>388</a>
+<a name='L389'></a><a href='#L389'>389</a>
+<a name='L390'></a><a href='#L390'>390</a>
+<a name='L391'></a><a href='#L391'>391</a>
+<a name='L392'></a><a href='#L392'>392</a>
+<a name='L393'></a><a href='#L393'>393</a>
+<a name='L394'></a><a href='#L394'>394</a>
+<a name='L395'></a><a href='#L395'>395</a>
+<a name='L396'></a><a href='#L396'>396</a>
+<a name='L397'></a><a href='#L397'>397</a>
+<a name='L398'></a><a href='#L398'>398</a>
+<a name='L399'></a><a href='#L399'>399</a>
+<a name='L400'></a><a href='#L400'>400</a>
+<a name='L401'></a><a href='#L401'>401</a>
+<a name='L402'></a><a href='#L402'>402</a>
+<a name='L403'></a><a href='#L403'>403</a>
+<a name='L404'></a><a href='#L404'>404</a>
+<a name='L405'></a><a href='#L405'>405</a>
+<a name='L406'></a><a href='#L406'>406</a>
+<a name='L407'></a><a href='#L407'>407</a>
+<a name='L408'></a><a href='#L408'>408</a>
+<a name='L409'></a><a href='#L409'>409</a>
+<a name='L410'></a><a href='#L410'>410</a>
+<a name='L411'></a><a href='#L411'>411</a>
+<a name='L412'></a><a href='#L412'>412</a>
+<a name='L413'></a><a href='#L413'>413</a>
+<a name='L414'></a><a href='#L414'>414</a>
+<a name='L415'></a><a href='#L415'>415</a>
+<a name='L416'></a><a href='#L416'>416</a>
+<a name='L417'></a><a href='#L417'>417</a>
+<a name='L418'></a><a href='#L418'>418</a>
+<a name='L419'></a><a href='#L419'>419</a>
+<a name='L420'></a><a href='#L420'>420</a>
+<a name='L421'></a><a href='#L421'>421</a>
+<a name='L422'></a><a href='#L422'>422</a>
+<a name='L423'></a><a href='#L423'>423</a>
+<a name='L424'></a><a href='#L424'>424</a>
+<a name='L425'></a><a href='#L425'>425</a>
+<a name='L426'></a><a href='#L426'>426</a>
+<a name='L427'></a><a href='#L427'>427</a>
+<a name='L428'></a><a href='#L428'>428</a>
+<a name='L429'></a><a href='#L429'>429</a>
+<a name='L430'></a><a href='#L430'>430</a>
+<a name='L431'></a><a href='#L431'>431</a>
+<a name='L432'></a><a href='#L432'>432</a>
+<a name='L433'></a><a href='#L433'>433</a>
+<a name='L434'></a><a href='#L434'>434</a>
+<a name='L435'></a><a href='#L435'>435</a>
+<a name='L436'></a><a href='#L436'>436</a>
+<a name='L437'></a><a href='#L437'>437</a>
+<a name='L438'></a><a href='#L438'>438</a>
+<a name='L439'></a><a href='#L439'>439</a>
+<a name='L440'></a><a href='#L440'>440</a>
+<a name='L441'></a><a href='#L441'>441</a>
+<a name='L442'></a><a href='#L442'>442</a>
+<a name='L443'></a><a href='#L443'>443</a>
+<a name='L444'></a><a href='#L444'>444</a>
+<a name='L445'></a><a href='#L445'>445</a>
+<a name='L446'></a><a href='#L446'>446</a>
+<a name='L447'></a><a href='#L447'>447</a>
+<a name='L448'></a><a href='#L448'>448</a>
+<a name='L449'></a><a href='#L449'>449</a>
+<a name='L450'></a><a href='#L450'>450</a>
+<a name='L451'></a><a href='#L451'>451</a>
+<a name='L452'></a><a href='#L452'>452</a>
+<a name='L453'></a><a href='#L453'>453</a>
+<a name='L454'></a><a href='#L454'>454</a>
+<a name='L455'></a><a href='#L455'>455</a>
+<a name='L456'></a><a href='#L456'>456</a>
+<a name='L457'></a><a href='#L457'>457</a>
+<a name='L458'></a><a href='#L458'>458</a>
+<a name='L459'></a><a href='#L459'>459</a>
+<a name='L460'></a><a href='#L460'>460</a>
+<a name='L461'></a><a href='#L461'>461</a>
+<a name='L462'></a><a href='#L462'>462</a>
+<a name='L463'></a><a href='#L463'>463</a>
+<a name='L464'></a><a href='#L464'>464</a>
+<a name='L465'></a><a href='#L465'>465</a>
+<a name='L466'></a><a href='#L466'>466</a>
+<a name='L467'></a><a href='#L467'>467</a>
+<a name='L468'></a><a href='#L468'>468</a>
+<a name='L469'></a><a href='#L469'>469</a>
+<a name='L470'></a><a href='#L470'>470</a>
+<a name='L471'></a><a href='#L471'>471</a>
+<a name='L472'></a><a href='#L472'>472</a>
+<a name='L473'></a><a href='#L473'>473</a>
+<a name='L474'></a><a href='#L474'>474</a>
+<a name='L475'></a><a href='#L475'>475</a>
+<a name='L476'></a><a href='#L476'>476</a>
+<a name='L477'></a><a href='#L477'>477</a>
+<a name='L478'></a><a href='#L478'>478</a>
+<a name='L479'></a><a href='#L479'>479</a>
+<a name='L480'></a><a href='#L480'>480</a>
+<a name='L481'></a><a href='#L481'>481</a>
+<a name='L482'></a><a href='#L482'>482</a>
+<a name='L483'></a><a href='#L483'>483</a>
+<a name='L484'></a><a href='#L484'>484</a>
+<a name='L485'></a><a href='#L485'>485</a>
+<a name='L486'></a><a href='#L486'>486</a>
+<a name='L487'></a><a href='#L487'>487</a>
+<a name='L488'></a><a href='#L488'>488</a>
+<a name='L489'></a><a href='#L489'>489</a>
+<a name='L490'></a><a href='#L490'>490</a>
+<a name='L491'></a><a href='#L491'>491</a>
+<a name='L492'></a><a href='#L492'>492</a>
+<a name='L493'></a><a href='#L493'>493</a>
+<a name='L494'></a><a href='#L494'>494</a>
+<a name='L495'></a><a href='#L495'>495</a>
+<a name='L496'></a><a href='#L496'>496</a>
+<a name='L497'></a><a href='#L497'>497</a>
+<a name='L498'></a><a href='#L498'>498</a>
+<a name='L499'></a><a href='#L499'>499</a>
+<a name='L500'></a><a href='#L500'>500</a>
+<a name='L501'></a><a href='#L501'>501</a>
+<a name='L502'></a><a href='#L502'>502</a>
+<a name='L503'></a><a href='#L503'>503</a>
+<a name='L504'></a><a href='#L504'>504</a>
+<a name='L505'></a><a href='#L505'>505</a>
+<a name='L506'></a><a href='#L506'>506</a>
+<a name='L507'></a><a href='#L507'>507</a>
+<a name='L508'></a><a href='#L508'>508</a>
+<a name='L509'></a><a href='#L509'>509</a>
+<a name='L510'></a><a href='#L510'>510</a>
+<a name='L511'></a><a href='#L511'>511</a>
+<a name='L512'></a><a href='#L512'>512</a>
+<a name='L513'></a><a href='#L513'>513</a>
+<a name='L514'></a><a href='#L514'>514</a>
+<a name='L515'></a><a href='#L515'>515</a>
+<a name='L516'></a><a href='#L516'>516</a>
+<a name='L517'></a><a href='#L517'>517</a>
+<a name='L518'></a><a href='#L518'>518</a>
+<a name='L519'></a><a href='#L519'>519</a>
+<a name='L520'></a><a href='#L520'>520</a>
+<a name='L521'></a><a href='#L521'>521</a>
+<a name='L522'></a><a href='#L522'>522</a>
+<a name='L523'></a><a href='#L523'>523</a>
+<a name='L524'></a><a href='#L524'>524</a>
+<a name='L525'></a><a href='#L525'>525</a>
+<a name='L526'></a><a href='#L526'>526</a>
+<a name='L527'></a><a href='#L527'>527</a>
+<a name='L528'></a><a href='#L528'>528</a>
+<a name='L529'></a><a href='#L529'>529</a>
+<a name='L530'></a><a href='#L530'>530</a>
+<a name='L531'></a><a href='#L531'>531</a>
+<a name='L532'></a><a href='#L532'>532</a>
+<a name='L533'></a><a href='#L533'>533</a>
+<a name='L534'></a><a href='#L534'>534</a>
+<a name='L535'></a><a href='#L535'>535</a>
+<a name='L536'></a><a href='#L536'>536</a>
+<a name='L537'></a><a href='#L537'>537</a>
+<a name='L538'></a><a href='#L538'>538</a>
+<a name='L539'></a><a href='#L539'>539</a>
+<a name='L540'></a><a href='#L540'>540</a>
+<a name='L541'></a><a href='#L541'>541</a>
+<a name='L542'></a><a href='#L542'>542</a>
+<a name='L543'></a><a href='#L543'>543</a>
+<a name='L544'></a><a href='#L544'>544</a>
+<a name='L545'></a><a href='#L545'>545</a>
+<a name='L546'></a><a href='#L546'>546</a>
+<a name='L547'></a><a href='#L547'>547</a>
+<a name='L548'></a><a href='#L548'>548</a>
+<a name='L549'></a><a href='#L549'>549</a>
+<a name='L550'></a><a href='#L550'>550</a>
+<a name='L551'></a><a href='#L551'>551</a>
+<a name='L552'></a><a href='#L552'>552</a>
+<a name='L553'></a><a href='#L553'>553</a>
+<a name='L554'></a><a href='#L554'>554</a>
+<a name='L555'></a><a href='#L555'>555</a>
+<a name='L556'></a><a href='#L556'>556</a>
+<a name='L557'></a><a href='#L557'>557</a>
+<a name='L558'></a><a href='#L558'>558</a>
+<a name='L559'></a><a href='#L559'>559</a>
+<a name='L560'></a><a href='#L560'>560</a>
+<a name='L561'></a><a href='#L561'>561</a>
+<a name='L562'></a><a href='#L562'>562</a>
+<a name='L563'></a><a href='#L563'>563</a>
+<a name='L564'></a><a href='#L564'>564</a>
+<a name='L565'></a><a href='#L565'>565</a>
+<a name='L566'></a><a href='#L566'>566</a>
+<a name='L567'></a><a href='#L567'>567</a>
+<a name='L568'></a><a href='#L568'>568</a>
+<a name='L569'></a><a href='#L569'>569</a>
+<a name='L570'></a><a href='#L570'>570</a>
+<a name='L571'></a><a href='#L571'>571</a>
+<a name='L572'></a><a href='#L572'>572</a>
+<a name='L573'></a><a href='#L573'>573</a>
+<a name='L574'></a><a href='#L574'>574</a>
+<a name='L575'></a><a href='#L575'>575</a>
+<a name='L576'></a><a href='#L576'>576</a>
+<a name='L577'></a><a href='#L577'>577</a>
+<a name='L578'></a><a href='#L578'>578</a>
+<a name='L579'></a><a href='#L579'>579</a>
+<a name='L580'></a><a href='#L580'>580</a>
+<a name='L581'></a><a href='#L581'>581</a>
+<a name='L582'></a><a href='#L582'>582</a>
+<a name='L583'></a><a href='#L583'>583</a>
+<a name='L584'></a><a href='#L584'>584</a>
+<a name='L585'></a><a href='#L585'>585</a>
+<a name='L586'></a><a href='#L586'>586</a>
+<a name='L587'></a><a href='#L587'>587</a>
+<a name='L588'></a><a href='#L588'>588</a>
+<a name='L589'></a><a href='#L589'>589</a>
+<a name='L590'></a><a href='#L590'>590</a>
+<a name='L591'></a><a href='#L591'>591</a>
+<a name='L592'></a><a href='#L592'>592</a>
+<a name='L593'></a><a href='#L593'>593</a>
+<a name='L594'></a><a href='#L594'>594</a>
+<a name='L595'></a><a href='#L595'>595</a>
+<a name='L596'></a><a href='#L596'>596</a>
+<a name='L597'></a><a href='#L597'>597</a>
+<a name='L598'></a><a href='#L598'>598</a>
+<a name='L599'></a><a href='#L599'>599</a>
+<a name='L600'></a><a href='#L600'>600</a>
+<a name='L601'></a><a href='#L601'>601</a>
+<a name='L602'></a><a href='#L602'>602</a>
+<a name='L603'></a><a href='#L603'>603</a>
+<a name='L604'></a><a href='#L604'>604</a>
+<a name='L605'></a><a href='#L605'>605</a>
+<a name='L606'></a><a href='#L606'>606</a>
+<a name='L607'></a><a href='#L607'>607</a>
+<a name='L608'></a><a href='#L608'>608</a>
+<a name='L609'></a><a href='#L609'>609</a>
+<a name='L610'></a><a href='#L610'>610</a>
+<a name='L611'></a><a href='#L611'>611</a>
+<a name='L612'></a><a href='#L612'>612</a>
+<a name='L613'></a><a href='#L613'>613</a>
+<a name='L614'></a><a href='#L614'>614</a>
+<a name='L615'></a><a href='#L615'>615</a>
+<a name='L616'></a><a href='#L616'>616</a>
+<a name='L617'></a><a href='#L617'>617</a>
+<a name='L618'></a><a href='#L618'>618</a>
+<a name='L619'></a><a href='#L619'>619</a>
+<a name='L620'></a><a href='#L620'>620</a>
+<a name='L621'></a><a href='#L621'>621</a>
+<a name='L622'></a><a href='#L622'>622</a>
+<a name='L623'></a><a href='#L623'>623</a>
+<a name='L624'></a><a href='#L624'>624</a>
+<a name='L625'></a><a href='#L625'>625</a>
+<a name='L626'></a><a href='#L626'>626</a>
+<a name='L627'></a><a href='#L627'>627</a>
+<a name='L628'></a><a href='#L628'>628</a>
+<a name='L629'></a><a href='#L629'>629</a>
+<a name='L630'></a><a href='#L630'>630</a>
+<a name='L631'></a><a href='#L631'>631</a>
+<a name='L632'></a><a href='#L632'>632</a>
+<a name='L633'></a><a href='#L633'>633</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import OpenAI from 'openai';<span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
+<span class="cstat-no" title="statement not covered" >import { pipeline, env } from '@xenova/transformers';</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >// Disable local model cache in browser environment</span>
+<span class="cstat-no" title="statement not covered" >env.allowLocalModels = false;</span>
+<span class="cstat-no" title="statement not covered" >env.allowRemoteModels = true;</span>
+&nbsp;
+// Types for the knowledge base and RAG system
+export interface DocumentChunk {
+  id: string;
+  content: string;
+  source: string;
+  title: string;
+  category: string;
+  relevanceScore?: number;
+}
+&nbsp;
+export interface RAGResponse {
+  answer: string;
+  sources: DocumentChunk[];
+  confidence: number;
+}
+&nbsp;
+export interface ChatMessage {
+  id: string;
+  type: 'user' | 'agent';
+  content: string;
+  timestamp: Date;
+  sources?: DocumentChunk[];
+}
+&nbsp;
+<span class="cstat-no" title="statement not covered" >class SmartOnFHIRAIAssistant {</span>
+<span class="cstat-no" title="statement not covered" >  private openai: OpenAI | null = null;</span>
+<span class="cstat-no" title="statement not covered" >  private knowledgeBase: DocumentChunk[] = [];</span>
+<span class="cstat-no" title="statement not covered" >  // eslint-disable-next-line @typescript-eslint/no-explicit-any</span>
+<span class="cstat-no" title="statement not covered" >  private embeddingPipeline: any = null;</span>
+<span class="cstat-no" title="statement not covered" >  private isEmbeddingModelLoading = false;</span>
+  
+<span class="cstat-no" title="statement not covered" >  constructor() {</span>
+<span class="cstat-no" title="statement not covered" >    const apiKey = import.meta.env.VITE_OPENAI_API_KEY;</span>
+<span class="cstat-no" title="statement not covered" >    if (apiKey &amp;&amp; apiKey !== 'your-openai-api-key-here') {</span>
+<span class="cstat-no" title="statement not covered" >      this.openai = new OpenAI({</span>
+<span class="cstat-no" title="statement not covered" >        apiKey,</span>
+<span class="cstat-no" title="statement not covered" >        dangerouslyAllowBrowser: true // Note: In production, use a backend proxy</span>
+<span class="cstat-no" title="statement not covered" >      });</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" >    this.initializeKnowledgeBase();</span>
+<span class="cstat-no" title="statement not covered" >    // Don't auto-initialize embedding model - wait for first use</span>
+<span class="cstat-no" title="statement not covered" >    // this.initializeEmbeddingModel();</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  private async initializeEmbeddingModel() {</span>
+<span class="cstat-no" title="statement not covered" >    if (this.isEmbeddingModelLoading || this.embeddingPipeline) return;</span>
+    
+<span class="cstat-no" title="statement not covered" >    try {</span>
+<span class="cstat-no" title="statement not covered" >      this.isEmbeddingModelLoading = true;</span>
+<span class="cstat-no" title="statement not covered" >      console.log('Loading sentence transformer model...');</span>
+      
+<span class="cstat-no" title="statement not covered" >      // Use a lightweight model for browser deployment</span>
+<span class="cstat-no" title="statement not covered" >      this.embeddingPipeline = await pipeline(</span>
+<span class="cstat-no" title="statement not covered" >        'feature-extraction',</span>
+<span class="cstat-no" title="statement not covered" >        'Xenova/all-MiniLM-L6-v2'</span>
+      );
+      
+<span class="cstat-no" title="statement not covered" >      console.log('Sentence transformer model loaded successfully');</span>
+<span class="cstat-no" title="statement not covered" >    } catch (error) {</span>
+<span class="cstat-no" title="statement not covered" >      console.warn('Failed to load embedding model, falling back to keyword search:', error);</span>
+<span class="cstat-no" title="statement not covered" >      this.embeddingPipeline = null;</span>
+<span class="cstat-no" title="statement not covered" >    } finally {</span>
+<span class="cstat-no" title="statement not covered" >      this.isEmbeddingModelLoading = false;</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  private async initializeKnowledgeBase() {</span>
+<span class="cstat-no" title="statement not covered" >    // Initialize the knowledge base with documentation content</span>
+<span class="cstat-no" title="statement not covered" >    this.knowledgeBase = [</span>
+<span class="cstat-no" title="statement not covered" >      // Dashboard Documentation</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'dashboard-overview',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'Dashboard Overview',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'admin-ui',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/admin-ui/dashboard.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `The Dashboard is the central hub providing comprehensive overview of healthcare platform status, metrics, and quick access to all management functions. It displays real-time system health indicators including active components (OAuth Server, FHIR Proxy, WebSocket), performance metrics, alerts, and last update timestamps. The dashboard provides quick actions for adding users, registering apps, adding FHIR servers, configuring scopes, managing launch contexts, and monitoring OAuth flows.`</span>
+<span class="cstat-no" title="statement not covered" >      },</span>
+      
+<span class="cstat-no" title="statement not covered" >      // User Management</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'user-management-overview',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'User Management',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'admin-ui',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/admin-ui/user-management.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `User Management provides comprehensive tools for managing healthcare users including practitioners, administrative staff, system users, and external users. It supports user registration with personal details, professional info, and account configuration. Key features include FHIR Person associations across multiple servers, role-based access control with administrator and user roles, user activity tracking, and lifecycle management including activation, password management, and termination.`</span>
+<span class="cstat-no" title="statement not covered" >      },</span>
+      
+<span class="cstat-no" title="statement not covered" >      // SMART Apps</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'smart-apps-management',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'SMART Apps Management',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'admin-ui',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/admin-ui/smart-apps.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `SMART Apps section manages SMART on FHIR applications including patient-facing apps, provider apps, EHR integrated apps, research apps, agent apps, and backend services. It supports EHR launch, standalone launch, backend services, and agent launch types. Application registration includes basic information, technical configuration, and scope configuration with FHIR resource scopes for patient, user, system, and agent contexts.`</span>
+<span class="cstat-no" title="statement not covered" >      },</span>
+      
+<span class="cstat-no" title="statement not covered" >      // SMART on FHIR Concepts</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'smart-app-launch-framework',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'SMART App Launch Framework',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'smart-on-fhir',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/smart-on-fhir/smart-app-launch.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `SMART App Launch Framework enables secure integration of healthcare applications with EHR systems using OAuth 2.0. It supports different launch types: EHR launch from within EHR systems, standalone launch for independent applications, and backend services for server-to-server communication. The framework provides clinical context through launch parameters including patient, encounter, user, and organization context.`</span>
+<span class="cstat-no" title="statement not covered" >      },</span>
+      
+<span class="cstat-no" title="statement not covered" >      // OAuth Flows</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'oauth-flows',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'OAuth 2.0 Flows',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'smart-on-fhir',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/smart-on-fhir/oauth-flows.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `OAuth 2.0 flows in SMART on FHIR include Authorization Code flow for interactive applications, Client Credentials flow for backend services, and Agent flow for autonomous systems. Each flow has specific security requirements including PKCE for public clients, client authentication for confidential clients, and scope validation for resource access control.`</span>
+<span class="cstat-no" title="statement not covered" >      },</span>
+      
+<span class="cstat-no" title="statement not covered" >      // Scopes and Permissions</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'scopes-permissions',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'Scopes and Permissions',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'smart-on-fhir',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/smart-on-fhir/scopes-permissions.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `SMART scopes define access permissions for FHIR resources using context prefixes: patient/ for patient-specific data, user/ for user-accessible resources, system/ for system-wide access, and agent/ for autonomous agent access. Scopes include resource type and operation (read, write, cruds). Examples: patient/Patient.read, user/Observation.read, system/Patient.cruds, agent/Device.read.`</span>
+<span class="cstat-no" title="statement not covered" >      },</span>
+      
+<span class="cstat-no" title="statement not covered" >      // Launch Contexts</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'launch-contexts',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'Launch Contexts',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'smart-on-fhir',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/smart-on-fhir/launch-contexts.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `Launch contexts provide clinical workflow context to SMART applications. Context types include patient context (specific patient, patient list, encounter, episode), provider context (practitioner, care team, organization, location), and workflow context (order entry, results review, documentation, research). Contexts are injected via launch parameters during application initialization.`</span>
+<span class="cstat-no" title="statement not covered" >      },</span>
+      
+<span class="cstat-no" title="statement not covered" >      // Agent Scopes</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'agent-scopes',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'Agent Scopes for Autonomous Systems',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'smart-on-fhir',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/smart-on-fhir/agent-scopes.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `Agent scopes (agent/) are designed for autonomous systems including AI assistants, robots, and automated decision tools. Unlike system/ scopes which are deterministic and scheduled, agent/ scopes support non-deterministic, self-initiated actions. Agent identity is resolved to Device resources at runtime. Examples: agent/Patient.read for AI patient analysis, agent/ClinicalImpression.write for AI-generated assessments.`</span>
+<span class="cstat-no" title="statement not covered" >      },</span>
+      
+<span class="cstat-no" title="statement not covered" >      // Identity Providers</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'identity-providers',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'Identity Providers Management',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'admin-ui',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/admin-ui/identity-providers.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `Identity Providers (IdP) section manages authentication systems for healthcare organizations. Supports SAML 2.0 for enterprise SSO, OpenID Connect (OIDC) for modern OAuth-based authentication, LDAP for directory services, and local authentication. Features include SSO endpoint configuration, metadata import/export, user attribute mapping for FHIR Person associations, role-based access control, group mappings, multi-factor authentication (MFA) requirements, and session management. Enables seamless integration with existing organizational authentication infrastructure.`</span>
+<span class="cstat-no" title="statement not covered" >      },</span>
+      
+<span class="cstat-no" title="statement not covered" >      // Platform Administration</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'platform-navigation',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'Platform Navigation and Features',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'admin-ui',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/admin-ui/navigation.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `The platform provides comprehensive navigation with sections for Dashboard (system overview), SMART Apps (application management), Users (healthcare user management), FHIR Servers (server configuration), Identity Providers (IdP management), Scope Management (permission templates), Launch Context (context configuration), and OAuth Monitoring (real-time analytics). Each section provides specialized tools for healthcare platform administration.`</span>
+<span class="cstat-no" title="statement not covered" >      },</span>
+      
+<span class="cstat-no" title="statement not covered" >      // Getting Started Guide</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'getting-started-guide',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'Getting Started with SMART on FHIR Platform',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'tutorials',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/tutorials/getting-started.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `Getting started guide covers platform setup and configuration. Key steps: 1) Review Dashboard for system health, 2) Configure FHIR servers with base URL and authentication, 3) Set up identity providers (SAML, OIDC), 4) Create user accounts and associate with FHIR Person resources, 5) Register SMART apps with scopes and launch contexts, 6) Test OAuth flows and FHIR access. Includes security best practices, monitoring setup, and go-live checklist. Use AI Assistant for help with specific tasks.`</span>
+<span class="cstat-no" title="statement not covered" >      },</span>
+      
+<span class="cstat-no" title="statement not covered" >      // FHIR Servers</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'fhir-servers-management',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'FHIR Servers Management',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'admin-ui',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/admin-ui/fhir-servers.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `FHIR Servers section manages FHIR server connections, health monitoring, and configuration. Supports EHR systems (Epic, Cerner), cloud FHIR services, open source servers, and test environments. Features include server registration with base URL and FHIR version, authentication methods (API key, OAuth 2.0, client certificates), health monitoring with real-time checks, performance metrics tracking, and security settings. Provides bulk data operations, SMART launch context support, and comprehensive troubleshooting tools.`</span>
+<span class="cstat-no" title="statement not covered" >      },</span>
+      
+<span class="cstat-no" title="statement not covered" >      // Scope Management</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'scope-management-detailed',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'Scope Management and Permissions',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'admin-ui',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/admin-ui/scope-management.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `Scope Management provides granular FHIR resource permissions using context/resource.operations pattern. Context prefixes include patient/ (patient-specific), user/ (user-accessible), system/ (backend system), and agent/ (autonomous AI). Common resources include Patient, Observation, MedicationRequest, DiagnosticReport, Condition, Procedure. Operations are read, write, cruds, search. Features role-based templates for clinical roles (physicians, nurses) and administrative roles, custom template creation, organizational scope management, and compliance reporting.`</span>
+<span class="cstat-no" title="statement not covered" >      },</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'common-administrative-tasks',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'Common Administrative Tasks',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'tutorials',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/tutorials/common-tasks.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `Common tasks include: 1) Registering SMART apps with appropriate scopes and launch contexts, 2) Adding healthcare users and associating with FHIR Person resources, 3) Configuring FHIR servers with health monitoring, 4) Setting up scope templates for different user roles, 5) Creating launch contexts for clinical workflows, 6) Monitoring OAuth flows for troubleshooting, 7) Managing identity providers for authentication.`</span>
+<span class="cstat-no" title="statement not covered" >      },</span>
+      
+<span class="cstat-no" title="statement not covered" >      // Troubleshooting</span>
+<span class="cstat-no" title="statement not covered" >      {</span>
+<span class="cstat-no" title="statement not covered" >        id: 'troubleshooting-guide',</span>
+<span class="cstat-no" title="statement not covered" >        title: 'Troubleshooting Common Issues',</span>
+<span class="cstat-no" title="statement not covered" >        category: 'tutorials',</span>
+<span class="cstat-no" title="statement not covered" >        source: 'docs/tutorials/troubleshooting.md',</span>
+<span class="cstat-no" title="statement not covered" >        content: `Common issues and solutions: 1) OAuth authorization failures - check redirect URIs, scopes, and client configuration, 2) FHIR server connectivity - verify endpoints, certificates, and network access, 3) User authentication problems - check IdP configuration and user status, 4) Application launch failures - verify launch contexts and required parameters, 5) Scope access denied - review user permissions and application scopes, 6) Performance issues - check system health and resource utilization.`</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" >    ];</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  /**</span>
+   * Calculate cosine similarity between two vectors
+<span class="cstat-no" title="statement not covered" >   */</span>
+<span class="cstat-no" title="statement not covered" >  private cosineSimilarity(vecA: number[], vecB: number[]): number {</span>
+<span class="cstat-no" title="statement not covered" >    const dotProduct = vecA.reduce((sum, a, i) =&gt; sum + a * vecB[i], 0);</span>
+<span class="cstat-no" title="statement not covered" >    const magnitudeA = Math.sqrt(vecA.reduce((sum, a) =&gt; sum + a * a, 0));</span>
+<span class="cstat-no" title="statement not covered" >    const magnitudeB = Math.sqrt(vecB.reduce((sum, b) =&gt; sum + b * b, 0));</span>
+<span class="cstat-no" title="statement not covered" >    return dotProduct / (magnitudeA * magnitudeB);</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  /**</span>
+   * Get embedding for text using the sentence transformer
+<span class="cstat-no" title="statement not covered" >   */</span>
+<span class="cstat-no" title="statement not covered" >  private async getEmbedding(text: string): Promise&lt;number[] | null&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    if (!this.embeddingPipeline) {</span>
+<span class="cstat-no" title="statement not covered" >      await this.initializeEmbeddingModel();</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+    
+<span class="cstat-no" title="statement not covered" >    if (!this.embeddingPipeline) {</span>
+<span class="cstat-no" title="statement not covered" >      return null;</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    try {</span>
+<span class="cstat-no" title="statement not covered" >      const result = await this.embeddingPipeline(text, {</span>
+<span class="cstat-no" title="statement not covered" >        pooling: 'mean',</span>
+<span class="cstat-no" title="statement not covered" >        normalize: true</span>
+<span class="cstat-no" title="statement not covered" >      });</span>
+      
+<span class="cstat-no" title="statement not covered" >      // Convert tensor to array</span>
+<span class="cstat-no" title="statement not covered" >      return Array.from(result.data);</span>
+<span class="cstat-no" title="statement not covered" >    } catch (error) {</span>
+<span class="cstat-no" title="statement not covered" >      console.warn('Error generating embedding:', error);</span>
+<span class="cstat-no" title="statement not covered" >      return null;</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  /**</span>
+   * Enhanced search using semantic similarity when available
+<span class="cstat-no" title="statement not covered" >   */</span>
+<span class="cstat-no" title="statement not covered" >  private async searchKnowledgeBaseSemantic(query: string, maxResults: number = 5): Promise&lt;DocumentChunk[]&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    // Try semantic search first if embedding model is available</span>
+<span class="cstat-no" title="statement not covered" >    if (this.embeddingPipeline &amp;&amp; !this.isEmbeddingModelLoading) {</span>
+<span class="cstat-no" title="statement not covered" >      try {</span>
+<span class="cstat-no" title="statement not covered" >        const queryEmbedding = await this.getEmbedding(query);</span>
+        
+<span class="cstat-no" title="statement not covered" >        if (queryEmbedding) {</span>
+<span class="cstat-no" title="statement not covered" >          const scoredDocs = await Promise.all(</span>
+<span class="cstat-no" title="statement not covered" >            this.knowledgeBase.map(async (doc) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >              const docEmbedding = await this.getEmbedding(doc.content.substring(0, 500));</span>
+<span class="cstat-no" title="statement not covered" >              if (docEmbedding) {</span>
+<span class="cstat-no" title="statement not covered" >                const similarity = this.cosineSimilarity(queryEmbedding, docEmbedding);</span>
+<span class="cstat-no" title="statement not covered" >                return { ...doc, relevanceScore: similarity };</span>
+<span class="cstat-no" title="statement not covered" >              }</span>
+<span class="cstat-no" title="statement not covered" >              return { ...doc, relevanceScore: 0 };</span>
+<span class="cstat-no" title="statement not covered" >            })</span>
+          );
+&nbsp;
+<span class="cstat-no" title="statement not covered" >          return scoredDocs</span>
+<span class="cstat-no" title="statement not covered" >            .filter(doc =&gt; doc.relevanceScore! &gt; 0.3) // Threshold for semantic similarity</span>
+<span class="cstat-no" title="statement not covered" >            .sort((a, b) =&gt; b.relevanceScore! - a.relevanceScore!)</span>
+<span class="cstat-no" title="statement not covered" >            .slice(0, maxResults);</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+<span class="cstat-no" title="statement not covered" >      } catch (error) {</span>
+<span class="cstat-no" title="statement not covered" >        console.warn('Semantic search failed, falling back to keyword search:', error);</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    // Fallback to keyword-based search</span>
+<span class="cstat-no" title="statement not covered" >    return this.searchKnowledgeBase(query, maxResults);</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" >  private searchKnowledgeBase(query: string, maxResults: number = 5): DocumentChunk[] {</span>
+<span class="cstat-no" title="statement not covered" >    const searchTerms = query.toLowerCase().split(' ');</span>
+    
+<span class="cstat-no" title="statement not covered" >    const scoredDocuments = this.knowledgeBase.map(doc =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >      let score = 0;</span>
+<span class="cstat-no" title="statement not covered" >      const content = doc.content.toLowerCase();</span>
+<span class="cstat-no" title="statement not covered" >      const title = doc.title.toLowerCase();</span>
+      
+<span class="cstat-no" title="statement not covered" >      // Score based on title matches (higher weight)</span>
+<span class="cstat-no" title="statement not covered" >      searchTerms.forEach(term =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >        if (title.includes(term)) {</span>
+<span class="cstat-no" title="statement not covered" >          score += 10;</span>
+<span class="cstat-no" title="statement not covered" >        }</span>
+<span class="cstat-no" title="statement not covered" >        // Count occurrences in content</span>
+<span class="cstat-no" title="statement not covered" >        const matches = (content.match(new RegExp(term, 'g')) || []).length;</span>
+<span class="cstat-no" title="statement not covered" >        score += matches;</span>
+<span class="cstat-no" title="statement not covered" >      });</span>
+      
+<span class="cstat-no" title="statement not covered" >      return { ...doc, relevanceScore: score };</span>
+<span class="cstat-no" title="statement not covered" >    });</span>
+    
+<span class="cstat-no" title="statement not covered" >    return scoredDocuments</span>
+<span class="cstat-no" title="statement not covered" >      .filter(doc =&gt; doc.relevanceScore! &gt; 0)</span>
+<span class="cstat-no" title="statement not covered" >      .sort((a, b) =&gt; b.relevanceScore! - a.relevanceScore!)</span>
+<span class="cstat-no" title="statement not covered" >      .slice(0, maxResults);</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  /**</span>
+   * Generate AI response using RAG (Retrieval Augmented Generation)
+<span class="cstat-no" title="statement not covered" >   */</span>
+<span class="cstat-no" title="statement not covered" >  async generateResponse(userMessage: string): Promise&lt;RAGResponse&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    // Search for relevant documents using semantic search when available</span>
+<span class="cstat-no" title="statement not covered" >    const relevantDocs = await this.searchKnowledgeBaseSemantic(userMessage);</span>
+    
+<span class="cstat-no" title="statement not covered" >    try {</span>
+<span class="cstat-no" title="statement not covered" >      // If no relevant documents found, provide general help</span>
+<span class="cstat-no" title="statement not covered" >      if (relevantDocs.length === 0) {</span>
+<span class="cstat-no" title="statement not covered" >        return {</span>
+<span class="cstat-no" title="statement not covered" >          answer: "I can help you with SMART on FHIR platform administration. I have knowledge about:\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "📊 **Dashboard** - System overview and health monitoring\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "👥 **User Management** - Healthcare users and FHIR associations\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "📱 **SMART Apps** - Application registration and management\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "🏥 **FHIR Servers** - Server configuration and monitoring\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "🎯 **Scope Management** - Permissions and access control\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "🚀 **Launch Context** - Clinical workflow contexts\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "📈 **OAuth Monitoring** - Real-time flow analytics\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "🔑 **Identity Providers** - Authentication configuration\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "What would you like to know more about?",</span>
+<span class="cstat-no" title="statement not covered" >          sources: [],</span>
+<span class="cstat-no" title="statement not covered" >          confidence: 0.5</span>
+<span class="cstat-no" title="statement not covered" >        };</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      // If OpenAI is available, use it for enhanced responses</span>
+<span class="cstat-no" title="statement not covered" >      if (this.openai) {</span>
+<span class="cstat-no" title="statement not covered" >        const context = relevantDocs</span>
+<span class="cstat-no" title="statement not covered" >          .map(doc =&gt; `Source: ${doc.title}\nRelevance: ${(doc.relevanceScore! * 100).toFixed(1)}%\n${doc.content}`)</span>
+<span class="cstat-no" title="statement not covered" >          .join('\n\n');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        const systemPrompt = `You are a SMART on FHIR platform assistant with comprehensive knowledge of healthcare application management. Use the provided context to answer questions accurately and helpfully.</span>
+&nbsp;
+Key platform sections:
+- Dashboard: System overview and health monitoring
+- User Management: Healthcare users and FHIR Person associations  
+- SMART Apps: Application registration with scopes and launch contexts
+- FHIR Servers: Multi-server configuration and monitoring
+- Scope Management: Permission templates and access control
+- Launch Context: Clinical workflow context injection
+- OAuth Monitoring: Real-time authorization flow analytics
+- Identity Providers: SAML/OIDC authentication configuration
+&nbsp;
+Provide helpful, accurate responses with step-by-step guidance when appropriate. Include relevant navigation instructions (e.g., "Go to the Users section") and mention specific features when relevant.
+&nbsp;
+Context (with relevance scores):
+<span class="cstat-no" title="statement not covered" >${context}`;</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        const completion = await this.openai.chat.completions.create({</span>
+<span class="cstat-no" title="statement not covered" >          model: "gpt-5-mini",</span>
+<span class="cstat-no" title="statement not covered" >          messages: [</span>
+<span class="cstat-no" title="statement not covered" >            { role: "system", content: systemPrompt },</span>
+<span class="cstat-no" title="statement not covered" >            { role: "user", content: userMessage }</span>
+<span class="cstat-no" title="statement not covered" >          ],</span>
+<span class="cstat-no" title="statement not covered" >          max_tokens: 600,</span>
+<span class="cstat-no" title="statement not covered" >          temperature: 0.7</span>
+<span class="cstat-no" title="statement not covered" >        });</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        return {</span>
+<span class="cstat-no" title="statement not covered" >          answer: completion.choices[0]?.message?.content || "I'm sorry, I couldn't generate a response.",</span>
+<span class="cstat-no" title="statement not covered" >          sources: relevantDocs,</span>
+<span class="cstat-no" title="statement not covered" >          confidence: 0.9</span>
+<span class="cstat-no" title="statement not covered" >        };</span>
+<span class="cstat-no" title="statement not covered" >      } else {</span>
+<span class="cstat-no" title="statement not covered" >        // Enhanced rule-based responses when OpenAI is not available</span>
+<span class="cstat-no" title="statement not covered" >        // Use the most relevant document for context-aware responses</span>
+<span class="cstat-no" title="statement not covered" >        return this.generateRuleBasedResponse(userMessage, relevantDocs);</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" >    } catch (error) {</span>
+<span class="cstat-no" title="statement not covered" >      console.error('Error generating AI response:', error);</span>
+<span class="cstat-no" title="statement not covered" >      return this.generateRuleBasedResponse(userMessage, relevantDocs);</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  /**</span>
+   * Enhanced rule-based response system with semantic context
+<span class="cstat-no" title="statement not covered" >   */</span>
+<span class="cstat-no" title="statement not covered" >  private generateRuleBasedResponse(userMessage: string, relevantDocs: DocumentChunk[]): RAGResponse {</span>
+<span class="cstat-no" title="statement not covered" >    const message = userMessage.toLowerCase();</span>
+<span class="cstat-no" title="statement not covered" >    const confidence = relevantDocs.length &gt; 0 ? Math.max(0.7, relevantDocs[0].relevanceScore || 0.7) : 0.6;</span>
+    
+<span class="cstat-no" title="statement not covered" >    // Use the most relevant document for context-aware responses</span>
+<span class="cstat-no" title="statement not covered" >    const primaryDoc = relevantDocs.length &gt; 0 ? relevantDocs[0] : null;</span>
+    
+<span class="cstat-no" title="statement not covered" >    // Navigation and general help</span>
+<span class="cstat-no" title="statement not covered" >    if (message.includes('navigate') || message.includes('go to') || message.includes('section')) {</span>
+<span class="cstat-no" title="statement not covered" >      if (message.includes('user') || message.includes('healthcare')) {</span>
+<span class="cstat-no" title="statement not covered" >        return {</span>
+<span class="cstat-no" title="statement not covered" >          answer: "To manage healthcare users, go to the **Users** section in the navigation. There you can:\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• Add new healthcare users with professional details\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• Associate users with FHIR Person resources across multiple servers\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• Configure role-based permissions and access control\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• Monitor user activity, sessions, and login patterns\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• Manage user lifecycle from activation to termination\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "💡 *Tip: Each user can have FHIR Person associations on multiple servers for cross-system identity linking.*",</span>
+<span class="cstat-no" title="statement not covered" >          sources: relevantDocs,</span>
+<span class="cstat-no" title="statement not covered" >          confidence</span>
+<span class="cstat-no" title="statement not covered" >        };</span>
+<span class="cstat-no" title="statement not covered" >      } else if (message.includes('app') || message.includes('smart')) {</span>
+<span class="cstat-no" title="statement not covered" >        return {</span>
+<span class="cstat-no" title="statement not covered" >          answer: "To manage SMART applications, go to the **SMART Apps** section. Here you can:\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• Register new SMART on FHIR applications with detailed configuration\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• Configure OAuth scopes for granular resource access control\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• Set up launch contexts for different clinical workflows\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• Monitor application usage, performance, and error rates\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• Manage application lifecycle, versions, and security settings\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "🔑 *Key: Proper scope configuration is crucial for security and functionality.*",</span>
+<span class="cstat-no" title="statement not covered" >          sources: relevantDocs,</span>
+<span class="cstat-no" title="statement not covered" >          confidence</span>
+<span class="cstat-no" title="statement not covered" >        };</span>
+<span class="cstat-no" title="statement not covered" >      } else if (message.includes('server') || message.includes('fhir')) {</span>
+<span class="cstat-no" title="statement not covered" >        return {</span>
+<span class="cstat-no" title="statement not covered" >          answer: "To manage FHIR servers, go to the **FHIR Servers** section. You can:\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• Add and configure FHIR server endpoints with authentication\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• Monitor server health, performance, and response times\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• Test server connectivity and validate FHIR compliance\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• Configure security settings and access controls\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "• View usage analytics and troubleshoot issues\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                  "🏥 *Multi-server support allows unified management across your healthcare ecosystem.*",</span>
+<span class="cstat-no" title="statement not covered" >          sources: relevantDocs,</span>
+<span class="cstat-no" title="statement not covered" >          confidence</span>
+<span class="cstat-no" title="statement not covered" >        };</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+    
+<span class="cstat-no" title="statement not covered" >    // Identity Provider queries (add this before scope-related queries)</span>
+<span class="cstat-no" title="statement not covered" >    if (message.includes('idp') || message.includes('identity') || message.includes('authentication') || message.includes('provider')) {</span>
+<span class="cstat-no" title="statement not covered" >      return {</span>
+<span class="cstat-no" title="statement not covered" >        answer: "To manage Identity Providers, go to the **Identity Providers** section. Here you can:\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "🔐 **Supported Protocols:**\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• **SAML 2.0** - Enterprise single sign-on integration\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• **OpenID Connect (OIDC)** - Modern OAuth-based authentication\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• **LDAP** - Directory service integration\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• **Local Authentication** - Platform-native user accounts\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "⚙️ **Configuration Options:**\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• SSO endpoint configuration and metadata import\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• User attribute mapping for FHIR Person associations\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• Role-based access control and group mappings\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• Multi-factor authentication (MFA) requirements\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "🏥 *Identity providers enable seamless integration with existing healthcare organization authentication systems.*",</span>
+<span class="cstat-no" title="statement not covered" >        sources: relevantDocs,</span>
+<span class="cstat-no" title="statement not covered" >        confidence</span>
+<span class="cstat-no" title="statement not covered" >      };</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    // Scope-related queries with enhanced context</span>
+<span class="cstat-no" title="statement not covered" >    if (message.includes('scope') || message.includes('permission')) {</span>
+<span class="cstat-no" title="statement not covered" >      let scopeInfo = "SMART scopes control access to FHIR resources. Go to **Scope Management** to configure:\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                     "🎯 **Scope Contexts:**\n" +</span>
+<span class="cstat-no" title="statement not covered" >                     "• **patient/** - Patient-specific data access (e.g., patient/Patient.read)\n" +</span>
+<span class="cstat-no" title="statement not covered" >                     "• **user/** - User-accessible resources (e.g., user/Observation.read)\n" +</span>
+<span class="cstat-no" title="statement not covered" >                     "• **system/** - System-wide access (e.g., system/Patient.cruds)\n" +</span>
+<span class="cstat-no" title="statement not covered" >                     "• **agent/** - Autonomous agent access (e.g., agent/Device.read)\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                     "📋 **Scope Templates:**\n" +</span>
+<span class="cstat-no" title="statement not covered" >                     "• Role-based templates for different user types\n" +</span>
+<span class="cstat-no" title="statement not covered" >                     "• Specialty-specific scope combinations\n" +</span>
+<span class="cstat-no" title="statement not covered" >                     "• Custom scope sets for organizational needs";</span>
+      
+<span class="cstat-no" title="statement not covered" >      if (primaryDoc &amp;&amp; primaryDoc.title.includes('Scope')) {</span>
+<span class="cstat-no" title="statement not covered" >        scopeInfo += "\n\n💡 *Based on the documentation, scopes use CRUD operations (Create, Read, Update, Delete, Search) with 'cruds' for full access.*";</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+      
+<span class="cstat-no" title="statement not covered" >      return {</span>
+<span class="cstat-no" title="statement not covered" >        answer: scopeInfo,</span>
+<span class="cstat-no" title="statement not covered" >        sources: relevantDocs,</span>
+<span class="cstat-no" title="statement not covered" >        confidence</span>
+<span class="cstat-no" title="statement not covered" >      };</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+    
+<span class="cstat-no" title="statement not covered" >    // Launch context queries with enhanced information</span>
+<span class="cstat-no" title="statement not covered" >    if (message.includes('launch') || message.includes('context')) {</span>
+<span class="cstat-no" title="statement not covered" >      let contextInfo = "Launch contexts provide clinical workflow context to applications. Go to **Launch Context** to:\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                       "🏥 **Clinical Contexts:**\n" +</span>
+<span class="cstat-no" title="statement not covered" >                       "• Patient contexts (patient selection, encounters, episodes)\n" +</span>
+<span class="cstat-no" title="statement not covered" >                       "• Provider contexts (practitioner, care team, location)\n" +</span>
+<span class="cstat-no" title="statement not covered" >                       "• Workflow contexts (order entry, results review, documentation)\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                       "⚙️ **Configuration:**\n" +</span>
+<span class="cstat-no" title="statement not covered" >                       "• Pre-configured workflow templates\n" +</span>
+<span class="cstat-no" title="statement not covered" >                       "• Custom context builders for specific needs\n" +</span>
+<span class="cstat-no" title="statement not covered" >                       "• Dynamic context resolution at runtime";</span>
+      
+<span class="cstat-no" title="statement not covered" >      if (primaryDoc &amp;&amp; primaryDoc.title.includes('Launch')) {</span>
+<span class="cstat-no" title="statement not covered" >        contextInfo += "\n\n🚀 *Launch contexts are injected as parameters during application initialization to provide immediate clinical relevance.*";</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+      
+<span class="cstat-no" title="statement not covered" >      return {</span>
+<span class="cstat-no" title="statement not covered" >        answer: contextInfo,</span>
+<span class="cstat-no" title="statement not covered" >        sources: relevantDocs,</span>
+<span class="cstat-no" title="statement not covered" >        confidence</span>
+<span class="cstat-no" title="statement not covered" >      };</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+    
+<span class="cstat-no" title="statement not covered" >    // OAuth and monitoring with real-time capabilities</span>
+<span class="cstat-no" title="statement not covered" >    if (message.includes('oauth') || message.includes('monitor') || message.includes('flow')) {</span>
+<span class="cstat-no" title="statement not covered" >      return {</span>
+<span class="cstat-no" title="statement not covered" >        answer: "For OAuth monitoring and troubleshooting, go to **OAuth Monitoring** section:\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "📊 **Real-time Monitoring:**\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• Live authorization flow tracking via WebSocket\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• Success/failure rate analytics with trending\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• Performance metrics and bottleneck identification\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• Token usage patterns and refresh analytics\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "🔧 **Debugging Tools:**\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• Flow-by-flow error analysis\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• Security violation detection\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• Integration testing capabilities\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "⚡ *The dashboard provides WebSocket-based real-time updates for immediate insight into OAuth activities.*",</span>
+<span class="cstat-no" title="statement not covered" >        sources: relevantDocs,</span>
+<span class="cstat-no" title="statement not covered" >        confidence</span>
+<span class="cstat-no" title="statement not covered" >      };</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+    
+<span class="cstat-no" title="statement not covered" >    // Dashboard queries with comprehensive features</span>
+<span class="cstat-no" title="statement not covered" >    if (message.includes('dashboard') || message.includes('overview') || message.includes('status')) {</span>
+<span class="cstat-no" title="statement not covered" >      return {</span>
+<span class="cstat-no" title="statement not covered" >        answer: "The **Dashboard** provides comprehensive platform oversight:\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "🏥 **System Health:**\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• OAuth Server, FHIR Proxy, WebSocket status monitoring\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• Performance metrics with response time tracking\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• Alert management and maintenance notifications\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "⚡ **Quick Actions:**\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• One-click access to common administrative tasks\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• Fast navigation to all platform sections\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "📈 **Analytics:**\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• User, application, and server statistics\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• OAuth flow analytics with trend visualization\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "• Real-time updates every 30 seconds\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >                "🎨 *Fully responsive design optimized for desktop, tablet, and mobile usage.*",</span>
+<span class="cstat-no" title="statement not covered" >        sources: relevantDocs,</span>
+<span class="cstat-no" title="statement not covered" >        confidence</span>
+<span class="cstat-no" title="statement not covered" >      };</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+    
+<span class="cstat-no" title="statement not covered" >    // Enhanced responses based on primary document context</span>
+<span class="cstat-no" title="statement not covered" >    if (primaryDoc) {</span>
+<span class="cstat-no" title="statement not covered" >      const response = this.generateContextualResponse(primaryDoc, userMessage);</span>
+<span class="cstat-no" title="statement not covered" >      if (response) {</span>
+<span class="cstat-no" title="statement not covered" >        return {</span>
+<span class="cstat-no" title="statement not covered" >          answer: response,</span>
+<span class="cstat-no" title="statement not covered" >          sources: relevantDocs,</span>
+<span class="cstat-no" title="statement not covered" >          confidence</span>
+<span class="cstat-no" title="statement not covered" >        };</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+    
+<span class="cstat-no" title="statement not covered" >    // Default response with knowledge base overview</span>
+<span class="cstat-no" title="statement not covered" >    return {</span>
+<span class="cstat-no" title="statement not covered" >      answer: "I'm your SMART on FHIR platform assistant! I can help you with:\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >              "🎯 **Platform Administration:**\n" +</span>
+<span class="cstat-no" title="statement not covered" >              "• User management and FHIR associations\n" +</span>
+<span class="cstat-no" title="statement not covered" >              "• SMART app registration and configuration\n" +</span>
+<span class="cstat-no" title="statement not covered" >              "• FHIR server setup and monitoring\n" +</span>
+<span class="cstat-no" title="statement not covered" >              "• OAuth flows and security management\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >              "📚 **Specific Topics:**\n" +</span>
+<span class="cstat-no" title="statement not covered" >              "• Scope configuration and permissions\n" +</span>
+<span class="cstat-no" title="statement not covered" >              "• Launch context setup for clinical workflows\n" +</span>
+<span class="cstat-no" title="statement not covered" >              "• Identity provider integration\n" +</span>
+<span class="cstat-no" title="statement not covered" >              "• System monitoring and troubleshooting\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >              `🤖 **AI Status:** ${this.openai ? 'OpenAI-powered' : 'Semantic search enabled'} ${this.embeddingPipeline ? 'with sentence transformers' : ''}\n\n` +</span>
+<span class="cstat-no" title="statement not covered" >              "Ask me about any specific aspect you'd like to explore!",</span>
+<span class="cstat-no" title="statement not covered" >      sources: relevantDocs,</span>
+<span class="cstat-no" title="statement not covered" >      confidence: 0.6</span>
+<span class="cstat-no" title="statement not covered" >    };</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  /**</span>
+   * Generate contextual response based on the most relevant document
+<span class="cstat-no" title="statement not covered" >   */</span>
+<span class="cstat-no" title="statement not covered" >  private generateContextualResponse(doc: DocumentChunk, userMessage: string): string | null {</span>
+<span class="cstat-no" title="statement not covered" >    const message = userMessage.toLowerCase();</span>
+    
+<span class="cstat-no" title="statement not covered" >    // Check for specific keywords in user message to provide targeted responses</span>
+<span class="cstat-no" title="statement not covered" >    if (message.includes('idp') || message.includes('identity')) {</span>
+<span class="cstat-no" title="statement not covered" >      return `Based on the Identity Provider documentation:\n\n` +</span>
+<span class="cstat-no" title="statement not covered" >             "Identity Providers (IdPs) manage authentication for healthcare organizations. " +</span>
+<span class="cstat-no" title="statement not covered" >             "The platform supports SAML 2.0, OpenID Connect (OIDC), LDAP, and local authentication. " +</span>
+<span class="cstat-no" title="statement not covered" >             "Go to the **Identity Providers** section to configure SSO endpoints, user attribute mapping, " +</span>
+<span class="cstat-no" title="statement not covered" >             "and role-based access control.\n\n" +</span>
+<span class="cstat-no" title="statement not covered" >             "Would you like help setting up a specific IdP type or configuring user mappings?";</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+    
+<span class="cstat-no" title="statement not covered" >    // Provide document-specific insights</span>
+<span class="cstat-no" title="statement not covered" >    if (doc.category === 'admin-ui') {</span>
+<span class="cstat-no" title="statement not covered" >      if (doc.title.includes('User')) {</span>
+<span class="cstat-no" title="statement not covered" >        return `Based on the User Management documentation:\n\n${doc.content.substring(0, 300)}...\n\n` +</span>
+<span class="cstat-no" title="statement not covered" >               "Would you like specific guidance on user registration, FHIR associations, or permission management?";</span>
+<span class="cstat-no" title="statement not covered" >      } else if (doc.title.includes('SMART Apps')) {</span>
+<span class="cstat-no" title="statement not covered" >        return `From the SMART Apps documentation:\n\n${doc.content.substring(0, 300)}...\n\n` +</span>
+<span class="cstat-no" title="statement not covered" >               "Would you like help with app registration, scope configuration, or launch context setup?";</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" >    } else if (doc.category === 'smart-on-fhir') {</span>
+<span class="cstat-no" title="statement not covered" >      if (doc.title.includes('OAuth')) {</span>
+<span class="cstat-no" title="statement not covered" >        return `According to the OAuth flows documentation:\n\n${doc.content.substring(0, 300)}...\n\n` +</span>
+<span class="cstat-no" title="statement not covered" >               "Need help with specific OAuth flows or troubleshooting authorization issues?";</span>
+<span class="cstat-no" title="statement not covered" >      } else if (doc.title.includes('Agent')) {</span>
+<span class="cstat-no" title="statement not covered" >        return `From the Agent Scopes documentation:\n\n${doc.content.substring(0, 300)}...\n\n` +</span>
+<span class="cstat-no" title="statement not covered" >               "Interested in configuring autonomous systems or understanding agent vs system scopes?";</span>
+<span class="cstat-no" title="statement not covered" >      }</span>
+<span class="cstat-no" title="statement not covered" >    }</span>
+    
+<span class="cstat-no" title="statement not covered" >    return null;</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  /**</span>
+   * Check if OpenAI is available
+<span class="cstat-no" title="statement not covered" >   */</span>
+<span class="cstat-no" title="statement not covered" >  isOpenAIAvailable(): boolean {</span>
+<span class="cstat-no" title="statement not covered" >    return this.openai !== null;</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >  /**</span>
+   * Get knowledge base statistics
+<span class="cstat-no" title="statement not covered" >   */</span>
+<span class="cstat-no" title="statement not covered" >  getKnowledgeBaseStats() {</span>
+<span class="cstat-no" title="statement not covered" >    return {</span>
+<span class="cstat-no" title="statement not covered" >      totalDocuments: this.knowledgeBase.length,</span>
+<span class="cstat-no" title="statement not covered" >      categories: [...new Set(this.knowledgeBase.map(doc =&gt; doc.category))],</span>
+<span class="cstat-no" title="statement not covered" >      sources: [...new Set(this.knowledgeBase.map(doc =&gt; doc.source))]</span>
+<span class="cstat-no" title="statement not covered" >    };</span>
+<span class="cstat-no" title="statement not covered" >  }</span>
+<span class="cstat-no" title="statement not covered" >}</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >// Export singleton instance</span>
+<span class="cstat-no" title="statement not covered" >export const aiAssistant = new SmartOnFHIRAIAssistant();</span>
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2025-08-16T21:47:25.720Z
+            </div>
+        <script src="../../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../../sorter.js"></script>
+        <script src="../../../block-navigation.js"></script>
+    </body>
+</html>
+    
