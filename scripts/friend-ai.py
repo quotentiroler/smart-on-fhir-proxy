@@ -284,7 +284,7 @@ Be inventive, practical, enthusiastic, and focus on creating tools that would gi
 
         try:
             payload = {
-                "model": "gpt-4o",
+                "model": "o4-mini",
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     *conversation_history,

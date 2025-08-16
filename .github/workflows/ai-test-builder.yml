@@ -27,6 +27,8 @@ on:
         default: true
 permissions:
   contents: write
+  pull-requests: write
+  issues: write
 
 env:
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -237,10 +239,30 @@ jobs:
         echo "   👉 Context size: $(wc -l < enhanced-frontend-errors.log) lines"
         
         echo "🧩 Phase 2: Junior AI propose fixes"
+        echo "📝 Junior AI starting interactive exploration..."
+        echo "🎯 Component: frontend, Task: fix_test_failures"
+        echo "🧠 Junior AI will explore:"
+        echo "   • Analyze test failure patterns and error messages"
+        echo "   • Examine source code structure and dependencies"
+        echo "   • Identify root causes of test failures"
+        echo "   • Design targeted fixes for each failure"
+        echo "   • Validate fix approaches against codebase patterns"
+        echo ""
         python test-enhanced-proposer.py enhanced-frontend-errors.log \
           > frontend-proposed-fixes.json 2> frontend-proposer.log
         proposer_exit=$?
         echo "   ✅ Junior AI exit code: $proposer_exit"
+        echo "   📄 Detailed exploration log saved to frontend-proposer.log"
+        
+        # Show preview of what Junior AI discovered
+        if [ -f frontend-proposed-fixes.json ] && jq . frontend-proposed-fixes.json >/dev/null 2>&1; then
+          proposed_count=$(jq -r '.changes | length' frontend-proposed-fixes.json 2>/dev/null || echo "0")
+          echo "   📊 Proposed changes: $proposed_count"
+          if [ "$proposed_count" -gt "0" ]; then
+            echo "   🎯 Frontend fix preview:"
+            jq -r '.changes[] | "      • \(.action) \(.file): \(.reasoning)"' frontend-proposed-fixes.json 2>/dev/null | head -3
+          fi
+        fi
         
         echo "🔍 Phase 3: Senior AI review"
         python review-changes.py frontend-proposed-fixes.json enhanced-frontend-errors.log \
@@ -292,6 +314,9 @@ jobs:
         echo "   • Design appropriate test architecture for Node.js/TypeScript"
         echo "   • Create test setup files and configuration if missing"
         echo "   • Generate API endpoint tests and unit tests"
+        echo ""
+        echo "🧠 Junior AI starting interactive exploration..."
+        echo "🎯 Component: backend, Task: setup_tests_and_fix_failures"
         
         python test-enhanced-proposer.py enhanced-backend-errors.log > backend-proposed-fixes.json 2> backend-proposer.log
         proposer_exit_code=$?
@@ -303,6 +328,7 @@ jobs:
             echo "✅ Junior AI Proposer completed backend analysis!"
             echo "   📊 Proposed changes: $proposed_count"
             echo "   📄 Detailed analysis saved to backend-proposer.log"
+            echo "   🔍 Exploration steps logged in backend-proposer.log"
             
             if [ "$proposed_count" -gt "0" ]; then
               echo "   🎯 Backend change preview:"
@@ -313,6 +339,7 @@ jobs:
           fi
         else
           echo "❌ Junior AI Proposer failed for backend with exit code: $proposer_exit_code"
+          echo "📄 Exploration log:"
           tail -10 backend-proposer.log 2>/dev/null || echo "   No error log available"
         fi
         
@@ -493,10 +520,35 @@ jobs:
           echo "---" >> coverage-analysis.log
         done
         
+        echo "🧠 Junior AI starting interactive coverage exploration..."
+        echo "🎯 Component: frontend, Task: coverage_improvement"
+        echo "📊 Current coverage: ${{ steps.analyze-frontend.outputs.coverage_percentage }}%"
+        echo "🎯 Target coverage: ${{ inputs.coverage_threshold || 80 }}%"
+        echo "🔍 Junior AI will explore:"
+        echo "   • Analyze existing test patterns and structure"
+        echo "   • Identify untested components and utilities"
+        echo "   • Examine uncovered code paths and edge cases"
+        echo "   • Design comprehensive test suites for gaps"
+        echo "   • Create integration tests for component interactions"
+        echo ""
+        
         # Use Junior AI to generate comprehensive test coverage improvements
-        python test-enhanced-proposer.py coverage-analysis.log > frontend-test-proposals.json
-        python review-changes.py frontend-test-proposals.json coverage-analysis.log > frontend-test-reviewed.json
-        python apply-changes.py frontend-test-reviewed.json > frontend-test-result.json
+        python test-enhanced-proposer.py coverage-analysis.log > frontend-test-proposals.json 2> frontend-coverage-proposer.log
+        
+        echo "   📄 Detailed exploration log saved to frontend-coverage-proposer.log"
+        
+        # Show what Junior AI discovered
+        if [ -f frontend-test-proposals.json ] && jq . frontend-test-proposals.json >/dev/null 2>&1; then
+          proposed_count=$(jq -r '.changes | length' frontend-test-proposals.json 2>/dev/null || echo "0")
+          echo "   📊 Proposed test improvements: $proposed_count"
+          if [ "$proposed_count" -gt "0" ]; then
+            echo "   🎯 Coverage improvement preview:"
+            jq -r '.changes[] | "      • \(.action) \(.file): \(.reasoning)"' frontend-test-proposals.json 2>/dev/null | head -3
+          fi
+        fi
+        
+        python review-changes.py frontend-test-proposals.json coverage-analysis.log > frontend-test-reviewed.json 2> frontend-coverage-reviewer.log
+        python apply-changes.py frontend-test-reviewed.json > frontend-test-result.json 2> frontend-coverage-applier.log
         
         # Check results
         if [ -f frontend-test-result.json ]; then
@@ -521,33 +573,69 @@ jobs:
       id: rerun-tests
       run: |
         echo "🔄 Re-running tests after AI improvements..."
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         
         # Re-run frontend tests if they were fixed
         if [ "${{ steps.fix-frontend-tests.outputs.frontend_fixes_applied || 0 }}" -gt "0" ] || [ "${{ steps.generate-frontend-tests.outputs.frontend_tests_added || 0 }}" -gt "0" ]; then
           echo "🧪 Re-running frontend tests..."
+          echo "🔍 Changes applied:"
+          echo "   • Test fixes: ${{ steps.fix-frontend-tests.outputs.frontend_fixes_applied || 0 }}"
+          echo "   • New tests: ${{ steps.generate-frontend-tests.outputs.frontend_tests_added || 0 }}"
+          echo ""
+          echo "📊 Running frontend test suite with coverage..."
           cd ui
           bun run test:coverage --reporter=verbose 2>&1 | tee ../scripts/frontend-retest.log
           frontend_retest_exit=$?
           echo "frontend_retest_exit_code=$frontend_retest_exit" >> $GITHUB_OUTPUT
+          
+          echo ""
+          if [ $frontend_retest_exit -eq 0 ]; then
+            echo "✅ Frontend tests passed after AI improvements!"
+          else
+            echo "❌ Frontend tests still failing after AI improvements"
+            echo "📄 Last 10 lines of test output:"
+            tail -10 ../scripts/frontend-retest.log | sed 's/^/   /'
+          fi
           
           # Check new coverage
           if [ -f coverage/coverage-summary.json ]; then
             new_coverage=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct // 0')
             echo "frontend_new_coverage=$new_coverage" >> $GITHUB_OUTPUT
             echo "📊 New frontend coverage: $new_coverage%"
+            
+            # Compare with old coverage
+            old_coverage="${{ steps.analyze-frontend.outputs.coverage_percentage || 0 }}"
+            echo "📈 Coverage change: $old_coverage% → $new_coverage%"
           fi
           cd ..
         fi
         
         # Re-run backend tests if they were fixed
         if [ "${{ steps.fix-backend-tests.outputs.backend_fixes_applied || 0 }}" -gt "0" ]; then
+          echo ""
           echo "🧪 Re-running backend tests..."
+          echo "🔍 Backend fixes applied: ${{ steps.fix-backend-tests.outputs.backend_fixes_applied || 0 }}"
+          echo ""
+          echo "📊 Running backend test suite with coverage..."
           cd backend
           bun run test --coverage 2>&1 | tee ../scripts/backend-retest.log
           backend_retest_exit=$?
           echo "backend_retest_exit_code=$backend_retest_exit" >> $GITHUB_OUTPUT
+          
+          echo ""
+          if [ $backend_retest_exit -eq 0 ]; then
+            echo "✅ Backend tests passed after AI improvements!"
+          else
+            echo "❌ Backend tests still failing after AI improvements"
+            echo "📄 Last 10 lines of test output:"
+            tail -10 ../scripts/backend-retest.log | sed 's/^/   /'
+          fi
           cd ..
         fi
+        
+        echo ""
+        echo "🎉 Test re-run completed!"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
     - name: Generate Test Summary
       id: summary
@@ -618,30 +706,47 @@ jobs:
 
     - name: Comment on PR
       if: ${{ github.event_name == 'push' }}
+      continue-on-error: true
       uses: actions/github-script@v7
       with:
         script: |
           const fs = require('fs');
           
-          if (fs.existsSync('test-summary.md')) {
-            const summary = fs.readFileSync('test-summary.md', 'utf8');
-            
-            // Try to find an open PR for this branch
-            const prs = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              head: `${context.repo.owner}:${context.ref.replace('refs/heads/', '')}`,
-              state: 'open'
-            });
-            
-            if (prs.data.length > 0) {
-              await github.rest.issues.createComment({
-                issue_number: prs.data[0].number,
+          try {
+            if (fs.existsSync('test-summary.md')) {
+              const summary = fs.readFileSync('test-summary.md', 'utf8');
+              
+              // Try to find an open PR for this branch
+              const prs = await github.rest.pulls.list({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: summary
+                head: `${context.repo.owner}:${context.ref.replace('refs/heads/', '')}`,
+                state: 'open'
               });
+              
+              if (prs.data.length > 0) {
+                console.log(`📝 Attempting to comment on PR #${prs.data[0].number}`);
+                await github.rest.issues.createComment({
+                  issue_number: prs.data[0].number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: summary
+                });
+                console.log(`✅ Successfully commented on PR #${prs.data[0].number}`);
+              } else {
+                console.log('ℹ️ No open PR found for this branch');
+              }
+            } else {
+              console.log('ℹ️ No test summary file found');
             }
+          } catch (error) {
+            if (error.status === 403) {
+              console.log('⚠️ Permission denied: GitHub App does not have permission to comment on PRs');
+              console.log('💡 Consider adding "pull-requests: write" permission to the workflow');
+            } else {
+              console.log(`❌ Failed to comment on PR: ${error.message}`);
+            }
+            // Don't fail the workflow for comment issues
           }
 
     - name: Create Summary

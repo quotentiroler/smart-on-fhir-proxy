@@ -235,11 +235,15 @@ class UnifiedChangeApplier:
             print(f"💾 Committing {total_files} files with {changes_applied} changes...", file=sys.stderr)
             first_line = commit_message.split('\n')[0]
             print(f"📝 Commit message: {first_line}", file=sys.stderr)
-            subprocess.run([
+            commit_result = subprocess.run([
                 "git", "commit", "-m", commit_message
-            ], check=True)
+            ], capture_output=True, text=True, check=True)
             
             print(f"✅ Successfully committed {total_files} files with {changes_applied} changes", file=sys.stderr)
+            if commit_result.stdout:
+                print(f"📝 Commit output: {commit_result.stdout}", file=sys.stderr)
+            if commit_result.stderr:
+                print(f"📝 Commit stderr: {commit_result.stderr}", file=sys.stderr)
             
             # Check current branch and remote info
             branch_result = subprocess.run([

@@ -22,6 +22,7 @@ function mockMatchMedia(prefersDark: boolean) {
   const mql = {
     matches: prefersDark,
     media: '(prefers-color-scheme: dark)',
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     onchange: null as unknown as ((this: MediaQueryList, ev: MediaQueryListEvent) => any) | null,
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
@@ -30,7 +31,6 @@ function mockMatchMedia(prefersDark: boolean) {
     dispatchEvent: vi.fn(),
   } as unknown as MediaQueryList
 
-  // @ts-expect-error jsdom partial support
   window.matchMedia = vi.fn().mockImplementation((query: string) => ({
     ...mql,
     matches: prefersDark && query.includes('prefers-color-scheme: dark'),
