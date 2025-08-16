@@ -103,9 +103,25 @@ jobs:
         echo "🔍 Analyzing frontend test results..."
         cd ui
         
-        # Check if tests failed
-        if [ "${{ steps.frontend-test-coverage.outputs.frontend_test_exit_code }}" != "0" ]; then
-          echo "❌ Frontend tests failed, will need AI fixes"
+        # Check if tests failed (exit code OR output contains failures)
+        test_exit_code="${{ steps.frontend-test-coverage.outputs.frontend_test_exit_code }}"
+        has_test_failures="false"
+        
+        # Check exit code
+        if [ "$test_exit_code" != "0" ]; then
+          echo "❌ Frontend tests failed with exit code: $test_exit_code"
+          has_test_failures="true"
+        fi
+        
+        # Also check test output for failure indicators
+        if [ -f test-output.log ]; then
+          if grep -qE "(failed|error:|FAIL|AssertionError)" test-output.log; then
+            echo "❌ Frontend test output contains failures/errors"
+            has_test_failures="true"
+          fi
+        fi
+        
+        if [ "$has_test_failures" = "true" ]; then
           echo "needs_fixes=true" >> $GITHUB_OUTPUT
           
           # Save error log for AI analysis
@@ -165,9 +181,25 @@ jobs:
         echo "🔍 Analyzing backend test results..."
         cd backend
         
-        # Check if tests failed or missing
-        if [ "${{ steps.backend-test-coverage.outputs.backend_test_exit_code }}" != "0" ]; then
-          echo "❌ Backend tests failed or missing, will need AI fixes"
+        # Check if tests failed or missing (exit code OR output contains failures)
+        test_exit_code="${{ steps.backend-test-coverage.outputs.backend_test_exit_code }}"
+        has_test_failures="false"
+        
+        # Check exit code
+        if [ "$test_exit_code" != "0" ]; then
+          echo "❌ Backend tests failed with exit code: $test_exit_code"
+          has_test_failures="true"
+        fi
+        
+        # Also check test output for failure indicators
+        if [ -f test-output.log ]; then
+          if grep -qE "(failed|error:|FAIL|AssertionError|No backend tests)" test-output.log; then
+            echo "❌ Backend test output contains failures/errors or missing tests"
+            has_test_failures="true"
+          fi
+        fi
+        
+        if [ "$has_test_failures" = "true" ]; then
           echo "needs_fixes=true" >> $GITHUB_OUTPUT
           
           # Save error log for AI analysis
