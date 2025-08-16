@@ -76,7 +76,8 @@ export async function validateToken(token: string): Promise<JwtPayload> {
       throw new AuthenticationError(`Invalid token: ${error.message}`)
     } else if (error instanceof jwt.NotBeforeError) {
       throw new AuthenticationError('Token not yet valid')
-    } else if (error instanceof AuthenticationError) {
+    } else if (error instanc
+      eof AuthenticationError) {
       // Re-throw authentication errors
       throw error
     } else {
