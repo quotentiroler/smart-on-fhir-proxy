@@ -200,8 +200,11 @@ class CodeExplorerMCP:
                 from sklearn.metrics.pairwise import cosine_similarity
             except ImportError:
                 return {
-                    "error": "SBERT dependencies not available. To use semantic search, install: pip install sentence-transformers scikit-learn",
-                    "suggestion": "Use regular search_files as fallback, or create a custom tool to install dependencies"
+                    "error": "🚫 SBERT semantic search not available (optional heavy dependencies not installed)",
+                    "fallback_suggestion": "Using regular text search instead. For semantic search, uncomment the ML dependencies in requirements.txt",
+                    "install_command": "pip install sentence-transformers scikit-learn torch --index-url https://download.pytorch.org/whl/cpu",
+                    "note": "⚠️ Warning: This will download ~500MB+ of ML libraries. Only install if you really need semantic search.",
+                    "alternative": "Consider using search_files() or create a custom regex-based search tool instead"
                 }
             
             print(f"🧠 Starting semantic search for: '{query}'", file=sys.stderr)

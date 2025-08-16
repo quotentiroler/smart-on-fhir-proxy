@@ -33,8 +33,8 @@ jobs:
     name: Backend Build & Test
     runs-on: ubuntu-latest
     outputs:
-      build_success: ${{ job.status == 'success' }}
-      tests_success: ${{ job.status == 'success' }}
+      build_success: ${{ steps.backend-fix-retry.outputs.BACKEND_BUILD_FIXED == 'true' || (steps.build-status.outputs.BUILD_FAILED != 'true' && steps.backend-build.outcome == 'success') }}
+      tests_success: ${{ steps.backend-test-fix-retry.outputs.BACKEND_TEST_FIXED == 'true' || steps.test-backend.outcome == 'success' || !inputs.run_tests }}
 
     steps:
       - name: Checkout code
@@ -204,15 +204,48 @@ jobs:
         run: |
           echo "🔧 Applying reviewed backend fixes..."
           python scripts/apply-changes.py scripts/reviewed-backend-fixes.json
+          
+          echo "🔄 Retrying backend build after applying fixes..."
+          cd backend
+          
+          # Clear any previous build artifacts
+          rm -rf dist/
+          
+          # Retry the build
+          if bun run build 2>&1 | tee ../backend-build-retry.log; then
+            echo "✅ Backend build successful after AI fixes!"
+            echo "backend_build_success=true" >> $GITHUB_OUTPUT
+            echo "BACKEND_BUILD_FIXED=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Backend build still failing after AI fixes"
+            echo "backend_build_success=false" >> $GITHUB_OUTPUT
+            echo "BACKEND_BUILD_FIXED=false" >> $GITHUB_OUTPUT
+            echo "=== RETRY BUILD ERRORS ==="
+            cat ../backend-build-retry.log
+            echo "=========================="
+          fi
+
+      - name: Success Message - AI Fixed the Build
+        if: ${{ always() && steps.backend-fix-retry.outputs.BACKEND_BUILD_FIXED == 'true' }}
+        run: |
+          echo "🎉 SUCCESS: AI fixes resolved the backend build issues!"
+          echo "✅ Backend build is now working after AI intervention"
+          echo "🤖 Junior AI proposed fixes, Senior AI reviewed them, and they were successfully applied"
 
       - name: Fail if backend build failed and AI couldn't fix it
-        if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') && steps.backend-fix-retry.outputs.backend_build_success != 'true' }}
+        if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') && steps.backend-fix-retry.outputs.BACKEND_BUILD_FIXED != 'true' }}
         run: |
           echo "❌ Backend build failed and AI fixes did not resolve the issues"
           echo "Build status: ${{ steps.build-status.outputs.BUILD_FAILED }}"
-          echo "Fix retry success: ${{ steps.backend-fix-retry.outputs.backend_build_success }}"
+          echo "Fix retry success: ${{ steps.backend-fix-retry.outputs.BACKEND_BUILD_FIXED }}"
           echo "=== FINAL BUILD ERRORS ==="
-          cat backend-build.log
+          if [ -f "backend-build-retry.log" ]; then
+            echo "Showing retry build errors:"
+            cat backend-build-retry.log
+          else
+            echo "Showing original build errors:"
+            cat backend-build.log
+          fi
           exit 1
 
       # === BACKEND TEST PHASE ===
@@ -313,14 +346,46 @@ jobs:
         run: |
           echo "🔧 Applying reviewed backend test fixes..."
           python scripts/apply-changes.py scripts/reviewed-backend-test-fixes.json
+          
+          echo "🔄 Retrying backend tests after applying fixes..."
+          cd backend
+          
+          # Retry the tests
+          if bun test 2>&1 | tee ../backend-test-retry.log; then
+            echo "✅ Backend tests successful after AI fixes!"
+            echo "backend_test_success=true" >> $GITHUB_OUTPUT
+            echo "BACKEND_TEST_FIXED=true" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Backend tests still failing after AI fixes"
+            echo "backend_test_success=false" >> $GITHUB_OUTPUT
+            echo "BACKEND_TEST_FIXED=false" >> $GITHUB_OUTPUT
+            echo "=== RETRY TEST ERRORS ==="
+            cat ../backend-test-retry.log
+            echo "=========================="
+          fi
 
       - name: Fail if backend tests failed and AI couldn't fix it
-        if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' && steps.backend-test-fix-retry.outcome != 'success' && inputs.fail_on_test_failure }}
+        if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' && steps.backend-test-fix-retry.outputs.BACKEND_TEST_FIXED != 'true' && inputs.fail_on_test_failure }}
         run: |
           echo "❌ Backend tests failed and AI fixes did not resolve the issues. Failing workflow as requested."
           echo "Test outcome: ${{ steps.test-backend.outcome }}"
-          echo "Fix retry outcome: ${{ steps.backend-test-fix-retry.outcome }}"
+          echo "Fix retry success: ${{ steps.backend-test-fix-retry.outputs.BACKEND_TEST_FIXED }}"
+          echo "=== FINAL TEST ERRORS ==="
+          if [ -f "backend-test-retry.log" ]; then
+            echo "Showing retry test errors:"
+            cat backend-test-retry.log
+          else
+            echo "Showing original test errors:"
+            cat backend-test.log
+          fi
           exit 1
+
+      - name: Success Message - AI Fixed the Tests
+        if: ${{ always() && steps.backend-test-fix-retry.outputs.BACKEND_TEST_FIXED == 'true' }}
+        run: |
+          echo "🎉 SUCCESS: AI fixes resolved the backend test issues!"
+          echo "✅ Backend tests are now passing after AI intervention"
+          echo "🤖 Junior AI proposed fixes, Senior AI reviewed them, and they were successfully applied"
 
       # === API GENERATION (only after successful backend build/test) ===
       - name: Upload backend build artifacts

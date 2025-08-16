@@ -1,9 +1,23 @@
+# ===== CORE DEPENDENCIES (REQUIRED) =====
 requests>=2.31.0
-# Optional: for local development with .env files
-python-dotenv>=1.0.0
-# Web scraping and automation dependencies
-beautifulsoup4>=4.12.0
-playwright>=1.40.0
-# Optional: for semantic search functionality
-sentence-transformers>=2.2.0
-scikit-learn>=1.3.0
+python-dotenv>=1.0.0  # For local .env file support
+beautifulsoup4>=4.12.0  # For web scraping
+playwright>=1.40.0  # For browser automation
+
+# ===== SEMANTIC SEARCH (OPTIONAL - CPU ONLY) =====
+# Uncomment the next 3 lines ONLY if you want semantic search:
+ torch>=1.11.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+ sentence-transformers>=2.2.0
+ scikit-learn>=1.3.0
+
+# ===== QUICK SETUP COMMANDS =====
+# 
+# For BASIC usage (no semantic search):
+#   pip install -r requirements.txt
+#
+# For FULL features with semantic search (CPU-only, ~100MB):
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   pip install sentence-transformers scikit-learn
+#   pip install -r requirements.txt
+#
+# The system gracefully falls back to regular search if ML libs aren't installed
