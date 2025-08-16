@@ -6,17 +6,18 @@ on:
       - "dev/*"
       - "ai/dev/*"
   workflow_run:
-    workflows: ["Build & Test", "Build & Test Backend", "Build & Test Frontend"]
+    workflows: ["Build & Test", "AI Build & Test", "Build & Test Backend", "Build & Test Frontend"]
     types:
       - completed
     branches:
       - "dev/*"
+      - "ai/dev/*"
 
 jobs:
   ai-comment:
     name: Review & Comment on HEAD Commit
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/dev/') || (github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'dev/'))
+    if: startsWith(github.ref, 'refs/heads/dev/') || startsWith(github.ref, 'refs/heads/ai/dev/') || (github.event.workflow_run.conclusion == 'success' && (startsWith(github.event.workflow_run.head_branch, 'dev/') || startsWith(github.event.workflow_run.head_branch, 'ai/dev/')))
     continue-on-error: true
 
     steps:
