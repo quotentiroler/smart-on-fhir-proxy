@@ -11,10 +11,19 @@ jobs:
   ai-comment:
     name: Review & Comment on Push
     runs-on: ubuntu-latest
-    if: ${{ contains(github.event.head_commit.message, 'update')}}
+    # Remove the if condition temporarily to ensure it runs
+    # if: ${{ contains(github.event.head_commit.message, 'update')}}
     continue-on-error: true
 
     steps:
+      - name: Debug workflow trigger
+        run: |
+          echo "🔍 Workflow triggered!"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit message: ${{ github.event.head_commit.message }}"
+          echo "Event name: ${{ github.event_name }}"
+          echo "Repository: ${{ github.repository }}"
+          
       - name: Checkout full history
         uses: actions/checkout@v4
         with:
