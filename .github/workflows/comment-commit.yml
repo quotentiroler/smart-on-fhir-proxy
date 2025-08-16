@@ -11,7 +11,7 @@ jobs:
   ai-comment:
     name: Review & Comment on Push
     runs-on: ubuntu-latest
-    if: ${{ !contains(github.event.head_commit.message, 'Merge') && !startsWith(github.event.head_commit.message, 'Merge pull request') && !startsWith(github.event.head_commit.message, 'Merge branch') }}
+    if: ${{ contains(github.event.head_commit.message, 'update')}}
     continue-on-error: true
 
     steps:

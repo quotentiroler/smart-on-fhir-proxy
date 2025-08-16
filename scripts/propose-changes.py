@@ -1733,7 +1733,35 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
                     # Handle each tool call
                     for tool_call in message['tool_calls']:
                         function_name = tool_call['function']['name']
-                        arguments = json.loads(tool_call['function']['arguments'])
+                        try:
+                            arguments = json.loads(tool_call['function']['arguments'])
+                        except json.JSONDecodeError as e:
+                            print(f"❌ JSON parsing error for {function_name}: {e}", file=sys.stderr)
+                            print(f"📄 Raw arguments: {tool_call['function']['arguments']}", file=sys.stderr)
+                            # Try to fix common JSON issues
+                            raw_args = tool_call['function']['arguments']
+                            # Remove any trailing incomplete JSON
+                            if raw_args.count('{') > raw_args.count('}'):
+                                # Find the last complete JSON object
+                                brace_count = 0
+                                last_valid_pos = 0
+                                for i, char in enumerate(raw_args):
+                                    if char == '{':
+                                        brace_count += 1
+                                    elif char == '}':
+                                        brace_count -= 1
+                                        if brace_count == 0:
+                                            last_valid_pos = i + 1
+                                            break
+                                if last_valid_pos > 0:
+                                    raw_args = raw_args[:last_valid_pos]
+                                    print(f"🔧 Attempting to fix JSON: {raw_args}", file=sys.stderr)
+                            try:
+                                arguments = json.loads(raw_args)
+                                print(f"✅ JSON parsing recovered", file=sys.stderr)
+                            except json.JSONDecodeError:
+                                print(f"❌ Unable to recover JSON, skipping this tool call", file=sys.stderr)
+                                continue
                         
                         # Execute the function
                         result = self.handle_function_call(function_name, arguments)
