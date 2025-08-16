@@ -1,0 +1,77 @@
+📝 No .env file found, using system environment variables
+🧪 Test-Enhanced Junior AI starting analysis...
+🎯 Component: backend, Test Scenario: coverage_improvement
+🧠 Junior AI starting interactive code exploration...
+🎯 Detected component type: frontend
+🌱 Seeding initial context from error files...
+🔄 AI Iteration 1
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'backend'})
+🔄 AI Iteration 2
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'backend/src'})
+🔄 AI Iteration 3
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'backend/src/routes'})
+🔄 AI Iteration 4
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'backend/src/routes/admin'})
+🔄 AI Iteration 5
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'backend/src/routes/auth'})
+🔄 AI Iteration 6
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/src/routes/status.ts'})
+🔄 AI Iteration 7
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/src/lib/system-status.ts'})
+🔄 AI Iteration 8
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/test/status.test.ts'})
+🔄 AI Iteration 9
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'backend/test'})
+🔄 AI Iteration 10
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/test/integration.test.ts'})
+🔄 AI Iteration 11
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/test/validation.test.ts'})
+🔄 AI Iteration 12
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: search_files({'pattern': 'getFHIRServerInfo', 'file_type': '*.ts'})
+🔄 AI Iteration 13
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/src/lib/fhir-utils.ts'})
+🔄 AI Iteration 14
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/src/config.ts'})
+🔄 AI Iteration 15
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/package.json'})
+🔄 AI Iteration 16
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: search_files({'pattern': 'keycloakConnectionLogger', 'file_type': '*.ts'})
+🔄 AI Iteration 17
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/src/lib/keycloak-connection-logger.ts'})
+🔄 AI Iteration 18
+🌐 HTTP Status: 200
+✅ AI exploration and analysis complete
