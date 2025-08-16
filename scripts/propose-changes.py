@@ -36,7 +36,7 @@ except Exception as e:
 import requests
 from ai_proposal_schema import get_propose_payload_base, get_common_headers, create_system_message, create_user_content_base
 
-def make_api_call_with_retry(url: str, payload: dict, headers: dict, max_retries: int = 3, timeout: int = 120) -> requests.Response:
+def make_api_call_with_retry(url: str, payload: dict, headers: dict, max_retries: int = 3, timeout: int = 180) -> requests.Response:
     """Make an API call with automatic retry logic for rate limits"""
     retry_count = 0
     
@@ -1711,8 +1711,8 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
             print(f"🔄 AI Iteration {iteration}", file=sys.stderr)
             
             try:
-                # Use the retry helper function
-                response = make_api_call_with_retry(self.base_url, payload, headers)
+                # Use the retry helper function with increased timeout
+                response = make_api_call_with_retry(self.base_url, payload, headers, timeout=180)
                 print(f"🌐 HTTP Status: {response.status_code}", file=sys.stderr)
                 
                 if response.status_code != 200:

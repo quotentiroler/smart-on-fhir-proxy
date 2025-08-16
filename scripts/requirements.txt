@@ -8,9 +8,9 @@ selenium>=4.15.0  # For UI testing
 
 # ===== SEMANTIC SEARCH (OPTIONAL - CPU ONLY) =====
 # Uncomment the next 3 lines ONLY if you want semantic search:
-# torch>=1.11.0 --index-url https://download.pytorch.org/whl/cpu
-# sentence-transformers>=2.2.0
-# scikit-learn>=1.3.0
+ torch>=1.11.0 --index-url https://download.pytorch.org/whl/cpu
+ sentence-transformers>=2.2.0
+ scikit-learn>=1.3.0
 
 # ===== QUICK SETUP COMMANDS =====
 # 

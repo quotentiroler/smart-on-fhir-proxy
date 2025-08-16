@@ -167,24 +167,59 @@ Return the SAME JSON structure but with your improvements:
         
         try:
             print("🌐 Sending review request to Senior AI...", file=sys.stderr)
-            response = requests.post(self.base_url, json=payload, headers=headers, timeout=120)
-            print(f"🌐 HTTP Status: {response.status_code}", file=sys.stderr)
             
-            if response.status_code != 200:
-                print(f"❌ Senior AI API call failed: {response.text}", file=sys.stderr)
-                return validated_changes
+            # Increase timeout and add retry logic for large requests
+            max_retries = 3
+            timeout = 180  # 3 minutes
             
-            result = response.json()
-            review_content = result['choices'][0]['message']['content']
-            
-            try:
-                reviewed_changes = json.loads(review_content)
-                print("✅ Senior AI review complete", file=sys.stderr)
-                return reviewed_changes
-            except json.JSONDecodeError:
-                print("❌ Failed to parse Senior AI response as JSON", file=sys.stderr)
-                print(f"Raw response: {review_content}", file=sys.stderr)
-                return validated_changes
+            for attempt in range(max_retries):
+                try:
+                    print(f"🔄 Attempt {attempt + 1}/{max_retries} - Sending request to OpenAI...", file=sys.stderr)
+                    response = requests.post(self.base_url, json=payload, headers=headers, timeout=timeout)
+                    print(f"🌐 HTTP Status: {response.status_code}", file=sys.stderr)
+                    
+                    if response.status_code != 200:
+                        print(f"❌ Senior AI API call failed: {response.text}", file=sys.stderr)
+                        return validated_changes
+                    
+                    result = response.json()
+                    review_content = result['choices'][0]['message']['content']
+                    
+                    try:
+                        reviewed_changes = json.loads(review_content)
+                        print("✅ Senior AI review complete", file=sys.stderr)
+                        return reviewed_changes
+                    except json.JSONDecodeError:
+                        print("❌ Failed to parse Senior AI response as JSON", file=sys.stderr)
+                        print(f"Raw response: {review_content}", file=sys.stderr)
+                        return validated_changes
+                    
+                except requests.exceptions.Timeout:
+                    print(f"⏰ Request timed out after {timeout} seconds (attempt {attempt + 1})", file=sys.stderr)
+                    if attempt < max_retries - 1:
+                        print("🔄 Retrying with simplified request...", file=sys.stderr)
+                        # Simplify the payload for retry
+                        if len(json.dumps(validated_changes)) > 8000:
+                            print("📋 Simplifying changes data for retry...", file=sys.stderr)
+                            simplified_changes = {
+                                "analysis": validated_changes.get("analysis", "")[:500] + "...",
+                                "changes": validated_changes.get("changes", [])[:3]  # Limit to first 3 changes
+                            }
+                            payload["messages"][1]["content"] = review_prompt.replace(
+                                json.dumps(validated_changes, indent=2),
+                                json.dumps(simplified_changes, indent=2)
+                            )
+                    else:
+                        print("❌ All retry attempts failed due to timeout", file=sys.stderr)
+                        return validated_changes
+                        
+                except requests.exceptions.RequestException as e:
+                    print(f"❌ Request failed: {e} (attempt {attempt + 1})", file=sys.stderr)
+                    if attempt < max_retries - 1:
+                        print("🔄 Retrying...", file=sys.stderr)
+                    else:
+                        print("❌ All retry attempts failed", file=sys.stderr)
+                        return validated_changes
                 
         except Exception as e:
             print(f"❌ Error during Senior AI review: {e}", file=sys.stderr)

@@ -169,7 +169,8 @@ class UnifiedChangeApplier:
             
             # Commit changes
             print(f"💾 Committing {changes_applied} changes...", file=sys.stderr)
-            print(f"📝 Commit message: {commit_message.split('\\n')[0]}", file=sys.stderr)
+            first_line = commit_message.split('\n')[0]
+            print(f"📝 Commit message: {first_line}", file=sys.stderr)
             subprocess.run([
                 "git", "commit", "-m", commit_message
             ], check=True)
