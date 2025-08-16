@@ -603,9 +603,20 @@ jobs:
         
         # Check results
         if [ -f frontend-test-result.json ]; then
-          added=$(cat frontend-test-result.json | jq -r '.changes_applied // 0')
-          echo "frontend_tests_added=$added" >> $GITHUB_OUTPUT
-          echo "📝 Generated $added frontend test files/improvements"
+          echo "📄 Checking frontend-test-result.json for valid JSON..."
+          if jq . frontend-test-result.json >/dev/null 2>&1; then
+            added=$(cat frontend-test-result.json | jq -r '.changes_applied // 0' 2>/dev/null || echo "0")
+            echo "frontend_tests_added=$added" >> $GITHUB_OUTPUT
+            echo "📝 Generated $added frontend test files/improvements"
+          else
+            echo "⚠️ frontend-test-result.json contains invalid JSON, using fallback"
+            echo "frontend_tests_added=0" >> $GITHUB_OUTPUT
+            echo "📄 Raw content preview:"
+            head -3 frontend-test-result.json | sed 's/^/   /'
+          fi
+        else
+          echo "❌ frontend-test-result.json not found"
+          echo "frontend_tests_added=0" >> $GITHUB_OUTPUT
         fi
 
     - name: Re-run Tests After AI Fixes
