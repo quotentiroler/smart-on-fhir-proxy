@@ -1,0 +1,101 @@
+📝 No .env file found, using system environment variables
+🧪 Test-Enhanced Junior AI starting analysis...
+🎯 Component: frontend, Test Scenario: coverage_improvement
+🧠 Junior AI starting interactive code exploration...
+🎯 Detected component type: frontend
+🌱 Seeding initial context from error files...
+🔄 AI Iteration 1
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'ui/src'})
+🔄 AI Iteration 2
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'ui/src/components'})
+🔄 AI Iteration 3
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'ui/src/components/ui'})
+🔄 AI Iteration 4
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'ui/test', 'recursive': False})
+🔄 AI Iteration 5
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'ui/test/components', 'recursive': False})
+🔄 AI Iteration 6
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/src/components/theme-provider.tsx'})
+🔄 AI Iteration 7
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/test/components/theme-provider.test.tsx'})
+🔄 AI Iteration 8
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/src/hooks/useTheme.tsx'})
+🔄 AI Iteration 9
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'ui/src/hooks', 'recursive': False})
+🔄 AI Iteration 10
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/src/hooks/useTheme.ts'})
+🔄 AI Iteration 11
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/src/lib/storage.ts'})
+🔄 AI Iteration 12
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/src/components/ui/input.tsx'})
+🔄 AI Iteration 13
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/test/components/input.test.tsx'})
+🔄 AI Iteration 14
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/test/components/textarea.test.tsx'})
+🔄 AI Iteration 15
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/src/components/LoginForm.tsx'})
+🔄 AI Iteration 16
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/src/components/LoginForm.tsx', 'lines': '463-999'})
+🔄 AI Iteration 17
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'ui/src/service', 'recursive': False})
+🔄 AI Iteration 18
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/src/service/openid-service.ts'})
+🔄 AI Iteration 19
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'ui/src/lib', 'recursive': False})
+🔄 AI Iteration 20
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/src/lib/ErrorBoundary.tsx'})
+🔄 AI Iteration 21
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/test/components/theme-provider.extra.test.tsx'})
+🔄 AI Iteration 22
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'ui/src/lib/api-client', 'recursive': False})
+🔄 AI Iteration 23
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/test/setup.ts'})
+🔄 AI Iteration 24
+🌐 HTTP Status: 200
+✅ AI exploration and analysis complete

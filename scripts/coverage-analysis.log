@@ -1,7 +1,7 @@
 === FRONTEND TEST COVERAGE ENHANCEMENT ===
 Component: Frontend (React/TypeScript)
 Task: Generate missing tests to improve code coverage
-Current coverage: 1.14%
+Current coverage: 1.18%
 Target coverage: 80%
 Framework: Vitest + Testing Library + Jest DOM
 
@@ -14,6 +14,28 @@ COVERAGE GAPS TO ADDRESS:
 UNCOVERED/LOW COVERAGE FILES:
 
 EXISTING TEST PATTERNS (for reference):
+Example test file: ../ui/test/components/theme-provider.extra.test.tsx
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import React from 'react'
+import { ThemeProvider } from '@/components/theme-provider'
+import { useTheme } from '@/hooks/useTheme'
+
+function ThemeConsumer() {
+  const { theme, setTheme } = useTheme()
+  return (
+    <div>
+      <div aria-label="theme">{theme}</div>
+      <button onClick={() => setTheme('dark')}>Set Dark</button>
+      <button onClick={() => setTheme('light')}>Set Light</button>
+      <button onClick={() => setTheme('system')}>Set System</button>
+    </div>
+  )
+}
+
+// helper to mock prefers-color-scheme
+---
 Example test file: ../ui/test/components/input.test.tsx
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
@@ -57,26 +79,4 @@ describe('Button', () => {
     let button = screen.getByRole('button', { name: /delete/i })
     expect(button).toHaveClass('bg-destructive')
     
----
-Example test file: ../ui/test/components/theme-provider.test.tsx
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { ThemeProvider } from '@/components/theme-provider'
-import { useTheme } from '@/hooks/useTheme'
-
-function ThemeConsumer() {
-  const { theme, setTheme } = useTheme()
-  return (
-    <div>
-      <div aria-label="theme">{theme}</div>
-      <button onClick={() => setTheme('dark')}>Set Dark</button>
-    </div>
-  )
-}
-
-describe('ThemeProvider', () => {
-  it('initializes with defaultTheme and updates DOM and storage when setTheme is called', async () => {
-    const user = userEvent.setup()
-    // ensure no pre-existing theme
 ---
