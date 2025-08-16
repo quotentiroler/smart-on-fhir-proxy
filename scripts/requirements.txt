@@ -6,7 +6,7 @@ playwright>=1.40.0  # For browser automation
 
 # ===== SEMANTIC SEARCH (OPTIONAL - CPU ONLY) =====
 # Uncomment the next 3 lines ONLY if you want semantic search:
- torch>=1.11.0+cpu -f https://download.pytorch.org/whl/torch_stable.html
+ torch>=1.11.0 --index-url https://download.pytorch.org/whl/cpu
  sentence-transformers>=2.2.0
  scikit-learn>=1.3.0
 
@@ -16,8 +16,11 @@ playwright>=1.40.0  # For browser automation
 #   pip install -r requirements.txt
 #
 # For FULL features with semantic search (CPU-only, ~100MB):
-#   pip install torch --index-url https://download.pytorch.org/whl/cpu
-#   pip install sentence-transformers scikit-learn
-#   pip install -r requirements.txt
+#   1. First install CPU-only PyTorch:
+#      pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   2. Then install other ML dependencies:
+#      pip install sentence-transformers scikit-learn
+#   3. Finally install core dependencies:
+#      pip install -r requirements.txt
 #
 # The system gracefully falls back to regular search if ML libs aren't installed
