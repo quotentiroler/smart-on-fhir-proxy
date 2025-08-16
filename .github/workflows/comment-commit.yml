@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "dev/*"
+      - "ai/dev/*"
   workflow_run:
     workflows: ["Build & Test", "Build & Test Backend", "Build & Test Frontend"]
     types:
