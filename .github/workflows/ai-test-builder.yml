@@ -214,205 +214,587 @@ jobs:
       if: ${{ steps.analyze-frontend.outputs.needs_fixes == 'true' }}
       id: fix-frontend-tests
       run: |
-        echo "🤖 Junior AI fixing frontend test errors..."
+        echo "🤖 AI Frontend Test Error Resolution Pipeline Starting..."
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "🎯 Pipeline Overview:"
+        echo "   Phase 1: Enhanced Error Analysis & Context Preparation"
+        echo "   Phase 2: Junior AI Interactive Code Exploration & Fix Generation"
+        echo "   Phase 3: Senior AI Critical Review & Validation (Optional)"
+        echo "   Phase 4: Automated Applier - Precise File Modifications"
+        echo "   Phase 5: Git Operations & Result Verification"
+        echo ""
+        
         cd scripts
         
-        # Enhance error log with context for Junior AI
+        # Phase 1: Enhanced Error Analysis & Context Preparation
+        echo "📋 PHASE 1: Enhanced Error Analysis & Context Preparation"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        
+        # Gather comprehensive context about the frontend environment
+        echo "🔍 Gathering frontend environment context..."
+        
+        # Check frontend package.json for test configuration
+        if [ -f ../ui/package.json ]; then
+          echo "   📦 Frontend package.json detected"
+          echo "   🔧 Test scripts available:"
+          cat ../ui/package.json | jq -r '.scripts | to_entries[] | select(.key | contains("test")) | "      \(.key): \(.value)"' 2>/dev/null || echo "      (Could not parse test scripts)"
+          
+          echo "   📚 Testing dependencies:"
+          cat ../ui/package.json | jq -r '.devDependencies | to_entries[] | select(.key | test("test|vitest|jest|cypress|playwright")) | "      \(.key): \(.value)"' 2>/dev/null || echo "      (Could not parse dependencies)"
+        else
+          echo "   ⚠️ No package.json found in ui/ directory"
+        fi
+        
+        # Check if vitest config exists
+        echo "   ⚙️ Test configuration files:"
+        for config_file in ../ui/vitest.config.ts ../ui/vitest.config.js ../ui/vite.config.ts ../ui/jest.config.js; do
+          if [ -f "$config_file" ]; then
+            echo "      ✅ Found: $(basename $config_file)"
+          fi
+        done
+        
+        # Check existing test structure
+        echo "   📁 Existing test structure:"
+        if [ -d ../ui/test ]; then
+          test_count=$(find ../ui/test -name "*.test.*" -o -name "*.spec.*" | wc -l)
+          echo "      📊 Test files found: $test_count"
+          if [ $test_count -gt 0 ]; then
+            echo "      📂 Test directories:"
+            find ../ui/test -type d | head -5 | sed 's|../ui/test|      ui/test|'
+            echo "      📄 Sample test files:"
+            find ../ui/test -name "*.test.*" -o -name "*.spec.*" | head -3 | sed 's|../ui/|      ui/|'
+          fi
+        else
+          echo "      ⚠️ No test directory found"
+        fi
+        
+        # Check source code structure to understand what needs testing
+        echo "   📂 Source code structure (for test generation context):"
+        if [ -d ../ui/src ]; then
+          component_count=$(find ../ui/src -name "*.tsx" -o -name "*.jsx" | wc -l)
+          echo "      🧩 React components found: $component_count"
+          if [ $component_count -gt 0 ]; then
+            echo "      📄 Sample components:"
+            find ../ui/src -name "*.tsx" -o -name "*.jsx" | head -3 | sed 's|../ui/|      ui/|'
+          fi
+          
+          util_count=$(find ../ui/src -name "*.ts" -not -name "*.test.*" -not -name "*.spec.*" | wc -l)
+          echo "      🔧 TypeScript utilities/modules: $util_count"
+        fi
+        
+        # Enhance error log with comprehensive context for Junior AI
+        echo ""
+        echo "📝 Creating enhanced error analysis log for AI processing..."
         echo "=== FRONTEND TEST ERROR ANALYSIS ===" > enhanced-frontend-errors.log
+        echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> enhanced-frontend-errors.log
         echo "Component: Frontend (UI)" >> enhanced-frontend-errors.log
         echo "Task: Fix failing tests and resolve test configuration issues" >> enhanced-frontend-errors.log
         echo "Context: Running 'bun run vitest run --coverage' in ui/ directory" >> enhanced-frontend-errors.log
+        echo "Target Coverage: ${{ inputs.coverage_threshold || 80 }}%" >> enhanced-frontend-errors.log
         echo "" >> enhanced-frontend-errors.log
+        
+        # Add environment context to the log
+        echo "=== ENVIRONMENT CONTEXT ===" >> enhanced-frontend-errors.log
+        echo "Node.js Runtime: Bun" >> enhanced-frontend-errors.log
+        echo "Test Framework: Vitest (expected)" >> enhanced-frontend-errors.log
+        echo "Component Framework: React + TypeScript" >> enhanced-frontend-errors.log
+        echo "Build Tool: Vite" >> enhanced-frontend-errors.log
+        echo "" >> enhanced-frontend-errors.log
+        
+        # Add test structure context
+        if [ -d ../ui/test ]; then
+          echo "=== EXISTING TEST STRUCTURE ===" >> enhanced-frontend-errors.log
+          find ../ui/test -type f | head -10 >> enhanced-frontend-errors.log
+          echo "" >> enhanced-frontend-errors.log
+        fi
+        
+        # Add the actual error log
+        echo "=== ORIGINAL TEST ERROR OUTPUT ===" >> enhanced-frontend-errors.log
         cat frontend-test-errors.log >> enhanced-frontend-errors.log
         
-        echo "📝 Enhanced error log created with $(wc -l < enhanced-frontend-errors.log) lines of context"
+        log_lines=$(wc -l < enhanced-frontend-errors.log)
+        echo "   ✅ Enhanced error log created: $log_lines lines of comprehensive context"
+        echo "   📄 Log includes: environment details, existing structure, and error output"
         
-        # Phase 1: Junior AI Proposer - Interactive Code Exploration & Fix Generation
+        # Phase 2: Junior AI Proposer - Interactive Code Exploration & Fix Generation
         echo ""
-        echo "🧠 PHASE 1: Junior AI Proposer Starting Interactive Analysis..."
+        echo "🧠 PHASE 2: Junior AI Proposer - Interactive Code Exploration & Fix Generation"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "🎯 Junior AI will:"
-        echo "   • Analyze test failures using MCP code exploration tools"
-        echo "   • Read and understand affected files and dependencies"
-        echo "   • Use semantic search to find similar patterns"
-        echo "   • Create dynamic tools if needed for complex analysis"
-        echo "   • Consult Friend AI for collaborative problem-solving"
-        echo "   • Generate precise, actionable fixes"
+        echo "🤖 Junior AI Capabilities:"
+        echo "   • 🔍 MCP-based code exploration tools (semantic search, file reading)"
+        echo "   • 🧭 Dynamic workspace navigation and dependency analysis"  
+        echo "   • 🎯 Context-aware pattern recognition and solution generation"
+        echo "   • 🤝 Friend AI collaboration for complex problem-solving"
+        echo "   • 📊 Real-time error analysis and root cause identification"
+        echo "   • 🔧 Precise fix generation with validation"
+        echo ""
+        echo "📋 Processing Steps:"
+        echo "   1. Load enhanced error context ($log_lines lines)"
+        echo "   2. Explore codebase structure and dependencies"
+        echo "   3. Identify error patterns and root causes"
+        echo "   4. Generate targeted fixes with search/replace patterns"
+        echo "   5. Validate proposed changes against best practices"
+        echo ""
+        
+        start_time=$(date +%s)
+        echo "⏱️ Junior AI Proposer started at: $(date '+%H:%M:%S')"
         
         python test-enhanced-proposer.py enhanced-frontend-errors.log > frontend-proposed-fixes.json 2> frontend-proposer.log
         proposer_exit_code=$?
+        end_time=$(date +%s)
+        duration=$((end_time - start_time))
         
         echo ""
+        echo "⏱️ Junior AI Proposer completed in: ${duration}s"
+        echo "📊 Exit Code: $proposer_exit_code"
+        
         if [ $proposer_exit_code -eq 0 ]; then
           if [ -f frontend-proposed-fixes.json ]; then
-            proposed_count=$(cat frontend-proposed-fixes.json | jq -r '.changes | length' 2>/dev/null || echo "0")
-            echo "✅ Junior AI Proposer completed successfully!"
-            echo "   📊 Proposed changes: $proposed_count"
-            echo "   📄 Detailed analysis saved to frontend-proposer.log"
-            
-            # Show a preview of what was proposed
-            if [ "$proposed_count" -gt "0" ]; then
-              echo "   🎯 Change preview:"
-              cat frontend-proposed-fixes.json | jq -r '.changes[] | "      • \(.action) \(.file): \(.reasoning)"' 2>/dev/null | head -5
+            # Validate JSON structure
+            if jq . frontend-proposed-fixes.json >/dev/null 2>&1; then
+              proposed_count=$(jq -r '.changes | length' frontend-proposed-fixes.json 2>/dev/null || echo "0")
+              analysis_length=$(jq -r '.analysis | length' frontend-proposed-fixes.json 2>/dev/null || echo "0")
+              
+              echo "✅ Junior AI Proposer: SUCCESSFUL COMPLETION!"
+              echo "   📊 Analysis Quality:"
+              echo "      • Proposed changes: $proposed_count"
+              echo "      • Analysis length: $analysis_length characters"
+              echo "      • JSON structure: Valid ✅"
+              echo "   📄 Detailed logs: frontend-proposer.log ($(wc -l < frontend-proposer.log 2>/dev/null || echo "0") lines)"
+              
+              if [ "$proposed_count" -gt "0" ]; then
+                echo "   🎯 Proposed Changes Preview:"
+                jq -r '.changes[] | "      \(.action | ascii_upcase): \(.file)"' frontend-proposed-fixes.json 2>/dev/null | head -8
+                if [ "$proposed_count" -gt "8" ]; then
+                  echo "      ... and $((proposed_count - 8)) more changes"
+                fi
+                
+                echo "   🔬 Change Types Distribution:"
+                jq -r '.changes | group_by(.action) | map("\(.length) \(.[0].action)") | join(", ")' frontend-proposed-fixes.json 2>/dev/null | sed 's/^/      /'
+              else
+                echo "   ⚠️ No changes proposed - this may indicate the AI needs more context"
+              fi
+            else
+              echo "❌ Junior AI Proposer: JSON PARSING ERROR!"
+              echo "   📄 Raw output preview (first 200 chars):"
+              head -c 200 frontend-proposed-fixes.json 2>/dev/null | sed 's/^/      /' || echo "      (Could not read file)"
             fi
           else
-            echo "⚠️ Junior AI completed but no fixes file generated"
+            echo "❌ Junior AI Proposer: OUTPUT FILE MISSING!"
+            echo "   📄 Expected: frontend-proposed-fixes.json"
+            echo "   📋 Working directory contents:"
+            ls -la | grep -E "(frontend|json)" | sed 's/^/      /' || echo "      (No relevant files found)"
           fi
         else
-          echo "❌ Junior AI Proposer failed with exit code: $proposer_exit_code"
-          echo "📄 Error details:"
-          tail -10 frontend-proposer.log 2>/dev/null || echo "   No error log available"
+          echo "❌ Junior AI Proposer: EXECUTION FAILED!"
+          echo "   💥 Exit code: $proposer_exit_code"
+          echo "   📄 Error details from frontend-proposer.log:"
+          if [ -f frontend-proposer.log ]; then
+            echo "      Log size: $(wc -l < frontend-proposer.log) lines"
+            echo "      Last 5 lines:"
+            tail -5 frontend-proposer.log 2>/dev/null | sed 's/^/         >' || echo "         >(Could not read log)"
+          else
+            echo "      ❌ No error log file found"
+          fi
         fi
         
-        # Phase 2: Senior AI Reviewer - Critical Review & Validation (Optional)
+        # Phase 3: Senior AI Reviewer - Critical Review & Validation (Optional)
         echo ""
-        echo "🎓 PHASE 2: Senior AI Reviewer Starting Critical Analysis (Optional)..."
+        echo "🎓 PHASE 3: Senior AI Reviewer - Critical Review & Validation"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         
-        # First validate Junior AI output before sending to Senior AI
-        echo "🔍 Validating Junior AI output quality..."
-        junior_analysis=$(cat frontend-proposed-fixes.json | jq -r '.analysis // ""' 2>/dev/null || echo "")
-        junior_changes_count=$(cat frontend-proposed-fixes.json | jq -r '.changes | length' 2>/dev/null || echo "0")
-        
-        # Check for error indicators in Junior AI analysis
+        # Comprehensive validation of Junior AI output before Senior AI review
+        echo "🔍 Pre-Review Validation of Junior AI Output..."
+        junior_analysis=""
+        junior_changes_count="0"
         skip_senior_review=false
-        if echo "$junior_analysis" | grep -iE "(error occurred|timeout|failed|max iterations|api call failed|all attempts|giving up)" > /dev/null; then
-          echo "⚠️ Junior AI encountered issues, checking if output is still usable..."
-          echo "   Analysis excerpt: $(echo "$junior_analysis" | head -c 100)..."
+        
+        if [ -f frontend-proposed-fixes.json ]; then
+          # Extract analysis and changes for validation
+          junior_analysis=$(jq -r '.analysis // ""' frontend-proposed-fixes.json 2>/dev/null || echo "")
+          junior_changes_count=$(jq -r '.changes | length' frontend-proposed-fixes.json 2>/dev/null || echo "0")
           
-          if [ "$junior_changes_count" = "0" ] || [ "$junior_changes_count" = "null" ]; then
-            echo "❌ Junior AI failed with no usable changes, skipping Senior AI review"
-            skip_senior_review=true
+          echo "   📊 Junior AI Output Metrics:"
+          echo "      • Analysis length: ${#junior_analysis} characters"
+          echo "      • Proposed changes: $junior_changes_count"
+          echo "      • JSON validity: $(jq . frontend-proposed-fixes.json >/dev/null 2>&1 && echo "Valid ✅" || echo "Invalid ❌")"
+          
+          # Check for critical error indicators in analysis
+          error_indicators=()
+          if echo "$junior_analysis" | grep -qiE "error occurred"; then
+            error_indicators+=("error occurred")
+          fi
+          if echo "$junior_analysis" | grep -qiE "timeout|timed out"; then
+            error_indicators+=("timeout")
+          fi
+          if echo "$junior_analysis" | grep -qiE "failed|failure"; then
+            error_indicators+=("failure")
+          fi
+          if echo "$junior_analysis" | grep -qiE "max iterations|maximum.*reached"; then
+            error_indicators+=("max iterations")
+          fi
+          if echo "$junior_analysis" | grep -qiE "api call failed|api.*error"; then
+            error_indicators+=("API error")
+          fi
+          if echo "$junior_analysis" | grep -qiE "giving up|unable to.*proceed"; then
+            error_indicators+=("giving up")
+          fi
+          
+          if [ ${#error_indicators[@]} -gt 0 ]; then
+            echo "   ⚠️ Error Indicators Found: ${error_indicators[*]}"
+            echo "   📄 Analysis excerpt (first 150 chars): $(echo "$junior_analysis" | head -c 150)..."
+            
+            if [ "$junior_changes_count" = "0" ] || [ "$junior_changes_count" = "null" ]; then
+              echo "   ❌ DECISION: Skip Senior AI review (no usable changes)"
+              echo "      Reason: Junior AI failed with critical errors and produced no changes"
+              skip_senior_review=true
+            else
+              echo "   ✅ DECISION: Proceed with Senior AI review"
+              echo "      Reason: Despite errors, Junior AI provided $junior_changes_count usable changes"
+            fi
           else
-            echo "✅ Junior AI provided $junior_changes_count changes despite issues, proceeding with review"
+            echo "   ✅ No critical error indicators found in Junior AI analysis"
+            echo "   ✅ DECISION: Proceed with Senior AI review"
           fi
         else
-          echo "✅ Junior AI output looks good, proceeding with Senior AI review"
+          echo "   ❌ DECISION: Skip Senior AI review (no output file)"
+          skip_senior_review=true
         fi
         
+        # Perform Senior AI Review if validation passed
         if [ "$skip_senior_review" = "false" ]; then
-          echo "🔍 Senior AI will:"
-          echo "   • Critically review all proposed changes"
-          echo "   • Validate search patterns against actual file content"
-          echo "   • Check for syntax correctness and best practices"
-          echo "   • Refine or reject changes that might not work"
-          echo "   • Ensure changes address the root cause of errors"
-          echo "   • If review fails, we'll continue with original proposals"
+          echo ""
+          echo "🤖 Senior AI Review Capabilities:"
+          echo "   • 🔍 Deep code analysis and pattern validation"
+          echo "   • 🧪 Test framework best practices enforcement"
+          echo "   • 🔧 Search pattern precision verification"
+          echo "   • 🚀 Performance and maintainability optimization"
+          echo "   • 🛡️ Security and error handling improvements"
+          echo "   • 📚 Documentation and code clarity enhancements"
+          echo ""
+          echo "📋 Review Checklist:"
+          echo "   ✓ Validate search patterns against actual file content"
+          echo "   ✓ Check syntax correctness and TypeScript compliance"
+          echo "   ✓ Verify test framework best practices (Vitest/Jest)"
+          echo "   ✓ Ensure changes address root cause of errors"
+          echo "   ✓ Optimize for maintainability and performance"
+          echo "   ✓ Refine or reject potentially problematic changes"
+          echo ""
+          
+          review_start_time=$(date +%s)
+          echo "⏱️ Senior AI Reviewer started at: $(date '+%H:%M:%S')"
           
           python review-changes.py frontend-proposed-fixes.json enhanced-frontend-errors.log > frontend-reviewed-fixes.json 2> frontend-reviewer.log
           reviewer_exit_code=$?
+          review_end_time=$(date +%s)
+          review_duration=$((review_end_time - review_start_time))
+          
+          echo ""
+          echo "⏱️ Senior AI Reviewer completed in: ${review_duration}s"
+          echo "📊 Exit Code: $reviewer_exit_code"
         else
-          echo "🚫 Skipping Senior AI review due to Junior AI failure"
+          echo ""
+          echo "🚫 SKIPPING Senior AI Review"
+          echo "   Reason: Junior AI output validation failed"
           reviewer_exit_code=1  # Set to failed to use original proposals
         fi
         
-        # Set the file to use for application (reviewed if successful, original if failed)
+        # Evaluate review results and determine final file to use
         final_fixes_file="frontend-proposed-fixes.json"
         
-        echo ""
         if [ $reviewer_exit_code -eq 0 ]; then
           if [ -f frontend-reviewed-fixes.json ]; then
-            reviewed_count=$(cat frontend-reviewed-fixes.json | jq -r '.changes | length' 2>/dev/null || echo "0")
-            if [ "$reviewed_count" -gt "0" ]; then
-              echo "✅ Senior AI Reviewer completed successfully!"
-              echo "   📊 Reviewed changes: $reviewed_count"
-              echo "   📄 Detailed review saved to frontend-reviewer.log"
-              final_fixes_file="frontend-reviewed-fixes.json"
+            # Validate reviewed output
+            if jq . frontend-reviewed-fixes.json >/dev/null 2>&1; then
+              reviewed_count=$(jq -r '.changes | length' frontend-reviewed-fixes.json 2>/dev/null || echo "0")
               
-              # Show what changes were made during review
-              echo "   🎯 Review summary:"
-              cat frontend-reviewed-fixes.json | jq -r '.analysis // "No analysis provided"' 2>/dev/null | head -3
-              
-              if [ "$proposed_count" != "$reviewed_count" ]; then
-                echo "   ⚠️ Senior AI modified proposal: $proposed_count → $reviewed_count changes"
+              if [ "$reviewed_count" -gt "0" ]; then
+                echo "✅ Senior AI Reviewer: SUCCESSFUL COMPLETION!"
+                echo "   📊 Review Results:"
+                echo "      • Original changes: $junior_changes_count"
+                echo "      • Reviewed changes: $reviewed_count"
+                echo "      • Change delta: $((reviewed_count - junior_changes_count))"
+                echo "      • JSON structure: Valid ✅"
+                echo "   📄 Review log: frontend-reviewer.log ($(wc -l < frontend-reviewer.log 2>/dev/null || echo "0") lines)"
+                
+                # Show review summary if available
+                review_summary=$(jq -r '.analysis // ""' frontend-reviewed-fixes.json 2>/dev/null || echo "")
+                if [ ${#review_summary} -gt 50 ]; then
+                  echo "   🎯 Review Summary (first 200 chars):"
+                  echo "      $(echo "$review_summary" | head -c 200 | tr '\n' ' ')..."
+                fi
+                
+                final_fixes_file="frontend-reviewed-fixes.json"
+                
+                if [ "$junior_changes_count" != "$reviewed_count" ]; then
+                  echo "   📝 Senior AI Modifications:"
+                  if [ "$reviewed_count" -lt "$junior_changes_count" ]; then
+                    echo "      🔄 Reduced changes by $((junior_changes_count - reviewed_count)) (optimization/rejection)"
+                  else
+                    echo "      🔄 Added $((reviewed_count - junior_changes_count)) changes (enhancement)"
+                  fi
+                fi
+              else
+                echo "⚠️ Senior AI Reviewer: EMPTY OUTPUT!"
+                echo "   📊 Reviewed changes: 0 (using original proposals instead)"
+                echo "   📄 This may indicate overly strict review criteria"
               fi
             else
-              echo "⚠️ Senior AI review produced empty changes, using original proposals"
+              echo "❌ Senior AI Reviewer: JSON PARSING ERROR!"
+              echo "   📄 Using original proposals due to invalid reviewed output"
             fi
           else
-            echo "⚠️ Senior AI completed but no reviewed fixes file generated, using original proposals"
+            echo "⚠️ Senior AI Reviewer: OUTPUT FILE MISSING!"
+            echo "   📄 Expected: frontend-reviewed-fixes.json"
+            echo "   📄 Using original proposals instead"
           fi
         else
-          echo "❌ Senior AI Reviewer failed with exit code: $reviewer_exit_code"
-          echo "📄 Error details:"
-          tail -10 frontend-reviewer.log 2>/dev/null || echo "   No error log available"
-          echo "🔄 Continuing with original Junior AI proposals..."
+          echo "❌ Senior AI Reviewer: EXECUTION FAILED!"
+          echo "   💥 Exit code: $reviewer_exit_code"
+          echo "   📄 Error details from frontend-reviewer.log:"
+          if [ -f frontend-reviewer.log ]; then
+            echo "      Log size: $(wc -l < frontend-reviewer.log) lines"
+            echo "      Last 3 lines:"
+            tail -3 frontend-reviewer.log 2>/dev/null | sed 's/^/         >' || echo "         >(Could not read log)"
+          fi
+          echo "   🔄 Continuing with original Junior AI proposals..."
         fi
         
-        echo "📋 Will apply changes from: $final_fixes_file"
-        
-        # Phase 3: Automated Applier - Precise File Modifications
         echo ""
-        echo "🔧 PHASE 3: Automated Applier Starting Precise File Modifications..."
+        echo "📋 Final Decision: Will apply changes from '$final_fixes_file'"
+        if [ -f "$final_fixes_file" ]; then
+          final_count=$(jq -r '.changes | length' "$final_fixes_file" 2>/dev/null || echo "0")
+          echo "   📊 Final change count: $final_count"
+        fi
+        
+        # Phase 4: Automated Applier - Precise File Modifications
+        echo ""
+        echo "🔧 PHASE 4: Automated Applier - Precise File Modifications"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "⚙️ Applier will:"
-        echo "   • Apply each reviewed change with precision"
-        echo "   • Validate search patterns before replacement"
-        echo "   • Create new files or modify existing ones as needed"
-        echo "   • Commit changes with descriptive messages"
-        echo "   • Provide detailed success/failure reporting"
+        echo "⚙️ Applier Capabilities:"
+        echo "   • 🎯 Precise string-based search and replace operations"
+        echo "   • 📁 Intelligent file creation with directory structure"
+        echo "   • 🔍 Pre-application validation of search patterns"
+        echo "   • 🛡️ Backup and rollback mechanisms for safety"
+        echo "   • 📝 Detailed operation logging and error reporting"
+        echo "   • 🔄 Git integration with descriptive commit messages"
+        echo ""
+        echo "📋 Application Process:"
+        echo "   1. Load and validate final fixes file: $final_fixes_file"
+        echo "   2. Pre-validate all search patterns against target files"
+        echo "   3. Apply changes with atomic operations"
+        echo "   4. Verify each change was applied correctly"
+        echo "   5. Commit changes with detailed messages"
+        echo "   6. Attempt to push to remote repository"
+        echo ""
+        
+        apply_start_time=$(date +%s)
+        echo "⏱️ Automated Applier started at: $(date '+%H:%M:%S')"
+        
+        # Pre-application validation
+        echo "🔍 Pre-Application Validation:"
+        if [ -f "$final_fixes_file" ]; then
+          echo "   ✅ Final fixes file exists: $final_fixes_file"
+          if jq . "$final_fixes_file" >/dev/null 2>&1; then
+            echo "   ✅ JSON structure is valid"
+            validation_count=$(jq -r '.changes | length' "$final_fixes_file" 2>/dev/null || echo "0")
+            echo "   📊 Changes to apply: $validation_count"
+            
+            if [ "$validation_count" -gt "0" ]; then
+              echo "   🎯 Change Distribution:"
+              jq -r '.changes | group_by(.action) | map("      \(.length)x \(.[0].action | ascii_upcase)") | join("\n")' "$final_fixes_file" 2>/dev/null || echo "      (Could not analyze distribution)"
+            fi
+          else
+            echo "   ❌ JSON structure is invalid - applier may fail"
+          fi
+        else
+          echo "   ❌ Final fixes file missing: $final_fixes_file"
+        fi
         
         python apply-changes.py "$final_fixes_file" > frontend-apply-result.json 2> frontend-applier.log
         applier_exit_code=$?
+        apply_end_time=$(date +%s)
+        apply_duration=$((apply_end_time - apply_start_time))
         
         echo ""
+        echo "⏱️ Automated Applier completed in: ${apply_duration}s"
+        echo "📊 Exit Code: $applier_exit_code"
+        
         if [ $applier_exit_code -eq 0 ]; then
           if [ -f frontend-apply-result.json ]; then
-            applied=$(cat frontend-apply-result.json | jq -r '.changes_applied // 0')
-            total=$(cat frontend-apply-result.json | jq -r '.total_changes // 0')
-            errors=$(cat frontend-apply-result.json | jq -r '.errors | length // 0')
-            
-            echo "✅ Automated Applier completed successfully!"
-            echo "   📊 Changes applied: $applied/$total"
-            echo "   📄 Detailed application log saved to frontend-applier.log"
-            
-            if [ "$errors" -gt "0" ]; then
-              echo "   ⚠️ $errors errors encountered during application:"
-              cat frontend-apply-result.json | jq -r '.errors[]?' 2>/dev/null | head -3 | sed 's/^/      • /'
-            fi
-            
-            # ADD DETAILED GIT PUSH LOGGING
-            echo ""
-            echo "🔄 GIT COMMIT AND PUSH STATUS:"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            
-            # Check if changes were committed
-            if [ "$applied" -gt "0" ]; then
-              echo "📋 Checking git status after applying changes..."
-              git status --porcelain
+            # Parse application results with comprehensive validation
+            if jq . frontend-apply-result.json >/dev/null 2>&1; then
+              applied=$(jq -r '.changes_applied // 0' frontend-apply-result.json 2>/dev/null || echo "0")
+              total=$(jq -r '.total_changes // 0' frontend-apply-result.json 2>/dev/null || echo "0")
+              errors=$(jq -r '.errors | length // 0' frontend-apply-result.json 2>/dev/null || echo "0")
               
-              echo "📝 Checking recent commits..."
-              git log --oneline -3
+              echo "✅ Automated Applier: SUCCESSFUL COMPLETION!"
+              echo "   📊 Application Results:"
+              echo "      • Changes applied: $applied"
+              echo "      • Total changes: $total"
+              echo "      • Success rate: $([ "$total" -gt "0" ] && echo "scale=1; $applied * 100 / $total" | bc -l || echo "0")%"
+              echo "      • Errors encountered: $errors"
+              echo "   📄 Detailed log: frontend-applier.log ($(wc -l < frontend-applier.log 2>/dev/null || echo "0") lines)"
               
-              echo "🌐 Checking if changes were pushed to remote..."
-              current_branch=$(git rev-parse --abbrev-ref HEAD)
-              echo "   Current branch: $current_branch"
+              if [ "$errors" -gt "0" ]; then
+                echo "   ⚠️ Application Errors ($errors total):"
+                jq -r '.errors[]?' frontend-apply-result.json 2>/dev/null | head -5 | sed 's/^/      • /' || echo "      (Could not parse errors)"
+                if [ "$errors" -gt "5" ]; then
+                  echo "      ... and $((errors - 5)) more errors (see frontend-applier.log)"
+                fi
+              fi
               
-              # Check if local is ahead of remote
-              local_commits=$(git rev-list --count HEAD ^origin/$current_branch 2>/dev/null || echo "0")
-              echo "   Local commits ahead of remote: $local_commits"
-              
-              if [ "$local_commits" -gt "0" ]; then
-                echo "   ⚠️ WARNING: Local commits were NOT pushed to remote!"
-                echo "   📤 This indicates a git push failure in apply-changes.py"
-              else
-                echo "   ✅ Local and remote are in sync - changes were pushed successfully"
+              # Show successful operations if any
+              if [ "$applied" -gt "0" ]; then
+                echo "   ✅ Successfully Applied Changes:"
+                jq -r '.applied_changes[]?' frontend-apply-result.json 2>/dev/null | head -5 | sed 's/^/      • /' || echo "      (Details in apply result log)"
               fi
             else
-              echo "   ℹ️ No changes were applied, so no git operations expected"
+              echo "❌ Automated Applier: JSON PARSING ERROR in result!"
+              echo "   📄 Raw result preview (first 200 chars):"
+              head -c 200 frontend-apply-result.json 2>/dev/null | sed 's/^/      /' || echo "      (Could not read result file)"
             fi
-            
-            echo "frontend_fixes_applied=$applied" >> $GITHUB_OUTPUT
-            echo ""
-            echo "🎉 FRONTEND TEST FIXING COMPLETE: $applied changes successfully applied!"
           else
-            echo "⚠️ Applier completed but no result file generated"
+            echo "⚠️ Automated Applier: OUTPUT FILE MISSING!"
+            echo "   � Expected: frontend-apply-result.json"
+            echo "   📋 Working directory contents:"
+            ls -la | grep -E "(apply|result)" | sed 's/^/      /' || echo "      (No result files found)"
           fi
         else
-          echo "❌ Automated Applier failed with exit code: $applier_exit_code"
-          echo "📄 Error details:"
-          tail -10 frontend-applier.log 2>/dev/null || echo "   No error log available"
+          echo "❌ Automated Applier: EXECUTION FAILED!"
+          echo "   💥 Exit code: $applier_exit_code"
+          echo "   📄 Error details from frontend-applier.log:"
+          if [ -f frontend-applier.log ]; then
+            echo "      Log size: $(wc -l < frontend-applier.log) lines"
+            echo "      Critical errors (last 5 lines):"
+            tail -5 frontend-applier.log 2>/dev/null | sed 's/^/         >' || echo "         >(Could not read applier log)"
+          else
+            echo "      ❌ No applier log file found"
+          fi
         fi
+        
+        # Phase 5: Git Operations & Result Verification  
+        echo ""
+        echo "🔄 PHASE 5: Git Operations & Result Verification"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "🌐 Git Integration Analysis:"
+        
+        # Extract application metrics for git analysis
+        if [ -f frontend-apply-result.json ] && jq . frontend-apply-result.json >/dev/null 2>&1; then
+          applied=$(jq -r '.changes_applied // 0' frontend-apply-result.json 2>/dev/null || echo "0")
+          total=$(jq -r '.total_changes // 0' frontend-apply-result.json 2>/dev/null || echo "0")
+        else
+          applied="0"
+          total="0"
+        fi
+        
+        echo "   📊 Changes Applied: $applied (out of $total proposed)"
+        
+        if [ "$applied" -gt "0" ]; then
+          echo ""
+          echo "📋 Repository Status Analysis:"
+          
+          # Current branch info
+          current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
+          echo "   🌿 Current branch: $current_branch"
+          
+          # Check working directory status
+          echo "   📁 Working directory status:"
+          if git status --porcelain | grep -q .; then
+            modified_files=$(git status --porcelain | wc -l)
+            echo "      • Modified files: $modified_files"
+            echo "      • File details:"
+            git status --porcelain | head -5 | sed 's/^/         /' || echo "         (Could not read git status)"
+            if [ "$modified_files" -gt "5" ]; then
+              echo "         ... and $((modified_files - 5)) more files"
+            fi
+          else
+            echo "      ✅ Working directory clean"
+          fi
+          
+          # Recent commit analysis
+          echo ""
+          echo "   📝 Recent Commit History:"
+          echo "      Last 3 commits:"
+          git log --oneline -3 2>/dev/null | sed 's/^/         /' || echo "         (Could not read git log)"
+          
+          # Remote sync status
+          echo ""
+          echo "   🌐 Remote Synchronization Analysis:"
+          if git remote -v | grep -q origin; then
+            echo "      🔗 Remote 'origin' configured: ✅"
+            
+            # Check if we can reach the remote
+            if git ls-remote --heads origin >/dev/null 2>&1; then
+              echo "      🌍 Remote accessibility: ✅"
+              
+              # Compare local vs remote
+              local_commits=$(git rev-list --count HEAD ^origin/$current_branch 2>/dev/null || echo "unknown")
+              remote_commits=$(git rev-list --count origin/$current_branch ^HEAD 2>/dev/null || echo "unknown")
+              
+              echo "      📊 Sync Status:"
+              echo "         • Local commits ahead: $local_commits"
+              echo "         • Remote commits ahead: $remote_commits"
+              
+              if [ "$local_commits" = "0" ]; then
+                echo "      ✅ RESULT: Local and remote are in sync - changes were pushed successfully!"
+              elif [ "$local_commits" != "unknown" ] && [ "$local_commits" -gt "0" ]; then
+                echo "      ⚠️ RESULT: Local commits NOT pushed to remote!"
+                echo "         📤 This indicates a git push failure in apply-changes.py"
+                echo "         🔧 Potential causes:"
+                echo "            • Network connectivity issues"
+                echo "            • Authentication/permission problems"
+                echo "            • Branch protection rules"
+                echo "            • Merge conflicts with remote"
+              else
+                echo "      ❓ RESULT: Unable to determine sync status"
+              fi
+            else
+              echo "      ❌ Remote accessibility: Failed (network/auth issue)"
+            fi
+          else
+            echo "      ⚠️ No remote 'origin' configured"
+          fi
+          
+          # Check for any git errors in the applier log
+          echo ""
+          echo "   🔍 Git Operation Log Analysis:"
+          if [ -f frontend-applier.log ]; then
+            git_errors=$(grep -i "git.*error\|push.*failed\|permission denied\|authentication" frontend-applier.log | wc -l)
+            if [ "$git_errors" -gt "0" ]; then
+              echo "      ⚠️ Git errors found in applier log ($git_errors lines):"
+              grep -i "git.*error\|push.*failed\|permission denied\|authentication" frontend-applier.log | head -3 | sed 's/^/         >' || true
+            else
+              echo "      ✅ No git errors detected in applier log"
+            fi
+          else
+            echo "      ❓ No applier log available for analysis"
+          fi
+        else
+          echo "   ℹ️ No changes were applied, so no git operations were expected"
+        fi
+        
+        # Set output for next steps
+        echo "frontend_fixes_applied=$applied" >> $GITHUB_OUTPUT
+        
+        echo ""
+        echo "🎉 FRONTEND TEST ERROR RESOLUTION PIPELINE COMPLETE!"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "📊 Final Summary:"
+        echo "   • Total runtime: $(($(date +%s) - start_time))s"
+        echo "   • Changes successfully applied: $applied"
+        echo "   • Junior AI proposer: $([ $proposer_exit_code -eq 0 ] && echo "✅ Success" || echo "❌ Failed ($proposer_exit_code)")"
+        echo "   • Senior AI reviewer: $([ $reviewer_exit_code -eq 0 ] && echo "✅ Success" || echo "❌ Failed/Skipped ($reviewer_exit_code)")"
+        echo "   • Automated applier: $([ $applier_exit_code -eq 0 ] && echo "✅ Success" || echo "❌ Failed ($applier_exit_code)")"
+        echo "   • Git operations: $([ "$applied" -gt "0" ] && echo "🔄 Changes committed" || echo "ℹ️ No changes to commit")"
+        echo ""
+        echo "📁 Generated Artifacts:"
+        echo "   • enhanced-frontend-errors.log (input context)"
+        echo "   • frontend-proposed-fixes.json (Junior AI output)"
+        echo "   • frontend-reviewed-fixes.json (Senior AI output)"
+        echo "   • frontend-apply-result.json (application results)"
+        echo "   • frontend-proposer.log, frontend-reviewer.log, frontend-applier.log"
+        echo ""
 
     - name: AI Fix Backend Test Errors
       if: ${{ steps.analyze-backend.outputs.needs_fixes == 'true' }}
