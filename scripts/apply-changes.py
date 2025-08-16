@@ -149,6 +149,11 @@ class UnifiedChangeApplier:
             print("🔄 STARTING GIT COMMIT AND PUSH PROCESS", file=sys.stderr)
             print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", file=sys.stderr)
             
+            # Change to repository root directory
+            original_cwd = os.getcwd()
+            os.chdir(self.repo_root)
+            print(f"📁 Changed to repo root: {self.repo_root}", file=sys.stderr)
+            
             # Check if there are any changes to commit
             print("📋 Checking for changes to commit...", file=sys.stderr)
             
@@ -291,6 +296,12 @@ class UnifiedChangeApplier:
         except subprocess.CalledProcessError as e:
             print(f"❌ Failed to commit/push changes: {e}", file=sys.stderr)
             return False
+        finally:
+            # Restore original working directory
+            try:
+                os.chdir(original_cwd)
+            except NameError:
+                pass  # original_cwd not set if early return
     
     def apply_changes(self, changes_data: Dict) -> Dict:
         """Apply all changes from the reviewed changes."""
