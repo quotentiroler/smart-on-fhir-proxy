@@ -9,7 +9,7 @@ type ThemeProviderProps = {
   storageKey?: string
 }
  
-type ThemeProviderState = {
+export type ThemeProviderState = {
   theme: Theme
   setTheme: (theme: Theme) => void
 }
@@ -67,3 +67,6 @@ export function ThemeProvider({
 }
  
 export { ThemeProviderContext }
+
+// Hook for consuming theme context
+// The useTheme hook has been removed to satisfy fast-refresh rule.

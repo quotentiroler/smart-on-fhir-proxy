@@ -24,6 +24,7 @@ describe('cn utility', () => {
     expect(tokens).toContain('b')
     expect(tokens).toContain('d')
     expect(tokens).not.toContain('c')
-    expect(tokens.filter((t) => t === 'a')).toHaveLength(1)
+    // twMerge doesn't dedupe non-conflicting identical classes, so 'a' appears twice
+    expect(tokens.filter((t) => t === 'a')).toHaveLength(2)
   })
 })
