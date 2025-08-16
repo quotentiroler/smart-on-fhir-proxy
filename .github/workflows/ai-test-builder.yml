@@ -136,13 +136,21 @@ jobs:
         # Analyze coverage
         if [ -f coverage/coverage-summary.json ]; then
           # Extract overall coverage percentage
-          coverage_pct=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct // 0')
+          if jq . coverage/coverage-summary.json >/dev/null 2>&1; then
+            coverage_pct=$(jq -r '.total.lines.pct // 0' coverage/coverage-summary.json 2>/dev/null || echo "0")
+          else
+            coverage_pct="0"
+            echo "⚠️ Warning: coverage-summary.json is invalid"
+          fi
           echo "coverage_percentage=$coverage_pct" >> $GITHUB_OUTPUT
           echo "📊 Frontend coverage: $coverage_pct%"
           
           # Check if below threshold
           threshold="${{ inputs.coverage_threshold || 80 }}"
-          if (( $(echo "$coverage_pct < $threshold" | bc -l) )); then
+          echo "🎯 Coverage threshold: $threshold%"
+          
+          # Use awk for comparison instead of bc
+          if awk "BEGIN {exit !($coverage_pct < $threshold)}"; then
             echo "📉 Coverage below threshold ($threshold%), will add tests"
             echo "needs_more_tests=true" >> $GITHUB_OUTPUT
             
@@ -153,6 +161,7 @@ jobs:
             echo "needs_more_tests=false" >> $GITHUB_OUTPUT
           fi
         else
+          echo "⚠️ No coverage report found, will add tests"
           echo "needs_more_tests=true" >> $GITHUB_OUTPUT
         fi
 
@@ -242,7 +251,13 @@ jobs:
         apply_exit=$?
         echo "   ✅ Apply exit code: $apply_exit"
         
-        applied=$(jq -r '.changes_applied // 0' frontend-apply-result.json)
+        # Safely extract applied count with error handling
+        if [ -f frontend-apply-result.json ] && jq . frontend-apply-result.json >/dev/null 2>&1; then
+          applied=$(jq -r '.changes_applied // 0' frontend-apply-result.json 2>/dev/null || echo "0")
+        else
+          applied="0"
+          echo "   ⚠️ Warning: frontend-apply-result.json missing or invalid"
+        fi
         echo "✅ Frontend fixes applied: $applied"
         echo "frontend_fixes_applied=$applied" >> $GITHUB_OUTPUT
 
@@ -279,16 +294,18 @@ jobs:
         
         echo ""
         if [ $proposer_exit_code -eq 0 ]; then
-          if [ -f backend-proposed-fixes.json ]; then
-            proposed_count=$(cat backend-proposed-fixes.json | jq -r '.changes | length' 2>/dev/null || echo "0")
+          if [ -f backend-proposed-fixes.json ] && jq . backend-proposed-fixes.json >/dev/null 2>&1; then
+            proposed_count=$(jq -r '.changes | length' backend-proposed-fixes.json 2>/dev/null || echo "0")
             echo "✅ Junior AI Proposer completed backend analysis!"
             echo "   📊 Proposed changes: $proposed_count"
             echo "   📄 Detailed analysis saved to backend-proposer.log"
             
             if [ "$proposed_count" -gt "0" ]; then
               echo "   🎯 Backend change preview:"
-              cat backend-proposed-fixes.json | jq -r '.changes[] | "      • \(.action) \(.file): \(.reasoning)"' 2>/dev/null | head -5
+              jq -r '.changes[] | "      • \(.action) \(.file): \(.reasoning)"' backend-proposed-fixes.json 2>/dev/null | head -5
             fi
+          else
+            echo "⚠️ Backend proposed fixes JSON missing or invalid"
           fi
         else
           echo "❌ Junior AI Proposer failed for backend with exit code: $proposer_exit_code"
@@ -302,8 +319,14 @@ jobs:
         
         # First validate Junior AI output before sending to Senior AI
         echo "🔍 Validating Junior AI output quality..."
-        junior_analysis=$(cat backend-proposed-fixes.json | jq -r '.analysis // ""' 2>/dev/null || echo "")
-        junior_changes_count=$(cat backend-proposed-fixes.json | jq -r '.changes | length' 2>/dev/null || echo "0")
+        if [ -f backend-proposed-fixes.json ] && jq . backend-proposed-fixes.json >/dev/null 2>&1; then
+          junior_analysis=$(jq -r '.analysis // ""' backend-proposed-fixes.json 2>/dev/null || echo "")
+          junior_changes_count=$(jq -r '.changes | length' backend-proposed-fixes.json 2>/dev/null || echo "0")
+        else
+          junior_analysis=""
+          junior_changes_count="0"
+          echo "⚠️ Backend proposed fixes JSON missing or invalid"
+        fi
         
         # Check for error indicators in Junior AI analysis
         skip_senior_review=false
@@ -342,8 +365,8 @@ jobs:
         
         echo ""
         if [ $reviewer_exit_code -eq 0 ]; then
-          if [ -f backend-reviewed-fixes.json ]; then
-            reviewed_count=$(cat backend-reviewed-fixes.json | jq -r '.changes | length' 2>/dev/null || echo "0")
+          if [ -f backend-reviewed-fixes.json ] && jq . backend-reviewed-fixes.json >/dev/null 2>&1; then
+            reviewed_count=$(jq -r '.changes | length' backend-reviewed-fixes.json 2>/dev/null || echo "0")
             if [ "$reviewed_count" -gt "0" ]; then
               echo "✅ Senior AI Reviewer completed backend validation!"
               echo "   📊 Reviewed changes: $reviewed_count"
@@ -374,13 +397,19 @@ jobs:
         
         echo ""
         if [ $applier_exit_code -eq 0 ]; then
-          if [ -f backend-apply-result.json ]; then
-            applied=$(cat backend-apply-result.json | jq -r '.changes_applied // 0')
-            total=$(cat backend-apply-result.json | jq -r '.total_changes // 0')
-            
-            echo "✅ Backend test infrastructure applied successfully!"
-            echo "   📊 Changes applied: $applied/$total"
-            echo "   📄 Detailed application log saved to backend-applier.log"
+          # Safely extract backend apply results with error handling
+          if [ -f backend-apply-result.json ] && jq . backend-apply-result.json >/dev/null 2>&1; then
+            applied=$(jq -r '.changes_applied // 0' backend-apply-result.json 2>/dev/null || echo "0")
+            total=$(jq -r '.total_changes // 0' backend-apply-result.json 2>/dev/null || echo "0")
+          else
+            applied="0"
+            total="0"
+            echo "   ⚠️ Warning: backend-apply-result.json missing or invalid"
+          fi
+          
+          echo "✅ Backend test infrastructure applied successfully!"
+          echo "   📊 Changes applied: $applied/$total"
+          echo "   📄 Detailed application log saved to backend-applier.log"
             
             # ADD DETAILED GIT PUSH LOGGING FOR BACKEND
             echo ""
