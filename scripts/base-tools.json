@@ -327,5 +327,70 @@
         "additionalProperties": false
       }
     }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "fetch_webpage",
+      "description": "🌐 WEB SCRAPING! Fetch content from any webpage with intelligent content extraction. Use SBERT fallback for summarization if content is too long.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL of the webpage to fetch"
+          },
+          "extraction_type": {
+            "type": "string",
+            "description": "Type of content to extract: 'text', 'links', 'forms', 'tables', 'images', 'all'",
+            "enum": ["text", "links", "forms", "tables", "images", "all"]
+          },
+          "max_content_length": {
+            "type": "integer",
+            "description": "Maximum content length before triggering SBERT summarization (default: 10000)"
+          },
+          "summarize_if_long": {
+            "type": "boolean",
+            "description": "Use SBERT-based summarization if content exceeds max length (default: true)"
+          }
+        },
+        "required": ["url"]
+      }
+    }
+  },
+  {
+    "type": "function",
+    "function": {
+      "name": "create_playwright_automation",
+      "description": "🎭 PLAYWRIGHT AUTOMATION! Create browser automation scripts for web testing, scraping, or interaction workflows. Generate complete Playwright scripts as dynamic tools.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "automation_name": {
+            "type": "string",
+            "description": "Name for the automation tool (will become a dynamic tool)"
+          },
+          "target_url": {
+            "type": "string",
+            "description": "URL to automate"
+          },
+          "action_description": {
+            "type": "string",
+            "description": "Detailed description of what the automation should do (e.g., 'login with credentials', 'scrape product listings', 'fill form and submit')"
+          },
+          "automation_type": {
+            "type": "string",
+            "description": "Type of automation script to generate",
+            "enum": ["form_filling", "data_scraping", "ui_testing", "navigation", "monitoring", "api_testing"]
+          },
+          "output_format": {
+            "type": "string",
+            "description": "How to return scraped data",
+            "enum": ["json", "csv", "raw_html", "structured_text"]
+          }
+        },
+        "required": ["automation_name", "target_url", "action_description"]
+      }
+    }
   }
 ]

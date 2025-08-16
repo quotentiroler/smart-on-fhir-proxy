@@ -31,7 +31,7 @@ AI_FIX_RESPONSE_SCHEMA = {
                     },
                     "search": {
                         "type": "string",
-                        "description": "Exact text to search for and replace (only for modify action)"
+                        "description": "Exact text to search for and replace (required for modify action, use empty string for create action)"
                     },
                     "replace": {
                         "type": "string",
@@ -42,17 +42,7 @@ AI_FIX_RESPONSE_SCHEMA = {
                         "description": "Description of what this fix does and why"
                     }
                 },
-                "required": ["action", "file", "replace", "reasoning"],
-                "allOf": [
-                    {
-                        "if": {
-                            "properties": {"action": {"const": "modify"}}
-                        },
-                        "then": {
-                            "required": ["search"]
-                        }
-                    }
-                ],
+                "required": ["action", "file", "search", "replace", "reasoning"],
                 "additionalProperties": False
             }
         }
@@ -85,7 +75,7 @@ AI_PROPOSE_RESPONSE_SCHEMA = {
                     },
                     "search": {
                         "type": "string",
-                        "description": "Exact text to search for and replace (only for modify action)"
+                        "description": "Exact text to search for and replace (required for modify action, use empty string for create action)"
                     },
                     "replace": {
                         "type": "string",
@@ -101,17 +91,7 @@ AI_PROPOSE_RESPONSE_SCHEMA = {
                         "description": "Confidence level in this fix"
                     }
                 },
-                "required": ["action", "file", "replace", "reasoning", "confidence"],
-                "allOf": [
-                    {
-                        "if": {
-                            "properties": {"action": {"const": "modify"}}
-                        },
-                        "then": {
-                            "required": ["search"]
-                        }
-                    }
-                ],
+                "required": ["action", "file", "search", "replace", "reasoning", "confidence"],
                 "additionalProperties": False
             }
         }

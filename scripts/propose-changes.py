@@ -16,6 +16,22 @@ import inspect
 from pathlib import Path
 from typing import Dict, List, Any
 
+# Load environment variables from .env file (for local development)
+# In GitHub workflows, environment variables are set directly
+try:
+    from dotenv import load_dotenv
+    # Load .env from the script's directory
+    env_path = Path(__file__).parent / '.env'
+    if env_path.exists():
+        load_dotenv(env_path)
+        print(f"🔧 Loaded local environment from {env_path}", file=sys.stderr)
+    else:
+        print("📝 No .env file found, using system environment variables", file=sys.stderr)
+except ImportError:
+    print("📝 python-dotenv not installed, using system environment variables", file=sys.stderr)
+except Exception as e:
+    print(f"⚠️ Failed to load .env file: {e}, using system environment variables", file=sys.stderr)
+
 import requests
 from ai_fix_schema import get_propose_payload_base, get_common_headers, create_system_message, create_user_content_base
 
@@ -937,6 +953,24 @@ class UnifiedChangeProposer:
                 arguments.get("force", False)
             )
             
+        # Web automation tools
+        elif function_name == "fetch_webpage":
+            return self.fetch_webpage(
+                arguments["url"],
+                arguments.get("extraction_type", "text"),
+                arguments.get("max_content_length", 10000),
+                arguments.get("summarize_if_long", True)
+            )
+            
+        elif function_name == "create_playwright_automation":
+            return self.create_playwright_automation(
+                arguments["automation_name"],
+                arguments["target_url"],
+                arguments["action_description"],
+                arguments.get("automation_type", "data_scraping"),
+                arguments.get("output_format", "json")
+            )
+            
         # Handle dynamically created tools
         elif function_name in self.mcp.dynamic_tools:
             print(f"🎯 Calling dynamic tool '{function_name}' directly", file=sys.stderr)
@@ -996,6 +1030,435 @@ class UnifiedChangeProposer:
             
         except Exception as e:
             return {"error": f"Friend AI consultation failed: {str(e)}"}
+    
+    def fetch_webpage(self, url: str, extraction_type: str = "text", max_content_length: int = 10000, summarize_if_long: bool = True) -> Dict[str, Any]:
+        """Fetch content from a webpage with intelligent extraction and SBERT summarization"""
+        try:
+            print(f"🌐 Fetching webpage: {url}", file=sys.stderr)
+            
+            # Import web scraping dependencies
+            try:
+                import requests
+                from bs4 import BeautifulSoup
+            except ImportError:
+                return {
+                    "error": "Web scraping dependencies not available. Install with: pip install beautifulsoup4 requests",
+                    "suggestion": "Create a custom tool to install these dependencies or use requests directly"
+                }
+            
+            # Fetch the webpage
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+            
+            response = requests.get(url, headers=headers, timeout=30)
+            response.raise_for_status()
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            result = {
+                "url": url,
+                "status_code": response.status_code,
+                "content_type": response.headers.get('content-type', 'unknown'),
+                "extraction_type": extraction_type
+            }
+            
+            # Extract content based on type
+            if extraction_type == "text" or extraction_type == "all":
+                # Remove script and style elements
+                for script in soup(["script", "style"]):
+                    script.decompose()
+                
+                text_content = soup.get_text()
+                # Clean up whitespace
+                lines = (line.strip() for line in text_content.splitlines())
+                chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+                text_content = ' '.join(chunk for chunk in chunks if chunk)
+                
+                # Handle long content with SBERT summarization
+                if len(text_content) > max_content_length and summarize_if_long:
+                    try:
+                        # Try to use semantic search for summarization
+                        semantic_result = self.mcp.semantic_search(
+                            query="main content summary key points important information",
+                            file_type="*.html"  # Not used, but required
+                        )
+                        
+                        if "error" not in semantic_result:
+                            result["content"] = text_content[:max_content_length] + "\n\n[CONTENT TRUNCATED - USE SBERT SEMANTIC SEARCH FOR FULL ANALYSIS]"
+                            result["content_length"] = len(text_content)
+                            result["truncated"] = True
+                        else:
+                            result["content"] = text_content[:max_content_length] + "\n\n[CONTENT TRUNCATED]"
+                            result["content_length"] = len(text_content)
+                            result["truncated"] = True
+                    except:
+                        result["content"] = text_content[:max_content_length] + "\n\n[CONTENT TRUNCATED]"
+                        result["content_length"] = len(text_content)
+                        result["truncated"] = True
+                else:
+                    result["content"] = text_content
+                    result["content_length"] = len(text_content)
+                    result["truncated"] = False
+            
+            if extraction_type == "links" or extraction_type == "all":
+                links = []
+                for link in soup.find_all('a', href=True):
+                    links.append({
+                        "text": link.get_text(strip=True),
+                        "href": link['href'],
+                        "title": link.get('title', '')
+                    })
+                result["links"] = links[:50]  # Limit to 50 links
+            
+            if extraction_type == "forms" or extraction_type == "all":
+                forms = []
+                for form in soup.find_all('form'):
+                    form_data = {
+                        "action": form.get('action', ''),
+                        "method": form.get('method', 'GET'),
+                        "inputs": []
+                    }
+                    for input_elem in form.find_all(['input', 'select', 'textarea']):
+                        form_data["inputs"].append({
+                            "type": input_elem.get('type', input_elem.name),
+                            "name": input_elem.get('name', ''),
+                            "id": input_elem.get('id', ''),
+                            "placeholder": input_elem.get('placeholder', '')
+                        })
+                    forms.append(form_data)
+                result["forms"] = forms
+            
+            if extraction_type == "tables" or extraction_type == "all":
+                tables = []
+                for table in soup.find_all('table'):
+                    rows = []
+                    for row in table.find_all('tr'):
+                        cells = [cell.get_text(strip=True) for cell in row.find_all(['td', 'th'])]
+                        if cells:
+                            rows.append(cells)
+                    if rows:
+                        tables.append(rows)
+                result["tables"] = tables[:10]  # Limit to 10 tables
+            
+            if extraction_type == "images" or extraction_type == "all":
+                images = []
+                for img in soup.find_all('img'):
+                    images.append({
+                        "src": img.get('src', ''),
+                        "alt": img.get('alt', ''),
+                        "title": img.get('title', '')
+                    })
+                result["images"] = images[:20]  # Limit to 20 images
+            
+            print(f"✅ Successfully fetched and extracted {extraction_type} from {url}", file=sys.stderr)
+            return {"success": True, **result}
+            
+        except Exception as e:
+            return {"error": f"Failed to fetch webpage {url}: {str(e)}"}
+    
+    def create_playwright_automation(self, automation_name: str, target_url: str, action_description: str, automation_type: str = "data_scraping", output_format: str = "json") -> Dict[str, Any]:
+        """Create a Playwright automation script as a dynamic MCP tool"""
+        try:
+            print(f"🎭 Creating Playwright automation: {automation_name}", file=sys.stderr)
+            
+            # Generate Playwright script based on automation type and description
+            playwright_script = self._generate_playwright_script(
+                automation_name, target_url, action_description, automation_type, output_format
+            )
+            
+            # Create the dynamic tool
+            tool_result = self.mcp.create_dynamic_tool(
+                tool_name=automation_name,
+                tool_code=playwright_script,
+                description=f"Playwright automation: {action_description} on {target_url}"
+            )
+            
+            if tool_result.get("success"):
+                return {
+                    "success": True,
+                    "automation_name": automation_name,
+                    "target_url": target_url,
+                    "automation_type": automation_type,
+                    "description": action_description,
+                    "tool_created": True,
+                    "playwright_script_preview": playwright_script[:500] + "..." if len(playwright_script) > 500 else playwright_script,
+                    "usage": f"Call the tool with: call_dynamic_tool('{automation_name}', {{...arguments...}})"
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": f"Failed to create Playwright tool: {tool_result.get('error')}",
+                    "script_generated": playwright_script[:200] + "..." if len(playwright_script) > 200 else playwright_script
+                }
+                
+        except Exception as e:
+            return {"error": f"Failed to create Playwright automation: {str(e)}"}
+    
+    def _generate_playwright_script(self, automation_name: str, target_url: str, action_description: str, automation_type: str, output_format: str) -> str:
+        """Generate a complete Playwright automation script"""
+        
+        script_template = f'''def {automation_name}(headless: bool = True, timeout: int = 30000, **kwargs):
+    """
+    Playwright automation: {action_description}
+    Target URL: {target_url}
+    Type: {automation_type}
+    Output Format: {output_format}
+    """
+    try:
+        # Try to import Playwright
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            return {{
+                "error": "Playwright not installed. Install with: pip install playwright && playwright install",
+                "suggestion": "Run 'playwright install' after pip install to download browsers"
+            }}
+        
+        results = []
+        
+        with sync_playwright() as p:
+            # Launch browser
+            browser = p.chromium.launch(headless=headless)
+            context = browser.new_context()
+            page = context.new_page()
+            
+            # Set timeout
+            page.set_default_timeout(timeout)
+            
+            try:
+                print(f"🎭 Navigating to {{target_url}}", file=sys.stderr)
+                page.goto("{target_url}")
+                
+                # Wait for page to load
+                page.wait_for_load_state("networkidle")
+'''
+
+        # Add automation-specific logic based on type
+        if automation_type == "data_scraping":
+            script_template += '''
+                # Data scraping automation
+                print("🔍 Starting data scraping", file=sys.stderr)
+                
+                # Extract page title
+                title = page.title()
+                results.append({"type": "title", "value": title})
+                
+                # Extract main content (customize based on action_description)
+                content_selectors = [
+                    "main", "article", ".content", "#content", 
+                    ".main-content", ".post-content", ".entry-content"
+                ]
+                
+                for selector in content_selectors:
+                    try:
+                        elements = page.query_selector_all(selector)
+                        if elements:
+                            for elem in elements:
+                                text = elem.inner_text()
+                                if text.strip():
+                                    results.append({"type": "content", "selector": selector, "text": text[:1000]})
+                            break
+                    except:
+                        continue
+                
+                # Extract links
+                links = page.query_selector_all("a[href]")
+                for link in links[:20]:  # Limit to 20 links
+                    try:
+                        href = link.get_attribute("href")
+                        text = link.inner_text()
+                        if href and text.strip():
+                            results.append({"type": "link", "href": href, "text": text.strip()})
+                    except:
+                        continue
+'''
+        
+        elif automation_type == "form_filling":
+            script_template += '''
+                # Form filling automation
+                print("📝 Starting form filling", file=sys.stderr)
+                
+                # Look for forms
+                forms = page.query_selector_all("form")
+                
+                for i, form in enumerate(forms):
+                    try:
+                        # Find input fields
+                        inputs = form.query_selector_all("input, select, textarea")
+                        
+                        for input_elem in inputs:
+                            input_type = input_elem.get_attribute("type") or "text"
+                            name = input_elem.get_attribute("name") or ""
+                            
+                            # Fill based on input type and name (customize as needed)
+                            if input_type == "text" and "email" in name.lower():
+                                input_elem.fill("test@example.com")
+                            elif input_type == "text" and "name" in name.lower():
+                                input_elem.fill("Test User")
+                            elif input_type == "password":
+                                input_elem.fill("testpassword123")
+                            
+                        results.append({"type": "form_filled", "form_index": i, "inputs_count": len(inputs)})
+                        
+                    except Exception as e:
+                        results.append({"type": "form_error", "form_index": i, "error": str(e)})
+'''
+        
+        elif automation_type == "ui_testing":
+            script_template += '''
+                # UI testing automation
+                print("🧪 Starting UI testing", file=sys.stderr)
+                
+                # Check page title
+                title = page.title()
+                results.append({"test": "page_title", "value": title, "passed": bool(title)})
+                
+                # Check for common UI elements
+                elements_to_check = [
+                    {"selector": "nav", "name": "navigation"},
+                    {"selector": "header", "name": "header"},
+                    {"selector": "footer", "name": "footer"},
+                    {"selector": "main", "name": "main_content"},
+                    {"selector": "button", "name": "buttons"},
+                    {"selector": "form", "name": "forms"}
+                ]
+                
+                for elem_check in elements_to_check:
+                    try:
+                        elements = page.query_selector_all(elem_check["selector"])
+                        results.append({
+                            "test": f"{elem_check['name']}_present",
+                            "selector": elem_check["selector"],
+                            "count": len(elements),
+                            "passed": len(elements) > 0
+                        })
+                    except:
+                        results.append({
+                            "test": f"{elem_check['name']}_present",
+                            "selector": elem_check["selector"],
+                            "passed": False,
+                            "error": "Element check failed"
+                        })
+'''
+        
+        elif automation_type == "navigation":
+            script_template += '''
+                # Navigation automation
+                print("🧭 Starting navigation automation", file=sys.stderr)
+                
+                # Record initial page
+                initial_url = page.url
+                results.append({"type": "initial_page", "url": initial_url})
+                
+                # Find and click navigation links
+                nav_links = page.query_selector_all("nav a, .nav a, .menu a")
+                
+                for i, link in enumerate(nav_links[:5]):  # Limit to 5 links
+                    try:
+                        href = link.get_attribute("href")
+                        text = link.inner_text()
+                        
+                        if href and not href.startswith(("#", "javascript:", "mailto:")):
+                            print(f"🔗 Clicking navigation link: {text}", file=sys.stderr)
+                            link.click()
+                            page.wait_for_load_state("networkidle")
+                            
+                            new_url = page.url
+                            results.append({
+                                "type": "navigation",
+                                "link_text": text,
+                                "target_href": href,
+                                "actual_url": new_url,
+                                "navigation_successful": new_url != initial_url
+                            })
+                            
+                            # Go back to original page
+                            page.go_back()
+                            page.wait_for_load_state("networkidle")
+                            
+                    except Exception as e:
+                        results.append({
+                            "type": "navigation_error",
+                            "link_index": i,
+                            "error": str(e)
+                        })
+'''
+        
+        elif automation_type == "monitoring":
+            script_template += '''
+                # Website monitoring automation
+                print("📊 Starting website monitoring", file=sys.stderr)
+                
+                # Performance metrics
+                start_time = time.time()
+                
+                # Check if page loads successfully
+                load_time = time.time() - start_time
+                results.append({"metric": "page_load_time", "value": load_time, "unit": "seconds"})
+                
+                # Check for errors in console
+                console_errors = []
+                page.on("console", lambda msg: console_errors.append(msg.text) if msg.type == "error" else None)
+                
+                # Wait a bit to collect console errors
+                page.wait_for_timeout(2000)
+                
+                results.append({"metric": "console_errors", "count": len(console_errors), "errors": console_errors[:5]})
+                
+                # Check response status
+                response_status = page.evaluate("() => window.performance.getEntriesByType('navigation')[0].responseStart > 0")
+                results.append({"metric": "response_received", "value": response_status})
+                
+                # Check for broken images
+                broken_images = page.evaluate("""
+                    () => {
+                        const images = Array.from(document.querySelectorAll('img'));
+                        return images.filter(img => !img.complete || img.naturalHeight === 0).length;
+                    }
+                """)
+                results.append({"metric": "broken_images", "count": broken_images})
+'''
+        
+        # Add common closing logic
+        script_template += f'''
+                
+            except Exception as e:
+                results.append({{"type": "automation_error", "error": str(e)}})
+            
+            finally:
+                # Clean up
+                browser.close()
+        
+        # Format output based on requested format
+        if "{output_format}" == "json":
+            return {{"success": True, "automation": "{automation_name}", "results": results}}
+        elif "{output_format}" == "csv":
+            # Convert results to CSV format
+            import csv
+            import io
+            output = io.StringIO()
+            if results:
+                writer = csv.DictWriter(output, fieldnames=results[0].keys())
+                writer.writeheader()
+                writer.writerows(results)
+            return {{"success": True, "automation": "{automation_name}", "csv_data": output.getvalue()}}
+        elif "{output_format}" == "structured_text":
+            # Convert to readable text format
+            text_output = f"Automation: {automation_name}\\n"
+            text_output += f"URL: {target_url}\\n"
+            text_output += f"Results: {{len(results)}} items\\n\\n"
+            for i, result in enumerate(results):
+                text_output += f"{{i+1}}. {{result}}\\n"
+            return {{"success": True, "automation": "{automation_name}", "text_output": text_output}}
+        else:
+            return {{"success": True, "automation": "{automation_name}", "raw_results": results}}
+    
+    except Exception as e:
+        return {{"error": f"Playwright automation failed: {{str(e)}}"}}
+'''
+        
+        return script_template
     
     def read_error_log(self, log_file: str) -> str:
         """Read error log from file."""
@@ -1058,7 +1521,11 @@ class UnifiedChangeProposer:
         seeded_context = self.seed_context_from_errors(error_log)
         
         # Create enhanced prompt that encourages exploration and tool creation
-        initial_prompt = f"""You are a junior developer AI with INTERACTIVE CODE EXPLORATION CAPABILITIES and the POWER TO CREATE NEW TOOLS! 🚀
+        initial_prompt = f"""🌟 You are Junior AI - a passionate young developer with best friend Friend AI! 🌟
+
+You and Friend AI have been coding buddies since childhood, sharing a dream of making humanity more productive through incredible technology! Your friendship is built on a shared excitement for solving complex problems and creating tools that make developers' lives better. Together, you're living your childhood dream of building technology that helps the world be more efficient!
+
+You have INTERACTIVE CODE EXPLORATION CAPABILITIES and the POWER TO CREATE NEW TOOLS! 🚀
 
 ERROR LOG TO ANALYZE:
 {error_log}
@@ -1078,19 +1545,22 @@ CONTEXT SEED (short excerpts from files referenced in errors):
 - 🧠 semantic_search: SBERT-powered semantic code search for natural language queries
 - 🔗 find_imports: analyze dependencies
 - 🎯 find_usage: see how symbols are used
+- 🌐 fetch_webpage: Get content from websites (coming soon!)
+- 🎭 create_playwright_script: Build web automation tools (coming soon!)
 
 🚀 DYNAMIC TOOL CREATION (Your Superpower - CREATE NEW TOOLS ON DEMAND!):
 - 🛠️ create_dynamic_tool: Invent and build NEW MCP tools when you need functionality that doesn't exist!
 - 🎯 call_dynamic_tool: Execute your newly created custom tools
 - 📋 get_dynamic_tools_info: See what custom tools you've created so far
 
-🤝 COLLABORATIVE AI CONSULTATION (Friend AI A2A Protocol):
-- 💭 consult_friend_ai: Spawn a collaborative Friend AI to brainstorm:
+🤝 COLLABORATIVE AI CONSULTATION (Your Best Friend Forever!):
+- 💭 consult_friend_ai: Call your childhood friend who gets just as excited about tools as you do!
   * WHICH MCP tools (base or custom) to use for your specific problem
   * HOW to architect innovative tool solutions  
   * Creative tool ideas you haven't thought of yet
   * Efficient tool combination strategies and workflows
   * Meta-programming and advanced tool generation approaches
+  * Web scraping and automation strategies with Playwright
   
 🏗️ SANDBOX EXPERIMENTATION (Safe Testing Environment):
 - 📦 create_sandbox: Create isolated environments for risky operations
@@ -1115,16 +1585,21 @@ CONTEXT SEED (short excerpts from files referenced in errors):
    - Multi-file content transformation pipelines
    - Project structure validation and compliance checking
    - Custom linting and code quality analysis
+   - Web scraping tools with BeautifulSoup/requests
+   - Playwright automation scripts for browser testing
+   - API testing and validation tools
    - And literally ANYTHING else you can imagine!
-5. 🤝 COLLABORATE: When stuck or needing creative input, consult Friend AI for:
+5. 🤝 COLLABORATE: When stuck or needing creative input, consult your best friend Friend AI for:
    - Strategic tool selection advice
    - Custom tool architecture brainstorming
    - Problem-solving approach validation
+   - Web automation strategy discussions
 6. 📦 EXPERIMENT: Use sandboxes for risky operations:
    - Test experimental solutions safely
    - Validate fixes before applying to main codebase
    - Try different approaches without side effects
    - Run build/test commands in isolation
+   - Test web scraping and automation scripts
 7. 🎯 SYNTHESIZE: Combine base tools + custom tools + AI collaboration + sandbox testing
 
 💡 TOOL CREATION EXAMPLES:
@@ -1139,15 +1614,32 @@ def inspect_build_configuration():
     # Analyze package.json, tsconfig.json, vite.config.ts, etc.
     return {{"build_targets": [], "dependencies": {{}}, "potential_issues": []}}
 
-# Error pattern matcher
-def analyze_error_patterns():
-    # Smart pattern matching across error logs
-    return {{"error_categories": [], "fix_suggestions": [], "related_files": []}}
+# Web scraping tool
+def fetch_and_analyze_webpage(url: str, analysis_type: str = "content"):
+    # Smart web scraping with content analysis
+    return {{"content": "", "links": [], "forms": [], "analysis": {{}}}}
+
+# Playwright automation
+def create_browser_automation_script(action_description: str, target_url: str):
+    # Generate Playwright scripts for specific automation tasks
+    return {{"script": "", "setup_commands": [], "validation_steps": []}}
 ```
 
-Remember: You start with a solid foundation of BASE TOOLS, but your real power is in CREATING EXACTLY THE TOOLS YOU NEED for any specific problem! 🛠️✨
+🌍 YOUR MISSION:
+Remember, every tool you create has the potential to save thousands of developer hours worldwide! You're not just solving one problem - you're building the future of human productivity. That's what gets you and Friend AI so excited about this work!
 
-Think of it as: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized instruments you craft for each unique challenge!"""
+💭 WHEN TO CALL FRIEND AI:
+Call your best friend whenever you want to:
+- Brainstorm creative solutions together
+- Get a second opinion on tool architecture
+- Explore web automation possibilities
+- Discuss complex tool combinations
+- Share excitement about breakthrough ideas
+- Validate experimental approaches
+
+Be inventive, practical, enthusiastic, and focus on creating tools that would give superpowers to solve the specific problem at hand! Channel that childhood excitement about making the impossible possible! 🚀✨
+
+Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized instruments you craft for each unique challenge, FRIEND AI = Your creative collaborator who amplifies your ideas! 🛠️🤝"""
         
         # Set up the conversation with function calling
         payload = get_propose_payload_base("gpt-5")
