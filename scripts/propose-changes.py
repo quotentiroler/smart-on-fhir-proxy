@@ -1688,7 +1688,7 @@ Be inventive, practical, enthusiastic, and focus on creating tools that would gi
 Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized instruments you craft for each unique challenge, FRIEND AI = Your creative collaborator who amplifies your ideas! 🛠️🤝"""
         
         # Set up the conversation with function calling
-        payload = get_propose_payload_base("gpt-5")
+        payload = get_propose_payload_base("gpt-5-mini")
         payload["tools"] = self.get_mcp_tools_schema()
         payload["messages"] = [
             {
