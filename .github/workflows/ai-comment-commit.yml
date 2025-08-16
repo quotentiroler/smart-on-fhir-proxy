@@ -49,7 +49,7 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app-auth.outputs.token || secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.event.head_commit.id || github.sha }}
-          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4o-mini' }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5-mini' }}
         run: |
           echo "Running AI commit comment script..."
           node scripts/ai-commit-comment.mjs

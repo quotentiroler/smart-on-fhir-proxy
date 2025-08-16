@@ -146,7 +146,7 @@ jobs:
               
               # Create JSON payload with proper escaping
               request_data=$(jq -n \
-                --arg model "gpt-4o-mini" \
+                --arg model "gpt-5-mini" \
                 --arg system_content "$system_prompt" \
                 --arg user_content "Create a professional changelog from these commit summaries for an application named Proxy Smart (${{ inputs.release_type }} release). Focus on the appropriate level of detail for this release type:\n\n$all_comments" \
                 '{

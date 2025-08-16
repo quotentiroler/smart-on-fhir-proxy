@@ -117,7 +117,9 @@ jobs:
         
         # Also check test output for failure indicators
         if [ -f test-output.log ]; then
-          if grep -qE "(failed|error:|FAIL|AssertionError)" test-output.log; then
+          # Look for actual test failures, not normal test assertion output
+          # Count failed tests in the summary line
+          if grep -qE "([0-9]+ fail|AssertionError|TypeError:|ReferenceError:|SyntaxError:|Test failed)" test-output.log; then
             echo "❌ Frontend test output contains failures/errors"
             has_test_failures="true"
           fi
@@ -204,7 +206,9 @@ jobs:
         
         # Also check test output for failure indicators
         if [ -f test-output.log ]; then
-          if grep -qE "(failed|error:|FAIL|AssertionError|No backend tests)" test-output.log; then
+          # Look for actual test failures, not normal test assertion output
+          # Count failed tests in the summary line
+          if grep -qE "([0-9]+ fail|No backend tests|AssertionError|TypeError:|ReferenceError:|SyntaxError:)" test-output.log; then
             echo "❌ Backend test output contains failures/errors or missing tests"
             has_test_failures="true"
           fi

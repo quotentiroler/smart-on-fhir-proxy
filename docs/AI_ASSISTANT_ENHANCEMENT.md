@@ -7,7 +7,7 @@ The SMART on FHIR Platform now includes a sophisticated AI assistant powered by 
 ### ✨ Key Features
 
 #### 🧠 Intelligent Response System
-- **OpenAI Integration**: Uses GPT-4o-mini for natural language responses
+- **OpenAI Integration**: Uses gpt-5-mini for natural language responses
 - **RAG Technology**: Combines retrieval of relevant documentation with AI generation
 - **Fallback System**: Rule-based responses when OpenAI is unavailable
 - **Source Attribution**: Shows documentation sources for responses
