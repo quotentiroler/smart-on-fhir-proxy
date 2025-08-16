@@ -52,9 +52,18 @@ runs:
         uv venv
       fi
 
-      # Install from requirements.txt (more reliable for CI)
+      # Robustly install from requirements.txt (try both relative and absolute)
       echo "📋 Installing dependencies from requirements.txt"
-      uv pip install -r ${{ inputs.cache-dependency-path }}
+      if [ -f "${{ inputs.cache-dependency-path }}" ]; then
+        uv pip install -r "${{ inputs.cache-dependency-path }}"
+      elif [ -f "./${{ inputs.cache-dependency-path }}" ]; then
+        uv pip install -r "./${{ inputs.cache-dependency-path }}"
+      elif [ -f "scripts/requirements.txt" ]; then
+        uv pip install -r scripts/requirements.txt
+      else
+        echo "❌ Could not find requirements.txt at ${{ inputs.cache-dependency-path }} or ./scripts/requirements.txt" >&2
+        exit 1
+      fi
 
       # Make sure the virtual environment is activated for subsequent steps
       echo "VIRTUAL_ENV=$(pwd)/.venv" >> $GITHUB_ENV
