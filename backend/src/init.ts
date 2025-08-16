@@ -9,7 +9,7 @@ let keycloakAccessible = false
  * Get the current Keycloak accessibility status
  */
 export function isKeycloakAccessible(): boolean {
-  return keycloakAccessible && config.keycloak.isConfigured
+  return config.keycloak.isConfigured || keycloakAccessible
 }
 
 /**

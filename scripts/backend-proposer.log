@@ -1,0 +1,46 @@
+📝 No .env file found, using system environment variables
+🧪 Test-Enhanced Junior AI starting analysis...
+🎯 Component: backend, Test Scenario: coverage_improvement
+🧠 Junior AI starting interactive code exploration...
+🎯 Detected component type: frontend
+🌱 Seeding initial context from error files...
+🔄 AI Iteration 1
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'backend/test'})
+🔄 AI Iteration 2
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/test/auth.config.edge.test.ts'})
+🔄 AI Iteration 3
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/src/routes/auth/index.ts'})
+🔄 AI Iteration 4
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/src/init.ts'})
+🔄 AI Iteration 5
+🗜️ Compressed context: 10 → 9 messages
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/src/config.ts'})
+🔄 AI Iteration 6
+🗜️ Compressed context: 11 → 10 messages
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/test/auth.config.edge.test.ts'})
+🔄 AI Iteration 7
+🗜️ Compressed context: 12 → 11 messages
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/src/routes/auth/index.ts'})
+🔄 AI Iteration 8
+🗜️ Compressed context: 13 → 11 messages
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'backend/src/init.ts'})
+🔄 AI Iteration 9
+🗜️ Compressed context: 13 → 11 messages
+🌐 HTTP Status: 200
+✅ AI exploration and analysis complete
