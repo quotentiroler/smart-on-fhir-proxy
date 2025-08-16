@@ -20,28 +20,29 @@ AI_FIX_RESPONSE_SCHEMA = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "file_path": {
+                    "action": {
                         "type": "string",
-                        "description": "Path to the file to fix (from repo root)"
+                        "enum": ["modify", "create"],
+                        "description": "Whether to modify existing file or create new file"
                     },
-                    "line_number": {
-                        "type": "number", 
-                        "description": "Line number where the fix should be applied"
-                    },
-                    "search_text": {
+                    "file": {
                         "type": "string",
-                        "description": "Exact text to search for and replace"
+                        "description": "Path to the file (from repo root)"
                     },
-                    "replacement_text": {
+                    "search": {
                         "type": "string",
-                        "description": "Text to replace the search text with"
+                        "description": "Exact text to search for and replace (only for modify action)"
                     },
-                    "description": {
+                    "replace": {
                         "type": "string",
-                        "description": "Description of what this fix does"
+                        "description": "Text to replace the search text with (for modify) or full file content (for create)"
+                    },
+                    "reasoning": {
+                        "type": "string",
+                        "description": "Description of what this fix does and why"
                     }
                 },
-                "required": ["file_path", "line_number", "search_text", "replacement_text", "description"],
+                "required": ["action", "file", "replace", "reasoning"],
                 "additionalProperties": False
             }
         }
@@ -63,37 +64,34 @@ AI_PROPOSE_RESPONSE_SCHEMA = {
             "items": {
                 "type": "object",
                 "properties": {
-                    "file_path": {
+                    "action": {
                         "type": "string",
-                        "description": "Path to the file to fix (from repo root)"
+                        "enum": ["modify", "create"],
+                        "description": "Whether to modify existing file or create new file"
                     },
-                    "line_number": {
-                        "type": "number",
-                        "description": "Line number where the fix should be applied"
-                    },
-                    "search_text": {
-                        "type": "string", 
-                        "description": "Exact text to search for and replace"
-                    },
-                    "replacement_text": {
+                    "file": {
                         "type": "string",
-                        "description": "Text to replace the search text with"
+                        "description": "Path to the file (from repo root)"
                     },
-                    "description": {
+                    "search": {
                         "type": "string",
-                        "description": "Description of what this fix does"
+                        "description": "Exact text to search for and replace (only for modify action)"
+                    },
+                    "replace": {
+                        "type": "string",
+                        "description": "Text to replace the search text with (for modify) or full file content (for create)"
+                    },
+                    "reasoning": {
+                        "type": "string",
+                        "description": "Description of what this fix does and why"
                     },
                     "confidence": {
                         "type": "string",
                         "enum": ["high", "medium", "low"],
                         "description": "Confidence level in this fix"
-                    },
-                    "reasoning": {
-                        "type": "string",
-                        "description": "Why this fix might work"
                     }
                 },
-                "required": ["file_path", "line_number", "search_text", "replacement_text", "description", "confidence", "reasoning"],
+                "required": ["action", "file", "replace", "reasoning", "confidence"],
                 "additionalProperties": False
             }
         }
@@ -157,7 +155,17 @@ def create_system_message(component: Literal["frontend", "backend"],
     
     return f"""You are a code fixing assistant specialized in {base_expertise[component]}. {step_guidance[step]} Always return valid JSON with fixes array, even if empty. IMPORTANT: {path_guidance[component]} Focus on {component}-specific issues and best practices.
 
-CRITICAL: For search_text, extract the EXACT code pattern from the error context. For method calls or property access, include the complete chain (e.g., 'logger.auth.error(' not just 'logger.error(') to ensure precise matching."""
+CRITICAL FIX PATTERNS:
+- For modifying existing files: Use action="modify" with exact search patterns from error context
+- For creating new files: Use action="create" with full file content in replace field
+- For search text, include complete property chains (e.g., 'logger.auth.error(' not 'logger.error(')
+
+COMMON SCENARIOS REQUIRING NEW FILES:
+- Missing type definition files (.d.ts)
+- Missing configuration files (tsconfig.json, etc.)
+- Missing test files when tests are expected
+- Missing component files referenced by imports
+- Missing utility/helper files that are imported but don't exist"""
 
 
 def create_user_content_base(component: Literal["frontend", "backend"], 
@@ -230,6 +238,17 @@ def create_user_content_base(component: Literal["frontend", "backend"],
 Focus on {component}-specific issues like:
 {focus_list}
 
-IMPORTANT: When creating search_text patterns, extract the EXACT code from the error context including complete property chains, method calls, and surrounding punctuation. For example, if the error shows 'logger.auth.ersror(' then use that exact pattern, not just 'logger.ersror('."""
+CRITICAL FIX INSTRUCTIONS:
+1. For MODIFYING existing files:
+   - Use action="modify" 
+   - Extract EXACT search patterns from error context including complete property chains
+   - Example: if error shows 'logger.auth.ersror(' use that exact pattern in search field
+
+2. For CREATING new files:
+   - Use action="create"
+   - Put full file content in replace field
+   - Common cases: missing imports, missing type files, missing configuration files
+
+3. File paths must be from repository root (e.g., '{component}/src/file.ts')"""
     
     return content

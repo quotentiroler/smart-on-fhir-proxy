@@ -5,6 +5,12 @@
 **/__pycache__
 .vscode
 
+# AI Tools Cache
+.ai_tools_cache/
+
+# AI Sandboxes
+.ai_sandboxes/
+
 # Build and test log files (should not be committed)
 *-build.log
 *-test.log

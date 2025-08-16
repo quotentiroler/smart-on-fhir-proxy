@@ -46,6 +46,25 @@ jobs:
           checkout: 'false'  # Skip checkout since we already did it
 
       # === CLIENT API GENERATION ===
+      - name: Pull Latest Backend Changes
+        run: |
+          echo "🔄 Ensuring we have the latest backend changes for API generation..."
+          git fetch origin --force
+          echo "Current commit: $(git rev-parse HEAD)"
+          echo "Latest origin commit: $(git rev-parse origin/${{ github.ref_name }})"
+          
+          if [ "$(git rev-parse HEAD)" != "$(git rev-parse origin/${{ github.ref_name }})" ]; then
+            echo "📥 New commits found, pulling latest changes..."
+            git reset --hard origin/${{ github.ref_name }}
+            echo "✅ Updated to latest commit: $(git rev-parse HEAD)"
+            echo "📋 Recent commits:"
+            git log --oneline -5
+          else
+            echo "✅ Already up to date"
+            echo "📋 Recent commits:"
+            git log --oneline -5
+          fi
+
       - name: Authenticate as GitHub App for API Generation
         id: api-app-auth
         uses: actions/create-github-app-token@v2
@@ -187,7 +206,7 @@ jobs:
           echo "🔍 First 1000 chars of build log:"
           head -c 1000 frontend-build.log
           echo ""
-          if python scripts/propose-frontend-fixes.py frontend-build.log > scripts/proposed-frontend-fixes.json; then
+          if python scripts/propose-changes.py frontend-build.log > scripts/proposed-frontend-fixes.json; then
             echo "✅ Frontend fixes proposed successfully"
             echo "Proposed fixes:"
             cat scripts/proposed-frontend-fixes.json
@@ -217,7 +236,7 @@ jobs:
           
           echo "� Starting frontend review process..."
           
-          if python scripts/review-frontend-fixes.py scripts/proposed-frontend-fixes.json frontend-build.log > scripts/reviewed-frontend-fixes.json; then
+          if python scripts/review-changes.py scripts/proposed-frontend-fixes.json frontend-build.log > scripts/reviewed-frontend-fixes.json; then
             echo "✅ Frontend fixes reviewed successfully"
             echo "� Reviewed fixes file size: $(wc -c < scripts/reviewed-frontend-fixes.json) bytes"
             echo "Reviewed fixes:"
@@ -246,7 +265,7 @@ jobs:
         run: |
           echo "🔧 Applying reviewed frontend BUILD fixes..."
           echo "📝 Using reviewed fixes from: scripts/reviewed-frontend-fixes.json"
-          if python scripts/apply-frontend-fixes.py scripts/reviewed-frontend-fixes.json; then
+          if python scripts/apply-changes.py scripts/reviewed-frontend-fixes.json; then
             echo "✅ Frontend BUILD fixes applied successfully"
             echo "BUILD_RETRY_SUCCESS=true" >> $GITHUB_OUTPUT
           else
@@ -351,7 +370,7 @@ jobs:
           echo "🔍 First 1000 chars of test log:"
           head -c 1000 frontend-test.log
           echo ""
-          if python scripts/propose-frontend-fixes.py frontend-test.log > scripts/proposed-frontend-test-fixes.json; then
+          if python scripts/propose-changes.py frontend-test.log > scripts/proposed-frontend-test-fixes.json; then
             echo "✅ Frontend test fixes proposed successfully"
             echo "Proposed test fixes:"
             cat scripts/proposed-frontend-test-fixes.json
@@ -380,7 +399,7 @@ jobs:
           
           echo "🚀 Starting frontend test review process..."
           
-          if python scripts/review-frontend-fixes.py scripts/proposed-frontend-test-fixes.json frontend-test.log > scripts/reviewed-frontend-test-fixes.json; then
+          if python scripts/review-changes.py scripts/proposed-frontend-test-fixes.json frontend-test.log > scripts/reviewed-frontend-test-fixes.json; then
             echo "✅ Frontend test fixes reviewed successfully"
             echo "📄 Reviewed test fixes file size: $(wc -c < scripts/reviewed-frontend-test-fixes.json) bytes"
             echo "Reviewed test fixes:"
@@ -400,7 +419,7 @@ jobs:
         run: |
           echo "🔧 Applying reviewed frontend TEST fixes..."
           echo "📝 Using reviewed test fixes from: scripts/reviewed-frontend-test-fixes.json"
-          if python scripts/apply-frontend-fixes.py scripts/reviewed-frontend-test-fixes.json; then
+          if python scripts/apply-changes.py scripts/reviewed-frontend-test-fixes.json; then
             echo "✅ Frontend TEST fixes applied successfully"
             echo "🔄 Retrying tests..."
             cd ui

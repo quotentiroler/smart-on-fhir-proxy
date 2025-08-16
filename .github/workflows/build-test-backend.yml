@@ -135,7 +135,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           echo "🤖 Junior AI proposing initial backend fixes..."
-          if python scripts/propose-backend-fixes.py backend-build.log > scripts/proposed-backend-fixes.json; then
+          if python scripts/propose-changes.py backend-build.log > scripts/proposed-backend-fixes.json; then
             echo "✅ Fixes proposed successfully"
             echo "Proposed fixes:"
             cat scripts/proposed-backend-fixes.json
@@ -166,7 +166,7 @@ jobs:
           echo "🚀 Starting review process..."
           
           # Run with explicit error handling and debugging
-          if python scripts/review-backend-fixes.py scripts/proposed-backend-fixes.json backend-build.log > scripts/reviewed-backend-fixes.json; then
+          if python scripts/review-changes.py scripts/proposed-backend-fixes.json backend-build.log > scripts/reviewed-backend-fixes.json; then
             echo "✅ Fixes reviewed successfully"
             echo "📄 Reviewed fixes file size: $(wc -c < scripts/reviewed-backend-fixes.json) bytes"
             echo "Reviewed fixes:"
@@ -189,7 +189,7 @@ jobs:
             python -c "import json; print('json module OK')"
             
             echo "📋 Re-running with direct output to see errors..."
-            python scripts/review-backend-fixes.py scripts/proposed-backend-fixes.json backend-build.log || true
+            python scripts/review-changes.py scripts/proposed-backend-fixes.json backend-build.log || true
             
             exit 1
           fi
@@ -203,7 +203,7 @@ jobs:
           GITHUB_TOKEN: ${{ steps.backend-app-auth.outputs.token }}
         run: |
           echo "🔧 Applying reviewed backend fixes..."
-          python scripts/apply-backend-fixes.py scripts/reviewed-backend-fixes.json
+          python scripts/apply-changes.py scripts/reviewed-backend-fixes.json
 
       - name: Fail if backend build failed and AI couldn't fix it
         if: ${{ always() && (steps.build-status.outputs.BUILD_FAILED == 'true' || steps.backend-build.outcome == 'failure') && steps.backend-fix-retry.outputs.backend_build_success != 'true' }}
@@ -277,7 +277,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           echo "🤖 Junior AI proposing initial backend test fixes..."
-          if python scripts/propose-backend-fixes.py backend-test.log > scripts/proposed-backend-test-fixes.json; then
+          if python scripts/propose-changes.py backend-test.log > scripts/proposed-backend-test-fixes.json; then
             echo "✅ Test fixes proposed successfully"
             echo "Proposed test fixes:"
             cat scripts/proposed-backend-test-fixes.json
@@ -294,7 +294,7 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           echo "🎓 Senior AI reviewing proposed backend test fixes..."
-          if python scripts/review-backend-fixes.py scripts/proposed-backend-test-fixes.json backend-test.log > scripts/reviewed-backend-test-fixes.json; then
+          if python scripts/review-changes.py scripts/proposed-backend-test-fixes.json backend-test.log > scripts/reviewed-backend-test-fixes.json; then
             echo "✅ Test fixes reviewed successfully"
             echo "Reviewed test fixes:"
             cat scripts/reviewed-backend-test-fixes.json
@@ -312,7 +312,7 @@ jobs:
           GITHUB_TOKEN: ${{ steps.backend-test-app-auth.outputs.token }}
         run: |
           echo "🔧 Applying reviewed backend test fixes..."
-          python scripts/apply-backend-fixes.py scripts/reviewed-backend-test-fixes.json
+          python scripts/apply-changes.py scripts/reviewed-backend-test-fixes.json
 
       - name: Fail if backend tests failed and AI couldn't fix it
         if: ${{ inputs.run_tests && steps.test-backend.outcome == 'failure' && steps.backend-test-fix-retry.outcome != 'success' && inputs.fail_on_test_failure }}
