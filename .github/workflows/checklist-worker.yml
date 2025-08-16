@@ -3,7 +3,7 @@ name: 'Checklist Implementation Worker'
 on:
   push:
     branches:
-      - "checklist/*"
+      - "ai/checklist/*"
   workflow_dispatch:
     inputs:
       checklist_file:
@@ -100,9 +100,9 @@ jobs:
           echo "❌ Junior AI failed to propose implementation"
           exit 1
         fi
-        
-        echo "✅ Junior AI completed analysis"
-        
+
+        echo "✅ Implementation proposed successfully"
+
         # Step 2: Senior AI reviews and refines
         echo "🎓 Senior AI reviewing and refining implementation..."
         python scripts/review-changes.py proposed_implementation.json implementation_requirements.log > reviewed_implementation.json

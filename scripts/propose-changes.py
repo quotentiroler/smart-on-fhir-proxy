@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Junior AI: Propose initial fixes for any type of build/test errors
-This script analyzes errors and proposes initial fixes using MCP-enhanced exploration
+Junior AI: Propose Code Implementations / Changes / Fixes 
+This script analyzes an input (error logs, instructions) using MCP-enhanced exploration
+And proposes code changes based on the analysis.
 """
 
 import json
@@ -33,7 +34,7 @@ except Exception as e:
     print(f"⚠️ Failed to load .env file: {e}, using system environment variables", file=sys.stderr)
 
 import requests
-from ai_fix_schema import get_propose_payload_base, get_common_headers, create_system_message, create_user_content_base
+from ai_proposal_schema import get_propose_payload_base, get_common_headers, create_system_message, create_user_content_base
 
 # Import Friend AI with proper module name handling
 import sys

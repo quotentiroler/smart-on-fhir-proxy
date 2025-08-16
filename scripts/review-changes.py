@@ -12,7 +12,7 @@ import requests
 from pathlib import Path
 from typing import Dict, List, Any
 
-from ai_fix_schema import get_propose_payload_base, get_common_headers, create_system_message
+from ai_proposal_schema import get_propose_payload_base, get_common_headers, create_system_message
 
 
 class UnifiedChangeReviewer:
