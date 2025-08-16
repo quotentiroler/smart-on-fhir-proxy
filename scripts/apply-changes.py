@@ -133,7 +133,11 @@ class UnifiedChangeApplier:
     def commit_and_push_changes(self, component_type: str, changes_applied: int):
         """Commit and push changes with proper GitHub App authentication."""
         try:
+            print("🔄 STARTING GIT COMMIT AND PUSH PROCESS", file=sys.stderr)
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", file=sys.stderr)
+            
             # Check if there are any changes to commit
+            print("📋 Checking for changes to commit...", file=sys.stderr)
             result = subprocess.run([
                 "git", "diff", "--name-only"
             ], capture_output=True, text=True)
@@ -143,40 +147,84 @@ class UnifiedChangeApplier:
                 return True
             
             changed_files = result.stdout.strip().split('\n')
-            print(f"📝 Changed files: {', '.join(changed_files)}", file=sys.stderr)
+            print(f"📝 Found {len(changed_files)} changed files:", file=sys.stderr)
+            for file in changed_files:
+                print(f"   • {file}", file=sys.stderr)
+            
+            # Check git status for additional info
+            print("📊 Git status before commit:", file=sys.stderr)
+            status_result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
+            for line in status_result.stdout.strip().split('\n'):
+                if line.strip():
+                    print(f"   {line}", file=sys.stderr)
             
             # Add all changes
+            print("📦 Adding all changes to git...", file=sys.stderr)
             subprocess.run(["git", "add", "."], check=True)
+            print("✅ Successfully added changes to git", file=sys.stderr)
             
             # Create commit message
-            commit_message = f"🤖 AI change: Apply {changes_applied} {component_type} changes\n\nchangeed files:\n" + \
+            commit_message = f"🤖 AI change: Apply {changes_applied} {component_type} changes\n\nChanged files:\n" + \
                            "\n".join(f"- {file}" for file in changed_files)
             
             # Commit changes
+            print(f"💾 Committing {changes_applied} changes...", file=sys.stderr)
+            print(f"📝 Commit message: {commit_message.split('\\n')[0]}", file=sys.stderr)
             subprocess.run([
                 "git", "commit", "-m", commit_message
             ], check=True)
             
-            print(f"✅ Committed {changes_applied} changes", file=sys.stderr)
+            print(f"✅ Successfully committed {changes_applied} changes", file=sys.stderr)
+            
+            # Check current branch and remote info
+            branch_result = subprocess.run([
+                "git", "rev-parse", "--abbrev-ref", "HEAD"
+            ], capture_output=True, text=True, check=True)
+            
+            current_branch = branch_result.stdout.strip()
+            print(f"🌿 Current branch: {current_branch}", file=sys.stderr)
+            
+            # Check if remote exists
+            remote_result = subprocess.run([
+                "git", "remote", "get-url", "origin"
+            ], capture_output=True, text=True)
+            
+            if remote_result.returncode == 0:
+                print(f"🌐 Remote origin URL: {remote_result.stdout.strip()}", file=sys.stderr)
+            else:
+                print("⚠️ No remote origin configured", file=sys.stderr)
             
             # Push changes using GitHub App token
             github_token = os.environ.get("GITHUB_TOKEN")
             if github_token:
-                # Get current branch
-                branch_result = subprocess.run([
-                    "git", "rev-parse", "--abbrev-ref", "HEAD"
-                ], capture_output=True, text=True, check=True)
+                print(f"🔑 GITHUB_TOKEN found (length: {len(github_token)})", file=sys.stderr)
+                print(f"📤 Attempting to push to origin/{current_branch}...", file=sys.stderr)
                 
-                current_branch = branch_result.stdout.strip()
-                
-                # Push with GitHub App token
-                subprocess.run([
+                # Push with GitHub App token and capture detailed output
+                push_result = subprocess.run([
                     "git", "push", "origin", current_branch
-                ], check=True)
+                ], capture_output=True, text=True)
                 
-                print(f"✅ Pushed changes to {current_branch}", file=sys.stderr)
+                if push_result.returncode == 0:
+                    print(f"✅ Successfully pushed changes to {current_branch}", file=sys.stderr)
+                    print(f"📤 Push output: {push_result.stdout}", file=sys.stderr)
+                    if push_result.stderr:
+                        print(f"📝 Push stderr: {push_result.stderr}", file=sys.stderr)
+                else:
+                    print(f"❌ Push failed with return code: {push_result.returncode}", file=sys.stderr)
+                    print(f"📤 Push stdout: {push_result.stdout}", file=sys.stderr)
+                    print(f"📝 Push stderr: {push_result.stderr}", file=sys.stderr)
+                    return False
+                
             else:
                 print("⚠️ No GITHUB_TOKEN found, skipping push", file=sys.stderr)
+                print("🔍 Available environment variables:", file=sys.stderr)
+                for key in sorted(os.environ.keys()):
+                    if 'TOKEN' in key or 'GIT' in key or 'GITHUB' in key:
+                        print(f"   {key}=***", file=sys.stderr)
+            
+            print("🎉 Git commit and push process completed successfully!", file=sys.stderr)
+            print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", file=sys.stderr)
             
             return True
             
