@@ -1,7 +1,7 @@
 === FRONTEND TEST COVERAGE ENHANCEMENT ===
 Component: Frontend (React/TypeScript)
 Task: Generate missing tests to improve code coverage
-Current coverage: 1.18%
+Current coverage: %
 Target coverage: 80%
 Framework: Vitest + Testing Library + Jest DOM
 
@@ -14,6 +14,24 @@ COVERAGE GAPS TO ADDRESS:
 UNCOVERED/LOW COVERAGE FILES:
 
 EXISTING TEST PATTERNS (for reference):
+Example test file: ../ui/test/hooks/useTheme.outside-provider.test.tsx
+import React from 'react'
+import { describe, it, expect } from 'vitest'
+import { render } from '@testing-library/react'
+import { useTheme } from '@/hooks/useTheme'
+
+function ConsumerWithoutProvider() {
+  // This usage should throw because no ThemeProvider wraps the component
+  const { theme } = useTheme()
+  return <div>{theme}</div>
+}
+
+describe('useTheme', () => {
+  it('throws when used outside of ThemeProvider', () => {
+    expect(() => render(<ConsumerWithoutProvider />)).toThrow()
+  })
+})
+---
 Example test file: ../ui/test/components/theme-provider.extra.test.tsx
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
@@ -36,47 +54,25 @@ function ThemeConsumer() {
 
 // helper to mock prefers-color-scheme
 ---
-Example test file: ../ui/test/components/input.test.tsx
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+Example test file: ../ui/test/components/theme-provider.domclass.test.tsx
 import React from 'react'
-import { Input } from '@/components/ui/input'
-
-describe('Input', () => {
-  it('renders an input with provided placeholder and type', () => {
-    render(<Input placeholder="Enter name" type="text" />)
-
-    const input = screen.getByPlaceholderText(/enter name/i)
-    expect(input).toBeInTheDocument()
-    expect((input as HTMLInputElement).type).toBe('text')
-  })
-
-  it('accepts className and forwards props', () => {
-    render(<Input placeholder="p" className="test-class" data-testid="my-input" />)
-
-    const input = screen.getByTestId('my-input')
-    expect(input).toHaveClass('test-class')
----
-Example test file: ../ui/test/components/button.test.tsx
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { Button } from '@/components/ui/button'
+import { ThemeProvider } from '@/components/theme-provider'
+import { useTheme } from '@/hooks/useTheme'
 
-describe('Button', () => {
-  it('renders with default props', () => {
-    render(<Button>Click me</Button>)
-    
-    const button = screen.getByRole('button', { name: /click me/i })
-    expect(button).toBeInTheDocument()
-    expect(button).toHaveClass('inline-flex', 'items-center', 'justify-center')
-  })
+function ThemeToggler() {
+  const { setTheme } = useTheme()
+  return (
+    <div>
+      <button onClick={() => setTheme('dark')}>Set Dark</button>
+      <button onClick={() => setTheme('light')}>Set Light</button>
+    </div>
+  )
+}
 
-  it('renders with different variants', () => {
-    const { rerender } = render(<Button variant="destructive">Delete</Button>)
-    
-    let button = screen.getByRole('button', { name: /delete/i })
-    expect(button).toHaveClass('bg-destructive')
-    
+describe('ThemeProvider DOM class toggling', () => {
+  it('adds and removes the dark class on documentElement when toggling themes', async () => {
+    const user = userEvent.setup()
 ---

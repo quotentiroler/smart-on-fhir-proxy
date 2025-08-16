@@ -1,0 +1,74 @@
+$ vitest --coverage "--reporter=verbose" "--reporter=json" "--outputFile=test-results.json"
+
+[1m[46m RUN [49m[22m [36mv3.2.4 [39m[90m/home/runner/work/proxy-smart/proxy-smart/ui[39m
+      [2mCoverage enabled with [22m[33mv8[39m
+
+ [31m×[39m test/hooks/useTheme.outside-provider.test.tsx[2m > [22museTheme[2m > [22mthrows when used outside of ThemeProvider[32m 24[2mms[22m[39m
+[31m   → expected [Function] to throw an error[39m
+ [31m×[39m test/components/theme-provider.domclass.test.tsx[2m > [22mThemeProvider DOM class toggling[2m > [22madds and removes the dark class on documentElement when toggling themes[32m 43[2mms[22m[39m
+[31m   → window.matchMedia is not a function[39m
+ [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mrenders with default props[32m 126[2mms[22m[39m
+ [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mrenders with different variants[32m 19[2mms[22m[39m
+ [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mrenders with different sizes[32m 15[2mms[22m[39m
+ [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mhandles click events[32m 35[2mms[22m[39m
+ [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mcan be disabled[32m 8[2mms[22m[39m
+ [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mrenders as child when asChild is true[32m 16[2mms[22m[39m
+ [32m✓[39m test/components/input.extra.test.tsx[2m > [22mInput (extra)[2m > [22mupdates value on typing[32m 143[2mms[22m[39m
+ [32m✓[39m test/components/input.extra.test.tsx[2m > [22mInput (extra)[2m > [22mdoes not accept input when disabled[32m 6[2mms[22m[39m
+ [32m✓[39m test/components/input.test.tsx[2m > [22mInput[2m > [22mrenders an input with provided placeholder and type[32m 38[2mms[22m[39m
+ [32m✓[39m test/components/input.test.tsx[2m > [22mInput[2m > [22maccepts className and forwards props[32m 4[2mms[22m[39m
+ [32m✓[39m test/components/theme-provider.extra.test.tsx[2m > [22mThemeProvider integration[2m > [22mpersists theme to storage and toggles DOM class when setTheme is called[32m 191[2mms[22m[39m
+ [32m✓[39m test/components/theme-provider.extra.test.tsx[2m > [22mThemeProvider integration[2m > [22msystem theme follows prefers-color-scheme and stores "system"[32m 24[2mms[22m[39m
+ [32m✓[39m test/components/input.test.tsx[2m > [22mInput[2m > [22mcalls onChange when user types and updates value[32m 87[2mms[22m[39m
+ [32m✓[39m test/components/input.test.tsx[2m > [22mInput[2m > [22mforwards ref to the input element[32m 4[2mms[22m[39m
+ [32m✓[39m test/components/theme-provider.test.tsx[2m > [22mThemeProvider[2m > [22minitializes with defaultTheme and updates DOM and storage when setTheme is called[32m 154[2mms[22m[39m
+ [32m✓[39m test/components/textarea.test.tsx[2m > [22mTextarea[2m > [22mrenders textarea with placeholder and className[32m 33[2mms[22m[39m
+ [32m✓[39m test/components/textarea.test.tsx[2m > [22mTextarea[2m > [22mforwards ref to the textarea element[32m 3[2mms[22m[39m
+ [32m✓[39m test/components/button.extra.test.tsx[2m > [22mButton (extra)[2m > [22mcalls onClick when enabled[32m 162[2mms[22m[39m
+ [32m✓[39m test/components/button.extra.test.tsx[2m > [22mButton (extra)[2m > [22mdoes not call onClick when disabled[32m 22[2mms[22m[39m
+ [32m✓[39m test/lib/utils.test.ts[2m > [22mlib/utils - cn[2m > [22mreturns a space-separated string containing provided classes[32m 7[2mms[22m[39m
+ [32m✓[39m test/lib/utils.test.ts[2m > [22mlib/utils - cn[2m > [22mignores falsy values and merges conditional classes[32m 0[2mms[22m[39m
+
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+
+[41m[1m FAIL [22m[49m test/components/theme-provider.domclass.test.tsx[2m > [22mThemeProvider DOM class toggling[2m > [22madds and removes the dark class on documentElement when toggling themes
+[31m[1mTypeError[22m: window.matchMedia is not a function[39m
+[36m [2m❯[22m src/components/theme-provider.tsx:[2m40:34[22m[39m
+    [90m 38| [39m 
+    [90m 39| [39m    [35mif[39m (theme [33m===[39m [32m"system"[39m) {
+    [90m 40| [39m      const systemTheme = window.matchMedia("(prefers-color-scheme: da…
+    [90m   | [39m                                 [31m^[39m
+    [90m 41| [39m        [33m.[39mmatches
+    [90m 42| [39m        [33m?[39m [32m"dark"[39m
+[90m [2m❯[22m Object.react_stack_bottom_frame ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m23953:20[22m[39m
+[90m [2m❯[22m runWithFiberInDEV ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m1522:13[22m[39m
+[90m [2m❯[22m commitHookEffectListMount ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m11905:29[22m[39m
+[90m [2m❯[22m commitHookPassiveMountEffects ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m12028:11[22m[39m
+[90m [2m❯[22m commitPassiveMountOnFiber ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m13841:13[22m[39m
+[90m [2m❯[22m recursivelyTraversePassiveMountEffects ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m13815:11[22m[39m
+[90m [2m❯[22m commitPassiveMountOnFiber ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m13853:11[22m[39m
+[90m [2m❯[22m flushPassiveEffects ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m15737:9[22m[39m
+[90m [2m❯[22m ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m15379:15[22m[39m
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
+
+[41m[1m FAIL [22m[49m test/hooks/useTheme.outside-provider.test.tsx[2m > [22museTheme[2m > [22mthrows when used outside of ThemeProvider
+[31m[1mAssertionError[22m: expected [Function] to throw an error[39m
+[36m [2m❯[22m test/hooks/useTheme.outside-provider.test.tsx:[2m14:55[22m[39m
+    [90m 12| [39m[34mdescribe[39m([32m'useTheme'[39m[33m,[39m () [33m=>[39m {
+    [90m 13| [39m  [34mit[39m([32m'throws when used outside of ThemeProvider'[39m[33m,[39m () [33m=>[39m {
+    [90m 14| [39m    [34mexpect[39m(() [33m=>[39m [34mrender[39m([33m<[39m[33mConsumerWithoutProvider[39m [33m/[39m[33m>[39m))[33m.[39m[34mtoThrow[39m()
+    [90m   | [39m                                                      [31m^[39m
+    [90m 15| [39m  })
+    [90m 16| [39m})
+
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
+
+
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m8 passed[39m[22m[90m (10)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m21 passed[39m[22m[90m (23)[39m
+[2m   Start at [22m 22:12:11
+[2m   Duration [22m 6.28s[2m (transform 195ms, setup 2.25s, collect 951ms, tests 1.19s, environment 5.80s, prepare 1.39s)[22m
+
+JSON report written to /home/runner/work/proxy-smart/proxy-smart/ui/test-results.json
+error: script "test:coverage" exited with code 1

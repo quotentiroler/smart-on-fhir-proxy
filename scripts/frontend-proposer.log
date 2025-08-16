@@ -1,0 +1,48 @@
+📝 No .env file found, using system environment variables
+🧪 Test-Enhanced Junior AI starting analysis...
+🎯 Component: frontend, Test Scenario: test_fixes
+🧠 Junior AI starting interactive code exploration...
+🎯 Detected component type: frontend
+🌱 Seeding initial context from error files...
+🔄 AI Iteration 1
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'ui/src'})
+🔄 AI Iteration 2
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'ui/src/components'})
+🔄 AI Iteration 3
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/src/components/theme-provider.tsx'})
+🔄 AI Iteration 4
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: list_directory({'path': 'ui/src/hooks'})
+🔄 AI Iteration 5
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/src/hooks/useTheme.ts'})
+🔄 AI Iteration 6
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: read_file({'path': 'ui/src/hooks/use-theme.ts'})
+🔄 AI Iteration 7
+🌐 HTTP Status: 200
+🔧 AI requesting 1 tool calls
+🔧 MCP Tool Call: search_files({'pattern': 'matchMedia', 'file_type': '*'})
+🔄 AI Iteration 8
+⏳ Rate limit hit. Waiting 2.5s before retry 1/3
+⏳ Rate limit hit. Waiting 5.0s before retry 2/3
+❌ Rate limit exceeded after 3 retries
+🌐 HTTP Status: 429
+❌ API call failed: {
+    "error": {
+        "message": "Request too large for gpt-5-mini in organization org-UQXrtd57D4rZI7LC9mG0MQg6 on tokens per min (TPM): Limit 200000, Requested 358403. The input or output tokens must be reduced in order to run successfully. Visit https://platform.openai.com/account/rate-limits to learn more.",
+        "type": "tokens",
+        "param": null,
+        "code": "rate_limit_exceeded"
+    }
+}
+
