@@ -64,8 +64,7 @@ export async function validateToken(token: string): Promise<JwtPayload> {
     
     return verified
   } catch (error) {
-    logger.auth.error('Token v
-      alidation failed', { 
+    logger.auth.error('Token validation failed', { 
       error: error instanceof Error ? error.message : 'Unknown error',
       errorType: (error as any)?.constructor?.name
     })
