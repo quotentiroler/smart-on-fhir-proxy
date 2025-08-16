@@ -286,15 +286,6 @@ jobs:
         echo "   👉 Context size: $(wc -l < enhanced-frontend-errors.log) lines"
         
         echo "🧩 Phase 2: Junior AI propose fixes"
-        echo "📝 Junior AI starting interactive exploration..."
-        echo "🎯 Component: frontend, Task: fix_test_failures"
-        echo "🧠 Junior AI will explore:"
-        echo "   • Analyze test failure patterns and error messages"
-        echo "   • Examine source code structure and dependencies"
-        echo "   • Identify root causes of test failures"
-        echo "   • Design targeted fixes for each failure"
-        echo "   • Validate fix approaches against codebase patterns"
-        echo ""
         echo "🔍 Starting Junior AI interactive exploration for frontend fixes..."
         python test-enhanced-proposer.py enhanced-frontend-errors.log \
           > frontend-proposed-fixes.json \

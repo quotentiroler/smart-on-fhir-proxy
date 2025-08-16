@@ -1840,17 +1840,13 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
                     except Exception as e:
                         print(f"⚠️ RAG optimization failed, continuing with normal compression: {e}", file=sys.stderr)
                 
-                # Trigger chunked synthesis mode to avoid token limits in output
-                return self._chunked_synthesis_mode(payload, iteration)
-                
-            # Regular synthesis check for earlier iterations
-            if iteration > 8 and len(payload["messages"]) > 12:
-                # Try a lightweight synthesis check first
+                # Add synthesis instruction for aggressive completion
                 payload["messages"].append({
-                    "role": "user", 
-                    "content": f"🎯 SYNTHESIS CHECK (Iteration {iteration}): You've done substantial exploration. Can you provide a BRIEF summary of findings and 1-2 most critical changes needed? If you need more exploration, continue with tools. If ready, provide changes."
+                    "role": "user",
+                    "content": f"🎯 SYNTHESIS MODE (Iteration {iteration}): Based on your exploration, please provide your final JSON analysis and changes. Focus on the most critical issues found and actionable solutions. Avoid further exploration - synthesize your findings now."
                 })
-                print(f"🔍 Synthesis check at iteration {iteration}", file=sys.stderr)
+                
+                print(f"🎯 Synthesis mode activated - requesting final output", file=sys.stderr)
             
             try:
                 # Use the retry helper function with increased timeout
@@ -1936,150 +1932,6 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
         
         print("❌ Max iterations reached without completion", file=sys.stderr)
         return {"analysis": "Max iterations reached", "changes": []}
-
-    def _chunked_synthesis_mode(self, payload: dict, iteration: int) -> dict:
-        """
-        Chunked synthesis mode: Generate changes in smaller batches to avoid token limits.
-        Instead of one massive output, break synthesis into focused chunks.
-        """
-        print(f"🧩 CHUNKED SYNTHESIS MODE: Breaking output into manageable pieces", file=sys.stderr)
-        
-        # Extract exploration context for chunking decisions
-        recent_content = ""
-        file_patterns = set()
-        for msg in payload["messages"][-8:]:
-            if "content" in msg:
-                content = str(msg["content"])
-                recent_content += content + " "
-                # Extract file patterns mentioned in exploration
-                import re
-                files = re.findall(r'[a-zA-Z0-9_/-]+\.(ts|tsx|js|jsx|json|test\.ts)', content)
-                file_patterns.update(files[:5])  # Limit to avoid too many
-        
-        # Determine synthesis chunks based on exploration patterns
-        chunks = []
-        if "test" in recent_content.lower() or "coverage" in recent_content.lower():
-            chunks.extend([
-                "test_setup_and_configuration", 
-                "missing_test_files",
-                "test_fixes_and_improvements"
-            ])
-        
-        if "error" in recent_content.lower() or "failed" in recent_content.lower():
-            chunks.extend([
-                "critical_error_fixes",
-                "dependency_and_import_fixes"
-            ])
-        
-        if "backend" in recent_content.lower():
-            chunks.append("backend_infrastructure")
-        if "frontend" in recent_content.lower():
-            chunks.append("frontend_components")
-        
-        # Fallback if no specific patterns detected
-        if not chunks:
-            chunks = ["core_fixes", "configuration_updates"]
-        
-        print(f"🎯 Synthesis chunks identified: {', '.join(chunks)}", file=sys.stderr)
-        
-        # Generate changes for each chunk separately
-        all_changes = []
-        analysis_parts = []
-        
-        for i, chunk in enumerate(chunks[:3]):  # Limit to 3 chunks to avoid infinite loops
-            print(f"🧩 Generating chunk {i+1}/{min(len(chunks), 3)}: {chunk}", file=sys.stderr)
-            
-            # Create focused prompt for this chunk
-            chunk_messages = payload["messages"][:2]  # Keep system + user
-            
-            # Add compression summary
-            chunk_messages.append({
-                "role": "assistant",
-                "content": f"🧩 CHUNKED SYNTHESIS - CHUNK {i+1}: {chunk.upper()}\n\nExploration Summary: Completed {iteration} iterations of codebase analysis. Focus area: {chunk.replace('_', ' ')}\n\nFiles explored: {', '.join(list(file_patterns)[:5])}"
-            })
-            
-            # Add recent context (last 2 messages only)
-            chunk_messages.extend(payload["messages"][-2:])
-            
-            # Add chunk-specific synthesis request
-            chunk_messages.append({
-                "role": "user",
-                "content": f"""🎯 CHUNK SYNTHESIS REQUEST - {chunk.upper()}
-
-Generate JSON for ONLY this specific area: {chunk.replace('_', ' ')}
-
-Requirements:
-- Focus ONLY on {chunk.replace('_', ' ')}-related changes
-- Maximum 3-5 changes per chunk to stay within token limits
-- Provide complete, actionable changes with exact search/replace patterns
-- If no changes needed for this area, return empty changes array
-
-Return valid JSON with this structure:
-{{
-    "chunk": "{chunk}",
-    "analysis": "Brief analysis specific to {chunk.replace('_', ' ')}",
-    "changes": [
-        // Only changes for {chunk.replace('_', ' ')} area
-    ]
-}}"""
-            })
-            
-            # Make API call for this chunk
-            try:
-                chunk_payload = get_propose_payload_base("gpt-5-mini")
-                chunk_payload["tools"] = self.get_mcp_tools_schema()
-                chunk_payload["messages"] = chunk_messages
-                
-                headers = get_common_headers(self.api_key)
-                
-                print(f"🌐 API call for chunk {chunk} (messages: {len(chunk_messages)})", file=sys.stderr)
-                response = requests.post(
-                    "https://api.openai.com/v1/chat/completions",
-                    headers=headers,
-                    json=chunk_payload,
-                    timeout=120
-                )
-                
-                if response.status_code == 200:
-                    response_data = response.json()
-                    message = response_data['choices'][0]['message']
-                    
-                    if message.get('content'):
-                        try:
-                            chunk_result = json.loads(message['content'])
-                            if 'changes' in chunk_result:
-                                all_changes.extend(chunk_result['changes'])
-                                analysis_parts.append(f"[{chunk}] " + chunk_result.get('analysis', ''))
-                                print(f"✅ Chunk {chunk}: {len(chunk_result['changes'])} changes", file=sys.stderr)
-                            else:
-                                print(f"⚠️ Chunk {chunk}: No changes field in response", file=sys.stderr)
-                        except json.JSONDecodeError:
-                            print(f"❌ Chunk {chunk}: JSON parse error", file=sys.stderr)
-                            # Extract partial info if possible
-                            if "changes" in message['content'].lower():
-                                analysis_parts.append(f"[{chunk}] Partial response received")
-                else:
-                    print(f"❌ Chunk {chunk}: API error {response.status_code}", file=sys.stderr)
-                    
-            except Exception as e:
-                print(f"❌ Chunk {chunk}: Exception {e}", file=sys.stderr)
-                continue
-        
-        # Combine all chunks into final result
-        final_analysis = "CHUNKED SYNTHESIS RESULTS:\n" + "\n".join(analysis_parts)
-        if not analysis_parts:
-            final_analysis = "Chunked synthesis completed with limited results due to API constraints."
-        
-        final_result = {
-            "analysis": final_analysis,
-            "changes": all_changes,
-            "synthesis_method": "chunked",
-            "chunks_processed": len(analysis_parts),
-            "total_changes": len(all_changes)
-        }
-        
-        print(f"🎉 Chunked synthesis complete: {len(all_changes)} total changes from {len(analysis_parts)} chunks", file=sys.stderr)
-        return final_result
 
 
 def main():
