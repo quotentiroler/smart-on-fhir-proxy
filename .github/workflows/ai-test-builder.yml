@@ -1,0 +1,627 @@
+name: AI Test Builder
+
+on:
+  push:
+    branches:
+      - "ai/test/**"
+  workflow_dispatch:
+    inputs:
+      target_component:
+        description: "Target component to test (frontend/backend/both)"
+        required: false
+        type: choice
+        options:
+          - both
+          - frontend
+          - backend
+        default: both
+      coverage_threshold:
+        description: "Minimum coverage threshold (%)"
+        required: false
+        type: number
+        default: 80
+      add_missing_tests:
+        description: "Add missing tests based on coverage"
+        required: false
+        type: boolean
+        default: true
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+jobs:
+  ai-test-builder:
+    name: AI Test Builder & Fixer
+    runs-on: ubuntu-latest
+    
+    outputs:
+      tests_added: ${{ steps.summary.outputs.tests_added }}
+      coverage_improved: ${{ steps.summary.outputs.coverage_improved }}
+      errors_fixed: ${{ steps.summary.outputs.errors_fixed }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Need full history for coverage comparison
+
+    - name: Setup Bun
+      uses: ./.github/actions/setup-bun-version
+
+    - name: Setup Python for AI Scripts
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install AI Dependencies
+      run: |
+        echo "🐍 Installing AI script dependencies..."
+        cd scripts
+        pip install -r requirements.txt
+
+    # Install Dependencies
+    - name: Install Root Dependencies
+      run: |
+        echo "📦 Installing root dependencies..."
+        bun install
+
+    - name: Install Backend Dependencies
+      run: |
+        echo "📦 Installing backend dependencies..."
+        cd backend
+        bun install
+
+    - name: Install Frontend Dependencies
+      run: |
+        echo "📦 Installing frontend dependencies..."
+        cd ui
+        bun install
+
+    # === FRONTEND TESTING & COVERAGE ===
+    - name: Run Frontend Tests with Coverage
+      if: ${{ inputs.target_component == 'frontend' || inputs.target_component == 'both' || inputs.target_component == null }}
+      id: frontend-test-coverage
+      continue-on-error: true
+      run: |
+        echo "🧪 Running frontend tests with coverage..."
+        cd ui
+        
+        # Run tests with coverage
+        bun run vitest run --coverage --reporter=verbose --reporter=json --outputFile=test-results.json 2>&1 | tee test-output.log
+        
+        # Capture exit code
+        echo "frontend_test_exit_code=$?" >> $GITHUB_OUTPUT
+        
+        # Generate coverage report
+        if [ -f coverage/coverage-summary.json ]; then
+          echo "📊 Coverage report generated"
+          cat coverage/coverage-summary.json
+        else
+          echo "⚠️ No coverage report found"
+        fi
+
+    - name: Analyze Frontend Test Results
+      if: ${{ (inputs.target_component == 'frontend' || inputs.target_component == 'both' || inputs.target_component == null) && steps.frontend-test-coverage.outcome != 'skipped' }}
+      id: analyze-frontend
+      run: |
+        echo "🔍 Analyzing frontend test results..."
+        cd ui
+        
+        # Check if tests failed
+        if [ "${{ steps.frontend-test-coverage.outputs.frontend_test_exit_code }}" != "0" ]; then
+          echo "❌ Frontend tests failed, will need AI fixes"
+          echo "needs_fixes=true" >> $GITHUB_OUTPUT
+          
+          # Save error log for AI analysis
+          cp test-output.log ../scripts/frontend-test-errors.log
+        else
+          echo "✅ Frontend tests passed"
+          echo "needs_fixes=false" >> $GITHUB_OUTPUT
+        fi
+        
+        # Analyze coverage
+        if [ -f coverage/coverage-summary.json ]; then
+          # Extract overall coverage percentage
+          coverage_pct=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct // 0')
+          echo "coverage_percentage=$coverage_pct" >> $GITHUB_OUTPUT
+          echo "📊 Frontend coverage: $coverage_pct%"
+          
+          # Check if below threshold
+          threshold="${{ inputs.coverage_threshold || 80 }}"
+          if (( $(echo "$coverage_pct < $threshold" | bc -l) )); then
+            echo "📉 Coverage below threshold ($threshold%), will add tests"
+            echo "needs_more_tests=true" >> $GITHUB_OUTPUT
+            
+            # Generate uncovered files report
+            find coverage -name "*.json" -not -name "coverage-summary.json" | head -20 > coverage-files.txt
+          else
+            echo "✅ Coverage meets threshold"
+            echo "needs_more_tests=false" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "needs_more_tests=true" >> $GITHUB_OUTPUT
+        fi
+
+    # === BACKEND TESTING & COVERAGE ===
+    - name: Run Backend Tests with Coverage
+      if: ${{ inputs.target_component == 'backend' || inputs.target_component == 'both' || inputs.target_component == null }}
+      id: backend-test-coverage
+      continue-on-error: true
+      run: |
+        echo "🧪 Running backend tests with coverage..."
+        cd backend
+        
+        # Check if backend has tests
+        if [ ! -d "test" ] && [ ! -f "package.json" ] || ! grep -q '"test"' package.json; then
+          echo "⚠️ No backend tests found, will create test setup"
+          echo "backend_test_exit_code=1" >> $GITHUB_OUTPUT
+          echo "No backend tests configured" > test-output.log
+        else
+          # Run tests with coverage
+          bun run test --coverage 2>&1 | tee test-output.log
+          echo "backend_test_exit_code=$?" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Analyze Backend Test Results
+      if: ${{ (inputs.target_component == 'backend' || inputs.target_component == 'both' || inputs.target_component == null) && steps.backend-test-coverage.outcome != 'skipped' }}
+      id: analyze-backend
+      run: |
+        echo "🔍 Analyzing backend test results..."
+        cd backend
+        
+        # Check if tests failed or missing
+        if [ "${{ steps.backend-test-coverage.outputs.backend_test_exit_code }}" != "0" ]; then
+          echo "❌ Backend tests failed or missing, will need AI fixes"
+          echo "needs_fixes=true" >> $GITHUB_OUTPUT
+          
+          # Save error log for AI analysis
+          cp test-output.log ../scripts/backend-test-errors.log
+        else
+          echo "✅ Backend tests passed"
+          echo "needs_fixes=false" >> $GITHUB_OUTPUT
+        fi
+
+    # === AI-POWERED TEST FIXES & GENERATION ===
+    - name: AI Fix Frontend Test Errors
+      if: ${{ steps.analyze-frontend.outputs.needs_fixes == 'true' }}
+      id: fix-frontend-tests
+      run: |
+        echo "🤖 Junior AI fixing frontend test errors..."
+        cd scripts
+        
+        # Enhance error log with context for Junior AI
+        echo "=== FRONTEND TEST ERROR ANALYSIS ===" > enhanced-frontend-errors.log
+        echo "Component: Frontend (UI)" >> enhanced-frontend-errors.log
+        echo "Task: Fix failing tests and resolve test configuration issues" >> enhanced-frontend-errors.log
+        echo "Context: Running 'bun run vitest run --coverage' in ui/ directory" >> enhanced-frontend-errors.log
+        echo "" >> enhanced-frontend-errors.log
+        cat frontend-test-errors.log >> enhanced-frontend-errors.log
+        
+        echo "📝 Enhanced error log created with $(wc -l < enhanced-frontend-errors.log) lines of context"
+        
+        # Phase 1: Junior AI Proposer - Interactive Code Exploration & Fix Generation
+        echo ""
+        echo "🧠 PHASE 1: Junior AI Proposer Starting Interactive Analysis..."
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "🎯 Junior AI will:"
+        echo "   • Analyze test failures using MCP code exploration tools"
+        echo "   • Read and understand affected files and dependencies"
+        echo "   • Use semantic search to find similar patterns"
+        echo "   • Create dynamic tools if needed for complex analysis"
+        echo "   • Consult Friend AI for collaborative problem-solving"
+        echo "   • Generate precise, actionable fixes"
+        
+        python test-enhanced-proposer.py enhanced-frontend-errors.log > frontend-proposed-fixes.json 2> frontend-proposer.log
+        proposer_exit_code=$?
+        
+        echo ""
+        if [ $proposer_exit_code -eq 0 ]; then
+          if [ -f frontend-proposed-fixes.json ]; then
+            proposed_count=$(cat frontend-proposed-fixes.json | jq -r '.fixes | length' 2>/dev/null || echo "0")
+            echo "✅ Junior AI Proposer completed successfully!"
+            echo "   📊 Proposed fixes: $proposed_count"
+            echo "   📄 Detailed analysis saved to frontend-proposer.log"
+            
+            # Show a preview of what was proposed
+            if [ "$proposed_count" -gt "0" ]; then
+              echo "   🎯 Fix preview:"
+              cat frontend-proposed-fixes.json | jq -r '.fixes[] | "      • \(.action) \(.file): \(.reasoning)"' 2>/dev/null | head -5
+            fi
+          else
+            echo "⚠️ Junior AI completed but no fixes file generated"
+          fi
+        else
+          echo "❌ Junior AI Proposer failed with exit code: $proposer_exit_code"
+          echo "📄 Error details:"
+          tail -10 frontend-proposer.log 2>/dev/null || echo "   No error log available"
+        fi
+        
+        # Phase 2: Senior AI Reviewer - Critical Review & Validation
+        echo ""
+        echo "🎓 PHASE 2: Senior AI Reviewer Starting Critical Analysis..."
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "🔍 Senior AI will:"
+        echo "   • Critically review all proposed changes"
+        echo "   • Validate search patterns against actual file content"
+        echo "   • Check for syntax correctness and best practices"
+        echo "   • Refine or reject changes that might not work"
+        echo "   • Ensure changes address the root cause of errors"
+        
+        python review-changes.py frontend-proposed-fixes.json enhanced-frontend-errors.log > frontend-reviewed-fixes.json 2> frontend-reviewer.log
+        reviewer_exit_code=$?
+        
+        echo ""
+        if [ $reviewer_exit_code -eq 0 ]; then
+          if [ -f frontend-reviewed-fixes.json ]; then
+            reviewed_count=$(cat frontend-reviewed-fixes.json | jq -r '.fixes | length' 2>/dev/null || echo "0")
+            echo "✅ Senior AI Reviewer completed successfully!"
+            echo "   📊 Reviewed fixes: $reviewed_count"
+            echo "   📄 Detailed review saved to frontend-reviewer.log"
+            
+            # Show what changes were made during review
+            if [ "$reviewed_count" -gt "0" ]; then
+              echo "   🎯 Review summary:"
+              cat frontend-reviewed-fixes.json | jq -r '.analysis // "No analysis provided"' 2>/dev/null | head -3
+            fi
+            
+            if [ "$proposed_count" != "$reviewed_count" ]; then
+              echo "   ⚠️ Senior AI modified proposal: $proposed_count → $reviewed_count fixes"
+            fi
+          else
+            echo "⚠️ Senior AI completed but no reviewed fixes file generated"
+          fi
+        else
+          echo "❌ Senior AI Reviewer failed with exit code: $reviewer_exit_code"
+          echo "📄 Error details:"
+          tail -10 frontend-reviewer.log 2>/dev/null || echo "   No error log available"
+        fi
+        
+        # Phase 3: Automated Applier - Precise File Modifications
+        echo ""
+        echo "🔧 PHASE 3: Automated Applier Starting Precise File Modifications..."
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "⚙️ Applier will:"
+        echo "   • Apply each reviewed change with precision"
+        echo "   • Validate search patterns before replacement"
+        echo "   • Create new files or modify existing ones as needed"
+        echo "   • Commit changes with descriptive messages"
+        echo "   • Provide detailed success/failure reporting"
+        
+        python apply-changes.py frontend-reviewed-fixes.json > frontend-apply-result.json 2> frontend-applier.log
+        applier_exit_code=$?
+        
+        echo ""
+        if [ $applier_exit_code -eq 0 ]; then
+          if [ -f frontend-apply-result.json ]; then
+            applied=$(cat frontend-apply-result.json | jq -r '.changes_applied // 0')
+            total=$(cat frontend-apply-result.json | jq -r '.total_fixes // 0')
+            errors=$(cat frontend-apply-result.json | jq -r '.errors | length // 0')
+            
+            echo "✅ Automated Applier completed successfully!"
+            echo "   📊 Changes applied: $applied/$total"
+            echo "   📄 Detailed application log saved to frontend-applier.log"
+            
+            if [ "$errors" -gt "0" ]; then
+              echo "   ⚠️ $errors errors encountered during application:"
+              cat frontend-apply-result.json | jq -r '.errors[]?' 2>/dev/null | head -3 | sed 's/^/      • /'
+            fi
+            
+            echo "frontend_fixes_applied=$applied" >> $GITHUB_OUTPUT
+            echo ""
+            echo "🎉 FRONTEND TEST FIXING COMPLETE: $applied changes successfully applied!"
+          else
+            echo "⚠️ Applier completed but no result file generated"
+          fi
+        else
+          echo "❌ Automated Applier failed with exit code: $applier_exit_code"
+          echo "📄 Error details:"
+          tail -10 frontend-applier.log 2>/dev/null || echo "   No error log available"
+        fi
+
+    - name: AI Fix Backend Test Errors
+      if: ${{ steps.analyze-backend.outputs.needs_fixes == 'true' }}
+      id: fix-backend-tests
+      run: |
+        echo "🤖 Junior AI fixing backend test errors..."
+        cd scripts
+        
+        # Enhance error log with context for Junior AI
+        echo "=== BACKEND TEST ERROR ANALYSIS ===" > enhanced-backend-errors.log
+        echo "Component: Backend (Node.js/TypeScript)" >> enhanced-backend-errors.log
+        echo "Task: Setup test framework and create initial test suite if missing, or fix failing tests" >> enhanced-backend-errors.log
+        echo "Context: Running 'bun run test --coverage' in backend/ directory" >> enhanced-backend-errors.log
+        echo "" >> enhanced-backend-errors.log
+        cat backend-test-errors.log >> enhanced-backend-errors.log
+        
+        echo "📝 Enhanced backend error log created with $(wc -l < enhanced-backend-errors.log) lines of context"
+        
+        # Phase 1: Junior AI Proposer - Backend Test Architecture & Fixes
+        echo ""
+        echo "🧠 PHASE 1: Junior AI Proposer Starting Backend Test Analysis..."
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "🎯 Junior AI will:"
+        echo "   • Analyze backend test framework requirements"
+        echo "   • Explore existing API routes and business logic"
+        echo "   • Design appropriate test architecture for Node.js/TypeScript"
+        echo "   • Create test setup files and configuration if missing"
+        echo "   • Generate API endpoint tests and unit tests"
+        
+        python test-enhanced-proposer.py enhanced-backend-errors.log > backend-proposed-fixes.json 2> backend-proposer.log
+        proposer_exit_code=$?
+        
+        echo ""
+        if [ $proposer_exit_code -eq 0 ]; then
+          if [ -f backend-proposed-fixes.json ]; then
+            proposed_count=$(cat backend-proposed-fixes.json | jq -r '.fixes | length' 2>/dev/null || echo "0")
+            echo "✅ Junior AI Proposer completed backend analysis!"
+            echo "   📊 Proposed fixes: $proposed_count"
+            echo "   📄 Detailed analysis saved to backend-proposer.log"
+            
+            if [ "$proposed_count" -gt "0" ]; then
+              echo "   🎯 Backend fix preview:"
+              cat backend-proposed-fixes.json | jq -r '.fixes[] | "      • \(.action) \(.file): \(.reasoning)"' 2>/dev/null | head -5
+            fi
+          fi
+        else
+          echo "❌ Junior AI Proposer failed for backend with exit code: $proposer_exit_code"
+          tail -10 backend-proposer.log 2>/dev/null || echo "   No error log available"
+        fi
+        
+        # Phase 2: Senior AI Reviewer - Backend-Specific Validation
+        echo ""
+        echo "🎓 PHASE 2: Senior AI Reviewer Validating Backend Changes..."
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "🔍 Senior AI will validate:"
+        echo "   • API testing patterns and best practices"
+        echo "   • Test database setup and teardown procedures"
+        echo "   • Mocking strategies for external dependencies"
+        echo "   • Integration test coverage for critical paths"
+        echo "   • Performance test considerations"
+        
+        python review-changes.py backend-proposed-fixes.json enhanced-backend-errors.log > backend-reviewed-fixes.json 2> backend-reviewer.log
+        reviewer_exit_code=$?
+        
+        echo ""
+        if [ $reviewer_exit_code -eq 0 ]; then
+          if [ -f backend-reviewed-fixes.json ]; then
+            reviewed_count=$(cat backend-reviewed-fixes.json | jq -r '.fixes | length' 2>/dev/null || echo "0")
+            echo "✅ Senior AI Reviewer completed backend validation!"
+            echo "   📊 Reviewed fixes: $reviewed_count"
+            echo "   📄 Detailed review saved to backend-reviewer.log"
+          fi
+        else
+          echo "❌ Senior AI Reviewer failed for backend with exit code: $reviewer_exit_code"
+          tail -10 backend-reviewer.log 2>/dev/null || echo "   No error log available"
+        fi
+        
+        # Phase 3: Automated Applier - Backend Implementation
+        echo ""
+        echo "🔧 PHASE 3: Applying Backend Test Infrastructure..."
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        
+        python apply-changes.py backend-reviewed-fixes.json > backend-apply-result.json 2> backend-applier.log
+        applier_exit_code=$?
+        
+        echo ""
+        if [ $applier_exit_code -eq 0 ]; then
+          if [ -f backend-apply-result.json ]; then
+            applied=$(cat backend-apply-result.json | jq -r '.changes_applied // 0')
+            total=$(cat backend-apply-result.json | jq -r '.total_fixes // 0')
+            
+            echo "✅ Backend test infrastructure applied successfully!"
+            echo "   📊 Changes applied: $applied/$total"
+            echo "   📄 Detailed application log saved to backend-applier.log"
+            
+            echo "backend_fixes_applied=$applied" >> $GITHUB_OUTPUT
+            echo ""
+            echo "🎉 BACKEND TEST SETUP COMPLETE: $applied changes successfully applied!"
+          fi
+        else
+          echo "❌ Backend applier failed with exit code: $applier_exit_code"
+          tail -10 backend-applier.log 2>/dev/null || echo "   No error log available"
+        fi
+
+    - name: AI Generate Missing Frontend Tests
+      if: ${{ (inputs.add_missing_tests == true || inputs.add_missing_tests == null) && steps.analyze-frontend.outputs.needs_more_tests == 'true' }}
+      id: generate-frontend-tests
+      run: |
+        echo "🤖 Junior AI generating missing frontend tests based on coverage..."
+        cd scripts
+        
+        # Create comprehensive coverage analysis for Junior AI
+        echo "=== FRONTEND TEST COVERAGE ENHANCEMENT ===" > coverage-analysis.log
+        echo "Component: Frontend (React/TypeScript)" >> coverage-analysis.log
+        echo "Task: Generate missing tests to improve code coverage" >> coverage-analysis.log
+        echo "Current coverage: ${{ steps.analyze-frontend.outputs.coverage_percentage }}%" >> coverage-analysis.log
+        echo "Target coverage: ${{ inputs.coverage_threshold || 80 }}%" >> coverage-analysis.log
+        echo "Framework: Vitest + Testing Library + Jest DOM" >> coverage-analysis.log
+        echo "" >> coverage-analysis.log
+        echo "COVERAGE GAPS TO ADDRESS:" >> coverage-analysis.log
+        echo "- Create tests for untested components" >> coverage-analysis.log
+        echo "- Add edge case scenarios" >> coverage-analysis.log
+        echo "- Test error handling paths" >> coverage-analysis.log
+        echo "- Add integration tests where needed" >> coverage-analysis.log
+        echo "" >> coverage-analysis.log
+        
+        # Add uncovered files information if available
+        if [ -f ../ui/coverage-files.txt ]; then
+          echo "UNCOVERED/LOW COVERAGE FILES:" >> coverage-analysis.log
+          while IFS= read -r file; do
+            if [ -f "$file" ]; then
+              echo "File: $file" >> coverage-analysis.log
+              # Extract uncovered lines info if available in JSON format
+              if command -v jq >/dev/null 2>&1; then
+                jq -r '.uncoveredLines // []' "$file" 2>/dev/null | head -10 >> coverage-analysis.log || true
+              fi
+            fi
+          done < ../ui/coverage-files.txt
+        fi
+        
+        # Add examples of existing test patterns for context
+        echo "" >> coverage-analysis.log
+        echo "EXISTING TEST PATTERNS (for reference):" >> coverage-analysis.log
+        find ../ui/test -name "*.test.tsx" -o -name "*.test.ts" 2>/dev/null | head -3 | while read test_file; do
+          echo "Example test file: $test_file" >> coverage-analysis.log
+          head -20 "$test_file" 2>/dev/null >> coverage-analysis.log || true
+          echo "---" >> coverage-analysis.log
+        done
+        
+        # Use Junior AI to generate comprehensive test coverage improvements
+        python test-enhanced-proposer.py coverage-analysis.log > frontend-test-proposals.json
+        python review-changes.py frontend-test-proposals.json coverage-analysis.log > frontend-test-reviewed.json
+        python apply-changes.py frontend-test-reviewed.json > frontend-test-result.json
+        
+        # Check results
+        if [ -f frontend-test-result.json ]; then
+          added=$(cat frontend-test-result.json | jq -r '.changes_applied // 0')
+          echo "frontend_tests_added=$added" >> $GITHUB_OUTPUT
+          echo "📝 Generated $added frontend test files/improvements"
+        fi
+
+    - name: Re-run Tests After AI Fixes
+      if: ${{ steps.fix-frontend-tests.outputs.frontend_fixes_applied > 0 || steps.fix-backend-tests.outputs.backend_fixes_applied > 0 || steps.generate-frontend-tests.outputs.frontend_tests_added > 0 }}
+      id: rerun-tests
+      run: |
+        echo "🔄 Re-running tests after AI improvements..."
+        
+        # Re-run frontend tests if they were fixed
+        if [ "${{ steps.fix-frontend-tests.outputs.frontend_fixes_applied || 0 }}" -gt "0" ] || [ "${{ steps.generate-frontend-tests.outputs.frontend_tests_added || 0 }}" -gt "0" ]; then
+          echo "🧪 Re-running frontend tests..."
+          cd ui
+          bun run vitest run --coverage --reporter=verbose 2>&1 | tee ../scripts/frontend-retest.log
+          frontend_retest_exit=$?
+          echo "frontend_retest_exit_code=$frontend_retest_exit" >> $GITHUB_OUTPUT
+          
+          # Check new coverage
+          if [ -f coverage/coverage-summary.json ]; then
+            new_coverage=$(cat coverage/coverage-summary.json | jq -r '.total.lines.pct // 0')
+            echo "frontend_new_coverage=$new_coverage" >> $GITHUB_OUTPUT
+            echo "📊 New frontend coverage: $new_coverage%"
+          fi
+          cd ..
+        fi
+        
+        # Re-run backend tests if they were fixed
+        if [ "${{ steps.fix-backend-tests.outputs.backend_fixes_applied || 0 }}" -gt "0" ]; then
+          echo "🧪 Re-running backend tests..."
+          cd backend
+          bun run test --coverage 2>&1 | tee ../scripts/backend-retest.log
+          backend_retest_exit=$?
+          echo "backend_retest_exit_code=$backend_retest_exit" >> $GITHUB_OUTPUT
+          cd ..
+        fi
+
+    - name: Generate Test Summary
+      id: summary
+      run: |
+        echo "📊 Generating test improvement summary..."
+        
+        # Calculate totals
+        frontend_fixes="${{ steps.fix-frontend-tests.outputs.frontend_fixes_applied || 0 }}"
+        backend_fixes="${{ steps.fix-backend-tests.outputs.backend_fixes_applied || 0 }}"
+        frontend_tests="${{ steps.generate-frontend-tests.outputs.frontend_tests_added || 0 }}"
+        
+        total_fixes=$((frontend_fixes + backend_fixes))
+        total_tests_added=$frontend_tests
+        
+        echo "tests_added=$total_tests_added" >> $GITHUB_OUTPUT
+        echo "errors_fixed=$total_fixes" >> $GITHUB_OUTPUT
+        
+        # Coverage improvement
+        old_coverage="${{ steps.analyze-frontend.outputs.coverage_percentage || 0 }}"
+        new_coverage="${{ steps.rerun-tests.outputs.frontend_new_coverage || steps.analyze-frontend.outputs.coverage_percentage || 0 }}"
+        
+        if (( $(echo "$new_coverage > $old_coverage" | bc -l) )); then
+          echo "coverage_improved=true" >> $GITHUB_OUTPUT
+          improvement=$(echo "$new_coverage - $old_coverage" | bc -l)
+          echo "📈 Coverage improved by $improvement% ($old_coverage% → $new_coverage%)"
+        else
+          echo "coverage_improved=false" >> $GITHUB_OUTPUT
+        fi
+        
+        # Create summary comment
+        cat > test-summary.md << EOF
+        ## 🤖 AI Test Builder Results
+        
+        ### 📊 Summary
+        - **Errors Fixed**: $total_fixes
+        - **Tests Added**: $total_tests_added
+        - **Coverage**: $old_coverage% → $new_coverage%
+        
+        ### 🎯 Frontend Results
+        - Initial Coverage: ${{ steps.analyze-frontend.outputs.coverage_percentage || 'N/A' }}%
+        - Fixes Applied: $frontend_fixes
+        - Tests Added: $frontend_tests
+        - Final Coverage: ${{ steps.rerun-tests.outputs.frontend_new_coverage || 'N/A' }}%
+        - Tests Status: ${{ steps.rerun-tests.outputs.frontend_retest_exit_code == '0' && '✅ Passing' || '❌ Still failing' }}
+        
+        ### 🔧 Backend Results
+        - Fixes Applied: $backend_fixes
+        - Tests Status: ${{ steps.rerun-tests.outputs.backend_retest_exit_code == '0' && '✅ Passing' || steps.rerun-tests.outputs.backend_retest_exit_code && '❌ Still failing' || 'ℹ️ No changes' }}
+        
+        ### 📁 Files Modified
+        Check the commit history for detailed changes made by the AI.
+        EOF
+        
+        echo "📋 Test summary generated"
+
+    - name: Upload Test Reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: ai-test-builder-reports
+        path: |
+          scripts/*.log
+          scripts/*.json
+          ui/coverage/
+          backend/coverage/
+          test-summary.md
+        retention-days: 30
+
+    - name: Comment on PR
+      if: ${{ github.event_name == 'push' }}
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          
+          if (fs.existsSync('test-summary.md')) {
+            const summary = fs.readFileSync('test-summary.md', 'utf8');
+            
+            // Try to find an open PR for this branch
+            const prs = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              head: `${context.repo.owner}:${context.ref.replace('refs/heads/', '')}`,
+              state: 'open'
+            });
+            
+            if (prs.data.length > 0) {
+              await github.rest.issues.createComment({
+                issue_number: prs.data[0].number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: summary
+              });
+            }
+          }
+
+    - name: Create Summary
+      if: always()
+      run: |
+        echo "## 🤖 AI Test Builder Completed" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        
+        if [ -f test-summary.md ]; then
+          cat test-summary.md >> $GITHUB_STEP_SUMMARY
+        else
+          echo "No detailed summary available" >> $GITHUB_STEP_SUMMARY
+        fi
+        
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🎯 Next Steps" >> $GITHUB_STEP_SUMMARY
+        echo "- Review the AI-generated tests and fixes" >> $GITHUB_STEP_SUMMARY
+        echo "- Merge changes if tests are passing and coverage improved" >> $GITHUB_STEP_SUMMARY
+        echo "- Consider adjusting coverage thresholds if needed" >> $GITHUB_STEP_SUMMARY
