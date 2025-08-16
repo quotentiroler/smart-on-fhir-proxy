@@ -3,23 +3,17 @@ name: AI Commit Comment
 on:
   push:
     branches:
-      - "*"
+      - "dev/*"
+      - "ai/*"
 
 jobs:
   ai-comment:
     name: Review & Comment on Push
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, 'Merge') && !startsWith(github.event.head_commit.message, 'Merge pull request') && !startsWith(github.event.head_commit.message, 'Merge branch') }}
     continue-on-error: true
 
     steps:
-      - name: Debug - Workflow Started
-        run: |
-          echo "🚀 AI Commit Comment workflow started!"
-          echo "Branch: ${{ github.ref_name }}"
-          echo "Commit: ${{ github.sha }}"
-          echo "Commit message: ${{ github.event.head_commit.message }}"
-          echo "Event: ${{ github.event_name }}"
-      
       - name: Checkout full history
         uses: actions/checkout@v4
         with:

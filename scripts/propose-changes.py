@@ -1703,7 +1703,7 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
         
         headers = get_common_headers(self.api_key)
         
-        max_iterations = 10  # Prevent infinite loops
+        max_iterations = 100  # Prevent infinite loops
         iteration = 0
         
         while iteration < max_iterations:

@@ -49,17 +49,11 @@ jobs:
     - name: Setup Bun
       uses: ./.github/actions/setup-bun-version
 
-    - name: Setup Python for AI Scripts
-      uses: actions/setup-python@v4
+    - name: Setup Python with UV for AI Scripts
+      uses: ./.github/actions/setup-python-ai
       with:
         python-version: '3.11'
-        cache: 'pip'
-
-    - name: Install AI Dependencies
-      run: |
-        echo "🐍 Installing AI script dependencies..."
-        cd scripts
-        pip install -r requirements.txt
+        cache-dependency-path: 'scripts/requirements.txt'
 
     # Install Dependencies
     - name: Install Root Dependencies
