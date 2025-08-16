@@ -2,6 +2,7 @@
 import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react-swc'
 import tailwindcss from '@tailwindcss/vite'
+import type { RollupLog, LoggingFunction } from 'rollup'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -63,7 +64,7 @@ export default defineConfig({
         }
       },
       // Suppress specific warnings we can't fix (third-party library issues)
-      onwarn(warning, warn) {
+      onwarn(warning: RollupLog, warn: LoggingFunction) {
         // Suppress eval warnings from onnxruntime-web (third-party minified code)
         if (warning.code === 'EVAL' && warning.id?.includes('onnxruntime-web')) {
           return;
