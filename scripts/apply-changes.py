@@ -169,13 +169,17 @@ class UnifiedChangeApplier:
                 "git", "diff", "--name-only"
             ], capture_output=True, text=True)
             
-            # Also check for untracked files
+            # Also check for untracked files using git status (more reliable)
             print("📋 Checking for untracked files...", file=sys.stderr)
-            untracked_result = subprocess.run([
-                "git", "ls-files", "--others", "--exclude-standard"
-            ], capture_output=True, text=True)
+            status_result = subprocess.run(["git", "status", "--porcelain"], capture_output=True, text=True)
             
-            untracked_files = untracked_result.stdout.strip().split('\n') if untracked_result.stdout.strip() else []
+            # Parse git status output for untracked files
+            untracked_files = []
+            for line in status_result.stdout.strip().split('\n'):
+                if line.strip() and line.startswith('??'):
+                    file_path = line[3:].strip()
+                    untracked_files.append(file_path)
+            
             changed_files = result.stdout.strip().split('\n') if result.stdout.strip() else []
             
             # Combine changed and untracked files
