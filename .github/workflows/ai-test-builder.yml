@@ -232,9 +232,9 @@ jobs:
           tail -10 frontend-proposer.log 2>/dev/null || echo "   No error log available"
         fi
         
-        # Phase 2: Senior AI Reviewer - Critical Review & Validation
+        # Phase 2: Senior AI Reviewer - Critical Review & Validation (Optional)
         echo ""
-        echo "🎓 PHASE 2: Senior AI Reviewer Starting Critical Analysis..."
+        echo "🎓 PHASE 2: Senior AI Reviewer Starting Critical Analysis (Optional)..."
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "🔍 Senior AI will:"
         echo "   • Critically review all proposed changes"
@@ -242,35 +242,45 @@ jobs:
         echo "   • Check for syntax correctness and best practices"
         echo "   • Refine or reject changes that might not work"
         echo "   • Ensure changes address the root cause of errors"
+        echo "   • If review fails, we'll continue with original proposals"
         
         python review-changes.py frontend-proposed-fixes.json enhanced-frontend-errors.log > frontend-reviewed-fixes.json 2> frontend-reviewer.log
         reviewer_exit_code=$?
+        
+        # Set the file to use for application (reviewed if successful, original if failed)
+        final_fixes_file="frontend-proposed-fixes.json"
         
         echo ""
         if [ $reviewer_exit_code -eq 0 ]; then
           if [ -f frontend-reviewed-fixes.json ]; then
             reviewed_count=$(cat frontend-reviewed-fixes.json | jq -r '.changes | length' 2>/dev/null || echo "0")
-            echo "✅ Senior AI Reviewer completed successfully!"
-            echo "   📊 Reviewed changes: $reviewed_count"
-            echo "   📄 Detailed review saved to frontend-reviewer.log"
-            
-            # Show what changes were made during review
             if [ "$reviewed_count" -gt "0" ]; then
+              echo "✅ Senior AI Reviewer completed successfully!"
+              echo "   📊 Reviewed changes: $reviewed_count"
+              echo "   📄 Detailed review saved to frontend-reviewer.log"
+              final_fixes_file="frontend-reviewed-fixes.json"
+              
+              # Show what changes were made during review
               echo "   🎯 Review summary:"
               cat frontend-reviewed-fixes.json | jq -r '.analysis // "No analysis provided"' 2>/dev/null | head -3
-            fi
-            
-            if [ "$proposed_count" != "$reviewed_count" ]; then
-              echo "   ⚠️ Senior AI modified proposal: $proposed_count → $reviewed_count changes"
+              
+              if [ "$proposed_count" != "$reviewed_count" ]; then
+                echo "   ⚠️ Senior AI modified proposal: $proposed_count → $reviewed_count changes"
+              fi
+            else
+              echo "⚠️ Senior AI review produced empty changes, using original proposals"
             fi
           else
-            echo "⚠️ Senior AI completed but no reviewed fixes file generated"
+            echo "⚠️ Senior AI completed but no reviewed fixes file generated, using original proposals"
           fi
         else
           echo "❌ Senior AI Reviewer failed with exit code: $reviewer_exit_code"
           echo "📄 Error details:"
           tail -10 frontend-reviewer.log 2>/dev/null || echo "   No error log available"
+          echo "🔄 Continuing with original Junior AI proposals..."
         fi
+        
+        echo "📋 Will apply changes from: $final_fixes_file"
         
         # Phase 3: Automated Applier - Precise File Modifications
         echo ""
@@ -283,7 +293,7 @@ jobs:
         echo "   • Commit changes with descriptive messages"
         echo "   • Provide detailed success/failure reporting"
         
-        python apply-changes.py frontend-reviewed-fixes.json > frontend-apply-result.json 2> frontend-applier.log
+        python apply-changes.py "$final_fixes_file" > frontend-apply-result.json 2> frontend-applier.log
         applier_exit_code=$?
         
         echo ""
@@ -394,9 +404,9 @@ jobs:
           tail -10 backend-proposer.log 2>/dev/null || echo "   No error log available"
         fi
         
-        # Phase 2: Senior AI Reviewer - Backend-Specific Validation
+        # Phase 2: Senior AI Reviewer - Backend-Specific Validation (Optional)
         echo ""
-        echo "🎓 PHASE 2: Senior AI Reviewer Validating Backend Changes..."
+        echo "🎓 PHASE 2: Senior AI Reviewer Validating Backend Changes (Optional)..."
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "🔍 Senior AI will validate:"
         echo "   • API testing patterns and best practices"
@@ -404,29 +414,44 @@ jobs:
         echo "   • Mocking strategies for external dependencies"
         echo "   • Integration test coverage for critical paths"
         echo "   • Performance test considerations"
+        echo "   • If review fails, we'll continue with original proposals"
         
         python review-changes.py backend-proposed-fixes.json enhanced-backend-errors.log > backend-reviewed-fixes.json 2> backend-reviewer.log
         reviewer_exit_code=$?
+        
+        # Set the file to use for application (reviewed if successful, original if failed)
+        backend_final_fixes_file="backend-proposed-fixes.json"
         
         echo ""
         if [ $reviewer_exit_code -eq 0 ]; then
           if [ -f backend-reviewed-fixes.json ]; then
             reviewed_count=$(cat backend-reviewed-fixes.json | jq -r '.changes | length' 2>/dev/null || echo "0")
-            echo "✅ Senior AI Reviewer completed backend validation!"
-            echo "   📊 Reviewed changes: $reviewed_count"
-            echo "   📄 Detailed review saved to backend-reviewer.log"
+            if [ "$reviewed_count" -gt "0" ]; then
+              echo "✅ Senior AI Reviewer completed backend validation!"
+              echo "   📊 Reviewed changes: $reviewed_count"
+              echo "   📄 Detailed review saved to backend-reviewer.log"
+              backend_final_fixes_file="backend-reviewed-fixes.json"
+            else
+              echo "⚠️ Senior AI review produced empty changes, using original backend proposals"
+            fi
+          else
+            echo "⚠️ Senior AI completed but no reviewed fixes file generated, using original backend proposals"
           fi
         else
           echo "❌ Senior AI Reviewer failed for backend with exit code: $reviewer_exit_code"
+          echo "📄 Error details:"
           tail -10 backend-reviewer.log 2>/dev/null || echo "   No error log available"
+          echo "🔄 Continuing with original Junior AI backend proposals..."
         fi
+        
+        echo "📋 Will apply backend changes from: $backend_final_fixes_file"
         
         # Phase 3: Automated Applier - Backend Implementation
         echo ""
         echo "🔧 PHASE 3: Applying Backend Test Infrastructure..."
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         
-        python apply-changes.py backend-reviewed-fixes.json > backend-apply-result.json 2> backend-applier.log
+        python apply-changes.py "$backend_final_fixes_file" > backend-apply-result.json 2> backend-applier.log
         applier_exit_code=$?
         
         echo ""
