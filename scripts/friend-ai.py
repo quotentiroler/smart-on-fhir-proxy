@@ -8,10 +8,53 @@ for brainstorming MCP tool usage strategies and iterating on solutions together.
 import json
 import uuid
 import time
+import re
 import requests
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
+
+def make_api_call_with_retry(url: str, payload: dict, headers: dict, max_retries: int = 3, timeout: int = 120) -> requests.Response:
+    """Make an API call with automatic retry logic for rate limits"""
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        response = requests.post(url, json=payload, headers=headers, timeout=timeout)
+        
+        if response.status_code == 429:  # Rate limit exceeded
+            retry_count += 1
+            if retry_count < max_retries:
+                # Extract wait time from error message or use exponential backoff
+                try:
+                    error_data = response.json()
+                    error_msg = error_data.get('error', {}).get('message', '')
+                    # Look for "Please try again in 630ms" or "630s" pattern
+                    wait_match = re.search(r'try again in (\d+(?:\.\d+)?)([ms]+)', error_msg)
+                    if wait_match:
+                        wait_time = float(wait_match.group(1))
+                        unit = wait_match.group(2)
+                        if unit == 'ms':
+                            wait_time = wait_time / 1000  # Convert to seconds
+                        elif unit == 's':
+                            pass  # Already in seconds
+                        wait_time = max(wait_time, 1)  # Minimum 1 second
+                    else:
+                        # Exponential backoff: 2^retry_count seconds + some jitter
+                        wait_time = (2 ** retry_count) + (retry_count * 0.5)
+                except:
+                    wait_time = (2 ** retry_count) + (retry_count * 0.5)
+                
+                print(f"⏳ Friend AI rate limit hit. Waiting {wait_time:.1f}s before retry {retry_count}/{max_retries}")
+                time.sleep(wait_time)
+                continue
+            else:
+                print(f"❌ Friend AI rate limit exceeded after {max_retries} retries")
+                break
+        else:
+            # Success or non-rate-limit error, return response
+            break
+    
+    return response
 
 
 class TaskState(Enum):
@@ -256,8 +299,10 @@ Be inventive, practical, enthusiastic, and focus on creating tools that would gi
                 "Content-Type": "application/json"
             }
             
-            response = requests.post(self.base_url, json=payload, headers=headers)
-            response.raise_for_status()
+            response = make_api_call_with_retry(self.base_url, payload, headers)
+            
+            if response.status_code != 200:
+                return f"Friend AI API call failed: {response.status_code}"
             
             response_data = response.json()
             friend_response = response_data["choices"][0]["message"]["content"]
