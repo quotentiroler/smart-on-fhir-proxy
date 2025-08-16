@@ -177,7 +177,7 @@ jobs:
         cd backend
         
         # Check if backend has tests
-        if [ ! -d "test" ] && [ ! -f "package.json" ] || ! grep -q '"test"' package.json; then
+        if [ ! -d "test" ] || [ ! -f "package.json" ] || ! grep -q '"test"' package.json; then
           echo "⚠️ No backend tests found, will create test setup"
           echo "backend_test_exit_code=1" >> $GITHUB_OUTPUT
           echo "No backend tests configured" > test-output.log
@@ -207,8 +207,8 @@ jobs:
         # Also check test output for failure indicators
         if [ -f test-output.log ]; then
           # Look for actual test failures, not normal test assertion output
-          # Count failed tests in the summary line
-          if grep -qE "([0-9]+ fail|No backend tests|AssertionError|TypeError:|ReferenceError:|SyntaxError:)" test-output.log; then
+          # Only match actual failures (numbers > 0)
+          if grep -qE "([1-9][0-9]* fail|No backend tests|AssertionError|TypeError:|ReferenceError:|SyntaxError:)" test-output.log; then
             echo "❌ Backend test output contains failures/errors or missing tests"
             has_test_failures="true"
           fi
