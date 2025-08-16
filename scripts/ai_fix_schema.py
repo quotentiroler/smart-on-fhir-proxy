@@ -43,6 +43,16 @@ AI_FIX_RESPONSE_SCHEMA = {
                     }
                 },
                 "required": ["action", "file", "replace", "reasoning"],
+                "allOf": [
+                    {
+                        "if": {
+                            "properties": {"action": {"const": "modify"}}
+                        },
+                        "then": {
+                            "required": ["search"]
+                        }
+                    }
+                ],
                 "additionalProperties": False
             }
         }
@@ -92,6 +102,16 @@ AI_PROPOSE_RESPONSE_SCHEMA = {
                     }
                 },
                 "required": ["action", "file", "replace", "reasoning", "confidence"],
+                "allOf": [
+                    {
+                        "if": {
+                            "properties": {"action": {"const": "modify"}}
+                        },
+                        "then": {
+                            "required": ["search"]
+                        }
+                    }
+                ],
                 "additionalProperties": False
             }
         }
