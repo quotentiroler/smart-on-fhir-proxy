@@ -106,7 +106,7 @@ Be thorough but practical. Focus on fixes that will actually solve the build err
                 'Content-Type': 'application/json'
             },
             json={
-                'model': 'gpt-4',  # Senior AI uses the more capable model
+                'model': 'gpt-5',  # Senior AI uses the more capable model
                 'messages': [
                     {
                         'role': 'system',

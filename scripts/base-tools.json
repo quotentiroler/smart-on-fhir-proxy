@@ -324,7 +324,7 @@
       "parameters": {
         "type": "object",
         "properties": {},
-        "additionalProperties": "False"
+        "additionalProperties": false
       }
     }
   }
