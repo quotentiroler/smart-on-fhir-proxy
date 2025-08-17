@@ -3,79 +3,51 @@ $ vitest --coverage "--reporter=verbose" "--reporter=json" "--outputFile=test-re
 [1m[46m RUN [49m[22m [36mv3.2.4 [39m[90m/home/runner/work/proxy-smart/proxy-smart/ui[39m
       [2mCoverage enabled with [22m[33mv8[39m
 
- [31m×[39m test/components/theme-provider.system-preference.test.tsx[2m > [22mThemeProvider system preference behavior[2m > [22mapplies system dark preference and updates when OS preference changes[32m 177[2mms[22m[39m
-[31m   → expected true to be false // Object.is equality[39m
- [32m✓[39m test/components/theme-provider.system-preference.test.tsx[2m > [22mThemeProvider system preference behavior[2m > [22mrespects explicit user override even if system preference is dark[32m 25[2mms[22m[39m
- [32m✓[39m test/components/theme-provider.domclass.extra.test.tsx[2m > [22mThemeProvider DOM class toggling (extra)[2m > [22madds the dark class on documentElement when theme set to dark and removes it when set to light[32m 161[2mms[22m[39m
- [32m✓[39m test/components/theme-provider.domclass.extra.test.tsx[2m > [22mThemeProvider DOM class toggling (extra)[2m > [22mrespects system preference when setting theme to system[32m 21[2mms[22m[39m
- [32m✓[39m test/components/theme-provider.behavior.test.tsx[2m > [22mThemeProvider behavior (hook consumer)[2m > [22mprovides theme and setTheme to consumers, and updates value on interaction[32m 182[2mms[22m[39m
- [31m×[39m test/components/theme-provider.domclass.test.tsx[2m > [22mThemeProvider DOM class toggling[2m > [22madds and removes the dark class on documentElement when toggling themes[32m 51[2mms[22m[39m
-[31m   → window.matchMedia is not a function[39m
- [31m×[39m test/hooks/useTheme.outside-provider.test.tsx[2m > [22museTheme[2m > [22mthrows when used outside of ThemeProvider[32m 25[2mms[22m[39m
+ [32m✓[39m test/components/theme-provider.system-preference.test.tsx[2m > [22mThemeProvider system preference behavior[2m > [22mapplies system dark preference and updates when OS preference changes[32m 140[2mms[22m[39m
+ [32m✓[39m test/components/theme-provider.system-preference.test.tsx[2m > [22mThemeProvider system preference behavior[2m > [22mrespects explicit user override even if system preference is dark[32m 33[2mms[22m[39m
+ [32m✓[39m test/components/theme-provider.domclass.extra.test.tsx[2m > [22mThemeProvider DOM class toggling (extra)[2m > [22madds the dark class on documentElement when theme set to dark and removes it when set to light[32m 159[2mms[22m[39m
+ [32m✓[39m test/components/theme-provider.domclass.extra.test.tsx[2m > [22mThemeProvider DOM class toggling (extra)[2m > [22mrespects system preference when setting theme to system[32m 20[2mms[22m[39m
+ [32m✓[39m test/components/theme-provider.behavior.test.tsx[2m > [22mThemeProvider behavior (hook consumer)[2m > [22mprovides theme and setTheme to consumers, and updates value on interaction[32m 225[2mms[22m[39m
+ [31m×[39m test/hooks/useTheme.outside-provider.test.tsx[2m > [22museTheme[2m > [22mthrows when used outside of ThemeProvider[32m 32[2mms[22m[39m
 [31m   → expected [Function] to throw an error[39m
- [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mrenders with default props[32m 104[2mms[22m[39m
+ [31m×[39m test/hooks/useTheme.inside-provider.test.tsx[2m > [22museTheme (inside ThemeProvider)[2m > [22mprovides theme and updates when setTheme is called[32m 214[2mms[22m[39m
+[31m   → expected 'system' not to be 'system' // Object.is equality[39m
+ [32m✓[39m test/components/theme-provider.domclass.test.tsx[2m > [22mThemeProvider DOM class toggling[2m > [22madds and removes the dark class on documentElement when toggling themes[32m 186[2mms[22m[39m
+ [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mrenders with default props[32m 144[2mms[22m[39m
  [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mrenders with different variants[32m 23[2mms[22m[39m
- [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mrenders with different sizes[32m 15[2mms[22m[39m
- [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mhandles click events[32m 40[2mms[22m[39m
+ [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mrenders with different sizes[32m 16[2mms[22m[39m
+ [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mhandles click events[32m 31[2mms[22m[39m
  [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mcan be disabled[32m 6[2mms[22m[39m
- [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mrenders as child when asChild is true[32m 9[2mms[22m[39m
- [32m✓[39m test/components/theme-provider.extra.test.tsx[2m > [22mThemeProvider integration[2m > [22mpersists theme to storage and toggles DOM class when setTheme is called[32m 183[2mms[22m[39m
- [32m✓[39m test/components/theme-provider.extra.test.tsx[2m > [22mThemeProvider integration[2m > [22msystem theme follows prefers-color-scheme and stores "system"[32m 25[2mms[22m[39m
- [32m✓[39m test/components/input.test.tsx[2m > [22mInput[2m > [22mrenders an input with provided placeholder and type[32m 37[2mms[22m[39m
- [32m✓[39m test/components/input.test.tsx[2m > [22mInput[2m > [22maccepts className and forwards props[32m 5[2mms[22m[39m
- [32m✓[39m test/components/input.extra.test.tsx[2m > [22mInput (extra)[2m > [22mupdates value on typing[32m 161[2mms[22m[39m
- [32m✓[39m test/components/input.extra.test.tsx[2m > [22mInput (extra)[2m > [22mdoes not accept input when disabled[32m 6[2mms[22m[39m
- [32m✓[39m test/components/input.test.tsx[2m > [22mInput[2m > [22mcalls onChange when user types and updates value[32m 93[2mms[22m[39m
- [32m✓[39m test/components/input.test.tsx[2m > [22mInput[2m > [22mforwards ref to the input element[32m 3[2mms[22m[39m
- [32m✓[39m test/components/theme-provider.test.tsx[2m > [22mThemeProvider[2m > [22minitializes with defaultTheme and updates DOM and storage when setTheme is called[32m 158[2mms[22m[39m
- [32m✓[39m test/components/textarea.test.tsx[2m > [22mTextarea[2m > [22mrenders textarea with placeholder and className[32m 50[2mms[22m[39m
- [32m✓[39m test/components/textarea.test.tsx[2m > [22mTextarea[2m > [22mforwards ref to the textarea element[32m 6[2mms[22m[39m
- [32m✓[39m test/components/button.extra.test.tsx[2m > [22mButton (extra)[2m > [22mcalls onClick when enabled[32m 154[2mms[22m[39m
- [32m✓[39m test/components/button.extra.test.tsx[2m > [22mButton (extra)[2m > [22mdoes not call onClick when disabled[32m 22[2mms[22m[39m
- [32m✓[39m test/lib/utils.test.ts[2m > [22mlib/utils - cn[2m > [22mreturns a space-separated string containing provided classes[32m 7[2mms[22m[39m
+ [32m✓[39m test/components/button.test.tsx[2m > [22mButton[2m > [22mrenders as child when asChild is true[32m 8[2mms[22m[39m
+ [32m✓[39m test/components/input.extra.test.tsx[2m > [22mInput (extra)[2m > [22mupdates value on typing[32m 156[2mms[22m[39m
+ [32m✓[39m test/components/input.extra.test.tsx[2m > [22mInput (extra)[2m > [22mdoes not accept input when disabled[32m 7[2mms[22m[39m
+ [32m✓[39m test/components/theme-provider.extra.test.tsx[2m > [22mThemeProvider integration[2m > [22mpersists theme to storage and toggles DOM class when setTheme is called[32m 202[2mms[22m[39m
+ [32m✓[39m test/components/theme-provider.extra.test.tsx[2m > [22mThemeProvider integration[2m > [22msystem theme follows prefers-color-scheme and stores "system"[32m 26[2mms[22m[39m
+ [32m✓[39m test/components/input.test.tsx[2m > [22mInput[2m > [22mrenders an input with provided placeholder and type[32m 56[2mms[22m[39m
+ [32m✓[39m test/components/input.test.tsx[2m > [22mInput[2m > [22maccepts className and forwards props[32m 6[2mms[22m[39m
+ [32m✓[39m test/components/input.test.tsx[2m > [22mInput[2m > [22mcalls onChange when user types and updates value[32m 131[2mms[22m[39m
+ [32m✓[39m test/components/input.test.tsx[2m > [22mInput[2m > [22mforwards ref to the input element[32m 4[2mms[22m[39m
+ [32m✓[39m test/components/theme-provider.test.tsx[2m > [22mThemeProvider[2m > [22minitializes with defaultTheme and updates DOM and storage when setTheme is called[32m 168[2mms[22m[39m
+ [32m✓[39m test/components/button.extra.test.tsx[2m > [22mButton (extra)[2m > [22mcalls onClick when enabled[32m 140[2mms[22m[39m
+ [32m✓[39m test/components/button.extra.test.tsx[2m > [22mButton (extra)[2m > [22mdoes not call onClick when disabled[32m 25[2mms[22m[39m
+ [32m✓[39m test/components/textarea.test.tsx[2m > [22mTextarea[2m > [22mrenders textarea with placeholder and className[32m 34[2mms[22m[39m
+ [32m✓[39m test/components/textarea.test.tsx[2m > [22mTextarea[2m > [22mforwards ref to the textarea element[32m 4[2mms[22m[39m
+ [32m✓[39m test/lib/utils.test.ts[2m > [22mlib/utils - cn[2m > [22mreturns a space-separated string containing provided classes[32m 8[2mms[22m[39m
  [32m✓[39m test/lib/utils.test.ts[2m > [22mlib/utils - cn[2m > [22mignores falsy values and merges conditional classes[32m 0[2mms[22m[39m
 
-[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 3 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
+[31m⎯⎯⎯⎯⎯⎯⎯[39m[1m[41m Failed Tests 2 [49m[22m[31m⎯⎯⎯⎯⎯⎯⎯[39m
 
-[41m[1m FAIL [22m[49m test/components/theme-provider.domclass.test.tsx[2m > [22mThemeProvider DOM class toggling[2m > [22madds and removes the dark class on documentElement when toggling themes
-[31m[1mTypeError[22m: window.matchMedia is not a function[39m
-[36m [2m❯[22m src/components/theme-provider.tsx:[2m40:34[22m[39m
-    [90m 38| [39m 
-    [90m 39| [39m    [35mif[39m (theme [33m===[39m [32m"system"[39m) {
-    [90m 40| [39m      const systemTheme = window.matchMedia("(prefers-color-scheme: da…
-    [90m   | [39m                                 [31m^[39m
-    [90m 41| [39m        [33m.[39mmatches
-    [90m 42| [39m        [33m?[39m [32m"dark"[39m
-[90m [2m❯[22m Object.react_stack_bottom_frame ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m23953:20[22m[39m
-[90m [2m❯[22m runWithFiberInDEV ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m1522:13[22m[39m
-[90m [2m❯[22m commitHookEffectListMount ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m11905:29[22m[39m
-[90m [2m❯[22m commitHookPassiveMountEffects ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m12028:11[22m[39m
-[90m [2m❯[22m commitPassiveMountOnFiber ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m13841:13[22m[39m
-[90m [2m❯[22m recursivelyTraversePassiveMountEffects ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m13815:11[22m[39m
-[90m [2m❯[22m commitPassiveMountOnFiber ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m13853:11[22m[39m
-[90m [2m❯[22m flushPassiveEffects ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m15737:9[22m[39m
-[90m [2m❯[22m ../node_modules/react-dom/cjs/react-dom-client.development.js:[2m15379:15[22m[39m
+[41m[1m FAIL [22m[49m test/hooks/useTheme.inside-provider.test.tsx[2m > [22museTheme (inside ThemeProvider)[2m > [22mprovides theme and updates when setTheme is called
+[31m[1mAssertionError[22m: expected 'system' not to be 'system' // Object.is equality[39m
+[36m [2m❯[22m test/hooks/useTheme.inside-provider.test.tsx:[2m44:39[22m[39m
+    [90m 42| [39m    [34mexpect[39m(themeNode)[33m.[39m[34mtoHaveTextContent[39m([32m'system'[39m)
+    [90m 43| [39m
+    [90m 44| [39m    [34mexpect[39m(themeNode[33m.[39mtextContent)[33m.[39mnot[33m.[39m[34mtoBe[39m(initial)
+    [90m   | [39m                                      [31m^[39m
+    [90m 45| [39m  })
+    [90m 46| [39m})
 
-[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯[22m[39m
-
-[41m[1m FAIL [22m[49m test/components/theme-provider.system-preference.test.tsx[2m > [22mThemeProvider system preference behavior[2m > [22mapplies system dark preference and updates when OS preference changes
-[31m[1mAssertionError[22m: expected true to be false // Object.is equality[39m
-
-[32m- Expected[39m
-[31m+ Received[39m
-
-[32m- false[39m
-[31m+ true[39m
-
-[36m [2m❯[22m test/components/theme-provider.system-preference.test.tsx:[2m81:65[22m[39m
-    [90m 79| [39m
-    [90m 80| [39m    [90m// Should remove dark class when system preference is light[39m
-    [90m 81| [39m    expect(document.documentElement.classList.contains('dark')).toBe(f…
-    [90m   | [39m                                                                [31m^[39m
-    [90m 82| [39m  })
-    [90m 83| [39m
-
-[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯[22m[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯[22m[39m
 
 [41m[1m FAIL [22m[49m test/hooks/useTheme.outside-provider.test.tsx[2m > [22museTheme[2m > [22mthrows when used outside of ThemeProvider
 [31m[1mAssertionError[22m: expected [Function] to throw an error[39m
@@ -87,13 +59,13 @@ $ vitest --coverage "--reporter=verbose" "--reporter=json" "--outputFile=test-re
     [90m 15| [39m  })
     [90m 16| [39m})
 
-[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯[22m[39m
+[31m[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯[22m[39m
 
 
-[2m Test Files [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m10 passed[39m[22m[90m (13)[39m
-[2m      Tests [22m [1m[31m3 failed[39m[22m[2m | [22m[1m[32m25 passed[39m[22m[90m (28)[39m
-[2m   Start at [22m 08:22:03
-[2m   Duration [22m 7.99s[2m (transform 206ms, setup 3.09s, collect 1.32s, tests 1.78s, environment 7.78s, prepare 1.75s)[22m
+[2m Test Files [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m12 passed[39m[22m[90m (14)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m27 passed[39m[22m[90m (29)[39m
+[2m   Start at [22m 08:33:42
+[2m   Duration [22m 8.55s[2m (transform 193ms, setup 3.23s, collect 1.39s, tests 2.24s, environment 8.53s, prepare 1.89s)[22m
 
 JSON report written to /home/runner/work/proxy-smart/proxy-smart/ui/test-results.json
 error: script "test:coverage" exited with code 1
