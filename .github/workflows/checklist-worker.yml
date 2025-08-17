@@ -14,11 +14,6 @@ on:
         description: 'Filter for specific checklist items (regex pattern)'
         required: false
         type: string
-      force_implement:
-        description: 'Force implementation even if items are marked complete'
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: write
@@ -37,13 +32,14 @@ jobs:
         fetch-depth: 0
         token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Setup Python AI
+    - name: Setup Bun
+      uses: ./.github/actions/setup-bun-version
+
+    - name: Setup Python with UV for AI Scripts
       uses: ./.github/actions/setup-python-ai
       with:
         python-version: '3.11'
-
-    - name: Setup Bun
-      uses: ./.github/actions/setup-bun-version
+        cache-dependency-path: 'scripts/requirements.txt'
 
     - name: Setup Node for AI
       uses: ./.github/actions/setup-node-ai
@@ -54,14 +50,22 @@ jobs:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         CHECKLIST_FILE: ${{ github.event.inputs.checklist_file }}
         ITEM_FILTER: ${{ github.event.inputs.item_filter }}
-        FORCE_IMPLEMENT: ${{ github.event.inputs.force_implement || 'false' }}
       run: |
         echo "🔍 Analyzing checklists for implementation opportunities..."
-        python scripts/checklist-analyzer.py \
-          --checklist-file "$CHECKLIST_FILE" \
-          --item-filter "$ITEM_FILTER" \
-          --force-implement "$FORCE_IMPLEMENT" \
-          --output implementation_targets.json
+        
+        # Build command arguments conditionally
+        ARGS="--output implementation_targets.json"
+        
+        if [ -n "$CHECKLIST_FILE" ]; then
+          ARGS="$ARGS --checklist-file '$CHECKLIST_FILE'"
+        fi
+        
+        if [ -n "$ITEM_FILTER" ]; then
+          ARGS="$ARGS --item-filter '$ITEM_FILTER'"
+        fi
+        
+        echo "🔧 Running: python scripts/checklist-analyzer.py $ARGS"
+        eval "python scripts/checklist-analyzer.py $ARGS"
         
         target_count=$(python scripts/count-targets.py implementation_targets.json)
         echo "target_count=$target_count" >> $GITHUB_OUTPUT
