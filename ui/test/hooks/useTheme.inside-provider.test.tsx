@@ -41,6 +41,7 @@ describe('useTheme (inside ThemeProvider)', () => {
     await user.click(screen.getByRole('button', { name: /Set System/i }))
     expect(themeNode).toHaveTextContent('system')
 
-    expect(themeNode.textContent).not.toBe(initial)
+    // Removed brittle assertion that final theme must differ from initial, since it can legitimately return to the initial value.
+
   })
 })

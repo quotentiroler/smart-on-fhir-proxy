@@ -2,7 +2,7 @@ $ bun test --coverage
 bun test v1.2.19 (aad3abea)
 
 ::group::test/status.test.ts:
-(pass) Status Routes (Mock) > should have health endpoint [8.00ms]
+(pass) Status Routes (Mock) > should have health endpoint [10.00ms]
 (pass) Status Routes (Mock) > should return status information
 (pass) Status Routes (Mock) > should handle multiple requests
 
@@ -21,18 +21,18 @@ error: Unexpected }
 
 ::group::test/index.test.ts:
 (pass) Elysia Basic Tests > returns a response from root endpoint [1.00ms]
-(pass) Elysia Basic Tests > returns health status
+(pass) Elysia Basic Tests > returns health status [1.00ms]
 (pass) Elysia Basic Tests > handles POST requests [1.00ms]
 (pass) Eden Treaty Tests > returns a response using Eden Treaty [2.00ms]
-(pass) Eden Treaty Tests > handles health check with Eden Treaty [1.00ms]
-(pass) Eden Treaty Tests > handles POST with Eden Treaty
+(pass) Eden Treaty Tests > handles health check with Eden Treaty
+(pass) Eden Treaty Tests > handles POST with Eden Treaty [1.00ms]
 
 ::endgroup::
 
 ::group::test/integration-basic.test.ts:
 (pass) Integration basics with Eden Treaty > GET / returns text content [1.00ms]
 (pass) Integration basics with Eden Treaty > GET /health returns expected shape
-(pass) Integration basics with Eden Treaty > eden treaty client can call hello and echo
+(pass) Integration basics with Eden Treaty > eden treaty client can call hello and echo [1.00ms]
 
 ::endgroup::
 
@@ -68,7 +68,7 @@ Expected: 401
 Received: 500
 
       at <anonymous> (/home/runner/work/proxy-smart/proxy-smart/backend/test/auth.middleware.test.ts:34:24)
-(fail) Auth-protected route behavior > responds 401 with wrong token [1.00ms]
+(fail) Auth-protected route behavior > responds 401 with wrong token
 
 ::error file=backend/test/auth.middleware.test.ts,line=45,col=24,title=error: expect(received).toBe(expected)::Expected: 200%0AReceived: 500%0A%0A      at <anonymous> (/home/runner/work/proxy-smart/proxy-smart/backend/test/auth.middleware.test.ts:45:24)
 40 |     const res = await app.handle(new Request('http://localhost/secure', {
@@ -84,13 +84,13 @@ Expected: 200
 Received: 500
 
       at <anonymous> (/home/runner/work/proxy-smart/proxy-smart/backend/test/auth.middleware.test.ts:45:24)
-(fail) Auth-protected route behavior > accepts valid Authorization header and returns protected payload
+(fail) Auth-protected route behavior > accepts valid Authorization header and returns protected payload [1.00ms]
 
 ::endgroup::
 
 ::group::test/error-handling.test.ts:
 (pass) Error handling and validation > returns 500 for synchronous thrown errors [2.00ms]
-(pass) Error handling and validation > returns 500 for async thrown errors
+(pass) Error handling and validation > returns 500 for async thrown errors [1.00ms]
 (pass) Error handling and validation > validates request body and returns 400 when missing required field [1.00ms]
 (pass) Error handling and validation > accepts valid payload and returns 200
 
@@ -103,20 +103,20 @@ Received: 500
 (pass) Integration Tests > API Endpoints > should handle user listing [1.00ms]
 (pass) Integration Tests > API Endpoints > should handle user creation
 (pass) Integration Tests > Error Handling > should handle 404 for non-existent endpoints
-(pass) Integration Tests > Error Handling > should handle malformed requests gracefully
+(pass) Integration Tests > Error Handling > should handle malformed requests gracefully [1.00ms]
 (pass) Performance Tests > should respond to health check quickly [1.00ms]
-(pass) Performance Tests > should handle multiple concurrent requests [1.00ms]
+(pass) Performance Tests > should handle multiple concurrent requests
 
 ::endgroup::
 
 ::group::test/validation.test.ts:
-(pass) Validation Tests > should validate required fields [8.00ms]
+(pass) Validation Tests > should validate required fields [9.00ms]
 (pass) Validation Tests > should reject invalid email format [3.00ms]
 (pass) Validation Tests > should reject missing required fields [1.00ms]
 (pass) Validation Tests > should handle optional fields
 (pass) Header and Context Tests > should access headers [1.00ms]
-(pass) Header and Context Tests > should derive context values [1.00ms]
-(pass) Header and Context Tests > should handle missing derived values
+(pass) Header and Context Tests > should derive context values
+(pass) Header and Context Tests > should handle missing derived values [1.00ms]
 
 ::endgroup::
 
@@ -152,8 +152,8 @@ error: Unexpected }
 
 5 tests failed:
 (fail) Auth-protected route behavior > responds 401 when Authorization header is missing [1.00ms]
-(fail) Auth-protected route behavior > responds 401 with wrong token [1.00ms]
-(fail) Auth-protected route behavior > accepts valid Authorization header and returns protected payload
+(fail) Auth-protected route behavior > responds 401 with wrong token
+(fail) Auth-protected route behavior > accepts valid Authorization header and returns protected payload [1.00ms]
 --------------------------------------------------|---------|---------|-------------------
 File                                              | % Funcs | % Lines | Uncovered Line #s
 --------------------------------------------------|---------|---------|-------------------
@@ -164,5 +164,5 @@ All files                                         |    0.00 |    0.00 |
  5 fail
  2 errors
  76 expect() calls
-Ran 44 tests across 12 files. [202.00ms]
+Ran 44 tests across 12 files. [221.00ms]
 error: script "test" exited with code 1

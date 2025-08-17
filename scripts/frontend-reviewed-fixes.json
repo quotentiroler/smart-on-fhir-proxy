@@ -1,0 +1,13 @@
+{
+  "analysis": "The failure occurs because the test ends by asserting the final theme differs from the initial theme, which is not guaranteed when the initial theme is 'system' and the test ends by setting the theme back to 'system'. The junior AI's approach (tracking a 'changed' flag) would work but requires a large block replacement that risks mismatching the exact search pattern. A simpler, safer, and equally valid fix is to remove the brittle final assertion entirely. The test already asserts that the theme changes to 'dark', then 'light', then 'system', which sufficiently verifies that updates occur. This minimal change reduces risk, keeps the test intent intact, and avoids flakiness.",
+  "changes": [
+    {
+      "action": "modify",
+      "file": "ui/test/hooks/useTheme.inside-provider.test.tsx",
+      "search": "expect(themeNode.textContent).not.toBe(initial)",
+      "replace": "// Removed brittle assertion that final theme must differ from initial, since it can legitimately return to the initial value.\n",
+      "reasoning": "Eliminates the flaky assertion while preserving the meaningful checks that already verify theme updates to dark, light, and system. This is a minimal, low-risk fix that directly addresses the error.",
+      "confidence": "high"
+    }
+  ]
+}
