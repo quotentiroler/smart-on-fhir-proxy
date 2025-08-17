@@ -1819,7 +1819,7 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
                     try:
                         print(f"🔍 RAG: Searching for context with terms: {', '.join(search_terms[:3])}", file=sys.stderr)
                         rag_query = f"testing framework setup {' '.join(search_terms[:3])} implementation"
-                        rag_result = self.semantic_search(rag_query, "*.ts", max_results=3, similarity_threshold=0.2)
+                        rag_result = self.mcp.semantic_search(rag_query, "*.ts", max_results=3, similarity_threshold=0.2)
                         
                         if "error" not in rag_result and "results" in rag_result:
                             # Replace older messages with RAG-focused context
