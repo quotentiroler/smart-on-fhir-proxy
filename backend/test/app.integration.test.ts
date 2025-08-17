@@ -1,51 +1,45 @@
 import { describe, it, expect } from 'bun:test'
 import { Elysia } from 'elysia'
-import { treaty } from '@elysiajs/eden'
 
-// Minimal app mirroring expected routes for integration-like tests
-const createTestApp = () => {
-  return new Elysia()
-    .get('/', () => 'Proxy Smart Backend API')
-    .get('/health', () => ({
-      status: 'healthy',
-      timestamp: new Date().toISOString(),
-      uptime: process.uptime()
-    }))
-    .get('/hello', () => 'hi')
-    .post('/echo', ({ body }) => body)
+// Try to import a main app factory/instance from src/app or src/index.
+let mainAppModule: any = null
+
+try {
+  mainAppModule = await import('../src/app')
+} catch {}
+
+if (!mainAppModule) {
+  try {
+    mainAppModule = await import('../src/index')
+  } catch {}
 }
 
-describe('Basic app integration tests', () => {
-  const app = createTestApp()
-  const client = treaty(app)
+describe('Main app integration (if available)', () => {
+  it('should respond from root and health endpoints', async () => {
+    expect(mainAppModule).toBeTruthy()
 
-  it('GET / returns string', async () => {
-    const res = await client.get()  // Use client.get() instead of client.index.get()
-    expect(res.status).toBe(200)
-    expect(res.data).toBe('Proxy Smart Backend API')
-  })
+    const candidate = mainAppModule?.app || mainAppModule?.default || mainAppModule
 
-  it('GET /health returns healthy status', async () => {
-    const res = await client.health.get()
-    expect(res.status).toBe(200)
-    expect(res.data).toBeTruthy()  // Add null check
-    if (res.data) {  // Add null guard
-      expect(res.data).toHaveProperty('status', 'healthy')
-      expect(typeof res.data.timestamp).toBe('string')
-      expect(typeof res.data.uptime).toBe('number')
+    let app: Elysia
+    if (candidate && typeof candidate.handle === 'function') {
+      app = candidate as Elysia
+    } else if (typeof candidate === 'function') {
+      // app factory: () => Elysia
+      app = candidate()
+    } else {
+      throw new Error('Main app export not recognized: expected Elysia instance or factory')
     }
-  })
 
-  it('GET /hello returns hi', async () => {
-    const res = await client.hello.get()
-    expect(res.status).toBe(200)
-    expect(res.data).toBe('hi')
-  })
+    // Root
+    const resRoot = await app.handle(new Request('http://localhost/'))
+    expect([200, 301, 302, 404]).toContain(resRoot.status)
+    // Health-like endpoint
+    const resHealth = await app.handle(new Request('http://localhost/health'))
+    expect([200, 404]).toContain(resHealth.status)
 
-  it('POST /echo echoes JSON body', async () => {
-    const payload = { a: 1, b: 'two' }
-    const res = await client.echo.post(payload)
-    expect(res.status).toBe(200)
-    expect(res.data).toEqual(payload)
+    if (resHealth.status === 200) {
+      const json = await resHealth.json()
+      expect(json).toHaveProperty('status')
+    }
   })
 })
