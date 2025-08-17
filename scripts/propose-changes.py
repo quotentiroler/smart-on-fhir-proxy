@@ -925,7 +925,8 @@ class UnifiedChangeProposer:
                                ["error", "failed", "test", "import", "export", "function", "class", "interface"]):
                             key_lines.append(line)
                     
-                    truncated_content = '\n'.join(key_lines[:10]) + f"\n\n[TRUNCATED: {len(original_content)} chars → {len('\n'.join(key_lines[:10]))} chars for token efficiency]"
+                    key_lines_content = '\n'.join(key_lines[:10])
+                    truncated_content = key_lines_content + f"\n\n[TRUNCATED: {len(original_content)} chars → {len(key_lines_content)} chars for token efficiency]"
                     
                     compressed_msg = msg.copy()
                     compressed_msg["content"] = truncated_content
