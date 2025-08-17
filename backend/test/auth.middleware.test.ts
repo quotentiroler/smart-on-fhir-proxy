@@ -5,7 +5,7 @@ import { Elysia } from 'elysia'
 const createAuthApp = () =>
   new Elysia()
     .post('/secure', ({ headers }) => {
-      const auth = headers.get('authorization')
+      const auth = headers.authorization
       if (!auth || auth !== 'Bearer secret') {
         return new Response(JSON.stringify({ error: 'unauthorized' }), {
           status: 401,
@@ -29,7 +29,7 @@ describe('Auth-protected route behavior', () => {
   it('responds 401 with wrong token', async () => {
     const res = await app.handle(new Request('http://localhost/secure', {
       method: 'POST',
-      headers: { Authorization: 'Bearer wrong' }
+      headers: { authorization: 'Bearer wrong' }
     }))
     expect(res.status).toBe(401)
     const body = await res.json()
@@ -39,7 +39,7 @@ describe('Auth-protected route behavior', () => {
   it('accepts valid Authorization header and returns protected payload', async () => {
     const res = await app.handle(new Request('http://localhost/secure', {
       method: 'POST',
-      headers: { Authorization: 'Bearer secret' }
+      headers: { authorization: 'Bearer secret' }
     }))
 
     expect(res.status).toBe(200)

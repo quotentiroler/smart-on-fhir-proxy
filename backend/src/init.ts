@@ -16,40 +16,10 @@ export function isKeycloakAccessible(): boolean {
  * Check Keycloak connection health with retry logic
  */
 export async function checkKeycloakConnection(retries?: number, interval?: number): Promise<void> {
-  // If Keycloak isn't configured, skip connectivity checks. Tests and some
-  // runtime flows expect routes to work even without Keycloak, so do not throw.
-  if (!config?.keycloak?.isConfigured || !config?.keycloak?.jwksUri) {
-    console.warn('Keycloak connection verification skipped: Not configured')
-    return
-  }
-
-  const maxRetries = retries ?? 3
-  const retryInterval = interval ?? 5000
-
-  let attempt = 0
-  while (attempt < maxRetries) {
-    attempt++
-    try {
-      const resp = await fetch(config.keycloak.jwksUri, { method: 'GET' })
-      if (resp?.ok) {
-        return
-      }
-      console.warn(`[keycloak] JWKS endpoint returned status: ${resp?.status}`)
-    } catch (err) {
-      console.warn(`[keycloak] Checking Keycloak connection (attempt ${attempt}/${maxRetries}) failed:`, err)
-    }
-
-    if (attempt < maxRetries) {
-      await new Promise((resolve) => setTimeout(resolve, retryInterval))
-    }
-  }
-
-  console.warn('[keycloak] Keycloak connection check failed after all retry attempts')
-  // Do not throw here: avoid turning requests into 500s when Keycloak is unavailable.
-}
   // Check if Keycloak is configured
   if (!config.keycloak.isConfigured || !config.keycloak.jwksUri) {
-    throw new Error('Keycloak connection verification failed: Not configured')
+    logger.keycloak.warn('Keycloak connection verification skipped: Not configured')
+    return
   }
 
   const maxRetries = retries ?? 3; // Default to 3 retries if not specified
