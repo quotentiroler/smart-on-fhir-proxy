@@ -54,13 +54,13 @@
     "validate-api": "concurrently \"bun run validate-api:ui\" \"bun run validate-api:test\"",
     "validate-api:ui": "cd ui && bun run validate-api",
     "validate-api:test": "cd testing && bun run validate-api",
-    "test": "bun run test:alpha",
+    "test": "concurrently \"bun run test:backend\" \"bun run test:ui\"",
+    "test:backend": "cd backend && bun run test",
+    "test:ui": "cd ui && bun run test",
     "test:alpha": "cd testing/alpha && bun run test",
     "test:beta": "cd testing/beta && bun run test",
     "test:production": "cd testing/production && bun run test",
     "test:all": "bun run test:alpha && bun run test:beta && bun run test:production",
-    "test:watch": "cd testing/alpha && bun run test:watch",
-    "test:coverage": "cd testing/alpha && bun run test:coverage",
     "lint": "concurrently \"bun run lint:backend\" \"bun run lint:ui\"",
     "lint:backend": "cd backend && bun run lint",
     "lint:ui": "cd ui && bun run lint",
@@ -98,5 +98,9 @@
   "workspaces": [
     "backend",
     "ui"
-  ]
+  ],
+  "dependencies": {
+    "@octokit/rest": "^22.0.0",
+    "openai": "^5.12.2"
+  }
 }

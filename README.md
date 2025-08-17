@@ -84,7 +84,7 @@ graph TB
     end
   
     subgraph "AI & Intelligence"
-        N["AI Assistant<br/>OpenAI GPT-4o-mini"]
+        N["AI Assistant<br/>OpenAI gpt-5-mini"]
         O["Real-time Analytics<br/>OAuth Monitoring"]
         P["RAG System<br/>Documentation Knowledge"]
         Q["Predictive Insights<br/>Usage Patterns"]
@@ -158,7 +158,7 @@ graph TB
 - **Proxy Layer**: Node.js, TypeScript, Elysia, Bun (stateless request processing)
 - **Frontend**: React, Vite, TypeScript, Tailwind CSS
 - **Identity**: Keycloak with PostgreSQL (user management only, no clinical data)
-- **AI**: OpenAI GPT-4o-mini with RAG
+- **AI**: OpenAI gpt-5-mini with RAG
 - **Monitoring**: WebSocket, Real-time dashboards
 - **Testing**: Jest, Playwright, Comprehensive test suites
 - **Deployment**: Docker, GitHub Actions CI/CD

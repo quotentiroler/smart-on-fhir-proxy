@@ -1,0 +1,241 @@
+{
+  "total_checklists": 2,
+  "targets": [
+    {
+      "file": "backend\\CHECKLIST.md",
+      "line": 141,
+      "text": "**Key Management** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "backend\\CHECKLIST.md",
+      "line": 253,
+      "text": "**Advanced Security Features** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "backend\\CHECKLIST.md",
+      "line": 299,
+      "text": "**Scope Processing** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "backend\\CHECKLIST.md",
+      "line": 305,
+      "text": "**End-to-End Flows** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "backend\\CHECKLIST.md",
+      "line": 318,
+      "text": "**SMART-Specific Security** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "backend\\CHECKLIST.md",
+      "line": 348,
+      "text": "**Scalability Features** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "backend\\CHECKLIST.md",
+      "line": 351,
+      "text": "Session state management",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 39,
+      "text": "**Launch Context UI** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 42,
+      "text": "Encounter context management",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 105,
+      "text": "**Permission Visualization** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 151,
+      "text": "**FHIR Context Integration** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 173,
+      "text": "**Security Monitoring UI** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 174,
+      "text": "Security event dashboard",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 180,
+      "text": "Response time monitoring",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 203,
+      "text": "**Launch Context UX** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 205,
+      "text": "Patient selection UI",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 210,
+      "text": "**User-Access Brands** (Planned - SMART 2.2)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 216,
+      "text": "**Enhanced Branding** (Planned - SMART 2.2)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 253,
+      "text": "**WCAG Compliance** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 259,
+      "text": "**Healthcare-Specific Accessibility** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 283,
+      "text": "**Consent Management** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 289,
+      "text": "**Data Minimization** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 300,
+      "text": "**Service Worker** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 306,
+      "text": "**Mobile Experience** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 313,
+      "text": "**Offline Clinical Support** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 337,
+      "text": "**Launch Context State** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 340,
+      "text": "Provider context management",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 343,
+      "text": "**Real-time State Sync** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 346,
+      "text": "Offline state management",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 360,
+      "text": "**Medical Data Visualization** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 369,
+      "text": "Clinical decision support UI",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 383,
+      "text": "**Healthcare Terminology** (Planned)",
+      "complete": false,
+      "priority": "high"
+    },
+    {
+      "file": "ui\\CHECKLIST.md",
+      "line": 390,
+      "text": "**Supported Languages** (Planned)",
+      "complete": false,
+      "priority": "high"
+    }
+  ],
+  "analysis": {
+    "item_filter": null,
+    "total_targets": 33,
+    "incomplete_implementable_items": 33
+  }
+}

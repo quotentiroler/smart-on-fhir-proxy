@@ -66,7 +66,7 @@ export async function validateToken(token: string): Promise<JwtPayload> {
   } catch (error) {
     logger.auth.error('Token validation failed', { 
       error: error instanceof Error ? error.message : 'Unknown error',
-      errorType: error?.constructor?.name
+      errorType: (error as any)?.constructor?.name
     })
     
     // Check for specific JWT errors

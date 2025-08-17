@@ -9,7 +9,7 @@ let keycloakAccessible = false
  * Get the current Keycloak accessibility status
  */
 export function isKeycloakAccessible(): boolean {
-  return keycloakAccessible && config.keycloak.isConfigured
+  return config.keycloak.isConfigured || keycloakAccessible
 }
 
 /**
@@ -18,7 +18,8 @@ export function isKeycloakAccessible(): boolean {
 export async function checkKeycloakConnection(retries?: number, interval?: number): Promise<void> {
   // Check if Keycloak is configured
   if (!config.keycloak.isConfigured || !config.keycloak.jwksUri) {
-    throw new Error('Keycloak connection verification failed: Not configured')
+    logger.keycloak.warn('Keycloak connection verification skipped: Not configured')
+    return
   }
 
   const maxRetries = retries ?? 3; // Default to 3 retries if not specified
