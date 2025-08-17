@@ -18,7 +18,6 @@ function ThemeConsumer() {
 }
 
 // Utilities to mock and restore matchMedia
-const originalMatchMedia = window.matchMedia
 const setupMatchMedia = (prefersDark: boolean) => {
   const mock = vi.fn().mockImplementation((query: string) => ({
     matches: prefersDark && query.includes('prefers-color-scheme: dark'),
@@ -30,18 +29,38 @@ const setupMatchMedia = (prefersDark: boolean) => {
     removeEventListener: vi.fn(),
     dispatchEvent: vi.fn(),
   }))
-  Object.defineProperty(window, 'matchMedia', { value: mock, configurable: true })
+  Object.defineProperty(globalThis, 'matchMedia', {
+    value: mock,
+    configurable: true,
+  })
   return mock
 }
 
 describe('ThemeProvider behavior', () => {
+  const originalLocalStorage = globalThis.localStorage
+
   beforeEach(() => {
-    localStorage.clear()
+    // Create a simple localStorage mock
+    const storage: Record<string, string> = {}
+    const mockLocalStorage = {
+      clear: vi.fn(() => { Object.keys(storage).forEach(key => delete storage[key]) }),
+      getItem: vi.fn((key: string) => storage[key] || null),
+      setItem: vi.fn((key: string, value: string) => { storage[key] = value }),
+      removeItem: vi.fn((key: string) => { delete storage[key] }),
+      key: vi.fn(),
+      length: 0,
+    }
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: mockLocalStorage,
+      configurable: true,
+    })
   })
 
   afterEach(() => {
-    // restore original matchMedia after each test to avoid leakage
-    Object.defineProperty(window, 'matchMedia', { value: originalMatchMedia, configurable: true })
+    Object.defineProperty(globalThis, 'localStorage', {
+      value: originalLocalStorage,
+      configurable: true,
+    })
   })
 
   it('uses system preference (prefers-color-scheme) when no saved theme', () => {
@@ -69,7 +88,7 @@ describe('ThemeProvider behavior', () => {
 
     // Change theme to dark
     await user.click(screen.getByText('Set Dark'))
-    expect(localStorage.getItem('theme')).toBe('dark')
+    expect(localStorage.getItem('vite-ui-theme')).toBe('dark')
 
     // Unmount and remount to verify it picks up saved theme
     unmount()

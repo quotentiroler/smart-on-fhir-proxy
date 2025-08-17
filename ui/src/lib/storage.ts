@@ -64,9 +64,14 @@ export const removeSessionItem = (key: string): void => {
     }
 };
 
-// Theme storage utilities (with fallback)
+// Theme storage utilities (synchronous for immediate access during render)
+// Note: Using localStorage directly instead of localforage for synchronous access
+// and because theme preferences don't require encryption
 export const getTheme = (storageKey: string, defaultTheme: string): string => {
     try {
+        if (typeof window === 'undefined' || !window.localStorage) {
+            return defaultTheme;
+        }
         return localStorage.getItem(storageKey) || defaultTheme;
     } catch (error) {
         console.warn('Failed to get theme from storage:', error);
@@ -76,6 +81,10 @@ export const getTheme = (storageKey: string, defaultTheme: string): string => {
 
 export const setTheme = (storageKey: string, theme: string): void => {
     try {
+        if (typeof window === 'undefined' || !window.localStorage) {
+            console.warn('localStorage not available, theme not persisted');
+            return;
+        }
         localStorage.setItem(storageKey, theme);
     } catch (error) {
         console.warn('Failed to set theme in storage:', error);

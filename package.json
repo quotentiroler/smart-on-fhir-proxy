@@ -98,5 +98,9 @@
   "workspaces": [
     "backend",
     "ui"
-  ]
+  ],
+  "dependencies": {
+    "@octokit/rest": "^22.0.0",
+    "openai": "^5.12.2"
+  }
 }

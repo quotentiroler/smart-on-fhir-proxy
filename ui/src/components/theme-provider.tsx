@@ -1,4 +1,4 @@
-import { createContext, useCallback, useEffect, useMemo, useState, useContext } from "react"
+import { createContext, useCallback, useEffect, useMemo, useState } from "react"
 import { getTheme, setTheme as setThemeStorage } from "@/lib/storage"
 
 type Theme = "dark" | "light" | "system"
@@ -14,13 +14,15 @@ export type ThemeProviderState = {
   setTheme: (theme: Theme) => void
 }
 
+// Legacy MediaQueryList interface for older browsers
+interface LegacyMediaQueryList {
+  addListener?: (listener: (mql: MediaQueryList) => void) => void
+  removeListener?: (listener: (mql: MediaQueryList) => void) => void
+  onchange?: ((mql: MediaQueryList) => void) | null
+}
+
 // Internal context type with a sentinel to detect provider usage
 type InternalThemeContext = ThemeProviderState & { __provider?: true }
-
-const initialState: InternalThemeContext = {
-  theme: "system",
-  setTheme: () => null,
-}
 
 const ThemeProviderContext = createContext<InternalThemeContext | undefined>(undefined)
 
@@ -31,6 +33,7 @@ export function ThemeProvider({
   ...props
 }: Readonly<ThemeProviderProps>) {
   const [theme, setTheme] = useState<Theme>(() => (getTheme(storageKey, defaultTheme) as Theme))
+  const [resolvedTheme, setResolvedTheme] = useState<Theme>(theme)
 
   useEffect(() => {
     const root = window.document.documentElement
@@ -43,14 +46,17 @@ export function ThemeProvider({
       if (typeof window.matchMedia !== "function") {
         // default to light when matchMedia not available
         root.classList.add("light")
+        setResolvedTheme("light")
         return
       }
 
       const mql = window.matchMedia("(prefers-color-scheme: dark)")
+      const legacyMql = mql as MediaQueryList & LegacyMediaQueryList
 
       const apply = (isDark: boolean) => {
         root.classList.remove("light", "dark")
         root.classList.add(isDark ? "dark" : "light")
+        setResolvedTheme(isDark ? "dark" : "light")
       }
 
       // Apply initial value
@@ -64,26 +70,27 @@ export function ThemeProvider({
 
       if (typeof mql.addEventListener === "function") {
         mql.addEventListener("change", listener as EventListener)
-      } else if (typeof (mql as any).addListener === "function") {
-        ;(mql as any).addListener(listener)
+      } else if (typeof legacyMql.addListener === "function") {
+        legacyMql.addListener(listener)
       }
       // Also set onchange for environments/tests that rely on it
-      ;(mql as any).onchange = listener as any
+      legacyMql.onchange = listener
 
       return () => {
         if (typeof mql.removeEventListener === "function") {
           mql.removeEventListener("change", listener as EventListener)
-        } else if (typeof (mql as any).removeListener === "function") {
-          ;(mql as any).removeListener(listener)
+        } else if (typeof legacyMql.removeListener === "function") {
+          legacyMql.removeListener(listener)
         }
-        if ("onchange" in mql) {
-          ;(mql as any).onchange = null
+        if ("onchange" in legacyMql) {
+          legacyMql.onchange = null
         }
       }
     }
 
     // Explicit theme
     root.classList.add(theme)
+    setResolvedTheme(theme)
   }, [theme])
 
   const handleSetTheme = useCallback(
@@ -96,11 +103,11 @@ export function ThemeProvider({
 
   const value: InternalThemeContext = useMemo(
     () => ({
-      theme,
+      theme: resolvedTheme, // Use resolved theme instead of raw theme
       setTheme: handleSetTheme,
       __provider: true,
     }),
-    [theme, handleSetTheme]
+    [resolvedTheme, handleSetTheme]
   )
 
   return (
@@ -111,12 +118,3 @@ export function ThemeProvider({
 }
 
 export { ThemeProviderContext }
-
-// Hook for consuming theme context. Throws when used outside provider (test expectation)
-export function useTheme(): ThemeProviderState {
-  const context = useContext(ThemeProviderContext)
-  if (!context.__provider) {
-    throw new Error("useTheme must be used within a ThemeProvider")
-  }
-  return context
-}
