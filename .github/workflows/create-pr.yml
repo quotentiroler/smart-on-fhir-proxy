@@ -369,8 +369,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  ai-dev-to-dev:
-    name: Create/Update PR from ai/dev/* → dev/*
+  ai-dev-to-ai-test:
+    name: Create/Update PR from ai/dev/* → ai/test/*
     if: startsWith(github.ref, 'refs/heads/ai/dev/') && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update client APIs') && !contains(github.event.head_commit.message, 'proxy-smart-releaser')
     runs-on: ubuntu-latest
 
@@ -384,7 +384,114 @@ jobs:
         run: |
           # Extract the branch name after ai/dev/
           BRANCH_NAME=${{ github.ref_name }}
-          TARGET_BRANCH="dev/${BRANCH_NAME#ai/dev/}"
+          TARGET_BRANCH="ai/test/${BRANCH_NAME#ai/dev/}"
+          echo "target_branch=$TARGET_BRANCH" >> $GITHUB_OUTPUT
+          echo "Target branch: $TARGET_BRANCH"
+
+      - name: Check if PR already exists
+        id: check-pr
+        run: |
+          PR_EXISTS=$(gh pr list --base ${{ steps.extract-branch.outputs.target_branch }} --head ${{ github.ref_name }} --state open --json number --jq length)
+          echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if target branch exists
+        id: check-branch
+        run: |
+          git fetch origin --prune
+          
+          if git ls-remote --heads origin ${{ steps.extract-branch.outputs.target_branch }} | grep -q "refs/heads/${{ steps.extract-branch.outputs.target_branch }}"; then
+            echo "Target branch exists on remote"
+            echo "needs_branch_creation=false" >> $GITHUB_OUTPUT
+          else
+            echo "Target branch doesn't exist → needs creation"
+            echo "needs_branch_creation=true" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create target branch if it doesn't exist
+        if: steps.check-branch.outputs.needs_branch_creation == 'true' && steps.check-pr.outputs.pr_exists == '0'
+        run: |
+          # Create target ai/test branch from current ai/dev branch
+          git checkout -b ${{ steps.extract-branch.outputs.target_branch }}
+          git push origin ${{ steps.extract-branch.outputs.target_branch }}
+          echo "Created ${{ steps.extract-branch.outputs.target_branch }} branch from current ai/dev branch"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if branches differ
+        id: check-diff
+        run: |
+          git checkout ${{ github.ref_name }}
+          git fetch origin ${{ steps.extract-branch.outputs.target_branch }}
+          
+          COMMITS_AHEAD=$(git rev-list --count origin/${{ steps.extract-branch.outputs.target_branch }}..HEAD)
+          COMMITS_BEHIND=$(git rev-list --count HEAD..origin/${{ steps.extract-branch.outputs.target_branch }})
+          echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
+          echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
+          echo "${{ github.ref_name }} is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind ${{ steps.extract-branch.outputs.target_branch }}"
+          
+          if [ "$COMMITS_AHEAD" -gt 0 ]; then
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'true'
+        run: |
+          gh pr create \
+            --base ${{ steps.extract-branch.outputs.target_branch }} \
+            --head ${{ github.ref_name }} \
+            --title "🤖 AI-PR: Merge \`${{ github.ref_name }}\` → \`${{ steps.extract-branch.outputs.target_branch }}\`" \
+            --body "**AI-Generated Pull Request** 🤖
+
+          This PR was automatically created to merge AI-enhanced changes from \`${{ github.ref_name }}\` into \`${{ steps.extract-branch.outputs.target_branch }}\`.
+          
+          **Changes:**
+          - Commits ahead of target: ${{ steps.check-diff.outputs.commits_ahead }}
+          - Commits behind target: ${{ steps.check-diff.outputs.commits_behind }}
+          
+          **Review:** AI-generated code - please review carefully before merging."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update existing PR
+        if: steps.check-pr.outputs.pr_exists != '0'
+        run: |
+          PR_NUMBER=$(gh pr list --base ${{ steps.extract-branch.outputs.target_branch }} --head ${{ github.ref_name }} --state open --json number --jq '.[0].number')
+          gh pr edit $PR_NUMBER --body "**AI-Generated Pull Request** 🤖
+
+          This PR was automatically created to merge AI-enhanced changes from \`${{ github.ref_name }}\` into \`${{ steps.extract-branch.outputs.target_branch }}\`.
+          
+          **Changes:**
+          - Commits ahead of target: ${{ steps.check-diff.outputs.commits_ahead }}
+          - Commits behind target: ${{ steps.check-diff.outputs.commits_behind }}
+          
+          **Review:** AI-generated code - please review carefully before merging.
+          
+          _Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  ai-test-to-dev:
+    name: Create/Update PR from ai/test/* → dev/*
+    if: startsWith(github.ref, 'refs/heads/ai/test/') && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update client APIs') && !contains(github.event.head_commit.message, 'proxy-smart-releaser')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract branch name
+        id: extract-branch
+        run: |
+          # Extract the branch name after ai/test/
+          BRANCH_NAME=${{ github.ref_name }}
+          TARGET_BRANCH="dev/${BRANCH_NAME#ai/test/}"
           echo "target_branch=$TARGET_BRANCH" >> $GITHUB_OUTPUT
           echo "Target branch: $TARGET_BRANCH"
 
@@ -455,113 +562,6 @@ jobs:
           gh pr create \
             --base ${{ steps.extract-branch.outputs.target_branch }} \
             --head ${{ github.ref_name }} \
-            --title "🤖 AI-PR: Merge \`${{ github.ref_name }}\` → \`${{ steps.extract-branch.outputs.target_branch }}\`" \
-            --body "**AI-Generated Pull Request** 🤖
-
-          This PR was automatically created to merge AI-enhanced changes from \`${{ github.ref_name }}\` into \`${{ steps.extract-branch.outputs.target_branch }}\`.
-          
-          **Changes:**
-          - Commits ahead of target: ${{ steps.check-diff.outputs.commits_ahead }}
-          - Commits behind target: ${{ steps.check-diff.outputs.commits_behind }}
-          
-          **Review:** AI-generated code - please review carefully before merging."
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Update existing PR
-        if: steps.check-pr.outputs.pr_exists != '0'
-        run: |
-          PR_NUMBER=$(gh pr list --base ${{ steps.extract-branch.outputs.target_branch }} --head ${{ github.ref_name }} --state open --json number --jq '.[0].number')
-          gh pr edit $PR_NUMBER --body "**AI-Generated Pull Request** 🤖
-
-          This PR was automatically created to merge AI-enhanced changes from \`${{ github.ref_name }}\` into \`${{ steps.extract-branch.outputs.target_branch }}\`.
-          
-          **Changes:**
-          - Commits ahead of target: ${{ steps.check-diff.outputs.commits_ahead }}
-          - Commits behind target: ${{ steps.check-diff.outputs.commits_behind }}
-          
-          **Review:** AI-generated code - please review carefully before merging.
-          
-          _Last updated: $(date -u '+%Y-%m-%d %H:%M:%S UTC')_"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  ai-test-to-ai-dev:
-    name: Create/Update PR from ai/test/* → ai/dev/*
-    if: startsWith(github.ref, 'refs/heads/ai/test/') && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update client APIs') && !contains(github.event.head_commit.message, 'proxy-smart-releaser')
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Extract branch name
-        id: extract-branch
-        run: |
-          # Extract the branch name after ai/test/
-          BRANCH_NAME=${{ github.ref_name }}
-          TARGET_BRANCH="ai/dev/${BRANCH_NAME#ai/test/}"
-          echo "target_branch=$TARGET_BRANCH" >> $GITHUB_OUTPUT
-          echo "Target branch: $TARGET_BRANCH"
-
-      - name: Check if PR already exists
-        id: check-pr
-        run: |
-          PR_EXISTS=$(gh pr list --base ${{ steps.extract-branch.outputs.target_branch }} --head ${{ github.ref_name }} --state open --json number --jq length)
-          echo "pr_exists=$PR_EXISTS" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check if target branch exists
-        id: check-branch
-        run: |
-          git fetch origin --prune
-          
-          if git ls-remote --heads origin ${{ steps.extract-branch.outputs.target_branch }} | grep -q "refs/heads/${{ steps.extract-branch.outputs.target_branch }}"; then
-            echo "Target branch exists on remote"
-            echo "needs_branch_creation=false" >> $GITHUB_OUTPUT
-          else
-            echo "Target branch doesn't exist → needs creation"
-            echo "needs_branch_creation=true" >> $GITHUB_OUTPUT
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Create target branch if it doesn't exist
-        if: steps.check-branch.outputs.needs_branch_creation == 'true' && steps.check-pr.outputs.pr_exists == '0'
-        run: |
-          # Create target ai/dev branch from current ai/test branch
-          git checkout -b ${{ steps.extract-branch.outputs.target_branch }}
-          git push origin ${{ steps.extract-branch.outputs.target_branch }}
-          echo "Created ${{ steps.extract-branch.outputs.target_branch }} branch from ${{ github.ref_name }}"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check if branches differ
-        id: check-diff
-        run: |
-          git checkout ${{ github.ref_name }}
-          git fetch origin ${{ steps.extract-branch.outputs.target_branch }}
-          
-          COMMITS_AHEAD=$(git rev-list --count origin/${{ steps.extract-branch.outputs.target_branch }}..HEAD)
-          COMMITS_BEHIND=$(git rev-list --count HEAD..origin/${{ steps.extract-branch.outputs.target_branch }})
-          echo "commits_ahead=$COMMITS_AHEAD" >> $GITHUB_OUTPUT
-          echo "commits_behind=$COMMITS_BEHIND" >> $GITHUB_OUTPUT
-          echo "${{ github.ref_name }} is $COMMITS_AHEAD commits ahead and $COMMITS_BEHIND commits behind ${{ steps.extract-branch.outputs.target_branch }}"
-          
-          if [ "$COMMITS_AHEAD" -gt 0 ]; then
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create Pull Request
-        if: steps.check-pr.outputs.pr_exists == '0' && steps.check-diff.outputs.has_changes == 'true'
-        run: |
-          gh pr create \
-            --base ${{ steps.extract-branch.outputs.target_branch }} \
-            --head ${{ github.ref_name }} \
             --title "🧪 AI-Test-PR: Merge \`${{ github.ref_name }}\` → \`${{ steps.extract-branch.outputs.target_branch }}\`" \
             --body "**AI Test → Dev Pull Request** 🧪
 
@@ -593,8 +593,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  ai-checklist-to-ai-test:
-    name: Create/Update PR from ai/checklist/* → ai/test/*
+  ai-checklist-to-ai-dev:
+    name: Create/Update PR from ai/checklist/* → ai/dev/*
     if: startsWith(github.ref, 'refs/heads/ai/checklist/') && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update client APIs') && !contains(github.event.head_commit.message, 'proxy-smart-releaser')
     runs-on: ubuntu-latest
 
@@ -608,7 +608,7 @@ jobs:
         run: |
           # Extract the branch name after ai/checklist/
           BRANCH_NAME=${{ github.ref_name }}
-          TARGET_BRANCH="ai/test/${BRANCH_NAME#ai/checklist/}"
+          TARGET_BRANCH="ai/dev/${BRANCH_NAME#ai/checklist/}"
           echo "target_branch=$TARGET_BRANCH" >> $GITHUB_OUTPUT
           echo "Target branch: $TARGET_BRANCH"
 
@@ -638,7 +638,7 @@ jobs:
       - name: Create target branch if it doesn't exist
         if: steps.check-branch.outputs.needs_branch_creation == 'true' && steps.check-pr.outputs.pr_exists == '0'
         run: |
-          # Create target ai/test branch from current ai/checklist branch
+          # Create target ai/dev branch from current ai/checklist branch
           git checkout -b ${{ steps.extract-branch.outputs.target_branch }}
           git push origin ${{ steps.extract-branch.outputs.target_branch }}
           echo "Created ${{ steps.extract-branch.outputs.target_branch }} branch from ${{ github.ref_name }}"
