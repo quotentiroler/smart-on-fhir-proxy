@@ -1844,6 +1844,43 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
                 
                 print(f"🎯 Synthesis mode activated - requesting final output", file=sys.stderr)
             
+            # Context validation and sanitization before API call
+            try:
+                # Validate that all messages have proper structure and clean content
+                validated_messages = []
+                for msg in payload["messages"]:
+                    if isinstance(msg, dict) and "role" in msg and "content" in msg:
+                        # Ensure content is a string and not corrupted
+                        if isinstance(msg["content"], str):
+                            # Remove any potential JSON corruption artifacts
+                            clean_content = msg["content"]
+                            # Remove common corruption patterns that confuse the AI
+                            corruption_patterns = [
+                                "}'}]}**", "**Incorrect JSON**", "**Oops**", "verwachting_QUOTE", 
+                                "рам(Json)", "**ليش**", "**alluni**", "Baking.last", "}}}", 
+                                "ҧсны.json", "}}to=functions."
+                            ]
+                            for pattern in corruption_patterns:
+                                clean_content = clean_content.replace(pattern, "")
+                            
+                            # Also clean up any malformed JSON fragments
+                            import re
+                            clean_content = re.sub(r'[}\'"\]]+\s*[}\'"\]]+', '}', clean_content)
+                            
+                            validated_msg = msg.copy()
+                            validated_msg["content"] = clean_content
+                            validated_messages.append(validated_msg)
+                        else:
+                            print(f"⚠️ Skipping message with non-string content: {type(msg['content'])}", file=sys.stderr)
+                    else:
+                        print(f"⚠️ Skipping malformed message structure", file=sys.stderr)
+                
+                payload["messages"] = validated_messages
+                print(f"🧹 Context sanitized: {len(validated_messages)} clean messages", file=sys.stderr)
+                
+            except Exception as validation_error:
+                print(f"⚠️ Context validation failed: {validation_error}", file=sys.stderr)
+            
             try:
                 # Use the retry helper function with increased timeout
                 response = make_api_call_with_retry(self.base_url, payload, headers, timeout=180)
@@ -1864,37 +1901,81 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
                     # Add the AI's message to conversation
                     payload["messages"].append(message)
                     
-                    # Handle each tool call
+                    # Handle each tool call with enhanced error recovery
                     for tool_call in message['tool_calls']:
                         function_name = tool_call['function']['name']
+                        raw_args = tool_call['function']['arguments']
+                        
+                        # Enhanced logging for debugging
+                        print(f"🔧 MCP Tool Call: {function_name}({raw_args[:100]}{'...' if len(raw_args) > 100 else ''})", file=sys.stderr)
+                        
                         try:
-                            arguments = json.loads(tool_call['function']['arguments'])
+                            # Direct JSON parsing attempt
+                            arguments = json.loads(raw_args)
                         except json.JSONDecodeError as e:
-                            print(f"❌ JSON parsing error for {function_name}: {e}", file=sys.stderr)
-                            print(f"📄 Raw arguments: {tool_call['function']['arguments']}", file=sys.stderr)
-                            # Try to fix common JSON issues
-                            raw_args = tool_call['function']['arguments']
-                            # Remove any trailing incomplete JSON
+                            print(f"⚠️ JSON parsing error for {function_name}: {str(e)[:100]}", file=sys.stderr)
+                            print(f"📄 Raw args (first 200 chars): {raw_args[:200]}", file=sys.stderr)
+                            
+                            # Enhanced JSON recovery strategies
+                            arguments = None
+                            
+                            # Strategy 1: Fix incomplete JSON by finding last complete object
                             if raw_args.count('{') > raw_args.count('}'):
-                                # Find the last complete JSON object
-                                brace_count = 0
-                                last_valid_pos = 0
-                                for i, char in enumerate(raw_args):
-                                    if char == '{':
-                                        brace_count += 1
-                                    elif char == '}':
-                                        brace_count -= 1
-                                        if brace_count == 0:
-                                            last_valid_pos = i + 1
-                                            break
-                                if last_valid_pos > 0:
-                                    raw_args = raw_args[:last_valid_pos]
-                                    print(f"🔧 Attempting to fix JSON: {raw_args}", file=sys.stderr)
-                            try:
-                                arguments = json.loads(raw_args)
-                                print(f"✅ JSON parsing recovered", file=sys.stderr)
-                            except json.JSONDecodeError:
-                                print(f"❌ Unable to recover JSON, skipping this tool call", file=sys.stderr)
+                                try:
+                                    brace_count = 0
+                                    last_valid_pos = 0
+                                    for i, char in enumerate(raw_args):
+                                        if char == '{':
+                                            brace_count += 1
+                                        elif char == '}':
+                                            brace_count -= 1
+                                            if brace_count == 0:
+                                                last_valid_pos = i + 1
+                                                break
+                                    if last_valid_pos > 0:
+                                        cleaned_args = raw_args[:last_valid_pos]
+                                        arguments = json.loads(cleaned_args)
+                                        print(f"✅ Strategy 1 recovery successful", file=sys.stderr)
+                                except json.JSONDecodeError:
+                                    pass
+                            
+                            # Strategy 2: Extract simple parameters with regex
+                            if arguments is None:
+                                try:
+                                    import re
+                                    # Extract path parameter
+                                    path_match = re.search(r'"path"\s*:\s*"([^"]+)"', raw_args)
+                                    query_match = re.search(r'"query"\s*:\s*"([^"]+)"', raw_args)
+                                    pattern_match = re.search(r'"pattern"\s*:\s*"([^"]+)"', raw_args)
+                                    
+                                    if path_match:
+                                        arguments = {"path": path_match.group(1)}
+                                        print(f"✅ Strategy 2 recovery (path): {arguments}", file=sys.stderr)
+                                    elif query_match:
+                                        arguments = {"query": query_match.group(1)}
+                                        print(f"✅ Strategy 2 recovery (query): {arguments}", file=sys.stderr)
+                                    elif pattern_match:
+                                        arguments = {"pattern": pattern_match.group(1)}
+                                        print(f"✅ Strategy 2 recovery (pattern): {arguments}", file=sys.stderr)
+                                except Exception:
+                                    pass
+                            
+                            # Strategy 3: Default fallback for common tools
+                            if arguments is None:
+                                if function_name == "list_directory" and "ui/src" in raw_args:
+                                    arguments = {"path": "ui/src"}
+                                    print(f"✅ Strategy 3 fallback for {function_name}", file=sys.stderr)
+                                elif function_name == "read_file" and "/" in raw_args:
+                                    # Try to extract a file path
+                                    import re
+                                    path_candidates = re.findall(r'[a-zA-Z0-9_/.-]+\.[a-zA-Z]{2,4}', raw_args)
+                                    if path_candidates:
+                                        arguments = {"path": path_candidates[0]}
+                                        print(f"✅ Strategy 3 fallback path: {arguments}", file=sys.stderr)
+                            
+                            # If all recovery fails, skip this tool call
+                            if arguments is None:
+                                print(f"❌ All recovery strategies failed for {function_name}, skipping", file=sys.stderr)
                                 continue
                         
                         # Execute the function

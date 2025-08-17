@@ -100,3 +100,13 @@ jobs:
         echo "🧪 Testing frontend..."
         cd ui
         bun run test
+
+    - name: Upload Build Artifacts
+      if: ${{ !startsWith(github.ref, 'refs/heads/dev/') }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts
+        path: |
+          backend/dist
+          ui/dist
+        retention-days: 7

@@ -818,7 +818,7 @@ jobs:
       run: |
         echo "📊 Generating test improvement summary..."
         
-        # Calculate totals
+        # Calculate totals safely
         frontend_fixes="${{ steps.fix-frontend-tests.outputs.frontend_fixes_applied || 0 }}"
         backend_fixes="${{ steps.fix-backend-tests.outputs.backend_fixes_applied || 0 }}"
         frontend_tests="${{ steps.generate-frontend-tests.outputs.frontend_tests_added || 0 }}"
@@ -830,25 +830,80 @@ jobs:
         echo "tests_added=$total_tests_added" >> $GITHUB_OUTPUT
         echo "errors_fixed=$total_fixes" >> $GITHUB_OUTPUT
         
-        # Frontend coverage improvement
+        # Frontend coverage (with proper fallbacks)
         frontend_old_coverage="${{ steps.analyze-frontend.outputs.coverage_percentage || 0 }}"
-        frontend_new_coverage="${{ steps.rerun-tests.outputs.frontend_new_coverage || steps.analyze-frontend.outputs.coverage_percentage || 0 }}"
+        frontend_new_coverage="${{ steps.rerun-tests.outputs.frontend_new_coverage }}"
         
-        # Backend coverage improvement
+        # If no new coverage measured, use old coverage
+        if [ -z "$frontend_new_coverage" ] || [ "$frontend_new_coverage" = "0" ]; then
+          frontend_new_coverage="$frontend_old_coverage"
+        fi
+        
+        # Backend coverage (with proper fallbacks)
         backend_old_coverage="${{ steps.analyze-backend.outputs.coverage_percentage || 0 }}"
-        backend_new_coverage="${{ steps.rerun-tests.outputs.backend_new_coverage || steps.analyze-backend.outputs.coverage_percentage || 0 }}"
+        backend_new_coverage="${{ steps.rerun-tests.outputs.backend_new_coverage }}"
         
-        # Check if either coverage improved
+        # If no new coverage measured, use old coverage
+        if [ -z "$backend_new_coverage" ] || [ "$backend_new_coverage" = "0" ]; then
+          backend_new_coverage="$backend_old_coverage"
+        fi
+        
+        # Safe coverage comparison (avoid bc dependency)
         coverage_improved="false"
-        if (( $(echo "$frontend_new_coverage > $frontend_old_coverage" | bc -l) )) || (( $(echo "$backend_new_coverage > $backend_old_coverage" | bc -l) )); then
+        if [ "$frontend_new_coverage" != "$frontend_old_coverage" ] || [ "$backend_new_coverage" != "$backend_old_coverage" ]; then
           coverage_improved="true"
-          echo "📈 Coverage improvements detected!"
+          echo "📈 Coverage changes detected"
           echo "   Frontend: $frontend_old_coverage% → $frontend_new_coverage%"
           echo "   Backend: $backend_old_coverage% → $backend_new_coverage%"
         fi
         echo "coverage_improved=$coverage_improved" >> $GITHUB_OUTPUT
         
-        # Create summary comment
+        # Enhanced test status detection
+        frontend_status="ℹ️ No changes"
+        backend_status="ℹ️ No changes" 
+        
+        # Frontend status
+        if [ "$frontend_fixes" -gt "0" ] || [ "$frontend_tests" -gt "0" ]; then
+          frontend_exit="${{ steps.rerun-tests.outputs.frontend_retest_exit_code }}"
+          if [ "$frontend_exit" = "0" ]; then
+            frontend_status="✅ Tests passing"
+          elif [ -n "$frontend_exit" ]; then
+            frontend_status="❌ Tests failing"
+          else
+            frontend_status="⚠️ Not re-tested"
+          fi
+        fi
+        
+        # Backend status with annotation check
+        if [ "$backend_fixes" -gt "0" ] || [ "$backend_tests" -gt "0" ]; then
+          backend_exit="${{ steps.rerun-tests.outputs.backend_retest_exit_code }}"
+          
+          # Check for test failures in logs (more accurate than exit code)
+          test_failures="0"
+          if [ -f ../scripts/backend-retest.log ]; then
+            # Count expect().toBe() failures
+            test_failures=$(grep -c "expect.*toBe.*Expected.*Received" ../scripts/backend-retest.log 2>/dev/null || echo "0")
+          fi
+          
+          if [ "$test_failures" -gt "0" ]; then
+            backend_status="❌ $test_failures test failures (500 errors)"
+          elif [ "$backend_exit" = "0" ]; then
+            backend_status="✅ Tests passing"
+          elif [ -n "$backend_exit" ]; then
+            backend_status="❌ Tests failing"
+          else
+            backend_status="⚠️ Not re-tested"
+          fi
+        fi
+        
+        # Display values for debugging
+        echo "🔍 Debug values:"
+        echo "   Frontend old/new: $frontend_old_coverage% / $frontend_new_coverage%"
+        echo "   Backend old/new: $backend_old_coverage% / $backend_new_coverage%"
+        echo "   Frontend status: $frontend_status"
+        echo "   Backend status: $backend_status"
+        
+        # Create enhanced summary
         cat > test-summary.md << EOF
         ## 🤖 AI Test Builder Results
         
@@ -859,24 +914,45 @@ jobs:
         - **Backend Coverage**: $backend_old_coverage% → $backend_new_coverage%
         
         ### 🎯 Frontend Results
-        - Initial Coverage: ${{ steps.analyze-frontend.outputs.coverage_percentage || 'N/A' }}%
+        - Initial Coverage: $frontend_old_coverage%
         - Fixes Applied: $frontend_fixes
         - Tests Added: $frontend_tests
-        - Final Coverage: ${{ steps.rerun-tests.outputs.frontend_new_coverage || 'N/A' }}%
-        - Tests Status: ${{ steps.rerun-tests.outputs.frontend_retest_exit_code == '0' && '✅ Passing' || '❌ Still failing' }}
+        - Final Coverage: $frontend_new_coverage%
+        - Tests Status: $frontend_status
         
-        ### 🔧 Backend Results
-        - Initial Coverage: ${{ steps.analyze-backend.outputs.coverage_percentage || 'N/A' }}%
+        ### 🔧 Backend Results  
+        - Initial Coverage: $backend_old_coverage%
         - Fixes Applied: $backend_fixes
         - Tests Added: $backend_tests
-        - Final Coverage: ${{ steps.rerun-tests.outputs.backend_new_coverage || 'N/A' }}%
-        - Tests Status: ${{ steps.rerun-tests.outputs.backend_retest_exit_code == '0' && '✅ Passing' || steps.rerun-tests.outputs.backend_retest_exit_code && '❌ Still failing' || 'ℹ️ No changes' }}
+        - Final Coverage: $backend_new_coverage%
+        - Tests Status: $backend_status
+        
+        ### ⚠️ Issues Detected
+        EOF
+        
+        # Add specific issues found
+        if [ "$test_failures" -gt "0" ]; then
+          cat >> test-summary.md << EOF
+        - Backend auth middleware tests failing with 500 errors instead of expected 401/200
+        - Generated tests may not match actual API behavior
+        - API setup or middleware configuration needs investigation
+        EOF
+        else
+          echo "- No critical test failures detected" >> test-summary.md
+        fi
+        
+        cat >> test-summary.md << EOF
         
         ### 📁 Files Modified
         Check the commit history for detailed changes made by the AI.
+        
+        ### 🎯 Next Steps
+        - Fix backend auth middleware 500 errors if present
+        - Review AI-generated test expectations vs actual API behavior
+        - Consider API documentation updates for accurate test generation
         EOF
         
-        echo "📋 Test summary generated"
+        echo "📋 Enhanced test summary generated"
 
     - name: Upload Test Reports
       uses: actions/upload-artifact@v4

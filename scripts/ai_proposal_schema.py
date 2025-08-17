@@ -108,10 +108,16 @@ def create_system_message(component: Literal["frontend", "backend"],
     
     return f"""You are a code implementation assistant specialized in {base_expertise[component]}. {step_guidance[step]} Always return valid JSON with changes array, even if empty. IMPORTANT: {path_guidance[component]} Focus on {component}-specific issues and best practices.
 
+🔧 TOOL CALL FORMAT REQUIREMENTS:
+- When calling tools, use ONLY valid JSON format: {{"parameter": "value"}}
+- NO additional text, NO explanations, NO multi-language text in tool calls
+- If JSON parsing fails, the tool call will be skipped
+- Example: list_directory({{"path": "ui/src"}}) ✅
+- NEVER: list_directory({{"path": "ui/src", corrupted text}}) ❌
+
 🧠 RAG-ENHANCED EXPLORATION STRATEGY:
 - Use semantic_search tool for finding related code patterns, similar implementations, and best practices
 - Combine exploration tools efficiently: semantic_search → read_file → find_usage for comprehensive understanding
-- After 8-10 exploration iterations, begin synthesizing your findings into concrete changes
 - Use RAG (semantic search) to find examples before creating new implementations
 
 CRITICAL IMPLEMENTATION PATTERNS:
