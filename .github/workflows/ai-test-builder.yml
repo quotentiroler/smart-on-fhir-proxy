@@ -277,6 +277,7 @@ jobs:
     - name: AI Fix Frontend Test Errors
       if: ${{ steps.analyze-frontend.outputs.needs_fixes == 'true' }}
       id: fix-frontend-tests
+      continue-on-error: true
       run: |
         echo "🤖 Starting AI fixes for frontend tests"
         cd scripts
@@ -349,14 +350,33 @@ jobs:
         echo "   📝 Command: python apply-changes.py frontend-reviewed-fixes.json"
         echo "   📂 Working directory: $(pwd)"
         echo "   🐍 Python version: $(python --version 2>&1 || echo 'Python not found')"
+        echo "   🔍 Checking if apply-changes.py exists:"
+        if [ -f apply-changes.py ]; then
+          echo "      ✅ apply-changes.py found ($(wc -l < apply-changes.py) lines)"
+        else
+          echo "      ❌ apply-changes.py NOT FOUND!"
+          ls -la *.py | head -5 | sed 's/^/         /'
+        fi
+        echo "   🔍 Python environment check:"
+        echo "      VIRTUAL_ENV: ${VIRTUAL_ENV:-'Not set'}"
+        echo "      Python path: $(which python 2>/dev/null || echo 'Not found')"
+        echo "   🔍 File permissions check:"
+        ls -la apply-changes.py frontend-reviewed-fixes.json 2>/dev/null | sed 's/^/      /' || echo "      Files not accessible"
         echo ""
         
-        # Run apply-changes with detailed logging
-        python apply-changes.py frontend-reviewed-fixes.json \
-          > frontend-apply-result.json 2> frontend-applier.log
+        # Try to run apply-changes with maximum verbosity and capture everything
+        echo "🚀 Executing apply-changes.py with full logging..."
+        set -x  # Enable bash debug mode
+        python apply-changes.py frontend-reviewed-fixes.json > frontend-apply-result.json 2> frontend-applier.log
         apply_exit=$?
+        set +x  # Disable bash debug mode
         
+        echo ""
         echo "🔍 Apply process completed with exit code: $apply_exit"
+        echo "   📊 Process details:"
+        echo "      Exit code: $apply_exit"
+        echo "      Timestamp: $(date)"
+        echo "      Process status: $(if [ $apply_exit -eq 0 ]; then echo 'SUCCESS'; else echo 'FAILED'; fi)"
         echo ""
         
         # Check what happened during apply
