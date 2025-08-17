@@ -1,5 +1,5 @@
 import React from 'react'
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ThemeProvider } from '@/components/theme-provider'
@@ -17,48 +17,35 @@ function ThemeConsumer() {
   )
 }
 
-// helper to mock prefers-color-scheme
-function mockPrefersColorScheme(prefers: 'dark' | 'light' | null) {
-  const matches = prefers === 'dark'
-  const media = '(prefers-color-scheme: dark)'
-  return (query: string) => ({
-    matches: query === media ? matches : false,
+// Utilities to mock and restore matchMedia
+const originalMatchMedia = window.matchMedia
+const setupMatchMedia = (prefersDark: boolean) => {
+  const mock = vi.fn().mockImplementation((query: string) => ({
+    matches: prefersDark && query.includes('prefers-color-scheme: dark'),
     media: query,
     onchange: null,
-    addEventListener: (_type: string, _listener: () => void) => {},
-    removeEventListener: (_type: string, _listener: () => void) => {},
-    addListener: () => {},
-    removeListener: () => {},
-    dispatchEvent: () => false,
-  })
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }))
+  Object.defineProperty(window, 'matchMedia', { value: mock, configurable: true })
+  return mock
 }
 
-describe('ThemeProvider behavior (hook consumer)', () => {
-  let originalMatchMedia: typeof window.matchMedia
-
+describe('ThemeProvider behavior', () => {
   beforeEach(() => {
-    originalMatchMedia = window.matchMedia
-    Object.defineProperty(window, 'matchMedia', {
-      configurable: true,
-      writable: true,
-      value: mockPrefersColorScheme(null),
-    })
     localStorage.clear()
-    document.documentElement.className = ''
   })
 
   afterEach(() => {
-    Object.defineProperty(window, 'matchMedia', {
-      configurable: true,
-      writable: true,
-      value: originalMatchMedia,
-    })
-    localStorage.clear()
-    document.documentElement.className = ''
+    // restore original matchMedia after each test to avoid leakage
+    Object.defineProperty(window, 'matchMedia', { value: originalMatchMedia, configurable: true })
   })
 
-  it('provides theme and setTheme to consumers, and updates value on interaction', async () => {
-    const user = userEvent.setup()
+  it('uses system preference (prefers-color-scheme) when no saved theme', () => {
+    setupMatchMedia(true) // system prefers dark
 
     render(
       <ThemeProvider>
@@ -66,22 +53,34 @@ describe('ThemeProvider behavior (hook consumer)', () => {
       </ThemeProvider>
     )
 
-    // Default theme should render (string value exists)
-    const themeDiv = screen.getByLabelText('theme')
-    expect(themeDiv).toBeInTheDocument()
-    const initialTheme = themeDiv.textContent
-    expect(typeof initialTheme).toBe('string')
+    const themeEl = screen.getByLabelText('theme')
+    expect(themeEl).toHaveTextContent('dark')
+  })
 
-    // Toggle to dark
-    await user.click(screen.getByRole('button', { name: /set dark/i }))
-    expect(screen.getByLabelText('theme').textContent).toBe('dark')
+  it('persists theme to localStorage and rehydrates on remount', async () => {
+    setupMatchMedia(false) // ensure a deterministic non-dark default if implementation uses system
+    const user = userEvent.setup()
 
-    // Toggle to light
-    await user.click(screen.getByRole('button', { name: /set light/i }))
-    expect(screen.getByLabelText('theme').textContent).toBe('light')
+    const { unmount } = render(
+      <ThemeProvider>
+        <ThemeConsumer />
+      </ThemeProvider>
+    )
 
-    // Toggle to system
-    await user.click(screen.getByRole('button', { name: /set system/i }))
-    expect(screen.getByLabelText('theme').textContent).toBe('system')
+    // Change theme to dark
+    await user.click(screen.getByText('Set Dark'))
+    expect(localStorage.getItem('theme')).toBe('dark')
+
+    // Unmount and remount to verify it picks up saved theme
+    unmount()
+
+    render(
+      <ThemeProvider>
+        <ThemeConsumer />
+      </ThemeProvider>
+    )
+
+    const themeEl = screen.getByLabelText('theme')
+    expect(themeEl).toHaveTextContent('dark')
   })
 })
