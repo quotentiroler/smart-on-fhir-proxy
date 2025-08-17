@@ -8,8 +8,8 @@ bun test v1.2.19 (aad3abea)
 
 ::group::test/status.test.ts:
 (pass) Status Routes (Mock) > should have health endpoint [7.00ms]
-(pass) Status Routes (Mock) > should return status information
-(pass) Status Routes (Mock) > should handle multiple requests [1.00ms]
+(pass) Status Routes (Mock) > should return status information [1.00ms]
+(pass) Status Routes (Mock) > should handle multiple requests
 
 ::endgroup::
 
@@ -42,11 +42,11 @@ Keycloak connection check failed: warn: Keycloak connection verification failed:
 ::endgroup::
 
 ::group::test/index.test.ts:
-(pass) Elysia Basic Tests > returns a response from root endpoint [1.00ms]
+(pass) Elysia Basic Tests > returns a response from root endpoint [2.00ms]
 (pass) Elysia Basic Tests > returns health status
 (pass) Elysia Basic Tests > handles POST requests [1.00ms]
 (pass) Eden Treaty Tests > returns a response using Eden Treaty [2.00ms]
-(pass) Eden Treaty Tests > handles health check with Eden Treaty
+(pass) Eden Treaty Tests > handles health check with Eden Treaty [1.00ms]
 (pass) Eden Treaty Tests > handles POST with Eden Treaty
 
 ::endgroup::
@@ -67,7 +67,7 @@ Expected: 401
 Received: 500
 
       at <anonymous> (/home/runner/work/proxy-smart/proxy-smart/backend/test/auth.middleware.test.ts:24:24)
-(fail) Auth-protected route behavior > responds 401 when Authorization header is missing [2.00ms]
+(fail) Auth-protected route behavior > responds 401 when Authorization header is missing [1.00ms]
 
 ::error file=backend/test/auth.middleware.test.ts,line=34,col=24,title=error: expect(received).toBe(expected)::Expected: 401%0AReceived: 500%0A%0A      at <anonymous> (/home/runner/work/proxy-smart/proxy-smart/backend/test/auth.middleware.test.ts:34:24)
 29 |   it('responds 401 with wrong token', async () => {
@@ -105,19 +105,19 @@ Received: 500
 
 ::group::test/integration.test.ts:
 (pass) Integration Tests > Core Endpoints > should respond to root endpoint [2.00ms]
-(pass) Integration Tests > Core Endpoints > should provide health check
+(pass) Integration Tests > Core Endpoints > should provide health check [1.00ms]
 (pass) Integration Tests > Core Endpoints > should provide detailed status
-(pass) Integration Tests > API Endpoints > should handle user listing [1.00ms]
-(pass) Integration Tests > API Endpoints > should handle user creation
+(pass) Integration Tests > API Endpoints > should handle user listing
+(pass) Integration Tests > API Endpoints > should handle user creation [1.00ms]
 (pass) Integration Tests > Error Handling > should handle 404 for non-existent endpoints
-(pass) Integration Tests > Error Handling > should handle malformed requests gracefully [1.00ms]
+(pass) Integration Tests > Error Handling > should handle malformed requests gracefully
 (pass) Performance Tests > should respond to health check quickly [1.00ms]
-(pass) Performance Tests > should handle multiple concurrent requests
+(pass) Performance Tests > should handle multiple concurrent requests [1.00ms]
 
 ::endgroup::
 
 ::group::test/validation.test.ts:
-(pass) Validation Tests > should validate required fields [4.00ms]
+(pass) Validation Tests > should validate required fields [3.00ms]
 (pass) Validation Tests > should reject invalid email format [4.00ms]
 (pass) Validation Tests > should reject missing required fields
 (pass) Validation Tests > should handle optional fields
@@ -128,15 +128,15 @@ Received: 500
 ::endgroup::
 
 ::group::test/notfound.test.ts:
-(pass) Not Found behavior > returns 404 for an unknown route [1.00ms]
-(pass) Not Found behavior > returns 200 for defined route [1.00ms]
+(pass) Not Found behavior > returns 404 for an unknown route [2.00ms]
+(pass) Not Found behavior > returns 200 for defined route
 
 ::endgroup::
 
 ::group::test/errors.test.ts:
 (pass) Error handling tests > returns 500-like status when handler throws synchronously [1.00ms]
 (pass) Error handling tests > returns 500-like status when handler throws asynchronously
-(pass) Error handling tests > propagates explicit Response objects from handlers
+(pass) Error handling tests > propagates explicit Response objects from handlers [1.00ms]
 
 ::endgroup::
 
@@ -153,24 +153,24 @@ Keycloak connection check failed: warn: Keycloak connection verification failed:
       at <anonymous> (/home/runner/work/proxy-smart/proxy-smart/backend/test/auth.config.edge.test.ts:39:68)
 
 (pass) Auth Config Route Edge Cases > returns isConfigured=false when Keycloak is not configured
-[2025-08-17T08:33:51.221Z] [32minfo[0m [[36mkeycloak[0m] Checking Keycloak connection (attempt 1/1)...
-[2025-08-17T08:33:51.222Z] [31merror[0m [[36mkeycloak[0m] Keycloak connection check failed after all retry attempts
+[2025-08-17T09:08:34.394Z] [32minfo[0m [[36mkeycloak[0m] Checking Keycloak connection (attempt 1/1)...
+[2025-08-17T09:08:34.395Z] [31merror[0m [[36mkeycloak[0m] Keycloak connection check failed after all retry attempts
 {
   "error": "Unable to connect. Is the computer able to access the url?"
 }
-[2025-08-17T08:33:51.222Z] [33mwarn[0m [[36mkeycloak[0m] Some Keycloak endpoints are not accessible, but critical authentication components are working
-(pass) Auth Config Route Edge Cases > returns isConfigured=true when KEYCLOAK_BASE_URL is provided and preserves JSON shape [1.00ms]
+[2025-08-17T09:08:34.395Z] [33mwarn[0m [[36mkeycloak[0m] Some Keycloak endpoints are not accessible, but critical authentication components are working
+(pass) Auth Config Route Edge Cases > returns isConfigured=true when KEYCLOAK_BASE_URL is provided and preserves JSON shape [2.00ms]
 
 ::endgroup::
 
 ::group::test/malformed-json.test.ts:
 (pass) Malformed JSON handling > returns client error for malformed JSON payloads [1.00ms]
-(pass) Malformed JSON handling > parses valid JSON correctly
+(pass) Malformed JSON handling > parses valid JSON correctly [1.00ms]
 
 ::endgroup::
 
 3 tests failed:
-(fail) Auth-protected route behavior > responds 401 when Authorization header is missing [2.00ms]
+(fail) Auth-protected route behavior > responds 401 when Authorization header is missing [1.00ms]
 (fail) Auth-protected route behavior > responds 401 with wrong token
 (fail) Auth-protected route behavior > accepts valid Authorization header and returns protected payload
 --------------------------------------------------|---------|---------|-------------------

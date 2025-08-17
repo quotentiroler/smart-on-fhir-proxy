@@ -1,5 +1,10 @@
 {
-  "success": true,
+  "success": false,
   "changes_applied": 0,
-  "errors": []
+  "total_changes": 2,
+  "errors": [
+    "Failed to apply change to ui/test/hooks/useTheme.outside-provider.test.tsx",
+    "Failed to apply change to ui/test/hooks/useTheme.inside-provider.test.tsx"
+  ],
+  "component_type": "frontend"
 }
