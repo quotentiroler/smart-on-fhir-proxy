@@ -313,9 +313,99 @@ jobs:
         echo "   ✅ Senior AI exit code: $reviewer_exit"
         
         echo "🔨 Phase 4: Apply changes"
+        echo "📋 Checking input files for apply phase..."
+        
+        # Check if the input file exists and is valid
+        if [ -f frontend-reviewed-fixes.json ]; then
+          echo "   ✅ frontend-reviewed-fixes.json exists"
+          echo "   📄 File size: $(wc -c < frontend-reviewed-fixes.json) bytes"
+          echo "   📄 First 200 chars:"
+          head -c 200 frontend-reviewed-fixes.json | sed 's/^/      /'
+          echo ""
+          
+          # Validate JSON structure
+          if jq . frontend-reviewed-fixes.json >/dev/null 2>&1; then
+            echo "   ✅ JSON is valid"
+            changes_count=$(jq -r '.changes | length' frontend-reviewed-fixes.json 2>/dev/null || echo "0")
+            echo "   📊 Changes to apply: $changes_count"
+            
+            if [ "$changes_count" -gt "0" ]; then
+              echo "   📋 Changes preview:"
+              jq -r '.changes[] | "      • \(.action) \(.file)"' frontend-reviewed-fixes.json 2>/dev/null | head -5
+            fi
+          else
+            echo "   ❌ JSON is invalid!"
+            echo "   📄 Raw content (first 500 chars):"
+            head -c 500 frontend-reviewed-fixes.json | sed 's/^/      /'
+          fi
+        else
+          echo "   ❌ frontend-reviewed-fixes.json not found!"
+          echo "   📋 Available files:"
+          ls -la frontend-* | sed 's/^/      /' || echo "      No frontend-* files found"
+        fi
+        
+        echo ""
+        echo "🔧 Starting apply-changes.py..."
+        echo "   📝 Command: python apply-changes.py frontend-reviewed-fixes.json"
+        echo "   📂 Working directory: $(pwd)"
+        echo "   🐍 Python version: $(python --version 2>&1 || echo 'Python not found')"
+        echo ""
+        
+        # Run apply-changes with detailed logging
         python apply-changes.py frontend-reviewed-fixes.json \
           > frontend-apply-result.json 2> frontend-applier.log
         apply_exit=$?
+        
+        echo "🔍 Apply process completed with exit code: $apply_exit"
+        echo ""
+        
+        # Check what happened during apply
+        if [ -f frontend-applier.log ]; then
+          echo "📄 Apply error log (frontend-applier.log):"
+          if [ -s frontend-applier.log ]; then
+            echo "   📊 Log size: $(wc -l < frontend-applier.log) lines"
+            echo "   📋 Last 20 lines:"
+            tail -20 frontend-applier.log | sed 's/^/      /'
+            echo ""
+            echo "   📋 Full error log:"
+            cat frontend-applier.log | sed 's/^/      /'
+          else
+            echo "   ℹ️ Error log is empty"
+          fi
+        else
+          echo "   ❌ No error log file created"
+        fi
+        
+        echo ""
+        if [ -f frontend-apply-result.json ]; then
+          echo "📄 Apply result (frontend-apply-result.json):"
+          echo "   📊 File size: $(wc -c < frontend-apply-result.json) bytes"
+          if [ -s frontend-apply-result.json ]; then
+            echo "   📋 Content:"
+            cat frontend-apply-result.json | sed 's/^/      /'
+            
+            # Try to parse result
+            if jq . frontend-apply-result.json >/dev/null 2>&1; then
+              applied=$(jq -r '.changes_applied // 0' frontend-apply-result.json 2>/dev/null || echo "0")
+              total=$(jq -r '.total_changes // 0' frontend-apply-result.json 2>/dev/null || echo "0")
+              echo "   📊 Parsed result: $applied/$total changes applied"
+            else
+              echo "   ⚠️ Result JSON is invalid"
+            fi
+          else
+            echo "   ℹ️ Result file is empty"
+          fi
+        else
+          echo "   ❌ No result file created"
+        fi
+        
+        echo ""
+        echo "🔍 Git status after apply attempt:"
+        git status --porcelain | head -10 | sed 's/^/   /'
+        if [ -z "$(git status --porcelain)" ]; then
+          echo "   ℹ️ No git changes detected"
+        fi
+        
         echo "   ✅ Apply exit code: $apply_exit"
         
         # Safely extract applied count with error handling
