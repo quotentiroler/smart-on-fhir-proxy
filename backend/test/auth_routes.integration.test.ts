@@ -13,7 +13,12 @@ describe('Auth route integration tests', () => {
   })
 
   it('GET /auth/config returns a keycloak object with isConfigured boolean when Keycloak is reachable', async () => {
-    globalThis.fetch = async () => new Response(JSON.stringify({}), { status: 200, headers: { 'content-type': 'application/json' } })
+    // Create a proper fetch mock with all required properties
+    const mockFetch = Object.assign(
+      async () => new Response(JSON.stringify({}), { status: 200, headers: { 'content-type': 'application/json' } }),
+      { preconnect: () => {} }
+    ) as typeof fetch
+    globalThis.fetch = mockFetch
 
     const res = await authRoutes.handle(new Request('http://localhost/auth/config'))
 
@@ -32,7 +37,12 @@ describe('Auth route integration tests', () => {
   })
 
   it('GET /auth/config responds gracefully when Keycloak connectivity check throws', async () => {
-    globalThis.fetch = async () => { throw new Error('network down') }
+    // Create a proper fetch mock that throws but has all required properties
+    const mockFetch = Object.assign(
+      async () => { throw new Error('network down') },
+      { preconnect: () => {} }
+    ) as typeof fetch
+    globalThis.fetch = mockFetch
 
     const res = await authRoutes.handle(new Request('http://localhost/auth/config'))
 

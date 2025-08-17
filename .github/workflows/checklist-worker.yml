@@ -229,6 +229,7 @@ jobs:
       uses: ./.github/actions/discord-notify
       with:
         webhook-url: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        notification-type: ${{ job.status == 'success' && 'success' || 'error' }}
         title: "🤖 AI Checklist Implementation Worker"
         description: |
           **Branch**: `${{ github.ref_name }}`
@@ -236,5 +237,4 @@ jobs:
           **Targets**: ${{ steps.analyze-checklists.outputs.target_count }} checklist items
           **Implementation**: AI-powered SMART App Launch features
           **Collaboration**: Junior AI + Senior AI review process
-        color: ${{ job.status == 'success' && '65280' || '16711680' }}  # Green (#00FF00) for success, Red (#FF0000) for failure
-        include-details: true
+        color: ${{ job.status == 'success' && '00FF00' || 'FF0000' }}  # Green for success, Red for failure
