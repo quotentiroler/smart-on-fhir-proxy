@@ -386,13 +386,3 @@ jobs:
           echo "🎉 SUCCESS: AI fixes resolved the backend test issues!"
           echo "✅ Backend tests are now passing after AI intervention"
           echo "🤖 Junior AI proposed fixes, Senior AI reviewed them, and they were successfully applied"
-
-      # === API GENERATION (only after successful backend build/test) ===
-      - name: Upload backend build artifacts
-        if: ${{ !startsWith(github.ref, 'refs/heads/dev/') }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-artifacts
-          path: |
-            backend/dist/
-          retention-days: 1

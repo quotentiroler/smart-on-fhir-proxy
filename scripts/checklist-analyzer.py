@@ -9,7 +9,7 @@ import re
 import sys
 from pathlib import Path
 
-def analyze_checklist_for_implementation(file_path, item_filter=None, force_implement=False):
+def analyze_checklist_for_implementation(file_path, item_filter=None):
     """Analyze checklist and identify items ready for AI implementation"""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -28,36 +28,33 @@ def analyze_checklist_for_implementation(file_path, item_filter=None, force_impl
             item_text = match.group(3).strip()
             is_complete = checked_char.lower() == 'x'
             
+            # Skip completed items - no need to re-implement
+            if is_complete:
+                continue
+            
             # Apply item filter if provided
             if item_filter and not re.search(item_filter, item_text, re.IGNORECASE):
                 continue
             
-            # Determine if item is ready for implementation
-            ready_for_implementation = False
+            # Look for implementation-ready keywords
+            impl_keywords = [
+                'endpoint', 'api', 'route', 'handler', 'middleware',
+                'component', 'interface', 'form', 'validation',
+                'authentication', 'authorization', 'oauth', 'token',
+                'database', 'model', 'schema', 'migration',
+                'test', 'unit test', 'integration test',
+                'configuration', 'settings', 'environment',
+                'setup', 'install', 'deploy', 'build', 'script'
+            ]
             
-            if force_implement:
-                ready_for_implementation = True
-            elif not is_complete:
-                # Look for implementation-ready keywords
-                impl_keywords = [
-                    'endpoint', 'api', 'route', 'handler', 'middleware',
-                    'component', 'interface', 'form', 'validation',
-                    'authentication', 'authorization', 'oauth', 'token',
-                    'database', 'model', 'schema', 'migration',
-                    'test', 'unit test', 'integration test',
-                    'configuration', 'settings', 'environment'
-                ]
-                
-                if any(keyword in item_text.lower() for keyword in impl_keywords):
-                    ready_for_implementation = True
-            
-            if ready_for_implementation:
+            # Only target items that seem implementable by AI
+            if any(keyword in item_text.lower() for keyword in impl_keywords):
                 implementation_targets.append({
                     'file': file_path,
                     'line': line_num,
                     'text': item_text,
-                    'complete': is_complete,
-                    'priority': 'high' if not is_complete else 'medium'
+                    'complete': False,  # Always false since we skip completed items
+                    'priority': 'high'  # All incomplete implementable items are high priority
                 })
         
         return implementation_targets
@@ -70,7 +67,6 @@ def main():
     parser = argparse.ArgumentParser(description='Analyze checklists for implementation targets')
     parser.add_argument('--checklist-file', help='Specific checklist file to process')
     parser.add_argument('--item-filter', help='Filter for specific checklist items (regex pattern)')
-    parser.add_argument('--force-implement', action='store_true', help='Force implementation even if items are marked complete')
     parser.add_argument('--output', default='implementation_targets.json', help='Output file path')
     
     args = parser.parse_args()
@@ -92,13 +88,12 @@ def main():
     for checklist_file in checklist_files:
         targets = analyze_checklist_for_implementation(
             checklist_file, 
-            args.item_filter, 
-            args.force_implement
+            args.item_filter
         )
         all_targets.extend(targets)
     
-    # Sort by priority and save
-    all_targets.sort(key=lambda x: (x['priority'] == 'medium', x['file'], x['line']))
+    # Sort by priority and save (simplified since all are high priority now)
+    all_targets.sort(key=lambda x: (x['file'], x['line']))
     
     print(f'📊 Found {len(all_targets)} implementation targets', file=sys.stderr)
     for i, target in enumerate(all_targets[:10]):  # Show first 10
@@ -111,9 +106,8 @@ def main():
         'targets': all_targets,
         'analysis': {
             'item_filter': args.item_filter,
-            'force_implement': args.force_implement,
-            'high_priority': len([t for t in all_targets if t['priority'] == 'high']),
-            'medium_priority': len([t for t in all_targets if t['priority'] == 'medium'])
+            'total_targets': len(all_targets),
+            'incomplete_implementable_items': len(all_targets)  # All targets are incomplete & implementable now
         }
     }
     

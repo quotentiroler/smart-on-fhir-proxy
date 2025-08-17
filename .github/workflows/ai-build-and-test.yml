@@ -42,8 +42,8 @@ jobs:
     name: Backend
     uses: ./.github/workflows/ai-build-test-backend.yml
     with:
-      run_tests: ${{ inputs.run_tests }}
-      fail_on_test_failure: ${{ inputs.fail_on_test_failure }}
+      run_tests: ${{ inputs.run_tests || true }}
+      fail_on_test_failure: ${{ inputs.fail_on_test_failure || true }}
     secrets:
       APP_ID: ${{ secrets.APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
@@ -55,8 +55,8 @@ jobs:
     if: ${{ needs.backend.outputs.backend_success == 'true' }}
     uses: ./.github/workflows/ai-build-test-frontend.yml
     with:
-      run_tests: ${{ inputs.run_tests }}
-      fail_on_test_failure: ${{ inputs.fail_on_test_failure }}
+      run_tests: ${{ inputs.run_tests || true }}
+      fail_on_test_failure: ${{ inputs.fail_on_test_failure || true }}
     secrets:
       APP_ID: ${{ secrets.APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}

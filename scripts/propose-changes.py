@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Junior AI: Propose Code Implementations / Changes / Fixes 
+Junior AI: Propose Code Implementations / Changes / Changes 
 This script analyzes an input (error logs, instructions) using MCP-enhanced exploration
 And proposes code changes based on the analysis.
 """
@@ -36,6 +36,48 @@ except Exception as e:
 import requests
 from ai_proposal_schema import get_propose_payload_base, get_common_headers, create_system_message, create_user_content_base
 
+def make_api_call_with_retry(url: str, payload: dict, headers: dict, max_retries: int = 3, timeout: int = 240) -> requests.Response:
+    """Make an API call with automatic retry logic for rate limits"""
+    retry_count = 0
+    
+    while retry_count < max_retries:
+        response = requests.post(url, json=payload, headers=headers, timeout=timeout)
+        
+        if response.status_code == 429:  # Rate limit exceeded
+            retry_count += 1
+            if retry_count < max_retries:
+                # Extract wait time from error message or use exponential backoff
+                try:
+                    error_data = response.json()
+                    error_msg = error_data.get('error', {}).get('message', '')
+                    # Look for "Please try again in 630ms" or "630s" pattern
+                    wait_match = re.search(r'try again in (\d+(?:\.\d+)?)([ms]+)', error_msg)
+                    if wait_match:
+                        wait_time = float(wait_match.group(1))
+                        unit = wait_match.group(2)
+                        if unit == 'ms':
+                            wait_time = wait_time / 1000  # Convert to seconds
+                        elif unit == 's':
+                            pass  # Already in seconds
+                        wait_time = max(wait_time, 1)  # Minimum 1 second
+                    else:
+                        # Exponential backoff: 2^retry_count seconds + some jitter
+                        wait_time = (2 ** retry_count) + (retry_count * 0.5)
+                except:
+                    wait_time = (2 ** retry_count) + (retry_count * 0.5)
+                
+                print(f"⏳ Rate limit hit. Waiting {wait_time:.1f}s before retry {retry_count}/{max_retries}", file=sys.stderr)
+                time.sleep(wait_time)
+                continue
+            else:
+                print(f"❌ Rate limit exceeded after {max_retries} retries", file=sys.stderr)
+                break
+        else:
+            # Success or non-rate-limit error, return response
+            break
+    
+    return response
+
 # Import Friend AI with proper module name handling
 import sys
 import importlib.util
@@ -60,7 +102,7 @@ def load_base_tools() -> List[Dict]:
 class CodeExplorerMCP:
     """MCP tools for interactive code exploration with dynamic tool creation, persistence, and schema generation"""
     
-    MAX_CONTENT_CHARS = 20000  # Safety cap to avoid huge payloads
+    MAX_CONTENT_CHARS = 8000  # Reduced to avoid token limits during exploration
     
     def __init__(self, repo_root: Path):
         self.repo_root = repo_root
@@ -847,6 +889,73 @@ class UnifiedChangeProposer:
         self.friend_conversations = []  # Store friend AI conversations
         self.collaboration_session = None  # Initialize on first use
         
+    def compress_conversation_context(self, messages: list, max_recent_tools: int = 1) -> list:
+        """AGGRESSIVE token compression - drastically reduce context to stay under limits"""
+        if len(messages) <= 4:  # System + user + minimal exchanges
+            return messages
+        
+        # Always keep system message and initial user message
+        compressed = messages[:2]
+        
+        # Separate message types for aggressive processing
+        tool_messages = []
+        regular_messages = []
+        
+        for msg in messages[2:]:
+            if msg.get("role") in ["assistant", "tool"] and ("tool_calls" in msg or msg.get("role") == "tool"):
+                tool_messages.append(msg)
+            else:
+                regular_messages.append(msg)
+        
+        # ULTRA-AGGRESSIVE: Keep only the LAST tool interaction (1 call + 1 response = 2 messages)
+        recent_tools = tool_messages[-2:] if tool_messages else []
+        
+        # COMPRESS tool response content to prevent token explosion
+        compressed_tools = []
+        for msg in recent_tools:
+            if msg.get("role") == "tool" and "content" in msg:
+                # Drastically truncate tool response content
+                original_content = str(msg["content"])
+                if len(original_content) > 1000:  # If content is large
+                    # Extract only key information
+                    lines = original_content.split('\n')
+                    key_lines = []
+                    for line in lines[:20]:  # Only first 20 lines
+                        if any(keyword in line.lower() for keyword in 
+                               ["error", "failed", "test", "import", "export", "function", "class", "interface"]):
+                            key_lines.append(line)
+                    
+                    key_lines_content = '\n'.join(key_lines[:10])
+                    truncated_content = key_lines_content + f"\n\n[TRUNCATED: {len(original_content)} chars → {len(key_lines_content)} chars for token efficiency]"
+                    
+                    compressed_msg = msg.copy()
+                    compressed_msg["content"] = truncated_content
+                    compressed_tools.append(compressed_msg)
+                else:
+                    compressed_tools.append(msg)  # Keep small responses as-is
+            else:
+                compressed_tools.append(msg)  # Keep assistant messages as-is
+        
+        # Create MINIMAL summary of earlier exploration
+        if len(tool_messages) > 2:
+            explored_count = len(tool_messages) // 2
+            summary_msg = {
+                "role": "assistant", 
+                "content": f"🗜️ AGGRESSIVE COMPRESSION: Explored {explored_count} tools/files. Key context preserved in recent messages. Continue focused exploration or synthesize findings."
+            }
+            compressed.append(summary_msg)
+        
+        # Add compressed recent tools and NO regular messages (too much content)
+        compressed.extend(compressed_tools)
+        
+        # Calculate rough token reduction
+        original_size = sum(len(str(msg.get("content", ""))) for msg in messages)
+        compressed_size = sum(len(str(msg.get("content", ""))) for msg in compressed)
+        
+        print(f"🗜️ AGGRESSIVE compression: {len(messages)} → {len(compressed)} messages, ~{original_size} → ~{compressed_size} chars", file=sys.stderr)
+        
+        return compressed
+        
     def detect_component_type(self, error_log: str) -> str:
         """Detect if errors are from frontend, backend, or other"""
         if any(indicator in error_log.lower() for indicator in ['ui/', 'vite', 'react', 'jsx', 'tsx']):
@@ -1509,10 +1618,10 @@ class UnifiedChangeProposer:
         return "\n\n".join(hints) if hints else "(no file excerpts found in errors)"
     
     def propose_changes(self, error_log: str) -> Dict:
-        """Propose initial fixes using MCP-enhanced AI with interactive code exploration."""
+        """Propose initial changes using MCP-enhanced AI with interactive code exploration."""
         if not self.api_key:
-            print("❌ OPENAI_API_KEY is not set - skipping AI fixes", file=sys.stderr)
-            return {"analysis": "No API key", "fixes": []}
+            print("❌ OPENAI_API_KEY is not set - skipping AI changes", file=sys.stderr)
+            return {"analysis": "No API key", "changes": []}
         
         print("🧠 Junior AI starting interactive code exploration...", file=sys.stderr)
         
@@ -1600,7 +1709,7 @@ CONTEXT SEED (short excerpts from files referenced in errors):
    - Web automation strategy discussions
 6. 📦 EXPERIMENT: Use sandboxes for risky operations:
    - Test experimental solutions safely
-   - Validate fixes before applying to main codebase
+   - Validate changes before applying to main codebase
    - Try different approaches without side effects
    - Run build/test commands in isolation
    - Test web scraping and automation scripts
@@ -1646,7 +1755,7 @@ Be inventive, practical, enthusiastic, and focus on creating tools that would gi
 Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized instruments you craft for each unique challenge, FRIEND AI = Your creative collaborator who amplifies your ideas! 🛠️🤝"""
         
         # Set up the conversation with function calling
-        payload = get_propose_payload_base("gpt-5")
+        payload = get_propose_payload_base("gpt-5-mini")
         payload["tools"] = self.get_mcp_tools_schema()
         payload["messages"] = [
             {
@@ -1661,20 +1770,165 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
         
         headers = get_common_headers(self.api_key)
         
-        max_iterations = 10  # Prevent infinite loops
+        max_iterations = 100  # Prevent infinite loops
         iteration = 0
         
         while iteration < max_iterations:
             iteration += 1
             print(f"🔄 AI Iteration {iteration}", file=sys.stderr)
             
+            # AGGRESSIVE compression to manage token usage (every 2 iterations after the 2nd)
+            if iteration > 2 and len(payload["messages"]) > 5:
+                original_count = len(payload["messages"])
+                payload["messages"] = self.compress_conversation_context(payload["messages"])
+                compressed_count = len(payload["messages"])
+                if compressed_count < original_count:
+                    print(f"🗜️ Compressed context: {original_count} → {compressed_count} messages", file=sys.stderr)
+            
+            # EARLY synthesis trigger to prevent token explosion
+            if iteration > 6:
+                print(f"🎯 EARLY SYNTHESIS TRIGGER: Requesting completion at iteration {iteration}", file=sys.stderr)
+                payload["messages"].append({
+                    "role": "user",
+                    "content": f"🎯 SYNTHESIS REQUIRED (Iteration {iteration}): You've explored enough. Please provide your final JSON analysis and changes now. Focus on the most critical 2-3 changes needed. Return complete JSON response - no more exploration."
+                })
+                
+            # RAG-enhanced token management: If we've done significant exploration (>8 iterations),
+            # trigger aggressive RAG-based synthesis with focused context retrieval
+            if iteration > 8:
+                print(f"🧠 RAG-Enhanced Mode: Triggering focused synthesis after {iteration} iterations", file=sys.stderr)
+                
+                # Extract key search terms from the conversation for RAG
+                recent_content = ""
+                for msg in payload["messages"][-6:]:  # Last few messages
+                    if "content" in msg:
+                        recent_content += str(msg["content"]) + " "
+                
+                # Extract key terms for semantic search
+                search_terms = []
+                for term in ["test", "error", "coverage", "backend", "frontend", "api", "route", "component"]:
+                    if term in recent_content.lower():
+                        search_terms.append(term)
+                
+                if search_terms:
+                    # Use RAG to get focused context instead of full conversation history
+                    try:
+                        print(f"🔍 RAG: Searching for context with terms: {', '.join(search_terms[:3])}", file=sys.stderr)
+                        rag_query = f"testing framework setup {' '.join(search_terms[:3])} implementation"
+                        rag_result = self.mcp.semantic_search(rag_query, "*.ts", max_results=3, similarity_threshold=0.2)
+                        
+                        if "error" not in rag_result and "results" in rag_result:
+                            # Replace older messages with RAG-focused context
+                            rag_context_msg = {
+                                "role": "assistant",
+                                "content": f"🧠 RAG-ENHANCED CONTEXT (replacing earlier exploration):\n\nFound {len(rag_result.get('results', []))} relevant code patterns:\n" + 
+                                          "\n".join([f"• {r['file_context']['file']}: {r['code_snippet'][:200]}..." 
+                                                    for r in rag_result.get('results', [])[:2]])
+                            }
+                            
+                            # Keep only system, user, RAG context, and last few messages
+                            focused_messages = payload["messages"][:2]  # System + user
+                            focused_messages.append(rag_context_msg)    # RAG context
+                            focused_messages.extend(payload["messages"][-4:])  # Recent context
+                            
+                            payload["messages"] = focused_messages
+                            print(f"🗜️ RAG compression: Full conversation → {len(focused_messages)} focused messages", file=sys.stderr)
+                    except Exception as e:
+                        print(f"⚠️ RAG optimization failed, continuing with normal compression: {e}", file=sys.stderr)
+                
+                # Add synthesis instruction for aggressive completion
+                payload["messages"].append({
+                    "role": "user",
+                    "content": f"🎯 SYNTHESIS MODE (Iteration {iteration}): Based on your exploration, please provide your final JSON analysis and changes. Focus on the most critical issues found and actionable solutions. Avoid further exploration - synthesize your findings now."
+                })
+                
+                print(f"🎯 Synthesis mode activated - requesting final output", file=sys.stderr)
+            
+            # Context validation and sanitization before API call
             try:
-                response = requests.post(self.base_url, json=payload, headers=headers, timeout=120)
+                # Validate messages while preserving tool call structure
+                validated_messages = []
+                for i, msg in enumerate(payload["messages"]):
+                    if isinstance(msg, dict) and "role" in msg:
+                        validated_msg = msg.copy()
+                        
+                        # Handle different message types properly
+                        if msg["role"] in ["system", "user", "assistant"]:
+                            # Standard messages should have content
+                            if "content" in msg and isinstance(msg["content"], str):
+                                # Clean up content corruption
+                                clean_content = msg["content"]
+                                corruption_patterns = [
+                                    "}'}]}**", "**Incorrect JSON**", "**Oops**", "verwachting_QUOTE", 
+                                    "рам(Json)", "**ليش**", "**alluni**", "Baking.last", "}}}", 
+                                    "ҧсны.json", "}}to=functions."
+                                ]
+                                for pattern in corruption_patterns:
+                                    clean_content = clean_content.replace(pattern, "")
+                                
+                                # Clean up malformed JSON fragments
+                                import re
+                                clean_content = re.sub(r'[}\'"\]]+\s*[}\'"\]]+', '}', clean_content)
+                                
+                                validated_msg["content"] = clean_content
+                                validated_messages.append(validated_msg)
+                            elif msg["role"] == "assistant" and "tool_calls" in msg:
+                                # Assistant tool call message - keep as-is but validate tool_calls
+                                if isinstance(msg["tool_calls"], list):
+                                    validated_messages.append(validated_msg)
+                                else:
+                                    print(f"⚠️ Skipping assistant message with invalid tool_calls", file=sys.stderr)
+                            else:
+                                print(f"⚠️ Skipping {msg['role']} message with missing/invalid content", file=sys.stderr)
+                        
+                        elif msg["role"] == "tool":
+                            # Tool response message - validate structure
+                            if "tool_call_id" in msg and "content" in msg:
+                                # Tool content can be JSON string, keep as-is
+                                validated_messages.append(validated_msg)
+                            else:
+                                print(f"⚠️ Skipping tool message with missing tool_call_id or content", file=sys.stderr)
+                        
+                        else:
+                            print(f"⚠️ Skipping message with unknown role: {msg.get('role', 'UNKNOWN')}", file=sys.stderr)
+                    else:
+                        print(f"⚠️ Skipping malformed message at index {i}", file=sys.stderr)
+                
+                # Final validation: ensure tool calls are properly paired
+                clean_messages = []
+                skip_next_tool = False
+                
+                for i, msg in enumerate(validated_messages):
+                    if skip_next_tool and msg.get("role") == "tool":
+                        print(f"⚠️ Removing orphaned tool response", file=sys.stderr)
+                        skip_next_tool = False
+                        continue
+                    
+                    if msg.get("role") == "assistant" and "tool_calls" in msg:
+                        # Check if next message is the corresponding tool response
+                        if i + 1 < len(validated_messages) and validated_messages[i + 1].get("role") == "tool":
+                            clean_messages.append(msg)  # Keep the tool call
+                            # Tool response will be added in next iteration
+                        else:
+                            print(f"⚠️ Removing assistant tool call without response", file=sys.stderr)
+                            skip_next_tool = True
+                    else:
+                        clean_messages.append(msg)
+                
+                payload["messages"] = clean_messages
+                print(f"🧹 Context sanitized: {len(clean_messages)} clean messages", file=sys.stderr)
+                
+            except Exception as validation_error:
+                print(f"⚠️ Context validation failed: {validation_error}", file=sys.stderr)
+            
+            try:
+                # Use the retry helper function with increased timeout
+                response = make_api_call_with_retry(self.base_url, payload, headers, timeout=180)
                 print(f"🌐 HTTP Status: {response.status_code}", file=sys.stderr)
                 
                 if response.status_code != 200:
                     print(f"❌ API call failed: {response.text}", file=sys.stderr)
-                    return {"analysis": "API call failed", "fixes": []}
+                    return {"analysis": "API call failed", "changes": []}
                 
                 result = response.json()
                 choice = result['choices'][0]
@@ -1687,10 +1941,82 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
                     # Add the AI's message to conversation
                     payload["messages"].append(message)
                     
-                    # Handle each tool call
+                    # Handle each tool call with enhanced error recovery
                     for tool_call in message['tool_calls']:
                         function_name = tool_call['function']['name']
-                        arguments = json.loads(tool_call['function']['arguments'])
+                        raw_args = tool_call['function']['arguments']
+                        
+                        # Enhanced logging for debugging
+                        print(f"🔧 MCP Tool Call: {function_name}({raw_args[:100]}{'...' if len(raw_args) > 100 else ''})", file=sys.stderr)
+                        
+                        try:
+                            # Direct JSON parsing attempt
+                            arguments = json.loads(raw_args)
+                        except json.JSONDecodeError as e:
+                            print(f"⚠️ JSON parsing error for {function_name}: {str(e)[:100]}", file=sys.stderr)
+                            print(f"📄 Raw args (first 200 chars): {raw_args[:200]}", file=sys.stderr)
+                            
+                            # Enhanced JSON recovery strategies
+                            arguments = None
+                            
+                            # Strategy 1: Fix incomplete JSON by finding last complete object
+                            if raw_args.count('{') > raw_args.count('}'):
+                                try:
+                                    brace_count = 0
+                                    last_valid_pos = 0
+                                    for i, char in enumerate(raw_args):
+                                        if char == '{':
+                                            brace_count += 1
+                                        elif char == '}':
+                                            brace_count -= 1
+                                            if brace_count == 0:
+                                                last_valid_pos = i + 1
+                                                break
+                                    if last_valid_pos > 0:
+                                        cleaned_args = raw_args[:last_valid_pos]
+                                        arguments = json.loads(cleaned_args)
+                                        print(f"✅ Strategy 1 recovery successful", file=sys.stderr)
+                                except json.JSONDecodeError:
+                                    pass
+                            
+                            # Strategy 2: Extract simple parameters with regex
+                            if arguments is None:
+                                try:
+                                    import re
+                                    # Extract path parameter
+                                    path_match = re.search(r'"path"\s*:\s*"([^"]+)"', raw_args)
+                                    query_match = re.search(r'"query"\s*:\s*"([^"]+)"', raw_args)
+                                    pattern_match = re.search(r'"pattern"\s*:\s*"([^"]+)"', raw_args)
+                                    
+                                    if path_match:
+                                        arguments = {"path": path_match.group(1)}
+                                        print(f"✅ Strategy 2 recovery (path): {arguments}", file=sys.stderr)
+                                    elif query_match:
+                                        arguments = {"query": query_match.group(1)}
+                                        print(f"✅ Strategy 2 recovery (query): {arguments}", file=sys.stderr)
+                                    elif pattern_match:
+                                        arguments = {"pattern": pattern_match.group(1)}
+                                        print(f"✅ Strategy 2 recovery (pattern): {arguments}", file=sys.stderr)
+                                except Exception:
+                                    pass
+                            
+                            # Strategy 3: Default fallback for common tools
+                            if arguments is None:
+                                if function_name == "list_directory" and "ui/src" in raw_args:
+                                    arguments = {"path": "ui/src"}
+                                    print(f"✅ Strategy 3 fallback for {function_name}", file=sys.stderr)
+                                elif function_name == "read_file" and "/" in raw_args:
+                                    # Try to extract a file path
+                                    import re
+                                    path_candidates = re.findall(r'[a-zA-Z0-9_/.-]+\.[a-zA-Z]{2,4}', raw_args)
+                                    if path_candidates:
+                                        arguments = {"path": path_candidates[0]}
+                                        print(f"✅ Strategy 3 fallback path: {arguments}", file=sys.stderr)
+                            
+                            # If all recovery fails, skip this tool call
+                            if arguments is None:
+                                print(f"❌ All recovery strategies failed for {function_name}, skipping", file=sys.stderr)
+                                continue
                         
                         # Execute the function
                         result = self.handle_function_call(function_name, arguments)
@@ -1708,21 +2034,21 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
                 # AI has finished exploring and provided final response
                 if choice['finish_reason'] == 'stop':
                     try:
-                        fixes_json = message['content']
-                        fixes_data = json.loads(fixes_json)
+                        changes_json = message['content']
+                        changes_data = json.loads(changes_json)
                         print("✅ AI exploration and analysis complete", file=sys.stderr)
-                        return fixes_data
+                        return changes_data
                     except json.JSONDecodeError:
                         print("❌ Failed to parse final JSON response", file=sys.stderr)
                         print(f"Raw response: {message['content']}", file=sys.stderr)
-                        return {"analysis": "JSON parse error", "fixes": []}
+                        return {"analysis": "JSON parse error", "changes": []}
                 
             except Exception as e:
                 print(f"❌ Error in AI conversation: {e}", file=sys.stderr)
-                return {"analysis": "Error occurred", "fixes": []}
+                return {"analysis": "Error occurred", "changes": []}
         
         print("❌ Max iterations reached without completion", file=sys.stderr)
-        return {"analysis": "Max iterations reached", "fixes": []}
+        return {"analysis": "Max iterations reached", "changes": []}
 
 
 def main():

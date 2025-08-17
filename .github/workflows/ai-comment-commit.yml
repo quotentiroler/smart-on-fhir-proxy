@@ -4,19 +4,20 @@ on:
   push:
     branches:
       - "dev/*"
-      - "ai/dev/*"
+      - "ai/**"
   workflow_run:
     workflows: ["Build & Test", "Build & Test Backend", "Build & Test Frontend"]
     types:
       - completed
     branches:
       - "dev/*"
+      - "ai/**"
 
 jobs:
   ai-comment:
     name: Review & Comment on HEAD Commit
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/heads/dev/') || (github.event.workflow_run.conclusion == 'success' && startsWith(github.event.workflow_run.head_branch, 'dev/'))
+    if: startsWith(github.ref, 'refs/heads/dev/') || startsWith(github.ref, 'refs/heads/ai/') || (github.event.workflow_run.conclusion == 'success' && (startsWith(github.event.workflow_run.head_branch, 'dev/') || startsWith(github.event.workflow_run.head_branch, 'ai/')))
     continue-on-error: true
 
     steps:
@@ -48,7 +49,7 @@ jobs:
           GITHUB_TOKEN: ${{ steps.app-auth.outputs.token || secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.event.head_commit.id || github.sha }}
-          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4o-mini' }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5-mini' }}
         run: |
           echo "Running AI commit comment script..."
           node scripts/ai-commit-comment.mjs
