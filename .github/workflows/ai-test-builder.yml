@@ -591,9 +591,64 @@ jobs:
         echo ""
         echo "🔧 PHASE 3: Applying Backend Test Infrastructure..."
         echo "=============================="
+        echo "📋 Backend apply command: python apply-changes.py $backend_final_fixes_file"
+        echo "📂 Working directory: $(pwd)"
         
-        python apply-changes.py "$backend_final_fixes_file" > backend-apply-result.json 2> backend-applier.log
+        # Enhanced logging for backend apply
+        echo "🔍 Checking backend input file:"
+        if [ -f "$backend_final_fixes_file" ]; then
+          echo "   ✅ $backend_final_fixes_file exists"
+          echo "   📄 File size: $(wc -c < "$backend_final_fixes_file") bytes"
+          if jq . "$backend_final_fixes_file" >/dev/null 2>&1; then
+            changes_count=$(jq -r '.changes | length' "$backend_final_fixes_file" 2>/dev/null || echo "0")
+            echo "   ✅ JSON is valid with $changes_count changes"
+          else
+            echo "   ❌ JSON is invalid!"
+          fi
+        else
+          echo "   ❌ $backend_final_fixes_file not found!"
+        fi
+        
+        echo ""
+        echo "🚀 Executing backend apply-changes.py with full logging..."
+        set -x  # Enable bash debug mode
+        
+        # Run with both stderr to file AND to console using tee
+        python apply-changes.py "$backend_final_fixes_file" > backend-apply-result.json 2> >(tee backend-applier.log >&2)
         applier_exit_code=$?
+        set +x  # Disable bash debug mode
+        
+        # Also try direct execution with immediate stderr display if tee fails
+        if [ $applier_exit_code -ne 0 ] && [ ! -s backend-applier.log ]; then
+          echo "⚠️ No backend error log captured, running again with direct stderr:"
+          python apply-changes.py "$backend_final_fixes_file" 2>&1 | tee backend-direct-apply-output.log
+        fi
+        
+        echo ""
+        echo "🔍 Backend apply process completed with exit code: $applier_exit_code"
+        
+        # Check what happened during backend apply
+        echo "📄 Checking for backend error logs..."
+        
+        if [ -f backend-applier.log ]; then
+          echo "📄 Backend apply error log (backend-applier.log):"
+          if [ -s backend-applier.log ]; then
+            echo "   📊 Log size: $(wc -l < backend-applier.log) lines"
+            echo "   📋 Full error log:"
+            cat backend-applier.log | sed 's/^/      /'
+          else
+            echo "   ℹ️ Backend error log is empty"
+          fi
+        else
+          echo "   ❌ No backend error log file created"
+        fi
+        
+        # Check for direct output log
+        if [ -f backend-direct-apply-output.log ]; then
+          echo ""
+          echo "📄 Backend direct apply output log:"
+          cat backend-direct-apply-output.log | sed 's/^/      /'
+        fi
         
         echo ""
         if [ $applier_exit_code -eq 0 ]; then
@@ -640,7 +695,20 @@ jobs:
           echo "🎉 BACKEND TEST SETUP COMPLETE: $applied changes successfully applied!"
         else
           echo "❌ Backend applier failed with exit code: $applier_exit_code"
-          tail -10 backend-applier.log 2>/dev/null || echo "   No error log available"
+          echo "📄 Backend failure analysis:"
+          
+          # Display error logs if available
+          if [ -f backend-applier.log ] && [ -s backend-applier.log ]; then
+            echo "   📋 Error log (last 20 lines):"
+            tail -20 backend-applier.log | sed 's/^/      /'
+          elif [ -f backend-direct-apply-output.log ]; then
+            echo "   📋 Direct output log (last 20 lines):"
+            tail -20 backend-direct-apply-output.log | sed 's/^/      /'
+          else
+            echo "   ❌ No error logs available"
+          fi
+          
+          echo "backend_fixes_applied=0" >> $GITHUB_OUTPUT
         fi
 
     - name: AI Generate Missing Frontend Tests
