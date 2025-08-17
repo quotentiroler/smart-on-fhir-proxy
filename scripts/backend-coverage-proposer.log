@@ -6,34 +6,4 @@
 🌱 Seeding initial context from error files...
 🔄 AI Iteration 1
 🌐 HTTP Status: 200
-🔧 AI requesting 1 tool calls
-🔧 MCP Tool Call: list_directory({'path': ''})
-🔄 AI Iteration 2
-🌐 HTTP Status: 200
-🔧 AI requesting 1 tool calls
-🔧 MCP Tool Call: list_directory({'path': 'backend'})
-🔄 AI Iteration 3
-🌐 HTTP Status: 200
-🔧 AI requesting 1 tool calls
-🔧 MCP Tool Call: list_directory({'path': 'backend/test'})
-🔄 AI Iteration 4
-🌐 HTTP Status: 200
-🔧 AI requesting 1 tool calls
-🔧 MCP Tool Call: read_file({'path': 'backend/test/integration.test.ts'})
-🔄 AI Iteration 5
-🗜️ Context compression: 10 → 7 messages
-🗜️ Compressed context: 10 → 7 messages
-🌐 HTTP Status: 200
-🔧 AI requesting 1 tool calls
-🔧 MCP Tool Call: read_file({'path': 'backend/test/validation.test.ts'})
-🔄 AI Iteration 6
-🗜️ Context compression: 9 → 8 messages
-🗜️ Compressed context: 9 → 8 messages
-🌐 HTTP Status: 200
-🔧 AI requesting 1 tool calls
-🔧 MCP Tool Call: list_directory({'path': 'backend/test'})
-🔄 AI Iteration 7
-🗜️ Context compression: 10 → 8 messages
-🗜️ Compressed context: 10 → 8 messages
-🌐 HTTP Status: 200
 ✅ AI exploration and analysis complete
