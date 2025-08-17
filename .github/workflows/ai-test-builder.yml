@@ -367,9 +367,17 @@ jobs:
         # Try to run apply-changes with maximum verbosity and capture everything
         echo "🚀 Executing apply-changes.py with full logging..."
         set -x  # Enable bash debug mode
-        python apply-changes.py frontend-reviewed-fixes.json > frontend-apply-result.json 2> frontend-applier.log
+        
+        # Run with both stderr to file AND to console using tee
+        python apply-changes.py frontend-reviewed-fixes.json > frontend-apply-result.json 2> >(tee frontend-applier.log >&2)
         apply_exit=$?
         set +x  # Disable bash debug mode
+        
+        # Also try direct execution with immediate stderr display if tee fails
+        if [ $apply_exit -ne 0 ] && [ ! -s frontend-applier.log ]; then
+          echo "⚠️ No error log captured, running again with direct stderr:"
+          python apply-changes.py frontend-reviewed-fixes.json 2>&1 | tee direct-apply-output.log
+        fi
         
         echo ""
         echo "🔍 Apply process completed with exit code: $apply_exit"
@@ -380,13 +388,12 @@ jobs:
         echo ""
         
         # Check what happened during apply
+        echo "📄 Checking for error logs..."
+        
         if [ -f frontend-applier.log ]; then
           echo "📄 Apply error log (frontend-applier.log):"
           if [ -s frontend-applier.log ]; then
             echo "   📊 Log size: $(wc -l < frontend-applier.log) lines"
-            echo "   📋 Last 20 lines:"
-            tail -20 frontend-applier.log | sed 's/^/      /'
-            echo ""
             echo "   📋 Full error log:"
             cat frontend-applier.log | sed 's/^/      /'
           else
@@ -394,6 +401,13 @@ jobs:
           fi
         else
           echo "   ❌ No error log file created"
+        fi
+        
+        # Check for direct output log
+        if [ -f direct-apply-output.log ]; then
+          echo ""
+          echo "📄 Direct apply output log:"
+          cat direct-apply-output.log | sed 's/^/      /'
         fi
         
         echo ""
