@@ -1846,37 +1846,77 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
             
             # Context validation and sanitization before API call
             try:
-                # Validate that all messages have proper structure and clean content
+                # Validate messages while preserving tool call structure
                 validated_messages = []
-                for msg in payload["messages"]:
-                    if isinstance(msg, dict) and "role" in msg and "content" in msg:
-                        # Ensure content is a string and not corrupted
-                        if isinstance(msg["content"], str):
-                            # Remove any potential JSON corruption artifacts
-                            clean_content = msg["content"]
-                            # Remove common corruption patterns that confuse the AI
-                            corruption_patterns = [
-                                "}'}]}**", "**Incorrect JSON**", "**Oops**", "verwachting_QUOTE", 
-                                "рам(Json)", "**ليش**", "**alluni**", "Baking.last", "}}}", 
-                                "ҧсны.json", "}}to=functions."
-                            ]
-                            for pattern in corruption_patterns:
-                                clean_content = clean_content.replace(pattern, "")
-                            
-                            # Also clean up any malformed JSON fragments
-                            import re
-                            clean_content = re.sub(r'[}\'"\]]+\s*[}\'"\]]+', '}', clean_content)
-                            
-                            validated_msg = msg.copy()
-                            validated_msg["content"] = clean_content
-                            validated_messages.append(validated_msg)
+                for i, msg in enumerate(payload["messages"]):
+                    if isinstance(msg, dict) and "role" in msg:
+                        validated_msg = msg.copy()
+                        
+                        # Handle different message types properly
+                        if msg["role"] in ["system", "user", "assistant"]:
+                            # Standard messages should have content
+                            if "content" in msg and isinstance(msg["content"], str):
+                                # Clean up content corruption
+                                clean_content = msg["content"]
+                                corruption_patterns = [
+                                    "}'}]}**", "**Incorrect JSON**", "**Oops**", "verwachting_QUOTE", 
+                                    "рам(Json)", "**ليش**", "**alluni**", "Baking.last", "}}}", 
+                                    "ҧсны.json", "}}to=functions."
+                                ]
+                                for pattern in corruption_patterns:
+                                    clean_content = clean_content.replace(pattern, "")
+                                
+                                # Clean up malformed JSON fragments
+                                import re
+                                clean_content = re.sub(r'[}\'"\]]+\s*[}\'"\]]+', '}', clean_content)
+                                
+                                validated_msg["content"] = clean_content
+                                validated_messages.append(validated_msg)
+                            elif msg["role"] == "assistant" and "tool_calls" in msg:
+                                # Assistant tool call message - keep as-is but validate tool_calls
+                                if isinstance(msg["tool_calls"], list):
+                                    validated_messages.append(validated_msg)
+                                else:
+                                    print(f"⚠️ Skipping assistant message with invalid tool_calls", file=sys.stderr)
+                            else:
+                                print(f"⚠️ Skipping {msg['role']} message with missing/invalid content", file=sys.stderr)
+                        
+                        elif msg["role"] == "tool":
+                            # Tool response message - validate structure
+                            if "tool_call_id" in msg and "content" in msg:
+                                # Tool content can be JSON string, keep as-is
+                                validated_messages.append(validated_msg)
+                            else:
+                                print(f"⚠️ Skipping tool message with missing tool_call_id or content", file=sys.stderr)
+                        
                         else:
-                            print(f"⚠️ Skipping message with non-string content: {type(msg['content'])}", file=sys.stderr)
+                            print(f"⚠️ Skipping message with unknown role: {msg.get('role', 'UNKNOWN')}", file=sys.stderr)
                     else:
-                        print(f"⚠️ Skipping malformed message structure", file=sys.stderr)
+                        print(f"⚠️ Skipping malformed message at index {i}", file=sys.stderr)
                 
-                payload["messages"] = validated_messages
-                print(f"🧹 Context sanitized: {len(validated_messages)} clean messages", file=sys.stderr)
+                # Final validation: ensure tool calls are properly paired
+                clean_messages = []
+                skip_next_tool = False
+                
+                for i, msg in enumerate(validated_messages):
+                    if skip_next_tool and msg.get("role") == "tool":
+                        print(f"⚠️ Removing orphaned tool response", file=sys.stderr)
+                        skip_next_tool = False
+                        continue
+                    
+                    if msg.get("role") == "assistant" and "tool_calls" in msg:
+                        # Check if next message is the corresponding tool response
+                        if i + 1 < len(validated_messages) and validated_messages[i + 1].get("role") == "tool":
+                            clean_messages.append(msg)  # Keep the tool call
+                            # Tool response will be added in next iteration
+                        else:
+                            print(f"⚠️ Removing assistant tool call without response", file=sys.stderr)
+                            skip_next_tool = True
+                    else:
+                        clean_messages.append(msg)
+                
+                payload["messages"] = clean_messages
+                print(f"🧹 Context sanitized: {len(clean_messages)} clean messages", file=sys.stderr)
                 
             except Exception as validation_error:
                 print(f"⚠️ Context validation failed: {validation_error}", file=sys.stderr)
