@@ -1,7 +1,7 @@
 🤖 Starting unified change application...
 📖 Reading changes from: frontend-test-reviewed.json
 📄 File content (first 500 chars): {
-  "analysis": "API call failed",
+  "analysis": "Error occurred",
   "changes": []
 }
 

@@ -1,15 +1,11 @@
 🧠 Senior AI starting unified review process...
 🔍 Validating Junior AI output...
-✅ Junior AI output validated: 6 valid changes
+✅ Junior AI output validated: 2 valid changes
 🧠 Senior AI starting review process...
-🎯 Detected component type: frontend
+🎯 Detected component type: backend
 🔍 Validating search patterns in changes...
-📁 Will create new file: ui/backend-tests/health.test.ts
-📁 Will create new file: ui/backend-tests/auth.test.ts
-📁 Will create new file: ui/backend-tests/error-handling.test.ts
-📁 Will create new file: ui/backend-tests/integration.test.ts
-📁 Will create new file: ui/backend-tests/README.md
-📁 Will create new file: ui/backend-tests/copy-to-backend.sh
+📁 Will create new file: backend/test/auth.test.ts
+📁 Will create new file: backend/test/error-handling.test.ts
 🌐 Sending review request to Senior AI...
 🔄 Attempt 1/3 - Sending request to OpenAI...
 🌐 HTTP Status: 200
