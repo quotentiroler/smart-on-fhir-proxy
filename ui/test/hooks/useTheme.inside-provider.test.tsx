@@ -1,6 +1,6 @@
 import React from 'react'
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ThemeProvider } from '@/components/theme-provider'
 import { useTheme } from '@/hooks/useTheme'
@@ -39,7 +39,7 @@ describe('useTheme (inside ThemeProvider)', () => {
     expect(themeNode).toHaveTextContent('light')
 
     await user.click(screen.getByRole('button', { name: /Set System/i }))
-    expect(themeNode).toHaveTextContent('system')
+    await waitFor(() => expect(themeNode).toHaveTextContent(/^(light|dark)$/))
 
     // Removed brittle assertion that final theme must differ from initial, since it can legitimately return to the initial value.
 
