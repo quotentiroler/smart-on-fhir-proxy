@@ -36,7 +36,11 @@ def analyze_checklist_for_implementation(file_path, item_filter=None):
             if item_filter and not re.search(item_filter, item_text, re.IGNORECASE):
                 continue
             
-            # Look for implementation-ready keywords
+            # Look for implementation-ready patterns
+            # Check for explicit "Planned" marker - high-level features ready for implementation
+            is_planned = '(planned' in item_text.lower()
+            
+            # Look for technical implementation keywords for more granular items
             impl_keywords = [
                 'endpoint', 'api', 'route', 'handler', 'middleware',
                 'component', 'interface', 'form', 'validation',
@@ -44,11 +48,14 @@ def analyze_checklist_for_implementation(file_path, item_filter=None):
                 'database', 'model', 'schema', 'migration',
                 'test', 'unit test', 'integration test',
                 'configuration', 'settings', 'environment',
-                'setup', 'install', 'deploy', 'build', 'script'
+                'setup', 'install', 'deploy', 'build', 'script',
+                'ui', 'dashboard', 'monitoring', 'management'
             ]
             
-            # Only target items that seem implementable by AI
-            if any(keyword in item_text.lower() for keyword in impl_keywords):
+            has_impl_keywords = any(keyword in item_text.lower() for keyword in impl_keywords)
+            
+            # Target items that are either explicitly planned OR contain implementation keywords
+            if is_planned or has_impl_keywords:
                 implementation_targets.append({
                     'file': file_path,
                     'line': line_num,

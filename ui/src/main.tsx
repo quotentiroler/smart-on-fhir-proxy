@@ -16,9 +16,9 @@ if (rootElement) {
 
     (async () => {
       try {
-        // i18nInit and initializeAppStore may be either promises or functions that return promises.
-        const i18nPromise = typeof i18nInit === 'function' ? i18nInit() : i18nInit;
-        const storePromise = typeof initializeAppStore === 'function' ? initializeAppStore() : initializeAppStore;
+        // i18nInit is a promise, initializeAppStore is a function that returns a promise.
+        const i18nPromise = i18nInit;
+        const storePromise = initializeAppStore();
 
         await Promise.all([i18nPromise, storePromise]);
       } catch (err) {
