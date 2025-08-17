@@ -75,7 +75,7 @@ try {
         content: `Review this git diff: \n\n${diff}\n\nProvide a concise summary starting with "The following changes were made in commit ${sha}:"`
       }
     ],
-    max_tokens: 300
+    max_completion_tokens: 300
   });
   const comment = res.choices.map(c => c.message.content).join("\n\n---\n\n");
 
