@@ -22,7 +22,7 @@ const initialState: InternalThemeContext = {
   setTheme: () => null,
 }
 
-const ThemeProviderContext = createContext<InternalThemeContext>(initialState)
+const ThemeProviderContext = createContext<InternalThemeContext | undefined>(undefined)
 
 export function ThemeProvider({
   children,
