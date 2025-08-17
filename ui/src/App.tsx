@@ -6,9 +6,10 @@ import { ThemeProvider } from './components/theme-provider'
 // Import Mantine styles first, then Tailwind can override
 import '@mantine/core/styles.css'
 import './App.css'
+import { config } from './config'
 
 const medplum = new MedplumClient({
-  baseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8445',
+  baseUrl: config.api.baseUrl,
 });
 
 function App() {

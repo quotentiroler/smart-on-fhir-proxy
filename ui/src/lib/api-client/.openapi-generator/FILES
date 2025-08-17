@@ -31,14 +31,12 @@ models/GetAuthUserinfo200ResponseNameInner.ts
 models/GetFhirServers200Response.ts
 models/GetFhirServers200ResponseServersInner.ts
 models/GetFhirServers200ResponseServersInnerEndpoints.ts
+models/GetFhirServers500Response.ts
 models/GetFhirServersByServerId200Response.ts
 models/GetFhirServersByServerIdMtls200Response.ts
 models/GetFhirServersByServerIdMtls200ResponseCertDetails.ts
 models/GetFhirServersByServerIdMtls200ResponseHasCertificates.ts
 models/GetHealth200Response.ts
-models/GetHealth200ResponseFhirServers.ts
-models/GetHealth200ResponseFhirServersServersInner.ts
-models/GetHealth200ResponseMemory.ts
 models/GetHealth503Response.ts
 models/GetMonitoringOauthAnalytics200Response.ts
 models/GetMonitoringOauthAnalytics200ResponseHourlyStatsInner.ts
@@ -50,7 +48,7 @@ models/GetStatus200Response.ts
 models/GetStatus200ResponseFhir.ts
 models/GetStatus200ResponseFhirServersInner.ts
 models/GetStatus200ResponseKeycloak.ts
-models/GetStatus200ResponseServer.ts
+models/GetStatus200ResponseMemory.ts
 models/PostAdminHealthcareUsersRequest.ts
 models/PostAdminIdpsRequest.ts
 models/PostAdminIdpsRequestConfig.ts
@@ -60,6 +58,7 @@ models/PostAdminKeycloakConfigTest200Response.ts
 models/PostAdminKeycloakConfigTestRequest.ts
 models/PostAdminLaunchContextsByUserIdFhirContextRequest.ts
 models/PostAdminRolesRequest.ts
+models/PostAdminShutdown200Response.ts
 models/PostAdminSmartAppsRequest.ts
 models/PostAdminSmartAppsRequestClientType.ts
 models/PostAuthIntrospect200Response.ts
@@ -76,9 +75,6 @@ models/PostFhirServersByServerIdMtlsCertificatesRequest.ts
 models/PostFhirServersRequest.ts
 models/PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200Response.ts
 models/PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200ResponseServerInfo.ts
-models/PostRestart200Response.ts
-models/PostShutdown200Response.ts
-models/PostShutdown500Response.ts
 models/PutAdminHealthcareUsersByUserIdRequest.ts
 models/PutAdminIdpsByAliasRequest.ts
 models/PutAdminLaunchContextsByUserIdIntentRequest.ts

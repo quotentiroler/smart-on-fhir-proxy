@@ -1,9 +1,9 @@
-# Multi-stage build for Proxy Smart monorepo
+# Multi-stage build for Proxy Smart monorepo - Separate Backend and UI containers
 FROM oven/bun:slim AS base
 WORKDIR /app
 
-# Build stage
-FROM base AS build
+# Common build dependencies stage
+FROM base AS build-deps
 RUN apt-get update -qq && \
     apt-get install --no-install-recommends -y \
     build-essential \
@@ -21,24 +21,28 @@ COPY ui/package.json ./ui/
 # Install dependencies for all workspaces
 RUN bun install --frozen-lockfile
 
-# Copy source code for both workspaces
+# Backend build stage
+FROM build-deps AS backend-build
+# Copy backend source code
 COPY backend/ ./backend/
-COPY ui/ ./ui/
 
-# Build backend
+# Build backend only
 WORKDIR /app/backend
 RUN bun run build
 
+# UI build stage
+FROM build-deps AS ui-build
+# Copy UI source code
+COPY ui/ ./ui/
+
 # Build UI
 WORKDIR /app/ui
-# Create production environment for single-app deployment (empty API URL = relative)
-# Don't require Keycloak configuration at build time
-RUN echo "VITE_API_BASE_URL=" > .env.production
-# Build with correct base path for /webapp serving
-RUN VITE_BASE=/webapp/ bun run build
 
-# Production stage - backend API server with static frontend
-FROM base AS production
+# Build UI for standalone deployment
+RUN bun run build
+
+# Backend production stage
+FROM base AS backend
 WORKDIR /app
 
 # Install minimal runtime dependencies
@@ -48,16 +52,57 @@ RUN apt-get update -qq && \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy built backend
-COPY --from=build /app/backend/dist ./backend/dist
-COPY --from=build /app/backend/package.json ./backend/package.json
-COPY --from=build /app/backend/node_modules ./backend/node_modules
+COPY --from=backend-build /app/backend/dist ./backend/dist
+COPY --from=backend-build /app/backend/package.json ./backend/package.json
 
-# Copy built UI to be served as static files at /webapp
-COPY --from=build /app/ui/dist ./backend/public/webapp
+# Copy backend's public directory (SMART launcher only, no UI)
+COPY --from=backend-build /app/backend/public ./backend/public
+
+# Copy root node_modules (monorepo structure)
+COPY --from=backend-build /app/node_modules ./node_modules
 
 # Expose backend port
 EXPOSE 8445
 
-# Start the backend (which serves the UI static files from /public)
+# Start the backend API server
 WORKDIR /app/backend
 CMD ["bun", "run", "dist/index.js"]
+
+# UI production stage (nginx-based)
+FROM nginx:alpine AS ui
+WORKDIR /usr/share/nginx/html
+
+# Copy built UI
+COPY --from=ui-build /app/ui/dist .
+
+# Copy custom nginx config for SPA routing
+COPY <<EOF /etc/nginx/conf.d/default.conf
+server {
+    listen 80;
+    server_name localhost;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Handle client-side routing
+    location / {
+        try_files \$uri \$uri/ /index.html;
+    }
+
+    # Cache static assets
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+}
+EOF
+
+# Expose UI port
+EXPOSE 80
+
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]

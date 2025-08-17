@@ -1,0 +1,90 @@
+=== CHECKLIST IMPLEMENTATION REQUIREMENTS ===
+
+
+--- BACKEND PHASE ---
+Description: Backend API endpoints, authentication, and core business logic
+
+IMPLEMENT: `revocation_endpoint` - Not yet implemented
+  File: backend/CHECKLIST.md:31
+  Priority: high
+  Status: Pending
+
+IMPLEMENT: `management_endpoint` - Planned for future releases
+  File: backend/CHECKLIST.md:32
+  Priority: high
+  Status: Pending
+
+IMPLEMENT: JWKS endpoint support for client public keys
+  File: backend/CHECKLIST.md:142
+  Priority: high
+  Status: Pending
+
+IMPLEMENT: Algorithm validation (RS256, ES256)
+  File: backend/CHECKLIST.md:144
+  Priority: high
+  Status: Pending
+
+IMPLEMENT: Launch token validation against FHIR server
+  File: backend/CHECKLIST.md:207
+  Priority: high
+  Status: Pending
+
+
+--- FRONTEND PHASE ---
+Description: UI components, forms, and user interfaces
+
+IMPLEMENT: **Detailed Context Information** (Planned)
+  File: backend/CHECKLIST.md:219
+  Priority: high
+  Status: Pending
+
+IMPLEMENT: **OAuth Flow Components** (Planned)
+  File: backend/CHECKLIST.md:293
+  Priority: high
+  Status: Pending
+
+IMPLEMENT: SMART launch simulation interface
+  File: ui/CHECKLIST.md:79
+  Priority: high
+  Status: Pending
+
+IMPLEMENT: Permission matrix interface
+  File: ui/CHECKLIST.md:107
+  Priority: high
+  Status: Pending
+
+IMPLEMENT: FHIR metadata validation UI
+  File: ui/CHECKLIST.md:154
+  Priority: high
+  Status: Pending
+
+
+--- TESTING PHASE ---
+Description: Unit tests, integration tests, and test infrastructure
+
+IMPLEMENT: Authorization endpoint testing
+  File: backend/CHECKLIST.md:294
+  Priority: high
+  Status: Pending
+
+IMPLEMENT: Token endpoint testing
+  File: backend/CHECKLIST.md:295
+  Priority: high
+  Status: Pending
+
+IMPLEMENT: Introspection endpoint testing
+  File: backend/CHECKLIST.md:296
+  Priority: high
+  Status: Pending
+
+
+=== PROJECT CONTEXT ===
+Project: SMART App Launch 2.2.0 Implementation
+Backend: Elysia.js + TypeScript + Bun
+Frontend: React + TypeScript + Vite
+Testing: Pytest (backend) + Playwright (frontend)
+Architecture: Healthcare interoperability proxy server
+
+Implementation should follow SMART App Launch specifications,
+maintain OAuth 2.0/OIDC compliance, and integrate with existing
+authentication flows and FHIR server connections.

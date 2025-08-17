@@ -106,7 +106,7 @@ export type IdPFormData = {
 };
 
 export function IdPManager() {
-  const { isAuthenticated, apiClients } = useAuth();
+  const { isAuthenticated, clientApis } = useAuth();
   const [idps, setIdps] = useState<IdP[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -151,12 +151,12 @@ export function IdPManager() {
         }
 
         // Try to fetch real data from backend
-        const countResponse = await apiClients.identityProviders.getAdminIdpsCount();
+        const countResponse = await clientApis.identityProviders.getAdminIdpsCount();
         
         // If we get real data from the backend, fetch the full list
         if (countResponse.total && countResponse.total > 0) {
           // Fetch the actual identity providers list
-          const providersResponse = await apiClients.identityProviders.getAdminIdps();
+          const providersResponse = await clientApis.identityProviders.getAdminIdps();
           
           // Transform backend data to match our interface
           const transformedIdps = providersResponse.map((provider) => {
@@ -189,11 +189,11 @@ export function IdPManager() {
     };
 
     loadIdPs();
-  }, [isAuthenticated, apiClients.identityProviders]);
+  }, [isAuthenticated, clientApis.identityProviders]);
 
   const handleAddIdp = async (formData: IdPFormData) => {
     try {
-      if (isAuthenticated && apiClients.identityProviders) {
+      if (isAuthenticated && clientApis.identityProviders) {
         // Try to add via backend API
         const config: Record<string, unknown> = {
           displayName: formData.displayName || formData.name,
@@ -224,7 +224,7 @@ export function IdPManager() {
         if (formData.metadataUrl) config.metadataDescriptorUrl = formData.metadataUrl;
         config.enabled = formData.enabled;
 
-        const response = await apiClients.identityProviders.postAdminIdps({
+        const response = await clientApis.identityProviders.postAdminIdps({
           postAdminIdpsRequest: {
             alias: formData.name.toLowerCase().replace(/\s+/g, '-'),
             providerId: formData.type.toLowerCase(),
@@ -235,7 +235,7 @@ export function IdPManager() {
         console.log('IdP added successfully:', response);
         
         // Reload IdPs from backend
-        const providersResponse = await apiClients.identityProviders.getAdminIdps();
+        const providersResponse = await clientApis.identityProviders.getAdminIdps();
         const transformedIdps = providersResponse.map((provider) => {
           const config = provider.config as Record<string, unknown> | undefined;
           return {
@@ -298,9 +298,9 @@ export function IdPManager() {
 
   const handleUpdateIdp = async (updatedIdp: IdP) => {
     try {
-      if (isAuthenticated && apiClients.identityProviders) {
+      if (isAuthenticated && clientApis.identityProviders) {
         // Try to update via backend API
-        await apiClients.identityProviders.putAdminIdpsByAlias({
+        await clientApis.identityProviders.putAdminIdpsByAlias({
           alias: updatedIdp.id,
           putAdminIdpsByAliasRequest: {
             displayName: updatedIdp.name,
@@ -313,7 +313,7 @@ export function IdPManager() {
         });
         
         // Reload IdPs from backend
-        const providersResponse = await apiClients.identityProviders.getAdminIdps();
+        const providersResponse = await clientApis.identityProviders.getAdminIdps();
         const transformedIdps = providersResponse.map((provider) => {
           const config = provider.config as Record<string, unknown> | undefined;
           return {
@@ -384,12 +384,12 @@ export function IdPManager() {
 
   const handleDeleteIdp = async (id: string) => {
     try {
-      if (isAuthenticated && apiClients.identityProviders) {
+      if (isAuthenticated && clientApis.identityProviders) {
         // Try to delete via backend API
-        await apiClients.identityProviders.deleteAdminIdpsByAlias({ alias: id });
+        await clientApis.identityProviders.deleteAdminIdpsByAlias({ alias: id });
         
         // Reload IdPs from backend
-        const providersResponse = await apiClients.identityProviders.getAdminIdps();
+        const providersResponse = await clientApis.identityProviders.getAdminIdps();
         const transformedIdps = providersResponse.map((provider) => {
           const config = provider.config as Record<string, unknown> | undefined;
           return {

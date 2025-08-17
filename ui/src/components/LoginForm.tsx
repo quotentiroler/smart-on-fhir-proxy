@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuthStore } from '../stores/authStore';
-import { createApiClients } from '../lib/apiClient';
 import { openidService } from '../service/openid-service';
+import { getSessionItem, removeSessionItem } from '@/lib/storage';
 import type { GetAuthIdentityProviders200ResponseInner } from '../lib/api-client/models';
 import { KeycloakConfigForm } from './KeycloakConfigForm';
+import { AuthDebugPanel } from './AuthDebugPanel';
 import { 
   Heart, 
   Shield, 
@@ -16,7 +17,10 @@ import {
   Users,
   ArrowRight,
   AlertTriangle,
-  Settings
+  Settings,
+  Bug,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 
 export function LoginForm() {
@@ -26,14 +30,16 @@ export function LoginForm() {
   const [loadingIdps, setLoadingIdps] = useState(true);
   const [authAvailable, setAuthAvailable] = useState<boolean | null>(null);
   const [showConfigForm, setShowConfigForm] = useState(false);
-  const { initiateLogin, exchangeCodeForToken } = useAuthStore();
+  const [showDebugPanel, setShowDebugPanel] = useState(false);
+  const isProcessingCodeExchange = useRef(false);
+  const processedUrl = useRef<string | null>(null);
+  const { initiateLogin, exchangeCodeForToken, clientApis } = useAuthStore();
 
   // Fetch available identity providers
   const fetchAvailableIdps = useCallback(async () => {
     try {
       setLoadingIdps(true);
-      const apiClients = createApiClients(); // No token needed for public IdP list
-      const idps = await apiClients.auth.getAuthIdentityProviders();
+      const idps = await clientApis.auth.getAuthIdentityProviders();
       
       // Filter to only show enabled identity providers
       const enabledIdps = idps.filter((idp: GetAuthIdentityProviders200ResponseInner) => idp.enabled !== false);
@@ -49,7 +55,7 @@ export function LoginForm() {
     } finally {
       setLoadingIdps(false);
     }
-  }, []);
+  }, [clientApis.auth]);
 
   // Check if authentication is configured
   const checkAuthAvailability = useCallback(async () => {
@@ -93,35 +99,59 @@ export function LoginForm() {
   }, [checkAuthAvailability]);
 
   const handleCodeExchange = useCallback(async (code: string, state: string) => {
+    // Prevent multiple simultaneous token exchange attempts
+    if (isProcessingCodeExchange.current) {
+      console.log('🔒 Code exchange already in progress, skipping...');
+      return;
+    }
+
+    isProcessingCodeExchange.current = true;
     setLoading(true);
     setError(null);
 
     try {
       // Get stored PKCE parameters
-      const codeVerifier = sessionStorage.getItem('pkce_code_verifier');
-      const storedState = sessionStorage.getItem('oauth_state');
+      const codeVerifier = getSessionItem('pkce_code_verifier');
+      const storedState = getSessionItem('oauth_state');
 
       if (!codeVerifier) {
-        throw new Error('Missing PKCE code verifier');
+        // Clean up stale session data
+        removeSessionItem('oauth_state');
+        throw new Error('Missing PKCE code verifier - please try logging in again');
       }
 
       // Verify state for CSRF protection
       if (state !== storedState) {
-        throw new Error('Invalid state parameter - possible CSRF attack');
+        // Clean up stale session data
+        removeSessionItem('pkce_code_verifier');
+        removeSessionItem('oauth_state');
+        throw new Error('Invalid state parameter - please try logging in again');
       }
 
       await exchangeCodeForToken(code, codeVerifier);
     } catch (err) {
+      // Ensure session data is cleaned up on any error
+      removeSessionItem('pkce_code_verifier');
+      removeSessionItem('oauth_state');
       setError(err instanceof Error ? err.message : 'Authentication failed');
     } finally {
       setLoading(false);
+      isProcessingCodeExchange.current = false;
     }
   }, [exchangeCodeForToken]);
 
   // Handle OAuth callback on component mount
   useEffect(() => {
+    const currentUrl = window.location.href;
+    
+    // Prevent processing the same URL multiple times
+    if (processedUrl.current === currentUrl) {
+      console.log('🔒 URL already processed, skipping:', currentUrl);
+      return;
+    }
+
     console.log('LoginForm mounted, checking for OAuth callback...');
-    console.log('Current URL:', window.location.href);
+    console.log('Current URL:', currentUrl);
     
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
@@ -129,20 +159,23 @@ export function LoginForm() {
     const error = urlParams.get('error');
     const errorDescription = urlParams.get('error_description');
     
-    console.log('URL params:', { code, state, error, errorDescription });
+    console.log('URL params:', { code: code ? `${code.substring(0, 10)}...` : null, state, error, errorDescription });
+    
+    // Clear URL parameters immediately after extraction to prevent reuse
+    if (code || error) {
+      console.log('🧹 Clearing URL parameters to prevent code reuse...');
+      window.history.replaceState({}, document.title, window.location.pathname);
+      processedUrl.current = currentUrl;
+    }
     
     if (error) {
       console.error('OAuth error:', error, errorDescription);
-      setError(errorDescription || error);
-      // Clear the URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
+      setError(`Authentication failed: ${errorDescription || error}. Please try again or use the troubleshooting panel below.`);
       return;
     }
 
     if (code && state) {
       console.log('Authorization code received, exchanging for tokens...');
-      // Clear the URL parameters
-      window.history.replaceState({}, document.title, window.location.pathname);
       
       // Exchange code for token
       handleCodeExchange(code, state);
@@ -160,7 +193,10 @@ export function LoginForm() {
     setError(null);
     
     try {
-      console.log(`Initiating login${idpAlias ? ` with Identity Provider: ${idpAlias}` : ' with default provider'}`);
+      const loginMessage = idpAlias 
+        ? `Initiating login with Identity Provider: ${idpAlias}`
+        : 'Initiating login with default provider';
+      console.log(loginMessage);
       
       // Pass the IdP alias as a hint to the authentication service
       await initiateLogin(idpAlias);
@@ -236,13 +272,15 @@ export function LoginForm() {
               )}
 
               {/* Loading state for IdPs */}
-              {loadingIdps || authAvailable === null ? (
+              {(loadingIdps || authAvailable === null) && (
                 <div className="text-center py-4">
                   <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-gray-400" />
                   <p className="text-sm text-gray-500">Loading authentication options...</p>
                 </div>
-              ) : authAvailable === false ? (
-                /* Authentication not configured */
+              )}
+
+              {/* Authentication not configured */}
+              {authAvailable === false && (
                 <div className="text-center py-8">
                   <div className="w-16 h-16 mx-auto mb-4 bg-yellow-100 rounded-full flex items-center justify-center">
                     <AlertTriangle className="w-8 h-8 text-yellow-600" />
@@ -269,7 +307,10 @@ export function LoginForm() {
                     </p>
                   </div>
                 </div>
-              ) : (
+              )}
+
+              {/* Authentication available - show login options */}
+              {authAvailable === true && (
                 <>
                   {/* Available Identity Providers */}
                   {availableIdps.length > 0 && (
@@ -395,6 +436,25 @@ export function LoginForm() {
           <p className="text-sm text-gray-500">
             Protected by enterprise-grade security
           </p>
+        </div>
+
+        {/* Debug Panel Toggle */}
+        <div className="mt-6">
+          <button
+            onClick={() => setShowDebugPanel(!showDebugPanel)}
+            className="w-full text-xs text-gray-400 hover:text-gray-600 transition-colors duration-200 flex items-center justify-center gap-2 py-2"
+          >
+            <Bug className="w-3 h-3" />
+            <span>Troubleshooting</span>
+            {showDebugPanel ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+          </button>
+          
+          {/* Debug Panel */}
+          {showDebugPanel && (
+            <div className="mt-4 animate-in slide-in-from-top-2 duration-200">
+              <AuthDebugPanel />
+            </div>
+          )}
         </div>
       </div>
     </div>

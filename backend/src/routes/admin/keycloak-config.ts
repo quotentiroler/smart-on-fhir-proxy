@@ -61,7 +61,7 @@ function updateConfiguration(keycloakConfig: KeycloakConfig): void {
   const lines: string[] = []
   
   // Add header comment
-  lines.push('# Base URL for your SMART proxy')
+  lines.push('# Base URL for the proxy')
   if (envVars.has('BASE_URL')) {
     lines.push(`BASE_URL=${envVars.get('BASE_URL')}`)
   }

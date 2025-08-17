@@ -1,0 +1,268 @@
+name: 'Run Inferno ONC Tests'
+description: 'Executes Inferno ONC Program Edition tests and generates compliance reports'
+
+inputs:
+  test_stage:
+    description: 'Testing stage: alpha, beta, or production'
+    required: true
+  inferno_container_id:
+    description: 'Container ID of the running Inferno instance'
+    required: true
+  test_config_path:
+    description: 'Path to the Inferno test configuration file'
+    required: true
+  fhir_server_url:
+    description: 'FHIR server URL being tested'
+    required: true
+  test_timeout:
+    description: 'Maximum time to wait for tests to complete (in seconds)'
+    required: false
+    default: '1800'
+
+outputs:
+  test_session_id:
+    description: 'ID of the created test session'
+    value: ${{ steps.run-tests.outputs.session_id }}
+  test_results_path:
+    description: 'Path to the test results directory'
+    value: ${{ steps.run-tests.outputs.results_path }}
+  compliance_status:
+    description: 'Overall compliance test status (passed/failed)'
+    value: ${{ steps.analyze-results.outputs.status }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Create Inferno test directories
+      shell: bash
+      run: |
+        echo "📁 Creating Inferno-specific test directories..."
+        mkdir -p testing/${{ inputs.test_stage }}/reports/inferno
+        mkdir -p testing/${{ inputs.test_stage }}/data
+
+    - name: Verify Inferno is running
+      shell: bash
+      run: |
+        echo "🔍 Verifying Inferno container is running..."
+        CONTAINER_NAME="inferno-${{ inputs.test_stage }}"
+        
+        if ! docker ps | grep -q "$CONTAINER_NAME"; then
+          echo "❌ Inferno container '$CONTAINER_NAME' is not running"
+          echo "Available containers:"
+          docker ps -a
+          exit 1
+        fi
+        echo "✅ Inferno container is running"
+
+    - name: Validate FHIR server for Inferno testing
+      shell: bash
+      run: |
+        echo "🏥 Validating FHIR server for Inferno compliance testing..."
+        
+        # Test FHIR capability statement (required for Inferno)
+        echo "Testing FHIR capability statement..."
+        if curl -f -H "Accept: application/fhir+json" "${{ inputs.fhir_server_url }}/metadata" > testing/${{ inputs.test_stage }}/reports/inferno/capability_statement.json; then
+          echo "✅ FHIR capability statement retrieved"
+        else
+          echo "❌ Failed to retrieve FHIR capability statement"
+          exit 1
+        fi
+        
+        # Test SMART configuration (required for ONC certification)
+        echo "Testing SMART configuration..."
+        if curl -f -H "Accept: application/json" "${{ inputs.fhir_server_url }}/.well-known/smart_configuration" > testing/${{ inputs.test_stage }}/reports/inferno/smart_configuration.json; then
+          echo "✅ SMART configuration retrieved"
+        else
+          echo "⚠️ SMART configuration not available (may be expected for some implementations)"
+        fi
+
+    - name: Run Inferno ONC tests
+      id: run-tests
+      shell: bash
+      run: |
+        echo "🔥 Starting Inferno ONC Program Edition tests for ${{ inputs.test_stage }}..."
+        
+        # Create test session via Inferno API
+        echo "Creating new test session..."
+        SESSION_RESPONSE=$(curl -X POST http://localhost:4567/api/test_sessions \
+          -H "Content-Type: application/json" \
+          -d @${{ inputs.test_config_path }} \
+          --fail --silent --show-error) || {
+          echo "❌ Failed to create Inferno test session"
+          echo "Response: $SESSION_RESPONSE"
+          exit 1
+        }
+        
+        # Extract session ID from response
+        SESSION_ID=$(echo "$SESSION_RESPONSE" | jq -r '.id // empty')
+        if [ -z "$SESSION_ID" ]; then
+          echo "❌ Failed to extract session ID from response"
+          echo "Response: $SESSION_RESPONSE"
+          exit 1
+        fi
+        
+        echo "session_id=$SESSION_ID" >> $GITHUB_OUTPUT
+        echo "results_path=testing/${{ inputs.test_stage }}/reports/inferno" >> $GITHUB_OUTPUT
+        echo "✅ Test session created with ID: $SESSION_ID"
+        
+        # Start the test execution
+        echo "Starting test execution..."
+        curl -X POST "http://localhost:4567/api/test_sessions/$SESSION_ID/start" \
+          -H "Content-Type: application/json" \
+          --fail || {
+          echo "❌ Failed to start test execution"
+          exit 1
+        }
+        
+        # Monitor test progress
+        echo "⏳ Monitoring test progress..."
+        start_time=$(date +%s)
+        timeout_time=$((start_time + ${{ inputs.test_timeout }}))
+        
+        while [ $(date +%s) -lt $timeout_time ]; do
+          # Check test session status
+          STATUS_RESPONSE=$(curl -s "http://localhost:4567/api/test_sessions/$SESSION_ID" || echo "{}")
+          STATUS=$(echo "$STATUS_RESPONSE" | jq -r '.status // "unknown"')
+          
+          case "$STATUS" in
+            "completed")
+              echo "✅ Tests completed successfully"
+              break
+              ;;
+            "failed"|"error")
+              echo "❌ Tests failed or encountered an error"
+              echo "Status response: $STATUS_RESPONSE"
+              break
+              ;;
+            "running"|"started")
+              echo "🔄 Tests still running... ($(date))"
+              sleep 30
+              ;;
+            *)
+              echo "⚠️ Unknown status: $STATUS"
+              sleep 30
+              ;;
+          esac
+        done
+        
+        # Final status check
+        FINAL_STATUS=$(curl -s "http://localhost:4567/api/test_sessions/$SESSION_ID" | jq -r '.status // "timeout"')
+        if [ "$FINAL_STATUS" != "completed" ]; then
+          echo "⚠️ Tests did not complete successfully. Final status: $FINAL_STATUS"
+        fi
+        
+        echo "🔄 Downloading test results..."
+        # Download test results
+        curl -s "http://localhost:4567/api/test_sessions/$SESSION_ID/results" > testing/${{ inputs.test_stage }}/reports/inferno/test_results.json
+        curl -s "http://localhost:4567/api/test_sessions/$SESSION_ID/report" > testing/${{ inputs.test_stage }}/reports/inferno/test_report.html
+
+    - name: Analyze test results
+      id: analyze-results
+      shell: bash
+      run: |
+        echo "📊 Analyzing Inferno test results..."
+        
+        RESULTS_FILE="testing/${{ inputs.test_stage }}/reports/inferno/test_results.json"
+        
+        if [ ! -f "$RESULTS_FILE" ]; then
+          echo "❌ Test results file not found"
+          echo "status=failed" >> $GITHUB_OUTPUT
+          exit 1
+        fi
+        
+        # Parse test results
+        TOTAL_TESTS=$(jq '.test_results | length // 0' "$RESULTS_FILE")
+        PASSED_TESTS=$(jq '[.test_results[] | select(.result == "pass")] | length // 0' "$RESULTS_FILE")
+        FAILED_TESTS=$(jq '[.test_results[] | select(.result == "fail")] | length // 0' "$RESULTS_FILE")
+        SKIPPED_TESTS=$(jq '[.test_results[] | select(.result == "skip")] | length // 0' "$RESULTS_FILE")
+        
+        echo "📈 Test Results Summary:"
+        echo "   Total: $TOTAL_TESTS"
+        echo "   Passed: $PASSED_TESTS"
+        echo "   Failed: $FAILED_TESTS"
+        echo "   Skipped: $SKIPPED_TESTS"
+        
+        # Determine overall status
+        if [ "$FAILED_TESTS" -eq 0 ] && [ "$PASSED_TESTS" -gt 0 ]; then
+          OVERALL_STATUS="passed"
+          echo "✅ All tests passed!"
+        elif [ "$FAILED_TESTS" -gt 0 ]; then
+          OVERALL_STATUS="failed"
+          echo "❌ Some tests failed"
+        else
+          OVERALL_STATUS="unknown"
+          echo "⚠️ No clear test results"
+        fi
+        
+        echo "status=$OVERALL_STATUS" >> $GITHUB_OUTPUT
+
+    - name: Generate compliance report
+      shell: bash
+      run: |
+        echo "📄 Generating compliance report..."
+        
+        REPORT_FILE="testing/${{ inputs.test_stage }}/reports/inferno/compliance_report.md"
+        
+        cat > "$REPORT_FILE" << EOF
+        # ONC Inferno Compliance Report
+        
+        **Test Stage**: ${{ inputs.test_stage }}
+        **FHIR Server**: ${{ inputs.fhir_server_url }}
+        **Test Session ID**: ${{ steps.run-tests.outputs.session_id }}
+        **Generated**: $(date -u)
+        **Overall Status**: ${{ steps.analyze-results.outputs.status }}
+        
+        ## Test Configuration
+        - **Inferno Module**: ONC Program Edition
+        - **Test Focus**: $(jq -r '.inferno.test_focus // "Unknown"' ${{ inputs.test_config_path }})
+        - **Test Sequences**: $(jq -r '.inferno.sequences | length // 0' ${{ inputs.test_config_path }}) sequences configured
+        
+        ## Results Summary
+        - **Test Results**: Available in \`test_results.json\`
+        - **HTML Report**: Available in \`test_report.html\`
+        - **FHIR Capability**: Available in \`capability_statement.json\`
+        - **SMART Config**: Available in \`smart_configuration.json\`
+        
+        ## Next Steps
+        EOF
+        
+        if [ "${{ steps.analyze-results.outputs.status }}" = "passed" ]; then
+          cat >> "$REPORT_FILE" << EOF
+        ✅ **All tests passed** - Ready for ONC certification submission
+        
+        1. Review detailed test report in \`test_report.html\`
+        2. Verify all required sequences completed successfully
+        3. Prepare certification documentation
+        4. Submit to ONC for official certification review
+        EOF
+        else
+          cat >> "$REPORT_FILE" << EOF
+        ❌ **Some tests failed** - Review and address issues before certification
+        
+        1. Review failed tests in \`test_results.json\`
+        2. Check detailed error messages in \`test_report.html\`
+        3. Address compliance gaps in FHIR implementation
+        4. Re-run tests after fixes are implemented
+        EOF
+        fi
+        
+        echo "✅ Compliance report generated at $REPORT_FILE"
+
+    - name: Export container logs
+      if: always()
+      shell: bash
+      run: |
+        echo "📋 Exporting Inferno container logs..."
+        CONTAINER_NAME="inferno-${{ inputs.test_stage }}"
+        docker logs "$CONTAINER_NAME" > testing/${{ inputs.test_stage }}/reports/inferno/inferno_container.log 2>&1 || true
+        echo "✅ Container logs exported"
+
+    - name: Cleanup Inferno container
+      if: always()
+      shell: bash
+      run: |
+        echo "🧹 Cleaning up Inferno container..."
+        CONTAINER_NAME="inferno-${{ inputs.test_stage }}"
+        docker stop "$CONTAINER_NAME" || true
+        docker rm "$CONTAINER_NAME" || true
+        echo "✅ Inferno container cleaned up"

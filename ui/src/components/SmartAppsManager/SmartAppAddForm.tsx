@@ -97,7 +97,7 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
   const getServerAccessTypeDescription = (serverAccessType: ServerAccessType): string => {
     switch (serverAccessType) {
       case 'all-servers':
-        return 'App can access all FHIR servers behind the SMART proxy';
+        return 'App can access all FHIR servers behind the Proxy';
       case 'selected-servers':
         return 'App is restricted to specific FHIR servers only';
       case 'user-person-servers':
@@ -443,7 +443,7 @@ export function SmartAppAddForm({ open, onClose, onAddApp, scopeSets }: SmartApp
                   <div className="text-sm">
                     <p className="font-semibold text-green-800 dark:text-green-300 mb-1">All Server Access</p>
                     <p className="text-green-700 dark:text-green-400 text-xs">
-                      This app will have access to all FHIR servers configured behind the SMART proxy. 
+                      This app will have access to all FHIR servers configured behind the Proxy. 
                       Use this option for apps that need broad access across all healthcare data sources.
                     </p>
                   </div>

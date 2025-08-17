@@ -50,8 +50,8 @@ export function Navigation({ activeTab, onTabChange, profile, onChatToggle }: Na
   const { t } = useTranslation();
   const [showPreferences, setShowPreferences] = useState(false);
 
-  const handleSignOut = () => {
-    logout();
+  const handleSignOut = async () => {
+    await logout();
   };
 
   const handleLanguageChange = async (languageCode: string) => {

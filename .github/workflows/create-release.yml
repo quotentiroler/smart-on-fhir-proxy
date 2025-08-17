@@ -40,10 +40,21 @@ on:
       APP_PRIVATE_KEY:
         required: true
 
+    outputs:
+      release_url:
+        description: "The URL of the created release"
+        value: ${{ jobs.create-release.outputs.release_url }}
+      tag_name:
+        description: "The name of the created tag"
+        value: ${{ jobs.create-release.outputs.tag_name }}
+
 jobs:
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
+    outputs:
+      release_url: ${{ steps.create-release.outputs.url }}
+      tag_name: ${{ steps.create-release.outputs.tag_name }}
     
     steps:
       - name: Generate token
@@ -80,6 +91,7 @@ jobs:
           fi
 
       - name: Create GitHub Release
+        id: create-release
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
@@ -149,7 +161,15 @@ jobs:
           fi
 
           # Create the release
-          gh release create "v${{ inputs.version }}" \
-            --title "v${{ inputs.version }}" \
+          TAG_NAME="v${{ inputs.version }}"
+          gh release create "$TAG_NAME" \
+            --title "$TAG_NAME" \
             --notes-file release-notes.md \
             $EXTRA_ARGS
+          
+          # Get the release URL
+          RELEASE_URL="https://github.com/${{ github.repository }}/releases/tag/$TAG_NAME"
+          
+          echo "Created release: $RELEASE_URL"
+          echo "url=$RELEASE_URL" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT

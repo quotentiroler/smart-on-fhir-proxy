@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { getItem, storeItem } from '@/lib/storage';
 import {
   Table,
   TableBody,
@@ -370,9 +371,8 @@ export function ScopeManager() {
   const loadScopeSets = async () => {
     setLoading(true);
     try {
-      // Load from local storage for now - in production, this would be an API call
-      const saved = localStorage.getItem('smart-scope-sets');
-      const savedSets = saved ? JSON.parse(saved) : [];
+      // Load from encrypted storage - in production, this would be an API call
+      const savedSets = await getItem<ScopeSet[]>('smart-scope-sets') || [];
 
       // Add templates if not already present
       const templatesWithIds = SCOPE_TEMPLATES.map(template => ({
@@ -389,7 +389,7 @@ export function ScopeManager() {
       setScopeSets(allSets);
 
       // Save back with templates
-      localStorage.setItem('smart-scope-sets', JSON.stringify(allSets));
+      await storeItem('smart-scope-sets', allSets);
     } catch (error) {
       console.error('Failed to load scope sets:', error);
     } finally {
@@ -397,7 +397,7 @@ export function ScopeManager() {
     }
   };
 
-  const saveScopeSet = (scopeSet: Omit<ScopeSet, 'id' | 'createdAt' | 'updatedAt' | 'isTemplate'>) => {
+  const saveScopeSet = async (scopeSet: Omit<ScopeSet, 'id' | 'createdAt' | 'updatedAt' | 'isTemplate'>) => {
     const newSet: ScopeSet = {
       ...scopeSet,
       id: editingScope?.id || `scope-${Date.now()}`,
@@ -411,7 +411,7 @@ export function ScopeManager() {
       : [...scopeSets, newSet];
 
     setScopeSets(updatedSets);
-    localStorage.setItem('smart-scope-sets', JSON.stringify(updatedSets));
+    await storeItem('smart-scope-sets', updatedSets);
 
     // Reset builder state
     setShowBuilder(false);
@@ -420,10 +420,10 @@ export function ScopeManager() {
     setBuilderState({ context: 'patient', resource: '', permissions: [], searchParams: '', customScope: '', selectedRole: undefined });
   };
 
-  const deleteScopeSet = (id: string) => {
+  const deleteScopeSet = async (id: string) => {
     const updatedSets = scopeSets.filter(s => s.id !== id);
     setScopeSets(updatedSets);
-    localStorage.setItem('smart-scope-sets', JSON.stringify(updatedSets));
+    await storeItem('smart-scope-sets', updatedSets);
   };
 
   const validateScope = (scope: string): { valid: boolean; message: string; type: 'error' | 'warning' | 'success'; suggestions?: string[] } => {
@@ -1030,7 +1030,7 @@ export function ScopeManager() {
 
               <div className="flex gap-4 pt-4">
                 <Button
-                  onClick={() => saveScopeSet(newScopeSet)}
+                  onClick={async () => await saveScopeSet(newScopeSet)}
                   disabled={!newScopeSet.name || newScopeSet.scopes.length === 0}
                   className="px-8 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500"
                 >
@@ -1194,7 +1194,7 @@ export function ScopeManager() {
                             </DropdownMenuItem>
                             {!scopeSet.isTemplate && (
                               <DropdownMenuItem
-                                onClick={() => deleteScopeSet(scopeSet.id)}
+                                onClick={async () => await deleteScopeSet(scopeSet.id)}
                                 className="text-red-600"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />

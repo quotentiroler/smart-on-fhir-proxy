@@ -1,0 +1,172 @@
+name: Production Release
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "ui/src/lib/api-client/**"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: releases
+  cancel-in-progress: false
+
+jobs:
+  check-changes:
+    name: Check if release is needed
+    runs-on: ubuntu-latest
+    outputs:
+      should_release: ${{ steps.check.outputs.should_release }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check changed files
+        id: check
+        run: |
+          # Get list of changed files in the last commit
+          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files:"
+          echo "$CHANGED_FILES"
+
+          # Define documentation-only patterns and workflow patterns
+          DOC_PATTERNS="README\.md|\.md$|docs/|LICENSE|CHANGELOG"
+          WORKFLOW_PATTERNS="\.github/workflows/"
+
+          # Check if only documentation files or workflow files were changed
+          NON_CODE_CHANGES=$(echo "$CHANGED_FILES" | grep -vE "$DOC_PATTERNS|$WORKFLOW_PATTERNS" || true)
+
+          if [ -z "$NON_CODE_CHANGES" ]; then
+            echo "Only documentation or workflow files changed, skipping production release"
+            echo "should_release=false" >> $GITHUB_OUTPUT
+          else
+            echo "Code changes detected, proceeding with production release"
+            echo "should_release=true" >> $GITHUB_OUTPUT
+          fi
+
+  # Production releases run full security and compliance testing
+  production-release:
+    name: Production Release
+    needs: [check-changes]
+    # Only run if the last commit is not a release commit AND there are non-documentation changes
+    if: ${{ needs.check-changes.outputs.should_release == 'true' && !contains(github.event.head_commit.message, '🔄 Update version') && !contains(github.event.head_commit.message, '🤖 Update client APIs') && !contains(github.event.head_commit.message, 'Production release') && !contains(github.event.head_commit.message, '🎉') }}
+    uses: ./.github/workflows/release-orchestrator.yml
+    with:
+      release_type: "RELEASE"
+      source_branch: "main"
+      target_branch: "main"
+      should_bump_version: false
+      is_prerelease: false
+      commit_limit: 20
+    secrets:
+      APP_ID: ${{ secrets.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+  # Deploy after successful release
+  deploy-production:
+    name: Deploy Production to AWS/Azure
+    needs: [production-release]
+    uses: ./.github/workflows/deployment-strategy.yml
+    with:
+      deployment_stage: 'production'
+      app_version: ${{ needs.production-release.outputs.version }}
+      source_branch: 'main'
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+      AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+  # Test the deployed production application
+  test-production-deployment:
+    name: Test Production Deployment
+    needs: [production-release, deploy-production]
+    uses: ./.github/workflows/testing-strategy.yml
+    with:
+      test_stage: 'production'
+      deployment_target: ${{ needs.deploy-production.outputs.deployment_target }}
+      fhir_server_url: ${{ needs.deploy-production.outputs.fhir_server_url }}
+      keycloak_url: ${{ needs.deploy-production.outputs.keycloak_url }}
+      app_version: ${{ needs.production-release.outputs.version }}
+    secrets:
+      DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+  # Revert changes if production release fails
+  revert-on-failure:
+    name: Revert Changes on Failure
+    runs-on: ubuntu-latest
+    needs: [production-release, deploy-production, test-production-deployment]
+    if: ${{ failure() }}
+
+    steps:
+      - name: Generate token
+        id: generate_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.generate_token.outputs.token }}
+
+      - name: Configure git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Revert to previous commit
+        run: |
+          echo "🚨 Production release failed - creating revert commit"
+
+          # Get the commit hash we want to revert to
+          PREVIOUS_COMMIT=$(git rev-parse HEAD~1)
+          echo "Previous commit: $PREVIOUS_COMMIT"
+
+          # Create a revert commit instead of force pushing
+          git revert --no-edit HEAD
+
+          # Push the revert commit (this respects branch protection rules)
+          git push origin main
+
+          echo "✅ Successfully created revert commit for failed production release"
+
+          # Create a PR from test branch to track the failed release and retry
+          gh pr create \
+            --title "� RETRY: Production Release Failed - Using Test Branch" \
+            --body "**Production release pipeline failed and a revert commit has been created.**
+
+          **Details:**
+          - Revert commit: \`$(git rev-parse HEAD)\`
+          - Failed commit: \`$(git rev-parse HEAD~1)\`
+          - Failed workflow: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          - Timestamp: $(date -u)
+
+          **What happened:**
+          The production release pipeline failed, so the changes have been reverted from main.
+
+          **Next Steps:**
+          1. Investigate the release failure in the workflow logs
+          2. Fix any issues that caused the release to fail in the test branch
+          3. Re-test the changes thoroughly
+          4. Merge this PR when ready to retry the production release
+          
+          **This PR uses the test branch to retry the failed production release.**" \
+            --base main \
+            --head "test" \
+            --label "retry,release-failure,high-priority"
+        env:
+          GH_TOKEN: ${{ steps.generate_token.outputs.token }}

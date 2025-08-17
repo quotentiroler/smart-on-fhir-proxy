@@ -3,7 +3,7 @@ import { swagger } from '@elysiajs/swagger'
 import { cors } from '@elysiajs/cors'
 import { keycloakPlugin } from './lib/keycloak-plugin'
 import { fhirRoutes } from './routes/fhir'
-import { serverRoutes } from './routes/info'
+import { statusRoutes } from './routes/status'
 import { serverDiscoveryRoutes } from './routes/fhir-servers'
 import { oauthMonitoringRoutes } from './routes/oauth-monitoring'
 import { oauthWebSocket } from './routes/oauth-websocket'
@@ -13,6 +13,11 @@ import { authRoutes } from './routes/auth'
 import { logger } from './lib/logger'
 import { initializeServer, displayServerEndpoints } from './init'
 import { oauthMetricsLogger } from './lib/oauth-metrics-logger'
+import staticPlugin from '@elysiajs/static'
+
+// Debug CORS configuration
+console.log('[DEBUG] NODE_ENV:', process.env.NODE_ENV)
+console.log('[DEBUG] CORS origins:', config.cors.origins)
 
 const app = new Elysia({
   name: config.name,
@@ -26,7 +31,7 @@ const app = new Elysia({
   sanitize: (value) => Bun.escapeHTML(value)
 })
   .use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    origin: config.cors.origins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
@@ -34,7 +39,7 @@ const app = new Elysia({
   .use(swagger({
     documentation: {
       info: {
-        title:  config.displayName,
+        title: config.displayName,
         version: config.version,
         description: 'SMART on FHIR Proxy + Healthcare Administration API using Keycloak and Elysia',
       },
@@ -72,8 +77,9 @@ const app = new Elysia({
       ]
     }
   }))
+  .use(staticPlugin({ assets: 'public', prefix: '/' })) // Serve static files from public directory
   .use(keycloakPlugin)
-  .use(serverRoutes)// Server status and info endpoints, smart launcher, restart and shutdown too (will be moved to admin)
+  .use(statusRoutes)// Server status and info endpoints, smart launcher, restart and shutdown too (will be moved to admin)
   .use(serverDiscoveryRoutes)// Server discovery endpoints
   .use(authRoutes)
   .use(adminRoutes) //admin keycloak endpoints
@@ -88,7 +94,13 @@ initializeServer()
     await oauthMetricsLogger.initialize();
 
     try {
-      app.listen(config.port, async () => {
+      // In containerized environments (Docker/Fly.io), listen on all interfaces
+      // In local development, default to localhost only
+      const listenOptions = process.env.NODE_ENV === 'production' || process.env.DOCKER
+        ? { port: config.port, hostname: '0.0.0.0' }
+        : { port: config.port };
+
+      app.listen(listenOptions, async () => {
         logger.server.info(`🚀 Server successfully started on port ${config.port}`)
         await displayServerEndpoints()
       })
@@ -107,10 +119,10 @@ initializeServer()
         nodeVersion: process.version,
         timestamp: new Date().toISOString()
       })
-      
+
       // Check if it's a port binding issue
       if (listenError instanceof Error && (
-        listenError.message.includes('EADDRINUSE') || 
+        listenError.message.includes('EADDRINUSE') ||
         listenError.message.includes('address already in use') ||
         listenError.message.includes('bind')
       )) {
@@ -119,7 +131,7 @@ initializeServer()
         logger.server.error('   2. Change the PORT environment variable')
         logger.server.error(`   3. Or kill the process using: netstat -ano | findstr :${config.port}`)
       }
-      
+
       throw listenError
     }
   })
@@ -158,7 +170,7 @@ initializeServer()
       },
       timestamp: new Date().toISOString()
     })
-    
+
     // Provide helpful debugging information
     logger.server.error('')
     logger.server.error('🔍 Debugging steps:')
@@ -168,6 +180,6 @@ initializeServer()
     logger.server.error('   4. Ensure port is not already in use')
     logger.server.error('   5. Check network connectivity and firewall settings')
     logger.server.error('')
-    
+
     process.exit(1)
   })

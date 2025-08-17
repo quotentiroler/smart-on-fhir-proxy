@@ -1,7 +1,7 @@
 import React from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { createAuthenticatedApiClients } from '@/lib/apiClient';
+import { createAuthenticatedClientApis } from '@/lib/apiClient';
 import type { 
   GetFhirServers200Response, 
   GetFhirServers200ResponseServersInner,
@@ -90,7 +90,7 @@ export const useSmartStore = create<SmartState>()(
 
         try {
           console.debug('🔄 Fetching FHIR servers from API...');
-          const { servers } = createAuthenticatedApiClients();
+          const { servers } = await createAuthenticatedClientApis();
           const response: GetFhirServers200Response = await servers.getFhirServers();
           
           console.debug('✅ FHIR servers fetched successfully:', {
@@ -126,7 +126,7 @@ export const useSmartStore = create<SmartState>()(
 
         try {
           console.debug('🔄 Fetching healthcare users from API...');
-          const { healthcareUsers } = createAuthenticatedApiClients();
+          const { healthcareUsers } = await createAuthenticatedClientApis();
           const users = await healthcareUsers.getAdminHealthcareUsers();
           
           console.debug('✅ Healthcare users fetched successfully:', {

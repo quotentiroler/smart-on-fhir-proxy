@@ -2,7 +2,17 @@ import React from 'react';
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { openidService } from '../service/openid-service';
-import { createApiClients, setAuthErrorHandler } from '../lib/apiClient';
+import { createClientApis, setAuthErrorHandler } from '../lib/apiClient';
+import { 
+  getItem, 
+  storeItem, 
+  removeItem, 
+  getSessionItem, 
+  setSessionItem, 
+  removeSessionItem,
+  clearAllAuthData,
+  clearAuthorizationCodeData
+} from '../lib/storage';
 import type { UserProfile } from '@/lib/types/api';
 
 interface TokenData {
@@ -14,21 +24,20 @@ interface TokenData {
 
 const TOKEN_STORAGE_KEY = 'openid_tokens';
 
-const getStoredTokens = (): TokenData | null => {
+const getStoredTokens = async (): Promise<TokenData | null> => {
   try {
-    const stored = localStorage.getItem(TOKEN_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
+    return await getItem<TokenData>(TOKEN_STORAGE_KEY);
   } catch {
     return null;
   }
 };
 
-const storeTokens = (tokens: TokenData) => {
-  localStorage.setItem(TOKEN_STORAGE_KEY, JSON.stringify(tokens));
+const storeTokens = async (tokens: TokenData): Promise<void> => {
+  await storeItem(TOKEN_STORAGE_KEY, tokens);
 };
 
-const clearTokens = () => {
-  localStorage.removeItem(TOKEN_STORAGE_KEY);
+const clearTokens = async (): Promise<void> => {
+  await removeItem(TOKEN_STORAGE_KEY);
 };
 
 const isTokenValid = (tokens: TokenData): boolean => {
@@ -38,13 +47,19 @@ const isTokenValid = (tokens: TokenData): boolean => {
 };
 
 const transformUserProfile = (userInfo: Record<string, unknown>): UserProfile => {
+  const safeString = (value: unknown): string => {
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number') return String(value);
+    return '';
+  };
+
   return {
-    id: String(userInfo.sub || ''),
-    name: [{ text: String(userInfo.name || userInfo.preferred_username || userInfo.email || 'User') }],
-    username: String(userInfo.preferred_username || userInfo.email || ''),
-    email: String(userInfo.email || ''),
-    firstName: String(userInfo.given_name || ''),
-    lastName: String(userInfo.family_name || ''),
+    id: safeString(userInfo.sub) || '',
+    name: [{ text: safeString(userInfo.name || userInfo.preferred_username || userInfo.email) || 'User' }],
+    username: safeString(userInfo.preferred_username || userInfo.email) || '',
+    email: safeString(userInfo.email) || '',
+    firstName: safeString(userInfo.given_name) || '',
+    lastName: safeString(userInfo.family_name) || '',
     roles: Array.isArray(userInfo.roles) ? userInfo.roles.map(String) : [],
   };
 };
@@ -54,15 +69,17 @@ interface AuthState {
   loading: boolean;
   error: string | null;
   isAuthenticated: boolean;
-  apiClients: ReturnType<typeof createApiClients>;
+  clientApis: ReturnType<typeof createClientApis>;
+  isInitializing: boolean; // Add flag to track initialization
   
   initiateLogin: (idpHint?: string) => Promise<void>;
   exchangeCodeForToken: (code: string, codeVerifier: string) => Promise<void>;
   fetchProfile: () => Promise<void>;
   refreshTokens: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   clearError: () => void;
-  updateApiClients: () => void;
+  updateClientApis: () => Promise<void>;
+  initialize: () => Promise<void>; // Add explicit initialization method
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -73,29 +90,126 @@ export const useAuthStore = create<AuthState>()(
       loading: false,
       error: null,
       isAuthenticated: false,
-      apiClients: createApiClients(), // Initialize with no token
+      isInitializing: true,
+      clientApis: {} as ReturnType<typeof createClientApis>, // Will be properly initialized in initialize()
 
-      // Helper function to update API clients with current token
-      updateApiClients: () => {
-        const tokens = getStoredTokens();
+      // Proper initialization method that handles all auth setup
+      initialize: async () => {
+        if (!get().isInitializing) return; // Already initialized
+        
+        set({ isInitializing: true, loading: true });
+        
+        try {
+          const tokens = await getStoredTokens();
+          
+          if (!tokens) {
+            // No tokens found
+            set({ 
+              isAuthenticated: false, 
+              profile: null,
+              isInitializing: false,
+              loading: false,
+              clientApis: createClientApis()
+            });
+            return;
+          }
+
+          if (isTokenValid(tokens)) {
+            // Valid tokens found
+            set({ 
+              isAuthenticated: true,
+              clientApis: createClientApis(tokens.access_token),
+              isInitializing: false,
+              loading: false
+            });
+            
+            // Set up auth error handler
+            setAuthErrorHandler(async () => {
+              console.log('Auth error handler triggered, logging out...');
+              await get().logout();
+            });
+            
+            // Fetch profile if needed
+            if (!get().profile) {
+              await get().fetchProfile();
+            }
+            return;
+          }
+
+          // Tokens expired, try to refresh if we have refresh token
+          if (tokens.refresh_token) {
+            console.log('🔄 Tokens expired, attempting refresh...');
+            try {
+              await get().refreshTokens();
+              set({ isInitializing: false });
+              
+              // Fetch profile after successful refresh
+              if (!get().profile) {
+                await get().fetchProfile();
+              }
+            } catch (refreshError) {
+              console.warn('❌ Token refresh failed during initialization:', refreshError);
+              // Clear invalid tokens and reset state
+              await clearTokens();
+              set({ 
+                isAuthenticated: false, 
+                profile: null,
+                isInitializing: false,
+                loading: false,
+                clientApis: createClientApis()
+              });
+            }
+          } else {
+            // No refresh token, clear everything
+            console.log('❌ No refresh token available, clearing auth state');
+            await clearTokens();
+            set({ 
+              isAuthenticated: false, 
+              profile: null,
+              isInitializing: false,
+              loading: false,
+              clientApis: createClientApis()
+            });
+          }
+        } catch (error) {
+          console.error('❌ Error during auth initialization:', error);
+          await clearTokens();
+          set({ 
+            isAuthenticated: false, 
+            profile: null,
+            isInitializing: false,
+            loading: false,
+            error: 'Initialization failed',
+            clientApis: createClientApis()
+          });
+        }
+      },
+
+      // Helper function to update client APIs with current token
+      updateClientApis: async () => {
+        const tokens = await getStoredTokens();
         const token = tokens?.access_token || undefined;
-        set({ apiClients: createApiClients(token) });
+        set({ clientApis: createClientApis(token) });
         
         // Set up auth error handler each time we update clients
-        setAuthErrorHandler(() => {
+        setAuthErrorHandler(async () => {
           console.log('Auth error handler triggered, logging out...');
-          get().logout();
+          await get().logout();
         });
       },      // Actions
       initiateLogin: async (idpHint?: string) => {
         set({ loading: true, error: null });
         
         try {
+          // Clean up any existing session data before starting new login
+          removeSessionItem('pkce_code_verifier');
+          removeSessionItem('oauth_state');
+          
           const { url, codeVerifier, state } = await openidService.getAuthorizationUrl(idpHint);
           
           // Store PKCE parameters for callback
-          sessionStorage.setItem('pkce_code_verifier', codeVerifier);
-          sessionStorage.setItem('oauth_state', state);
+          setSessionItem('pkce_code_verifier', codeVerifier);
+          setSessionItem('oauth_state', state);
           
           if (idpHint) {
             console.log(`Initiating login with Identity Provider: ${idpHint}`);
@@ -105,12 +219,19 @@ export const useAuthStore = create<AuthState>()(
           window.location.href = url;
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Failed to initiate login';
+          // Clean up on error
+          removeSessionItem('pkce_code_verifier');
+          removeSessionItem('oauth_state');
           set({ loading: false, error: errorMessage });
         }
       },
 
       exchangeCodeForToken: async (code: string, codeVerifier: string) => {
-        console.log('Starting token exchange with code:', code.substring(0, 10) + '...');
+        console.log('🔄 Starting token exchange with code:', code.substring(0, 10) + '...');
+        console.log('🔑 Using code verifier:', codeVerifier.substring(0, 10) + '...');
+        console.log('📍 Current URL:', window.location.href);
+        console.log('🔗 Stored code verifier:', getSessionItem('pkce_code_verifier')?.substring(0, 10) + '...');
+        
         set({ loading: true, error: null });
 
         try {
@@ -123,21 +244,33 @@ export const useAuthStore = create<AuthState>()(
             expires_at: tokens.expires_in ? Math.floor(Date.now() / 1000) + tokens.expires_in : undefined,
           };
           
-          storeTokens(tokenData);
+          await storeTokens(tokenData);
           set({ isAuthenticated: true });
           
-          // Update API clients with new token
-          get().updateApiClients();
+          // Immediately clear authorization code data to prevent reuse
+          clearAuthorizationCodeData();
+          
+          // Update client APIs with new token
+          await get().updateClientApis();
           
           // Fetch user profile
           await get().fetchProfile();
           
           // Clear session storage
-          sessionStorage.removeItem('pkce_code_verifier');
-          sessionStorage.removeItem('oauth_state');
+          removeSessionItem('pkce_code_verifier');
+          removeSessionItem('oauth_state');
+          
+          console.log('✅ Token exchange successful!');
           
         } catch (error) {
-          console.error('Token exchange failed:', error);
+          console.error('❌ Token exchange failed:', error);
+          console.log('🔍 Failed with code:', code.substring(0, 10) + '...');
+          console.log('🔍 Failed with verifier:', codeVerifier.substring(0, 10) + '...');
+          
+          // IMPORTANT: Clean up session data even on error to prevent contamination
+          removeSessionItem('pkce_code_verifier');
+          removeSessionItem('oauth_state');
+          
           const errorMessage = error instanceof Error ? error.message : 'Token exchange failed';
           set({ 
             profile: null, 
@@ -145,7 +278,7 @@ export const useAuthStore = create<AuthState>()(
             loading: false, 
             error: errorMessage 
           });
-          clearTokens();
+          await clearTokens();
           throw error;
         } finally {
           set({ loading: false });
@@ -153,10 +286,10 @@ export const useAuthStore = create<AuthState>()(
       },
 
       fetchProfile: async () => {
-        const tokens = getStoredTokens();
+        const tokens = await getStoredTokens();
         if (!tokens || !isTokenValid(tokens)) {
           set({ profile: null, isAuthenticated: false });
-          clearTokens();
+          await clearTokens();
           return;
         }
 
@@ -179,15 +312,15 @@ export const useAuthStore = create<AuthState>()(
             loading: false, 
             error: errorMessage 
           });
-          clearTokens();
+          await clearTokens();
         }
       },
 
       refreshTokens: async () => {
-        const tokens = getStoredTokens();
+        const tokens = await getStoredTokens();
         if (!tokens?.refresh_token) {
-          get().logout();
-          return;
+          console.warn('No refresh token available');
+          throw new Error('No refresh token available');
         }
 
         set({ loading: true, error: null });
@@ -202,50 +335,54 @@ export const useAuthStore = create<AuthState>()(
             expires_at: newTokens.expires_in ? Math.floor(Date.now() / 1000) + newTokens.expires_in : undefined,
           };
           
-          storeTokens(tokenData);
+          await storeTokens(tokenData);
           set({ isAuthenticated: true, loading: false });
           
           // Update API clients with refreshed token
-          get().updateApiClients();
+          await get().updateClientApis();
           
+          console.debug('✅ Tokens refreshed successfully');
         } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : 'Token refresh failed';
-          set({ 
-            profile: null, 
-            isAuthenticated: false, 
-            loading: false, 
-            error: errorMessage 
-          });
-          clearTokens();
+          console.error('❌ Token refresh failed:', error);
+          set({ loading: false });
+          // Don't automatically logout here - let the API client handle that
+          // This prevents competing logout calls
+          throw error;
         }
       },
 
-      logout: () => {
-        const tokens = getStoredTokens();
+      logout: async () => {
+        const tokens = await getStoredTokens();
         
-        console.log('Initiating logout with tokens:', {
+        console.log('🚪 Initiating logout with tokens:', {
           hasAccessToken: !!tokens?.access_token,
           hasIdToken: !!tokens?.id_token,
           hasRefreshToken: !!tokens?.refresh_token
         });
         
+        // Clear all auth state immediately
         set({ 
           profile: null, 
           isAuthenticated: false, 
           error: null, 
-          loading: false 
+          loading: false,
+          isInitializing: true // Reset to allow fresh initialization
         });
         
-        // Update API clients to have no token
-        get().updateApiClients();
+        // Update client APIs to have no token
+        await get().updateClientApis();
         
-        clearTokens();
-        sessionStorage.removeItem('pkce_code_verifier');
-        sessionStorage.removeItem('oauth_state');
+        // Clear all stored tokens and session data using the centralized utility
+        await clearAllAuthData();
         
-        // Redirect to logout URL
+        // Add a small delay to ensure all cleanup is complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Generate logout URL with additional parameters for better cleanup
         const logoutUrl = openidService.getLogoutUrl(tokens?.id_token);
-        console.log('Logout URL:', logoutUrl);
+        console.log('🔗 Logout URL:', logoutUrl);
+        
+        // Force a complete page reload after logout to ensure clean state
         window.location.href = logoutUrl;
       },
 
@@ -256,59 +393,38 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'auth-store',
       storage: createJSONStorage(() => localStorage),
-      // Only persist profile and isAuthenticated, not loading/error states or apiClients
+      // Only persist profile and isAuthenticated, not loading/error states or clientApis
       partialize: (state) => ({ 
         profile: state.profile, 
         isAuthenticated: state.isAuthenticated 
       }),
-      // On rehydration, check if tokens still exist and are valid
+      // On rehydration, just trigger initialization
       onRehydrateStorage: () => (state) => {
         if (state) {
-          const tokens = getStoredTokens();
-          if (!tokens || !isTokenValid(tokens)) {
-            console.log('❌ Invalid or missing tokens, clearing auth state');
-            state.profile = null;
-            state.isAuthenticated = false;
-            state.apiClients = createApiClients(); // No token
-            clearTokens();
-          } else {
-            // Update API clients with current token
-            state.apiClients = createApiClients(tokens.access_token);
-            // Set up auth error handler for rehydrated clients
-            setAuthErrorHandler(() => {
-              console.log('Auth error handler triggered during rehydration, logging out...');
-              useAuthStore.getState().logout();
-            });
-          }
-        } else {
-          console.log('⚠️ No state found during rehydration');
+          // Reset initialization flag and trigger proper initialization
+          state.isInitializing = true;
+          state.clientApis = createClientApis(); // Start with no token
+          
+          // Trigger initialization after rehydration is complete
+          setTimeout(() => {
+            useAuthStore.getState().initialize();
+          }, 0);
         }
       },
     }
   )
 );
 
-// Custom hook that automatically handles token refresh and profile fetching
+// Custom hook that properly initializes auth state
 export const useAuth = () => {
   const store = useAuthStore();
-  const { isAuthenticated, profile, loading } = store;
   
   React.useEffect(() => {
-    const tokens = getStoredTokens();
-    
-    if (tokens && isTokenValid(tokens)) {
-      // Auto-fetch profile if authenticated but no profile exists
-      if (isAuthenticated && !profile && !loading) {
-        store.fetchProfile();
-      }
-    } else if (tokens && !isTokenValid(tokens) && tokens.refresh_token) {
-      // Try to refresh tokens if they're expired but we have a refresh token
-      store.refreshTokens();
-    } else if (tokens && !isTokenValid(tokens)) {
-      // Clear invalid tokens
-      store.logout();
+    // Only initialize if we haven't started initialization yet
+    if (store.isInitializing && !store.loading) {
+      store.initialize();
     }
-  }, [isAuthenticated, profile, loading, store]);
+  }, [store]);
 
   return store;
 };

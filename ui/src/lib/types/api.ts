@@ -18,9 +18,9 @@ import type {
     GetMonitoringOauthAnalytics200ResponseHourlyStatsInner,
     GetStatus200Response,
     GetHealth200Response,
-    GetStatus200ResponseServer,
     GetStatus200ResponseFhir,
     GetStatus200ResponseKeycloak,
+    GetStatus200ResponseMemory,
     GetAdminLaunchContexts200ResponseInner,
     PostAdminLaunchContextsByUserIdFhirContextRequest,
     GetAdminRoles200ResponseInner,
@@ -34,17 +34,14 @@ import type {
     PostAuthToken200ResponseFhirContextInner,
     GetFhirServers200ResponseServersInnerEndpoints,
     GetMonitoringOauthEvents200ResponseEventsInnerFhirContext,
-    GetHealth200ResponseFhirServers,
-    GetHealth200ResponseFhirServersServersInner,
-    GetHealth200ResponseMemory,
     PostAuthIntrospect200Response,
     PostAuthRegisterRequest,
-    PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response,
-    PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseServerInfo,
     GetFhirServers200Response,
     GetAdminKeycloakConfigStatus200Response,
     GetMonitoringOauthEvents200Response,
     GetFhirServersByServerId200Response,
+    PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200Response,
+    PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200ResponseServerInfo,
 } from '../api-client';
 
 export type {
@@ -79,12 +76,9 @@ export type {
     // System Health
     GetStatus200Response as SystemStatus,
     GetHealth200Response as SystemHealth,
-    GetStatus200ResponseServer as ServerStatus,
     GetStatus200ResponseFhir as FhirStatus,
     GetStatus200ResponseKeycloak as KeycloakStatus,
-    GetHealth200ResponseFhirServers as FhirServersHealth,
-    GetHealth200ResponseFhirServersServersInner as FhirServerHealth,
-    GetHealth200ResponseMemory as MemoryHealth,
+    GetStatus200ResponseMemory as MemoryHealth,
     
     // Launch Contexts
     GetAdminLaunchContexts200ResponseInner as LaunchContext,
@@ -107,8 +101,8 @@ export type {
     GetAdminClientRegistrationSettings200Response as ClientRegistrationSettings,
     
     // FHIR Proxy & Cache
-    PostSmartProxyByServerNameByFhirVersionCacheRefresh200Response as CacheRefreshResponse,
-    PostSmartProxyByServerNameByFhirVersionCacheRefresh200ResponseServerInfo as CacheServerInfo,
+    PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200Response as CacheRefreshResponse,
+    PostProxySmartBackendByServerNameByFhirVersionCacheRefresh200ResponseServerInfo as CacheServerInfo,
     
     // FHIR Server Management
     GetFhirServers200Response as FhirServersListResponse,

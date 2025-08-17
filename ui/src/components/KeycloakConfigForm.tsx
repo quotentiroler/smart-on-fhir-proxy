@@ -10,7 +10,7 @@ import {
   Shield,
   Info
 } from 'lucide-react';
-import { createApiClients } from '@/lib/apiClient';
+import { createClientApis } from '@/lib/apiClient';
 import { useTranslation } from 'react-i18next';
 
 interface KeycloakConfigFormProps {
@@ -29,7 +29,7 @@ export function KeycloakConfigForm({ onSuccess, onCancel }: KeycloakConfigFormPr
   const [error, setError] = useState<string | null>(null);
   const { t } = useTranslation();
 
-  const apiClients = createApiClients(); // No auth needed for these endpoints
+  const clientApis = createClientApis(); // No auth needed for these endpoints
 
   const handleTest = async () => {
     if (!baseUrl.trim() || !realm.trim()) {
@@ -42,7 +42,7 @@ export function KeycloakConfigForm({ onSuccess, onCancel }: KeycloakConfigFormPr
     setError(null);
 
     try {
-      const result = await apiClients.admin.postAdminKeycloakConfigTest({
+      const result = await clientApis.admin.postAdminKeycloakConfigTest({
         postAdminKeycloakConfigTestRequest: {
           baseUrl: baseUrl.trim(),
           realm: realm.trim()
@@ -74,7 +74,7 @@ export function KeycloakConfigForm({ onSuccess, onCancel }: KeycloakConfigFormPr
     setError(null);
 
     try {
-      const result = await apiClients.admin.postAdminKeycloakConfigConfigure({
+      const result = await clientApis.admin.postAdminKeycloakConfigConfigure({
         postAdminKeycloakConfigConfigureRequest: {
           baseUrl: baseUrl.trim(),
           realm: realm.trim(),

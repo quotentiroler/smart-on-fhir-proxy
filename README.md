@@ -1,10 +1,8 @@
 # Proxy Smart
 
-A comprehensive healthcare application platform implementing SMART App Launch Framework 2.2.0 with advanced administrative capabilities, AI-powered assistance, and enterprise-grade security.
+**Secure any FHIR server in minutes!** A comprehensive healthcare platform that transforms unsecured FHIR servers into SMART-compliant, OAuth 2.0 protected endpoints with enterprise-grade security, user management, and AI-powered administration.
 
-**Proxy smart, not hard!** 🚀
-
-[![Version](https://img.shields.io/badge/v0.0.1-RELEASE-blue.svg)](https://github.com/quotentiroler/proxy-smart)
+[![Version](https://img.shields.io/badge/v0.0.1-alpha-blue.svg)](https://github.com/quotentiroler/proxy-smart)
 [![SMART App Launch](https://img.shields.io/badge/SMART%20App%20Launch-2.2.0-green.svg)](http://hl7.org/fhir/smart-app-launch/)
 [![FHIR](https://img.shields.io/badge/FHIR-R4%2FR4B-orange.svg)](https://hl7.org/fhir/R4/)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
@@ -12,11 +10,31 @@ A comprehensive healthcare application platform implementing SMART App Launch Fr
 
 ## 🏥 Overview
 
-Proxy Smart is an Open Source solution for managing healthcare applications, users, and FHIR servers in compliance with the SMART App Launch framework. It provides secure OAuth 2.0 flows, comprehensive user management, real-time monitoring, and an AI-powered administrative assistant.
+Proxy Smart is an Open Source **stateless proxy solution** that makes it **incredibly easy to secure any FHIR server** with enterprise-grade OAuth 2.0 authentication and SMART App Launch compliance. 
+
+### 🚀 **Secure Any FHIR Server in Minutes**
+
+**All you need is:**
+- ✅ **Any FHIR server** (HAPI FHIR, Microsoft FHIR, AWS HealthLake, etc.)
+- ✅ **A running Keycloak instance** (included in our Docker setup)
+- ✅ **Proxy Smart** (this application)
+
+**That's it!** No vendor lock-in, no data migration required.
+
+### 🔄 Stateless Proxy Architecture
+
+**No Data Storage**: Proxy Smart acts as a secure intermediary that routes FHIR requests without storing patient data or clinical information. All FHIR resources remain on your existing servers.
+
+**Real-time Routing**: Every request is processed and forwarded in real-time to the appropriate FHIR server, ensuring data freshness and compliance with source systems.
+
+**Zero Data Persistence**: The proxy maintains no clinical data state between requests, providing enhanced security and simplified compliance requirements.
+
+**Audit & Monitoring**: While clinical data flows through without storage, the proxy can optionally log request metadata, OAuth flows, and access patterns for monitoring and compliance auditing.
 
 ### Key Features
 
 - **🔐 Complete OAuth 2.0 & SMART Authorization**: Full implementation of SMART App Launch Framework 2.2.0
+- **🔄 Stateless FHIR Proxy**: Secure request routing without data persistence
 - **👥 Healthcare User Management**: Comprehensive lifecycle management with FHIR resource associations
 - **🏥 Multi-FHIR Server Support**: Health monitoring, configuration, and proxy capabilities
 - **📱 SMART App Registry**: Application registration with granular scope management
@@ -27,6 +45,16 @@ Proxy Smart is an Open Source solution for managing healthcare applications, use
 - **🚀 Automated CI/CD Pipeline**: Multi-branch versioning with GitHub Actions
 
 ## 🏗️ Architecture
+
+Proxy Smart implements a **stateless proxy architecture** that sits between SMART applications and FHIR servers, providing authentication, authorization, and monitoring without storing clinical data.
+
+### 🔄 Proxy Flow
+
+```
+SMART App → Proxy Smart (Auth + Route) → FHIR Server → Response → Proxy Smart → SMART App
+```
+
+**Key Principle**: Every FHIR request flows through the proxy for authentication and routing, but **no clinical data is stored or cached** in the proxy layer. Optional audit logging captures request metadata for compliance and monitoring without storing clinical content.
 
 ```mermaid
 graph TB
@@ -56,7 +84,7 @@ graph TB
     end
   
     subgraph "AI & Intelligence"
-        N["AI Assistant<br/>OpenAI GPT-4o-mini"]
+        N["AI Assistant<br/>OpenAI gpt-5-mini"]
         O["Real-time Analytics<br/>OAuth Monitoring"]
         P["RAG System<br/>Documentation Knowledge"]
         Q["Predictive Insights<br/>Usage Patterns"]
@@ -127,13 +155,34 @@ graph TB
 
 ### Technology Stack
 
-- **Backend**: Node.js, TypeScript, Elysia, Bun
+- **Proxy Layer**: Node.js, TypeScript, Elysia, Bun (stateless request processing)
 - **Frontend**: React, Vite, TypeScript, Tailwind CSS
-- **Identity**: Keycloak with PostgreSQL
-- **AI**: OpenAI GPT-4o-mini with RAG
+- **Identity**: Keycloak with PostgreSQL (user management only, no clinical data)
+- **AI**: OpenAI gpt-5-mini with RAG
 - **Monitoring**: WebSocket, Real-time dashboards
 - **Testing**: Jest, Playwright, Comprehensive test suites
 - **Deployment**: Docker, GitHub Actions CI/CD
+
+**Note**: PostgreSQL stores only user management and configuration data. All clinical/FHIR data remains on source FHIR servers.
+
+## ✨ Why Stateless Proxy?
+
+### 🔒 Enhanced Security
+- **No Data Exposure**: Clinical data never resides in the proxy, reducing attack surface
+- **Compliance Simplified**: Easier HIPAA, GDPR compliance with no clinical data storage
+- **Zero Data Breach Risk**: No clinical data to compromise in the proxy layer
+- **Audit Trail**: Optional logging of access patterns and OAuth flows for compliance monitoring
+
+### ⚡ Performance Benefits
+- **Real-time Data**: Always current data from source FHIR servers
+- **Scalable**: Stateless design enables horizontal scaling without data synchronization
+- **Low Latency**: Direct routing without database lookups for FHIR requests
+
+### 🛠️ Operational Advantages
+- **Simple Backup**: Only configuration, user data, and optional audit logs - not terabytes of clinical data
+- **Easy Migration**: Proxy can be moved/replicated without clinical data concerns
+- **Minimal Storage**: Dramatically reduced infrastructure requirements
+- **Configurable Logging**: Enable detailed audit trails when needed for compliance without affecting performance
 
 ## 🚀 Quick Start
 
@@ -156,7 +205,7 @@ graph TB
 
    ```bash
    # Start all services with Docker
-   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+   bun docker:dev
 
    # Install dependencies
    bun install
@@ -263,12 +312,101 @@ bun run test:smart-flows        # SMART App Launch tests
 bun run test:backend-services   # Backend API tests
 
 # API Generation
-bun run generate                # Generate API clients
+bun run generate                # Generate client APIs
 bun run validate-api            # Validate OpenAPI specs
 
 # Version Management
 bun run version:sync            # Sync all package.json versions
 bun run version:bump patch      # Bump patch version
+```
+
+### Docker Commands
+
+Proxy Smart provides multiple Docker deployment strategies for different use cases:
+
+```bash
+# Hot-Reload Environment: (Single Container Mode, No UI Hot-Reload)
+docker compose up
+bun run dev:mono
+
+# Hot-Reload Environment: (Separated Services)
+docker compose up
+bun run dev
+
+# Development Environment (Single Container Mode)
+bun run docker:dev              # Start dev containers with mono app
+bun run docker:dev:build        # Build and start dev containers
+bun run docker:dev:down         # Stop dev containers
+bun run docker:dev:logs         # View dev container logs
+
+# Production Environment (Separated Services)
+bun run docker:prod             # Start production containers
+bun run docker:prod:build       # Build and start production containers
+bun run docker:prod:down        # Stop production containers
+bun run docker:prod:logs        # View production container logs
+
+# Individual Container Builds
+bun run docker:backend          # Build backend container only
+bun run docker:ui               # Build UI container only
+bun run docker:mono             # Build monolithic container
+
+# Base Docker Commands
+bun run docker:up               # Start default containers
+bun run docker:down             # Stop default containers
+bun run docker:logs             # View default container logs
+```
+
+### Docker Deployment Modes
+
+#### 1. Development Mode (`docker:dev`)
+- **File**: `docker-compose.development.yml`
+- **Architecture**: Monolithic container (UI + Backend in one)
+- **Use Case**: Local development and testing
+- **Services**:
+  - `app`: Mono container (Backend + UI at `/webapp/`)
+  - `keycloak`: Identity provider
+  - `postgres`: Database
+- **URLs**:
+  - Application: http://localhost:8445
+  - UI: http://localhost:8445/webapp/
+  - Keycloak: http://localhost:8080
+
+#### 2. Production Mode (`docker:prod`)
+- **File**: `docker-compose.prod.yml`
+- **Architecture**: Microservices (separate containers)
+- **Use Case**: Production deployment and staging
+- **Services**:
+  - `backend`: API server only
+  - `frontend`: Nginx serving React SPA
+  - `keycloak`: Identity provider
+  - `postgres`: Database
+- **URLs**:
+  - Backend API: http://localhost:8445
+  - Frontend UI: http://localhost:3000
+  - Keycloak: http://localhost:8080
+
+#### 3. Default Mode (`docker:up`)
+- **File**: `docker-compose.yml`
+- **Architecture**: Basic development setup
+- **Use Case**: Simple local testing
+- **Services**: Core services without application
+
+### Quick Start Examples
+
+```bash
+# 🚀 Fastest setup - Development mode
+bun run docker:dev:build
+# ➜ Visit http://localhost:8445/webapp/
+
+# 🏭 Production-like setup - Separated services
+bun run docker:prod:build
+# ➜ Frontend: http://localhost:3000
+# ➜ Backend: http://localhost:8445
+
+# 🔧 Build individual components
+bun run docker:backend          # Just the API
+bun run docker:ui               # Just the frontend
+bun run docker:mono             # All-in-one container
 ```
 
 ### Branching Strategy
@@ -290,8 +428,6 @@ Each branch automatically triggers appropriate CI/CD workflows with version mana
 - Administrative API with generated clients
 - Docker containerization and development environment
 - Comprehensive documentation structure
-- AI assistant integration framework
-- GitHub Release and Versioning Pipeline
 
 ### 🚧 In Progress (v0.0.2-v0.0.8)
 
@@ -338,29 +474,6 @@ Each branch automatically triggers appropriate CI/CD workflows with version mana
 - Backend services authentication
 - Agent-based authorization patterns
 
-## 🧪 Testing
-
-The platform includes comprehensive testing across all layers:
-
-### Test Categories
-
-- **Unit Tests**: Core logic and utilities
-- **Integration Tests**: API endpoints and flows
-- **SMART Flow Tests**: Complete authorization workflows
-- **Security Tests**: OAuth vulnerabilities and compliance
-- **End-to-End Tests**: Full user journey validation
-
-### Running Tests
-
-```bash
-# All tests
-bun run test
-
-# Specific test suites
-bun run test:smart-flows        # SMART App Launch workflows
-bun run test:backend-services   # Backend API integration
-bun run test:oauth-security     # Security validation
-```
 
 ## 📈 Monitoring & Analytics
 
@@ -386,7 +499,6 @@ We welcome contributions! Please see our contributing guidelines and:
 1. Fork the repository
 2. Create a feature branch (`dev/feature-name`)
 3. Make your changes with tests
-4. Submit a pull request to `develop`
 
 ### Development Guidelines
 

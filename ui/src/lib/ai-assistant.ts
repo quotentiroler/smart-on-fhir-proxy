@@ -45,7 +45,8 @@ class SmartOnFHIRAIAssistant {
       });
     }
     this.initializeKnowledgeBase();
-    this.initializeEmbeddingModel();
+    // Don't auto-initialize embedding model - wait for first use
+    // this.initializeEmbeddingModel();
   }
 
   private async initializeEmbeddingModel() {
@@ -355,7 +356,7 @@ Context (with relevance scores):
 ${context}`;
 
         const completion = await this.openai.chat.completions.create({
-          model: "gpt-4o-mini",
+          model: "gpt-5-mini",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: userMessage }
