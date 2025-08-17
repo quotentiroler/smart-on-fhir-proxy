@@ -1,42 +1,34 @@
 # Junior AI Setup Guide
 
-## Quick Start
+## 🚀 Quick Start (Modern UV Setup - Recommended)
 
-### Option 1: Basic Setup (Recommended)
+We've migrated to **Astral UV** for 10-50x faster dependency installation! 
+
+### Option 1: Modern UV Setup (Fastest)
 ```bash
 cd scripts
-pip install -r requirements.txt
+python install-dev.py --mode=full
 ```
 This gives you:
-- ✅ Web scraping (BeautifulSoup)
-- ✅ Browser automation (Playwright)  
-- ✅ Text-based search
-- ✅ Dynamic tool creation
-- ✅ Friend AI collaboration
-- ❌ No semantic search (falls back to text search)
+- ⚡ **Ultra-fast installation** with UV (10-50x faster than pip)
+- ✅ All core features (web scraping, browser automation, text search)
+- ✅ Development tools (pytest, black, ruff)
+- ✅ Optional semantic search setup
+- 📦 Modern Python project structure
 
-### Option 2: Full Setup with Semantic Search
+### Option 2: Basic UV Setup
 ```bash
 cd scripts
-python setup.py
+python install-dev.py --mode=basic
 ```
-Interactive setup that asks if you want semantic search (~100MB extra).
 
-### Option 3: Manual Full Setup
+### Option 3: Legacy pip Setup (Fallback)
 ```bash
 cd scripts
-# Install CPU-only PyTorch first
-pip install torch --index-url https://download.pytorch.org/whl/cpu
-
-# Install ML libraries
-pip install sentence-transformers scikit-learn
-
-# Install core dependencies
 pip install -r requirements.txt
-
-# Install Playwright browsers
-playwright install
 ```
+
+> 📖 **See [UV_MIGRATION_GUIDE.md](UV_MIGRATION_GUIDE.md) for complete migration details**
 
 ## What You Get
 

@@ -243,8 +243,6 @@ Remember: Focus on creating tests that actually verify important behavior, not j
         if not self.api_key:
             return {"analysis": "No API key provided", "fixes": []}
         
-        print("🧪 Test-Enhanced Junior AI starting analysis...", file=sys.stderr)
-        
         # Detect component type and test scenario
         component_type = self.detect_component_type(error_log)
         test_scenario = self.detect_test_scenario(error_log)
