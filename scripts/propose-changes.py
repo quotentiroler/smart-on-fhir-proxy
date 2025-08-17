@@ -889,82 +889,69 @@ class UnifiedChangeProposer:
         self.friend_conversations = []  # Store friend AI conversations
         self.collaboration_session = None  # Initialize on first use
         
-    def compress_conversation_context(self, messages: list, max_recent_tools: int = 2) -> list:
-        """Enhanced RAG-aware compression to stay within token limits with intelligent summarization"""
-        if len(messages) <= 6:  # System + user + minimal exchanges
+    def compress_conversation_context(self, messages: list, max_recent_tools: int = 1) -> list:
+        """AGGRESSIVE token compression - drastically reduce context to stay under limits"""
+        if len(messages) <= 4:  # System + user + minimal exchanges
             return messages
         
         # Always keep system message and initial user message
         compressed = messages[:2]
         
-        # Separate message types for intelligent processing
+        # Separate message types for aggressive processing
         tool_messages = []
         regular_messages = []
-        key_findings = []
         
         for msg in messages[2:]:
             if msg.get("role") in ["assistant", "tool"] and ("tool_calls" in msg or msg.get("role") == "tool"):
                 tool_messages.append(msg)
-                # Extract key insights from tool results
-                if msg.get("role") == "tool" and "content" in msg:
-                    content = str(msg["content"])
-                    # Look for important patterns in tool output
-                    if any(keyword in content.lower() for keyword in ["error", "failed", "missing", "coverage", "test", "issue", "bug"]):
-                        key_findings.append(content[:200] + "...")
             else:
                 regular_messages.append(msg)
         
-        # Keep only the most recent tool interactions (more aggressive compression)
-        recent_tools = tool_messages[-max_recent_tools*2:] if tool_messages else []
+        # ULTRA-AGGRESSIVE: Keep only the LAST tool interaction (1 call + 1 response = 2 messages)
+        recent_tools = tool_messages[-2:] if tool_messages else []
         
-        # Create comprehensive summary of earlier exploration with RAG context
-        if len(tool_messages) > max_recent_tools*2:
-            explored_files = []
-            explored_components = []
-            critical_issues = []
-            
-            # Extract context from earlier tool messages
-            for msg in tool_messages[:-max_recent_tools*2]:
-                if msg.get("role") == "tool" and "content" in msg:
-                    content = str(msg["content"])
-                    # Extract file paths
-                    if "file" in content.lower() or "/" in content:
-                        lines = content.split('\n')[:3]  # First few lines often contain paths
-                        explored_files.extend([line for line in lines if "/" in line or "\\" in line])
-                    # Extract error patterns
-                    if any(keyword in content.lower() for keyword in ["error", "failed", "coverage", "missing"]):
-                        critical_issues.append(content[:150])
-            
-            # Create intelligent summary with RAG context
-            summary_parts = [
-                f"🗜️ CONTEXT COMPRESSION ACTIVE: Processed {len(tool_messages)//2} exploration iterations",
-                f"📁 Files explored: {len(set(explored_files[:10]))} components",
-            ]
-            
-            if critical_issues:
-                summary_parts.append(f"⚠️ Key issues found: {len(critical_issues)} critical patterns identified")
-                summary_parts.append(f"📋 Issue samples: {'; '.join(critical_issues[:2])}")
-            
-            if key_findings:
-                summary_parts.append(f"🔍 Key findings: {'; '.join(key_findings[:3])}")
-            
-            summary_parts.extend([
-                "💡 RAG STATUS: semantic_search tool available for deep code analysis",
-                "🎯 FOCUS: Recent tool interactions contain the most relevant context",
-                "📈 STRATEGY: Use semantic_search if you need specific code patterns or functions"
-            ])
-            
+        # COMPRESS tool response content to prevent token explosion
+        compressed_tools = []
+        for msg in recent_tools:
+            if msg.get("role") == "tool" and "content" in msg:
+                # Drastically truncate tool response content
+                original_content = str(msg["content"])
+                if len(original_content) > 1000:  # If content is large
+                    # Extract only key information
+                    lines = original_content.split('\n')
+                    key_lines = []
+                    for line in lines[:20]:  # Only first 20 lines
+                        if any(keyword in line.lower() for keyword in 
+                               ["error", "failed", "test", "import", "export", "function", "class", "interface"]):
+                            key_lines.append(line)
+                    
+                    truncated_content = '\n'.join(key_lines[:10]) + f"\n\n[TRUNCATED: {len(original_content)} chars → {len('\n'.join(key_lines[:10]))} chars for token efficiency]"
+                    
+                    compressed_msg = msg.copy()
+                    compressed_msg["content"] = truncated_content
+                    compressed_tools.append(compressed_msg)
+                else:
+                    compressed_tools.append(msg)  # Keep small responses as-is
+            else:
+                compressed_tools.append(msg)  # Keep assistant messages as-is
+        
+        # Create MINIMAL summary of earlier exploration
+        if len(tool_messages) > 2:
+            explored_count = len(tool_messages) // 2
             summary_msg = {
                 "role": "assistant", 
-                "content": "\n".join(summary_parts)
+                "content": f"🗜️ AGGRESSIVE COMPRESSION: Explored {explored_count} tools/files. Key context preserved in recent messages. Continue focused exploration or synthesize findings."
             }
             compressed.append(summary_msg)
         
-        # Add recent tool interactions and only the most recent regular message
-        compressed.extend(recent_tools)
-        compressed.extend(regular_messages[-1:])  # Only keep last regular message
+        # Add compressed recent tools and NO regular messages (too much content)
+        compressed.extend(compressed_tools)
         
-        print(f"🗜️ Context compression: {len(messages)} → {len(compressed)} messages", file=sys.stderr)
+        # Calculate rough token reduction
+        original_size = sum(len(str(msg.get("content", ""))) for msg in messages)
+        compressed_size = sum(len(str(msg.get("content", ""))) for msg in compressed)
+        
+        print(f"🗜️ AGGRESSIVE compression: {len(messages)} → {len(compressed)} messages, ~{original_size} → ~{compressed_size} chars", file=sys.stderr)
         
         return compressed
         
@@ -1789,17 +1776,25 @@ Remember: BASE TOOLS = Your workshop foundation, CUSTOM TOOLS = Your specialized
             iteration += 1
             print(f"🔄 AI Iteration {iteration}", file=sys.stderr)
             
-            # Compress context to manage token usage (every few iterations)
-            if iteration > 3 and len(payload["messages"]) > 8:
+            # AGGRESSIVE compression to manage token usage (every 2 iterations after the 2nd)
+            if iteration > 2 and len(payload["messages"]) > 5:
                 original_count = len(payload["messages"])
                 payload["messages"] = self.compress_conversation_context(payload["messages"])
                 compressed_count = len(payload["messages"])
                 if compressed_count < original_count:
                     print(f"🗜️ Compressed context: {original_count} → {compressed_count} messages", file=sys.stderr)
             
-            # RAG-enhanced token management: If we've done significant exploration (>12 iterations),
+            # EARLY synthesis trigger to prevent token explosion
+            if iteration > 6:
+                print(f"🎯 EARLY SYNTHESIS TRIGGER: Requesting completion at iteration {iteration}", file=sys.stderr)
+                payload["messages"].append({
+                    "role": "user",
+                    "content": f"🎯 SYNTHESIS REQUIRED (Iteration {iteration}): You've explored enough. Please provide your final JSON analysis and changes now. Focus on the most critical 2-3 changes needed. Return complete JSON response - no more exploration."
+                })
+                
+            # RAG-enhanced token management: If we've done significant exploration (>8 iterations),
             # trigger aggressive RAG-based synthesis with focused context retrieval
-            if iteration > 12:
+            if iteration > 8:
                 print(f"🧠 RAG-Enhanced Mode: Triggering focused synthesis after {iteration} iterations", file=sys.stderr)
                 
                 # Extract key search terms from the conversation for RAG
