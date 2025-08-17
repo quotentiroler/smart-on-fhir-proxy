@@ -1,7 +1,7 @@
 === BACKEND TEST COVERAGE ENHANCEMENT ===
 Component: Backend (Node.js/TypeScript)
 Task: Generate missing tests to improve code coverage
-Current coverage: %
+Current coverage: 23.86%
 Target coverage: 80%
 Framework: Bun Test + Elysia + Eden Treaty
 
@@ -12,6 +12,7 @@ COVERAGE GAPS TO ADDRESS:
 - Add integration tests for API endpoints
 - Test middleware and validation logic
 
+UNCOVERED/LOW COVERAGE FILES:
 
 EXISTING TEST PATTERNS (for reference):
 Example test file: ../backend/test/status.test.ts
